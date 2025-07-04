@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useTonConnectUI } from '@tonconnect/ui-react';
+
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { fetchBalance, type Balance } from '@/services/balanceService';
 import { 
@@ -171,7 +171,6 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: React.ReactNode }) {
   // Инициализация хуков
   const queryClient = useQueryClient();
-  const [tonConnectUI] = useTonConnectUI();
   
   // Создаем состояние с помощью useReducer
   const [state, dispatch] = useReducer(userReducer, initialState);
@@ -440,71 +439,26 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.userId]);
   
-  // Функции работы с кошельком
+  // Функции работы с кошельком (временно отключены)
   const connectWallet = useCallback(async (): Promise<boolean> => {
-    try {
-      await connectTonWallet(tonConnectUI);
-      
-      const connected = isWalletConnected(tonConnectUI);
-      if (connected) {
-        const address = getWalletAddress(tonConnectUI);
-        
-        dispatch({
-          type: 'SET_WALLET_CONNECTED',
-          payload: { connected: true, address }
-        });
-        
-        return true;
-      }
-      
-      return false;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Ошибка подключения кошелька');
-      console.error('[UserContext] Ошибка подключения кошелька:', error);
-      // Не блокируем интерфейс, просто логируем ошибку
-      dispatch({ type: 'SET_ERROR', payload: null });
-      return false;
-    }
-  }, [tonConnectUI]);
+    console.log('[UserContext] TonConnect временно отключен для диагностики');
+    return false;
+  }, []);
   
   const disconnectWallet = useCallback(async (): Promise<void> => {
-    try {
-      await disconnectTonWallet(tonConnectUI);
-      
-      dispatch({
-        type: 'SET_WALLET_CONNECTED',
-        payload: { connected: false, address: null }
-      });
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Ошибка отключения кошелька');
-      console.error('[UserContext] Ошибка отключения кошелька:', error);
-      // Не блокируем интерфейс, просто логируем ошибку
-      dispatch({ type: 'SET_ERROR', payload: null });
-    }
-  }, [tonConnectUI]);
+    console.log('[UserContext] TonConnect временно отключен для диагностики');
+    dispatch({
+      type: 'SET_WALLET_CONNECTED',
+      payload: { connected: false, address: null }
+    });
+  }, []);
   
-  // Проверяем статус подключения кошелька
+  // Проверяем статус подключения кошелька (временно отключено)
   useEffect(() => {
     if (initializedRef.current) return;
-    
-    try {
-      // Проверяем, подключен ли кошелек
-      const connected = isWalletConnected(tonConnectUI);
-      if (connected) {
-        const address = getWalletAddress(tonConnectUI);
-        
-        // Кошелек уже подключен, устанавливаем состояние
-        dispatch({
-          type: 'SET_WALLET_CONNECTED',
-          payload: { connected: true, address }
-        });
-      }
-    } catch (err) {
-      console.error('[UserContext] Ошибка при проверке статуса кошелька:', err);
-    }
-    
+    console.log('[UserContext] TonConnect проверка временно отключена для диагностики');
     initializedRef.current = true;
-  }, [tonConnectUI]);
+  }, []);
   
   // Автоматическая загрузка данных пользователя при первом рендере
   useEffect(() => {
