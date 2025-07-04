@@ -59,6 +59,27 @@ export function formatNumberWithPrecision(value: number, precision: number = 2):
 }
 
 /**
+ * Форматирует число с автоматическим выбором точности
+ * @param value Число для форматирования
+ * @returns Отформатированное число в виде строки
+ */
+export function formatNumber(value: number | string): string {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  
+  if (isNaN(numValue) || numValue === 0) {
+    return '0';
+  }
+  
+  // Для больших чисел используем разделители тысяч
+  if (Math.abs(numValue) >= 1000) {
+    return numValue.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+  }
+  
+  // Для чисел меньше 1000 используем до 6 знаков после запятой
+  return formatNumberWithPrecision(numValue, 6);
+}
+
+/**
  * Извлекает userId из параметров URL Telegram Mini App
  * @returns userId или null, если не найден
  */

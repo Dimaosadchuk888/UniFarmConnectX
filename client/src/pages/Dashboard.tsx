@@ -10,6 +10,7 @@ import BoostStatusCard from '@/components/dashboard/BoostStatusCard';
 import DailyBonusCard from '@/components/dashboard/DailyBonusCard';
 import SystemStatusIndicator from '@/components/ui/SystemStatusIndicator';
 import UniFarmingCardWithErrorBoundary from '@/components/farming/UniFarmingCardWithErrorBoundary';
+import ReferralStats from '@/components/referral/ReferralStats';
 
 const Dashboard: React.FC = () => {
   const { userId } = useUser();
@@ -41,6 +42,9 @@ const Dashboard: React.FC = () => {
 
       {/* UNI Фарминг карточка */}
       <UniFarmingCardWithErrorBoundary userData={userData} />
+
+      {/* Партнерская программа */}
+      <ReferralStats />
 
       {/* Индикатор статуса системы для диагностики */}
       {process.env.NODE_ENV !== 'production' && (
