@@ -1,65 +1,40 @@
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
+/**
+ * Проверка логов сервера во время покупки
+ */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { createClient } from '@supabase/supabase-js';
 
-const app = express();
-const PORT = 3000;
-
-console.log('[DebugServer] Starting minimal server...');
-
-// Basic middleware
-app.use(express.json());
-
-// Health check
-app.get('/health', (req, res) => {
-  console.log('[DebugServer] Health check requested');
-  res.json({ 
-    status: 'ok', 
-    server: 'debug',
-    timestamp: new Date().toISOString() 
-  });
-});
-
-// Static file serving
-const staticPath = path.resolve(__dirname, 'client');
-console.log(`[DebugServer] Serving static files from: ${staticPath}`);
-app.use(express.static(staticPath));
-
-// Main route
-app.get('/', (req, res) => {
-  console.log('[DebugServer] Main route requested');
-  const indexPath = path.resolve(__dirname, 'client/index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      console.error('[DebugServer] Error serving index.html:', err);
-      res.status(404).send('Index file not found');
-    }
-  });
-});
-
-// Catch all other routes
-app.get('*', (req, res) => {
-  console.log(`[DebugServer] Catch-all route: ${req.path}`);
-  res.status(404).json({ error: 'Route not found', path: req.path });
-});
-
-app.listen(PORT, '0.0.0.0', (err) => {
-  if (err) {
-    console.error('[DebugServer] Failed to start:', err);
-    process.exit(1);
+async function debugServer() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_KEY;
+  
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  console.log('=== ДИАГНОСТИКА СЕРВЕРА ===');
+  console.log('Запрос на покупку...');
+  
+  try {
+    const response = await fetch('http://localhost:3000/api/v2/boost/purchase', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ4LCJ0ZWxlZ3JhbV9pZCI6NDgsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmX2NvZGUiOiJSRUZfMTc1MDk1MjU3NjYxNF90OTM4dnMiLCJpYXQiOjE3NTE2MTAzNzgsImV4cCI6MTc1MjIxNTE3OH0.v95q1-qqaPthRflbCtJqTAQEpvAgpDwmWzWyFbPQuoM'
+      },
+      body: JSON.stringify({
+        user_id: '48',
+        boost_id: '1',
+        payment_method: 'wallet'
+      })
+    });
+    
+    const result = await response.json();
+    console.log('Ответ:', result);
+    
+  } catch (error) {
+    console.error('Ошибка запроса:', error);
   }
-  console.log(`[DebugServer] Server running on http://0.0.0.0:${PORT}`);
-  console.log(`[DebugServer] Health check: http://localhost:${PORT}/health`);
-});
+  
+  console.log('\n=== ДИАГНОСТИКА ЗАВЕРШЕНА ===');
+}
 
-// Error handling
-process.on('uncaughtException', (err) => {
-  console.error('[DebugServer] Uncaught exception:', err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[DebugServer] Unhandled rejection at:', promise, 'reason:', reason);
-});
+debugServer();
