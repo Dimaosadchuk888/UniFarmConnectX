@@ -108,19 +108,21 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
         const decoded = jwt.verify(token, jwtSecret) as any;
         console.log('[TelegramAuth] JWT decoded:', decoded);
         
-        if (decoded.telegram_id || decoded.telegramId) {
+        if (decoded.userId && (decoded.telegram_id || decoded.telegramId)) {
           // Valid JWT token - set user data and continue
+          const user_id = decoded.userId; // ИСПРАВЛЕНО: используем userId из JWT
           const telegram_id = decoded.telegram_id || decoded.telegramId;
-          console.log('[TelegramAuth] Setting user data from JWT, telegram_id:', telegram_id);
+          console.log('[TelegramAuth] Setting user data from JWT, user_id:', user_id, 'telegram_id:', telegram_id);
           (req as any).telegramUser = {
-            id: telegram_id,
+            id: user_id, // ИСПРАВЛЕНО: правильный user_id
+            telegram_id: telegram_id,
             username: decoded.username || 'user',
             first_name: decoded.first_name || 'User',
             ref_code: decoded.ref_code || decoded.refCode
           };
           // Также устанавливаем req.user для совместимости с контроллерами
           (req as any).user = {
-            id: telegram_id,
+            id: user_id, // ИСПРАВЛЕНО: правильный user_id
             telegram_id: telegram_id,
             username: decoded.username || 'user',
             ref_code: decoded.ref_code || decoded.refCode

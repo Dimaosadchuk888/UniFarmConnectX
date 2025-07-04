@@ -8,6 +8,7 @@ export interface User {
   first_name?: string;
   ref_code: string;
   referred_by?: string;
+  guest_id?: string;
   balance_uni: string;
   balance_ton: string;
   created_at: string;
@@ -204,6 +205,37 @@ export class SupabaseUserRepository {
    */
   async findUserByTelegramId(telegramId: number): Promise<User | null> {
     return this.getUserByTelegramId(telegramId);
+  }
+
+  /**
+   * Находит пользователя по guest_id
+   */
+  async getUserByGuestId(guestId: string): Promise<User | null> {
+    try {
+      logger.info('[getUserByGuestId] Поиск пользователя по guest_id:', guestId);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('guest_id', guestId)
+        .single();
+
+      if (error) {
+        logger.warn('[getUserByGuestId] Пользователь не найден:', error.message);
+        return null;
+      }
+
+      logger.info('[getUserByGuestId] Пользователь найден:', {
+        id: data.id,
+        telegram_id: data.telegram_id,
+        guest_id: data.guest_id
+      });
+
+      return data;
+    } catch (error) {
+      logger.error('[getUserByGuestId] Ошибка поиска пользователя:', error);
+      return null;
+    }
   }
 }
 

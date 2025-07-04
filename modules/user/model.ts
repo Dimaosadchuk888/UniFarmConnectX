@@ -80,7 +80,7 @@ export class UserModel {
       const { data: usersData, error } = await supabase
         .from(USER_TABLES.USERS)
         .select('*')
-        .eq('id', parseInt(guestId))
+        .eq('guest_id', guestId)  // ИСПРАВЛЕНО: ищем по полю guest_id, а не id
         .limit(1);
 
       if (error) {

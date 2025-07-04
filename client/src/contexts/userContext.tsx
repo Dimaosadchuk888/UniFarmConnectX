@@ -245,20 +245,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           console.error('[UserContext] Ошибка авторизации в демо-режиме:', error);
         }
         
-        // Fallback: устанавливаем demo user данные без токена
-        dispatch({
-          type: 'SET_USER_DATA',
-          payload: {
-            userId: 48,
-            username: 'demo_user',
-            guestId: null,
-            telegramId: null,
-            refCode: 'REF_1750952576614_t938vs'
-          }
-        });
-        
-        dispatch({ type: 'SET_ERROR', payload: null });
-        console.log('[UserContext] Демо-режим: используем fallback данные');
+        // Ошибка: не используем fallback данные для user_id=48
+        dispatch({ type: 'SET_ERROR', payload: new Error('Ошибка авторизации: требуется валидный JWT токен') });
+        console.error('[UserContext] Ошибка авторизации: не используем fallback данные');
         return;
       }
       
