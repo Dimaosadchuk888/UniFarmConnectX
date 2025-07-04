@@ -899,7 +899,7 @@ export class BoostService {
       }
 
       // Рассчитываем доход на основе ставки пакета
-      const dailyRate = boostPackage.boost_rate_percent; // 1%, 1.5%, 2%, 2.5%, 3%
+      const dailyRate = parseFloat(boostPackage.daily_rate) * 100; // 1%, 1.5%, 2%, 2.5%, 3%
       const ratePerSecond = (dailyRate / 100) / 86400; // Процент в секунду
       const dailyIncome = (tonBalance * dailyRate) / 100; // Дневной доход в TON
 
