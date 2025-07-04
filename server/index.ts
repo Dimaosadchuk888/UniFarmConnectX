@@ -40,6 +40,7 @@ import { farmingScheduler } from '../core/scheduler/farmingScheduler';
 import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler';
 import { alertingService } from '../core/alerting';
 import { setupViteIntegration } from './setupViteIntegration';
+import { BalanceNotificationService } from '../core/balanceNotificationService';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
@@ -141,6 +142,10 @@ function setupWebSocketServer(httpServer: any) {
                 userId: message.userId
               });
               
+              // Регистрируем подключение в BalanceNotificationService
+              const balanceService = BalanceNotificationService.getInstance();
+              balanceService.registerConnection(message.userId, ws);
+              
               ws.send(JSON.stringify({
                 type: 'subscription_confirmed',
                 userId: message.userId,
@@ -175,6 +180,12 @@ function setupWebSocketServer(httpServer: any) {
         duration: `${Math.round(duration / 1000)}s`,
         totalConnections: wss.clients.size
       });
+      
+      // Удаляем подключение из BalanceNotificationService
+      if (connection && connection.userId) {
+        const balanceService = BalanceNotificationService.getInstance();
+        balanceService.removeConnection(connection.userId, ws);
+      }
       
       activeConnections.delete(connectionId);
     });
@@ -589,6 +600,51 @@ async function startServer() {
     app.get('/tonconnect-manifest.json', (req: Request, res: Response) => {
       res.setHeader('Content-Type', 'application/json');
       res.sendFile(path.resolve('client/public/tonconnect-manifest.json'));
+    });
+
+    // Тестовый endpoint для демонстрации WebSocket уведомлений
+    app.post('/api/v2/test/balance-notification', express.json(), async (req: Request, res: Response) => {
+      try {
+        const { userId, changeAmount, currency } = req.body;
+        
+        if (!userId || !changeAmount || !currency) {
+          return res.status(400).json({
+            success: false,
+            error: 'Требуются параметры: userId, changeAmount, currency'
+          });
+        }
+
+        const balanceService = BalanceNotificationService.getInstance();
+        
+        // Отправляем тестовое уведомление
+        balanceService.notifyBalanceUpdate({
+          userId: parseInt(userId),
+          balanceUni: currency === 'UNI' ? 1000 + parseFloat(changeAmount) : 1000,
+          balanceTon: currency === 'TON' ? 500 + parseFloat(changeAmount) : 500,
+          changeAmount: parseFloat(changeAmount),
+          currency: currency as 'UNI' | 'TON',
+          source: 'farming',
+          timestamp: new Date().toISOString()
+        });
+
+        logger.info('[TEST] Отправлено тестовое уведомление о балансе', {
+          userId,
+          changeAmount,
+          currency
+        });
+
+        res.json({
+          success: true,
+          message: 'Тестовое уведомление отправлено',
+          data: { userId, changeAmount, currency }
+        });
+      } catch (error) {
+        logger.error('[TEST] Ошибка отправки тестового уведомления', { error });
+        res.status(500).json({
+          success: false,
+          error: 'Ошибка сервера'
+        });
+      }
     });
     
     // Подключаем Vite интеграцию с исправленной конфигурацией

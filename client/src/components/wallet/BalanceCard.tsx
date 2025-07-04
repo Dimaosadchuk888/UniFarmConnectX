@@ -54,7 +54,7 @@ const BalanceCard: React.FC = () => {
   const [wsConnectedOnce, setWsConnectedOnce] = useState<boolean>(false);
   
   // Получаем WebSocket статус из централизованного контекста
-  const { connectionStatus, lastMessage } = useWebSocket();
+  const { connectionStatus, lastMessage, subscribeToUserUpdates } = useWebSocket();
   
   // Обновляем статус соединения
   useEffect(() => {
@@ -73,18 +73,41 @@ const BalanceCard: React.FC = () => {
     }
   }, [connectionStatus]);
   
-  // Обрабатываем входящие сообщения
+  // Подписываемся на обновления пользователя при подключении
   useEffect(() => {
-    if (lastMessage) {
-      console.log('[BalanceCard] WebSocket message received', lastMessage);
+    if (connectionStatus === 'connected' && userId) {
+      subscribeToUserUpdates(userId);
+    }
+  }, [connectionStatus, userId, subscribeToUserUpdates]);
+  
+  // Обрабатываем входящие сообщения об обновлении баланса
+  useEffect(() => {
+    if (lastMessage && lastMessage.type === 'balance_update') {
+      console.log('[BalanceCard] Получено обновление баланса:', lastMessage);
       
-      if (lastMessage.type === 'update' && lastMessage.balanceData) {
-        if (userId) {
-          info('Доступно обновление баланса');
-        }
+      if (lastMessage.userId === userId && lastMessage.balanceData) {
+        const { balanceData } = lastMessage;
+        
+        // Обновляем баланс через refreshBalance
+        info(`Обновление баланса: +${balanceData.changes.uni.toFixed(6)} UNI, +${balanceData.changes.ton.toFixed(6)} TON`);
+        
+        // Принудительно обновляем данные пользователя
+        setTimeout(() => {
+          refreshBalance();
+          
+          // Показываем анимацию изменения
+          if (balanceData.changes.uni > 0) {
+            setUniAnimating(true);
+            setTimeout(() => setUniAnimating(false), 800);
+          }
+          if (balanceData.changes.ton > 0) {
+            setTonAnimating(true);
+            setTimeout(() => setTonAnimating(false), 800);
+          }
+        }, 500);
       }
     }
-  }, [lastMessage, userId, info]);
+  }, [lastMessage, userId, info, refreshBalance]);
   
   // Расчет скорости фарминга
   const calculateRate = useCallback(() => {

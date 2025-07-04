@@ -6,12 +6,14 @@ interface WebSocketContextType {
   connectionStatus: ConnectionStatus;
   sendMessage: (message: any) => void;
   lastMessage: any;
+  subscribeToUserUpdates: (userId: number) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType>({
   connectionStatus: 'disconnected',
   sendMessage: () => {},
   lastMessage: null,
+  subscribeToUserUpdates: () => {},
 });
 
 interface WebSocketProviderProps {
@@ -128,10 +130,21 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     };
   }, []);
 
+  const subscribeToUserUpdates = (userId: number) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      console.log('[WebSocket] Подписка на обновления пользователя:', userId);
+      socket.send(JSON.stringify({
+        type: 'subscribe',
+        userId: userId
+      }));
+    }
+  };
+
   const value: WebSocketContextType = {
     connectionStatus,
     sendMessage,
     lastMessage,
+    subscribeToUserUpdates,
   };
 
   return (

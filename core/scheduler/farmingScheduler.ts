@@ -6,6 +6,7 @@
 import cron from 'node-cron';
 import { supabase } from '../supabase';
 import { logger } from '../logger';
+import { BalanceNotificationService } from '../balanceNotificationService';
 
 export class FarmingScheduler {
   private isRunning: boolean = false;
@@ -100,6 +101,18 @@ export class FarmingScheduler {
                 userId: farmer.id,
                 amount: income,
                 currency: 'UNI'
+              });
+
+              // Отправляем WebSocket уведомление об обновлении баланса
+              const balanceService = BalanceNotificationService.getInstance();
+              balanceService.notifyBalanceUpdate({
+                userId: farmer.id,
+                balanceUni: parseFloat(farmer.balance_uni || '0') + parseFloat(income),
+                balanceTon: parseFloat(farmer.balance_ton || '0'),
+                changeAmount: parseFloat(income),
+                currency: 'UNI',
+                source: 'farming',
+                timestamp: new Date().toISOString()
               });
 
               // Распределяем реферальные награды от UNI фарминга

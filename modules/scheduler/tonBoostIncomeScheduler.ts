@@ -6,6 +6,7 @@
 import { logger } from '../../core/logger';
 import { supabase } from '../../core/supabase';
 import { ReferralService } from '../referral/service';
+import { BalanceNotificationService } from '../../core/balanceNotificationService';
 
 export class TONBoostIncomeScheduler {
   private intervalId: NodeJS.Timeout | null = null;
@@ -119,8 +120,7 @@ export class TONBoostIncomeScheduler {
           const { error: updateError } = await supabase
             .from('users')
             .update({
-              balance_ton: userNewBalance.toFixed(8),
-              last_active: new Date().toISOString()
+              balance_ton: userNewBalance.toFixed(8)
             })
             .eq('id', user.id);
 
@@ -145,6 +145,18 @@ export class TONBoostIncomeScheduler {
             logger.error(`[TON_BOOST_SCHEDULER] Ошибка создания транзакции User ${user.id}:`, transactionError);
             continue;
           }
+
+          // Отправляем WebSocket уведомление об обновлении баланса
+          const balanceService = BalanceNotificationService.getInstance();
+          balanceService.notifyBalanceUpdate({
+            userId: user.id,
+            balanceUni: parseFloat(user.balance_uni || '0'),
+            balanceTon: userNewBalance,
+            changeAmount: fiveMinuteIncome,
+            currency: 'TON',
+            source: 'boost_income',
+            timestamp: new Date().toISOString()
+          });
 
           // Распределяем реферальные награды
           try {
