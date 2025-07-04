@@ -523,15 +523,30 @@ async function startServer() {
       });
     });
 
+    // ТЕСТОВЫЙ РОУТ ПЕРЕД ИМПОРТОМ ROUTES - ПРОВЕРКА ПРИОРИТЕТА
+    app.get(`${apiPrefix}/ref-debug-test`, (req: Request, res: Response) => {
+      console.log('[DIRECT ROUTE] 🔥 REF DEBUG TEST WORKS DIRECTLY!');
+      res.json({ success: true, message: 'Direct referral debug test works', timestamp: Date.now() });
+    });
+
     // Import centralized routes (after critical endpoints)
-    const { default: apiRoutes } = await import('./routes');
-    app.use(apiPrefix, apiRoutes);
-    
-    // Добавляем поддержку /api для обратной совместимости
-    app.use('/api', apiRoutes);
-    
-    // Добавляем webhook на корневом уровне
-    app.use('/', apiRoutes);
+    console.log('[ROUTES] Attempting to import ./routes...');
+    try {
+      const { default: apiRoutes } = await import('./routes');
+      console.log('[ROUTES] Successfully imported routes, registering...');
+      app.use(apiPrefix, apiRoutes);
+      console.log('[ROUTES] Routes registered successfully at', apiPrefix);
+      
+      // Добавляем поддержку /api для обратной совместимости
+      app.use('/api', apiRoutes);
+      
+      // Добавляем webhook на корневом уровне
+      app.use('/', apiRoutes);
+      
+    } catch (routesError: unknown) {
+      console.error('[ROUTES] CRITICAL ERROR: Failed to import routes:', routesError);
+      console.error('[ROUTES] Stack trace:', routesError instanceof Error ? routesError.stack : 'No stack trace');
+    }
     
 
 

@@ -9,9 +9,10 @@ const referralController = new ReferralController();
 router.post('/process', requireTelegramAuth, referralController.processReferralCode.bind(referralController));
 
 // ПРИОРИТЕТНЫЕ РОУТЫ (должны быть перед /:userId)
-// ТЕСТОВЫЙ endpoint для проверки роутинга
+// ТЕСТОВЫЙ endpoint для проверки роутинга (БЕЗ АВТОРИЗАЦИИ ДЛЯ ДИАГНОСТИКИ)
 router.get('/test-routing', (req, res) => {
-  console.log('[REFERRAL ROUTES] TEST ROUTING WORKS!');
+  console.log('[REFERRAL ROUTES] ✅ TEST ROUTING WORKS! Route hit successfully');
+  console.log('[REFERRAL ROUTES] URL:', req.url, 'originalUrl:', req.originalUrl, 'path:', req.path);
   res.json({ success: true, message: 'Referral routing is working', timestamp: Date.now() });
 });
 
@@ -25,14 +26,15 @@ router.get('/debug-stats', (req, res) => {
 router.get('/stats', requireTelegramAuth, referralController.getReferralLevelsStats.bind(referralController));
 
 // GET /api/referrals/my-referrals - Получить список рефералов текущего пользователя
-router.get('/my-referrals', requireTelegramAuth, async (req: any, res: any) => {
-  const userId = req.user?.id || req.telegramUser?.id;
-  if (!userId) {
-    return res.status(400).json({ success: false, error: 'Пользователь не найден' });
-  }
-  req.params.userId = userId.toString();
-  return referralController.getUserReferrals(req, res);
-});
+// ВРЕМЕННО ОТКЛЮЧЕН ДЛЯ ДИАГНОСТИКИ
+// router.get('/my-referrals', requireTelegramAuth, async (req: any, res: any) => {
+//   const userId = req.user?.id || req.telegramUser?.id;
+//   if (!userId) {
+//     return res.status(400).json({ success: false, error: 'Пользователь не найден' });
+//   }
+//   req.params.userId = userId.toString();
+//   return referralController.getUserReferrals(req, res);
+// });
 
 // GET /api/referrals/levels - Получить статистику уровней (алиас для stats)
 router.get('/levels', requireTelegramAuth, referralController.getReferralLevelsStats.bind(referralController));
@@ -40,6 +42,10 @@ router.get('/levels', requireTelegramAuth, referralController.getReferralLevelsS
 // GET /api/referrals/validate/:refCode - Валидировать реферальный код (должен быть перед /:userId)
 router.get('/validate/:refCode', requireTelegramAuth, referralController.validateReferralCode.bind(referralController));
 
+// POST /api/referrals/generate-code - Генерировать реферальный код
+router.post('/generate-code', requireTelegramAuth, referralController.generateReferralCode.bind(referralController));
+
+// WILDCARD ROUTES (ДОЛЖНЫ БЫТЬ В КОНЦЕ!)
 // GET /api/referrals/:userId - Получить реферальную информацию пользователя
 router.get('/:userId', requireTelegramAuth, referralController.getReferralInfo.bind(referralController));
 
@@ -51,8 +57,5 @@ router.get('/:userId/earnings', requireTelegramAuth, referralController.getRefer
 
 // GET /api/referrals/:userId/code - Получить реферальный код пользователя
 router.get('/:userId/code', requireTelegramAuth, referralController.getUserReferralCode.bind(referralController));
-
-// POST /api/referrals/generate-code - Генерировать реферальный код
-router.post('/generate-code', requireTelegramAuth, referralController.generateReferralCode.bind(referralController));
 
 export default router;

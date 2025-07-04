@@ -15,6 +15,7 @@ export class ReferralController extends BaseController {
    * Получить реферальную информацию пользователя
    */
   async getReferralInfo(req: Request, res: Response): Promise<void> {
+    console.log(`[ReferralController] 🔴 getReferralInfo called with userId: ${req.params.userId}, URL: ${req.url}`);
     return this.handleRequest(req, res, async () => {
       const userId = req.params.userId;
       
@@ -65,6 +66,7 @@ export class ReferralController extends BaseController {
     console.log('[ReferralController] МЕТОД ВЫЗВАН! getReferralLevelsStats начат');
     console.log('[ReferralController] URL:', req.url);
     console.log('[ReferralController] Method:', req.method);
+    console.log('[ReferralController] req.user:', (req as any).user);
     console.log('[ReferralController] Headers:', req.headers);
     console.log('[ReferralController] Params:', req.params);
     console.log('[ReferralController] Query:', req.query);
