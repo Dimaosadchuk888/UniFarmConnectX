@@ -27,15 +27,32 @@ interface ReferralLevel {
 const LEVEL_PERCENTAGES = [100, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 
 const ReferralLevelsTable: React.FC = () => {
-  // Интерфейс для ответа API
+  // Интерфейс для ответа API (обновлен под реальную структуру)
   interface ReferralsResponse {
     data: {
-      user_id: number;
-      username: string;
-      total_referrals: number;
-      referral_counts: Record<number, number>;
-      level_income: Record<number, { uni: number, ton: number }>;
-      referrals: any[];
+      success: boolean;
+      user: {
+        id: number;
+        username: string;
+        ref_code: string;
+      };
+      summary: {
+        total_partners: number;
+        total_transactions: number;
+        total_income: {
+          uni: number;
+          ton: number;
+        };
+      };
+      levels: Array<{
+        level: number;
+        partners: number;
+        income: {
+          uni: number;
+          ton: number;
+        };
+        partnersList: any[];
+      }>;
     };
     success: boolean;
   }
@@ -126,9 +143,9 @@ const ReferralLevelsTable: React.FC = () => {
           }
           
           // Гарантируем, что все необходимые поля существуют
-          if (!responseData.data.referrals) responseData.data.referrals = [];
-          if (!responseData.data.level_income) responseData.data.level_income = {};
-          if (!responseData.data.referral_counts) responseData.data.referral_counts = {};
+          if (!responseData.data.levels) responseData.data.levels = [];
+          if (!responseData.data.summary) responseData.data.summary = { total_partners: 0, total_transactions: 0, total_income: { uni: 0, ton: 0 } };
+          if (!responseData.data.user) responseData.data.user = { id: 0, username: '', ref_code: '' };
           
           return responseData;
         } catch (fetchError) {
@@ -192,22 +209,29 @@ const ReferralLevelsTable: React.FC = () => {
         return defaultLevels;
       }
       
-      // Получаем количество рефералов по уровням и доходы с безопасными проверками
-      const referralCounts = (referralsData.data.referral_counts && typeof referralsData.data.referral_counts === 'object') 
-        ? referralsData.data.referral_counts 
-        : {};
+      // Получаем данные из новой структуры API (levels array)
+      const levels = Array.isArray(referralsData.data.levels) ? referralsData.data.levels : [];
       
-      const levelIncome = (referralsData.data.level_income && typeof referralsData.data.level_income === 'object') 
-        ? referralsData.data.level_income 
-        : {};
+      // Преобразуем данные levels в объекты для совместимости
+      const referralCounts: Record<number, number> = {};
+      const levelIncome: Record<number, { uni: number, ton: number }> = {};
       
-      const totalReferrals = typeof referralsData.data.total_referrals === 'number' 
-        ? referralsData.data.total_referrals 
-        : 0;
+      levels.forEach(levelData => {
+        if (levelData && typeof levelData.level === 'number') {
+          referralCounts[levelData.level] = levelData.partners || 0;
+          levelIncome[levelData.level] = {
+            uni: levelData.income?.uni || 0,
+            ton: levelData.income?.ton || 0
+          };
+        }
+      });
       
-      logger.debug('[ReferralLevelsTable] API данные:', { 
-        referralCounts, 
-        levelIncome,
+      const totalReferrals = referralsData.data.summary?.total_partners || 0;
+      
+      logger.debug('[ReferralLevelsTable] API данные преобразованы:', { 
+        originalLevels: levels,
+        convertedReferralCounts: referralCounts, 
+        convertedLevelIncome: levelIncome,
         totalReferrals
       });
       
@@ -484,7 +508,7 @@ const ReferralLevelsTable: React.FC = () => {
       <div className="flex justify-between items-center mt-4">
         <div className="text-sm text-muted-foreground">
           <span className="text-primary font-medium">
-            {referralsData?.data?.total_referrals || 0}
+            {referralsData?.data?.summary?.total_partners || 0}
           </span> друзей в сети
         </div>
         
