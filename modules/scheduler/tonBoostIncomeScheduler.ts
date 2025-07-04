@@ -60,6 +60,7 @@ export class TONBoostIncomeScheduler {
       // Фильтруем активных TON Boost пользователей по существующим полям
       const activeBoostUsers = users?.filter(user => 
         user.ton_boost_package && 
+        user.ton_boost_package !== 0 &&
         user.ton_boost_package !== '0' &&
         parseFloat(user.balance_ton || '0') >= 10
       ) || [];
@@ -78,25 +79,26 @@ export class TONBoostIncomeScheduler {
       for (const user of activeBoostUsers) {
         try {
           // Определяем параметры boost пакета пользователя
-          let dailyRate = 0.01; // 1% по умолчанию
+          let dailyRate = user.ton_boost_rate || 0.01; // Используем ton_boost_rate из базы данных
           // Используем баланс TON как депозит (минус 10 TON базовый баланс)
           const userDeposit = Math.max(0, parseFloat(user.balance_ton || '0') - 10);
           
-          switch (user.ton_boost_package) {
-            case 'starter': // Starter
-              dailyRate = 0.01;
+          // Дополнительная проверка по ID пакета (для совместимости)
+          switch (parseInt(user.ton_boost_package)) {
+            case 1: // Starter Boost
+              dailyRate = user.ton_boost_rate || 0.01;
               break;
-            case 'standard': // Standard
-              dailyRate = 0.015;
+            case 2: // Standard Boost  
+              dailyRate = user.ton_boost_rate || 0.015;
               break;
-            case 'advanced': // Advanced
-              dailyRate = 0.02;
+            case 3: // Advanced Boost
+              dailyRate = user.ton_boost_rate || 0.02;
               break;
-            case 'premium': // Premium
-              dailyRate = 0.025;
+            case 4: // Premium Boost
+              dailyRate = user.ton_boost_rate || 0.025;
               break;
-            case 'elite': // Elite
-              dailyRate = 0.03;
+            case 5: // Elite Boost
+              dailyRate = user.ton_boost_rate || 0.03;
               break;
           }
           

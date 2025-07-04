@@ -310,6 +310,30 @@ export class BoostService {
         };
       }
 
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Активация TON Boost СРАЗУ после списания средств
+      // Это гарантирует активацию планировщика независимо от проблем с createBoostPurchase
+      logger.info('[BoostService] НЕМЕДЛЕННАЯ активация TON Boost планировщика', {
+        userId,
+        boostId: boostPackage.id,
+        reason: 'Активация сразу после успешного списания средств'
+      });
+      
+      const { supabase: supabaseImmediate } = await import('../../core/supabase');
+      const { data: immediateActivation, error: immediateError } = await supabaseImmediate
+        .from('users')
+        .update({ 
+          ton_boost_package: boostPackage.id,
+          ton_boost_rate: boostPackage.daily_rate
+        })
+        .eq('id', userId)
+        .select('id, ton_boost_package, ton_boost_rate');
+        
+      if (immediateError) {
+        logger.error('[BoostService] КРИТИЧЕСКАЯ ОШИБКА немедленной активации:', immediateError);
+      } else {
+        logger.info('[BoostService] Немедленная активация УСПЕШНА - планировщик активирован:', immediateActivation);
+      }
+
       // Создаем запись о покупке
       logger.info('[BoostService] Вызов createBoostPurchase', {
         userId,
@@ -324,32 +348,11 @@ export class BoostService {
         purchaseSuccess: !!purchase
       });
 
-      // ПРИНУДИТЕЛЬНАЯ АКТИВАЦИЯ: Обновляем users.ton_boost_package независимо от createBoostPurchase
-      // Это гарантирует активацию планировщика даже если createBoostPurchase не сработал
-      logger.info('[BoostService] ПРИНУДИТЕЛЬНАЯ активация TON Boost пакета', {
-        userId,
-        boostId: boostPackage.id,
-        reason: 'Гарантированная активация планировщика'
-      });
-      
-      const { supabase } = await import('../../core/supabase');
-      const { data: forceUpdate, error: forceError } = await supabase
-        .from('users')
-        .update({ 
-          ton_boost_package: boostPackage.id,
-          ton_boost_rate: boostPackage.daily_rate
-        })
-        .eq('id', userId)
-        .select('id, ton_boost_package, ton_boost_rate');
-        
-      if (forceError) {
-        logger.error('[BoostService] Ошибка принудительной активации:', forceError);
-      } else {
-        logger.info('[BoostService] Принудительная активация УСПЕШНА:', forceUpdate);
-      }
+      // Активация планировщика должна быть после всех операций
 
       // Создаем транзакцию покупки буста для истории
       try {
+        const { supabase } = await import('../../core/supabase');
         const { error: transactionError } = await supabase
           .from('transactions')
           .insert({
@@ -404,6 +407,30 @@ export class BoostService {
         oldBalance: walletData.ton_balance,
         newBalance: updatedWalletData.ton_balance
       });
+
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Принудительная активация TON Boost планировщика
+      // Выполняется в самом конце для гарантированного обновления ton_boost_package
+      logger.info('[BoostService] ФИНАЛЬНАЯ активация TON Boost планировщика', {
+        userId,
+        boostId: boostPackage.id,
+        reason: 'Гарантированная активация после успешной покупки'
+      });
+      
+      const { supabase: supabaseFinal } = await import('../../core/supabase');
+      const { data: finalActivation, error: activationError } = await supabaseFinal
+        .from('users')
+        .update({ 
+          ton_boost_package: boostPackage.id,
+          ton_boost_rate: boostPackage.daily_rate
+        })
+        .eq('id', userId)
+        .select('id, ton_boost_package, ton_boost_rate');
+        
+      if (activationError) {
+        logger.error('[BoostService] КРИТИЧЕСКАЯ ОШИБКА финальной активации:', activationError);
+      } else {
+        logger.info('[BoostService] Финальная активация УСПЕШНА - планировщик активирован:', finalActivation);
+      }
 
       const responseData = {
         success: true,
