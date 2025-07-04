@@ -311,7 +311,18 @@ export class BoostService {
       }
 
       // Создаем запись о покупке
-      const purchase = await this.createBoostPurchase(userId, boostPackage.id, 'wallet', null, 'confirmed');
+      logger.info('[BoostService] Вызов createBoostPurchase', {
+        userId,
+        boostPackageId: boostPackage.id,
+        boostPackageIdStr: boostPackage.id.toString()
+      });
+      
+      const purchase = await this.createBoostPurchase(userId, boostPackage.id.toString(), 'wallet', null, 'confirmed');
+      
+      logger.info('[BoostService] Результат createBoostPurchase', {
+        purchase,
+        purchaseSuccess: !!purchase
+      });
 
       // Создаем транзакцию покупки буста для истории
       try {
@@ -469,12 +480,17 @@ export class BoostService {
       if (error) {
         logger.error('[BoostService] Ошибка создания записи покупки:', error);
         // Если таблица boost_purchases недоступна, обновляем поле в users
+        logger.warn('[BoostService] Fallback: обновление users из-за ошибки boost_purchases', {
+          userId,
+          boostId,
+          boostIdInt: parseInt(boostId)
+        });
+        
         const { error: userUpdateError } = await supabase
           .from(BOOST_TABLES.USERS)
           .update({ 
-            ton_boost_package: boostId,
-            ton_boost_rate: boostPackage.rate.toString(),
-            ton_boost_amount: boostPackage.min_amount.toString()
+            ton_boost_package: parseInt(boostId),
+            ton_boost_rate: boostPackage.daily_rate || boostPackage.rate
           })
           .eq('id', userId);
           
@@ -493,6 +509,37 @@ export class BoostService {
         amount: boostPackage.min_amount,
         rate: boostPackage.rate
       });
+
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Обновляем users.ton_boost_package после успешной покупки
+      // Это обеспечивает совместимость с планировщиком TON Boost доходов
+      logger.info('[BoostService] Обновление users.ton_boost_package после успешной покупки', {
+        userId,
+        userIdType: typeof userId,
+        boostId,
+        boostIdType: typeof boostId,
+        boostIdInt: parseInt(boostId),
+        boostPackageRate: boostPackage.daily_rate || boostPackage.rate
+      });
+      
+      const { data: updateResult, error: userUpdateError } = await supabase
+        .from(BOOST_TABLES.USERS)
+        .update({ 
+          ton_boost_package: parseInt(boostId),
+          ton_boost_rate: boostPackage.daily_rate || boostPackage.rate
+        })
+        .eq('id', userId)
+        .select('id, ton_boost_package, ton_boost_rate');
+        
+      if (userUpdateError) {
+        logger.error('[BoostService] Ошибка обновления пользователя после покупки:', userUpdateError);
+      } else {
+        logger.info('[BoostService] Пользователь успешно активирован для TON Boost планировщика', {
+          userId,
+          updateResult,
+          boostPackage: parseInt(boostId),
+          rate: boostPackage.daily_rate || boostPackage.rate
+        });
+      }
 
       return data;
     } catch (error) {
