@@ -63,6 +63,12 @@ export class ReferralController extends BaseController {
    */
   async getReferralLevelsStats(req: Request, res: Response): Promise<void> {
     console.log('[ReferralController] МЕТОД ВЫЗВАН! getReferralLevelsStats начат');
+    console.log('[ReferralController] URL:', req.url);
+    console.log('[ReferralController] Method:', req.method);
+    console.log('[ReferralController] Headers:', req.headers);
+    console.log('[ReferralController] Params:', req.params);
+    console.log('[ReferralController] Query:', req.query);
+    
     try {
       // Получаем userId из разных источников
       const userId = (req as any).user?.id || 
@@ -85,6 +91,14 @@ export class ReferralController extends BaseController {
       
       logger.info('[ReferralController] Вызываем getRealReferralStats для userId:', finalUserId);
       console.log('[ReferralController] ПЫТАЕМСЯ ВЫЗВАТЬ getRealReferralStats для userId:', finalUserId);
+      
+      // Проверяем, что this.referralService существует
+      if (!this.referralService) {
+        console.log('[ReferralController] ОШИБКА: this.referralService не инициализирован!');
+        throw new Error('ReferralService не инициализирован');
+      }
+      
+      console.log('[ReferralController] this.referralService инициализирован:', !!this.referralService);
       
       // Получаем реальные данные партнерской программы
       const realStats = await this.referralService.getRealReferralStats(finalUserId);
