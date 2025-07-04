@@ -443,6 +443,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   
   // Функции работы с кошельком
   const connectWallet = useCallback(async (): Promise<boolean> => {
+    if (!tonConnectUI) {
+      console.log('[UserContext] TonConnect UI не инициализирован');
+      return false;
+    }
+    
     try {
       console.log('[UserContext] Подключение кошелька через TonConnect...');
       const result = await connectTonWallet(tonConnectUI);
@@ -463,6 +468,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [tonConnectUI]);
   
   const disconnectWallet = useCallback(async (): Promise<void> => {
+    if (!tonConnectUI) {
+      console.log('[UserContext] TonConnect UI не инициализирован для отключения');
+      dispatch({
+        type: 'SET_WALLET_CONNECTED',
+        payload: { connected: false, address: null }
+      });
+      return;
+    }
+    
     try {
       console.log('[UserContext] Отключение кошелька через TonConnect...');
       await disconnectTonWallet(tonConnectUI);
@@ -478,7 +492,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   
   // Проверяем статус подключения кошелька
   useEffect(() => {
-    if (!tonConnectUI || initializedRef.current) return;
+    if (!tonConnectUI) {
+      console.log('[UserContext] TonConnect UI не готов, пропускаем проверку кошелька');
+      return;
+    }
+    
+    if (initializedRef.current) return;
     
     const checkWalletConnection = async () => {
       try {
@@ -507,8 +526,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
     };
     
-    checkWalletConnection();
-    initializedRef.current = true;
+    // Добавляем небольшую задержку для инициализации TonConnect
+    const timeoutId = setTimeout(() => {
+      checkWalletConnection();
+      initializedRef.current = true;
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, [tonConnectUI]);
   
   // Автоматическая загрузка данных пользователя при первом рендере
