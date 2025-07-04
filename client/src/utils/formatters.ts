@@ -166,16 +166,16 @@ export function safeFormatAmount(amount: number | string, decimals: number = 2, 
 }
 
 /**
- * Получает USD эквивалент
+ * Получает USD эквивалент для комбинированного баланса UNI + TON
  */
-export function getUSDEquivalent(amount: number, currency: string): number {
+export function getUSDEquivalent(uniBalance: number, tonBalance: number): number {
   // Примерные курсы (в реальном приложении должны загружаться с API)
-  const rates: Record<string, number> = {
+  const rates = {
     'UNI': 0.1,
     'TON': 2.5
   };
   
-  return amount * (rates[currency] || 0);
+  return (uniBalance * rates.UNI) + (tonBalance * rates.TON);
 }
 
 /**

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
-import useWebSocket from '@/hooks/useWebSocket';
+import { useWebSocket } from '@/contexts/webSocketContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { formatAmount, formatUniNumber, formatTonNumber, getUSDEquivalent } from '@/utils/formatters';
 
@@ -53,67 +53,38 @@ const BalanceCard: React.FC = () => {
   const [wsErrorNotificationShown, setWsErrorNotificationShown] = useState<boolean>(false);
   const [wsConnectedOnce, setWsConnectedOnce] = useState<boolean>(false);
   
-  // Используем ref для отслеживания состояния подписки и дополнительных флагов
-  const isSubscribedRef = useRef<boolean>(false);
-  const initialLoadedRef = useRef<boolean>(false);
+  // Получаем WebSocket статус из централизованного контекста
+  const { connectionStatus, lastMessage } = useWebSocket();
   
-  // ===== WebSocket обработчики =====
+  // Обновляем статус соединения
+  useEffect(() => {
+    switch (connectionStatus) {
+      case 'connected':
+        setWsStatus('Соединение установлено');
+        setWsConnectedOnce(true);
+        setWsErrorNotificationShown(false);
+        break;
+      case 'connecting':
+        setWsStatus('Переподключение...');
+        break;
+      case 'disconnected':
+        setWsStatus('Ожидание соединения');
+        break;
+    }
+  }, [connectionStatus]);
   
-  // Обработчик открытия соединения
-  const handleOpen = useCallback((event: Event) => {
-    console.log('[BalanceCard] WebSocket connection opened', event);
-    setWsStatus('Соединение установлено');
-    setWsConnectedOnce(true);
-    setWsErrorNotificationShown(false);
-  }, []);
-  
-  // Обработчик получения сообщения
-  const handleMessage = useCallback((data: any) => {
-    console.log('[BalanceCard] WebSocket message received', data);
-    
-    if (data.type === 'update' && data.balanceData) {
-      if (userId) {
-        info('Доступно обновление баланса');
+  // Обрабатываем входящие сообщения
+  useEffect(() => {
+    if (lastMessage) {
+      console.log('[BalanceCard] WebSocket message received', lastMessage);
+      
+      if (lastMessage.type === 'update' && lastMessage.balanceData) {
+        if (userId) {
+          info('Доступно обновление баланса');
+        }
       }
     }
-  }, [userId, info]);
-  
-  // Обработчик закрытия соединения
-  const handleClose = useCallback((event: CloseEvent) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[BalanceCard] WebSocket connection closed', event);
-    }
-    setWsStatus('Ожидание соединения');
-    isSubscribedRef.current = false;
-  }, []);
-  
-  // Обработчик ошибки соединения
-  const handleError = useCallback((event: Event) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[BalanceCard] WebSocket error', event);
-    }
-    setWsStatus('Ожидание соединения');
-    isSubscribedRef.current = false;
-  }, []);
-  
-  // Инициализируем WebSocket соединение
-  const { 
-    isConnected,
-    connect,
-    disconnect
-  } = useWebSocket({
-    onOpen: handleOpen,
-    onMessage: handleMessage,
-    onClose: handleClose,
-    onError: handleError,
-    reconnectInterval: 3000
-  });
-
-  // Создаем локальные методы для совместимости
-  const forceReconnect = () => {
-    disconnect();
-    setTimeout(() => connect(), 1000);
-  };
+  }, [lastMessage, userId, info]);
   
   // Расчет скорости фарминга
   const calculateRate = useCallback(() => {
@@ -209,15 +180,12 @@ const BalanceCard: React.FC = () => {
   // Обработчик переподключения WebSocket
   const handleReconnect = useCallback(() => {
     loading('Переподключение...');
-    
-    isSubscribedRef.current = false;
-    forceReconnect();
-  }, [forceReconnect, loading]);
+    // WebSocket переподключается автоматически через контекст
+  }, [loading]);
   
   // Проверка и обновление баланса при первом рендере
   useEffect(() => {
-    if (userId && uniBalance === 0 && !initialLoadedRef.current) {
-      initialLoadedRef.current = true;
+    if (userId && uniBalance === 0) {
       
       loading('Загрузка баланса...');
       
@@ -360,7 +328,7 @@ const BalanceCard: React.FC = () => {
       </div>
       
       {/* WebSocket статус для отладки (скрыт от пользователей) */}
-      {process.env.NODE_ENV === 'development' && !isConnected && (
+      {process.env.NODE_ENV === 'development' && connectionStatus !== 'connected' && (
         <div className="mt-3 text-xs text-gray-500/50 relative z-10">
           <div className="flex items-center justify-between">
             <span>WebSocket: Отключено</span>

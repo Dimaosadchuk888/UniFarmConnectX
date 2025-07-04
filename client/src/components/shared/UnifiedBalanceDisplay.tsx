@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
-import useWebSocket from '@/hooks/useWebSocket';
+import { useWebSocket } from '@/contexts/webSocketContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { formatAmount, formatUniNumber, formatTonNumber, getUSDEquivalent } from '@/utils/formatters';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,7 +39,7 @@ export const UnifiedBalanceDisplay: React.FC<UnifiedBalanceDisplayProps> = ({
   className = '',
   title = 'Баланс'
 }) => {
-  const { user, refreshUser } = useUser();
+  const { userId, uniBalance, tonBalance, refreshBalance } = useUser();
   const { addNotification } = useNotification();
   const [isVisible, setIsVisible] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -48,22 +48,20 @@ export const UnifiedBalanceDisplay: React.FC<UnifiedBalanceDisplayProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // WebSocket для real-time обновлений баланса
-  const { isConnected } = useWebSocket({
-    onMessage: useCallback((data: any) => {
-      if (data.type === 'balance_update' && data.userId === user?.id) {
-        refreshUser();
-        setLastUpdate(new Date());
-        addNotification({
-          type: 'info',
-          message: 'Баланс обновлен в реальном времени',
-          duration: 3000
-        });
-      }
-    }, [user?.id, refreshUser, addNotification])
-  });
+  const { connectionStatus, lastMessage } = useWebSocket();
 
-  const uniBalance = user?.balance_uni || 0;
-  const tonBalance = user?.balance_ton || 0;
+  // Обработка WebSocket сообщений
+  useEffect(() => {
+    if (lastMessage && lastMessage.type === 'balance_update' && lastMessage.userId === userId) {
+      refreshBalance();
+      setLastUpdate(new Date());
+      addNotification({
+        type: 'info',
+        message: 'Баланс обновлен в реальном времени',
+        duration: 3000
+      });
+    }
+  }, [lastMessage, userId, refreshBalance, addNotification]);
 
   // Обработка ручного обновления
   const handleRefresh = useCallback(async () => {
@@ -71,7 +69,7 @@ export const UnifiedBalanceDisplay: React.FC<UnifiedBalanceDisplayProps> = ({
     
     setIsRefreshing(true);
     try {
-      await refreshUser();
+      await refreshBalance();
       setLastUpdate(new Date());
       addNotification({
         type: 'success',
@@ -87,7 +85,7 @@ export const UnifiedBalanceDisplay: React.FC<UnifiedBalanceDisplayProps> = ({
     } finally {
       setIsRefreshing(false);
     }
-  }, [isRefreshing, refreshUser, addNotification]);
+  }, [isRefreshing, refreshBalance, addNotification]);
 
   // Копирование баланса в буфер обмена
   const handleCopyBalance = useCallback(async () => {
@@ -185,10 +183,10 @@ export const UnifiedBalanceDisplay: React.FC<UnifiedBalanceDisplayProps> = ({
           <div className="flex items-center gap-2">
             {/* Индикатор подключения WebSocket */}
             <Badge 
-              variant={isConnected ? "default" : "secondary"}
+              variant={connectionStatus === 'connected' ? "default" : "secondary"}
               className="text-xs"
             >
-              {isConnected ? '🟢 Live' : '🔴 Offline'}
+              {connectionStatus === 'connected' ? '🟢 Live' : '🔴 Offline'}
             </Badge>
             
             {showVisibilityToggle && (
