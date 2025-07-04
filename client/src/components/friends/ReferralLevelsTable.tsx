@@ -481,10 +481,10 @@ const ReferralLevelsTable: React.FC = () => {
                   <td className="py-2 text-sm px-2 border-b border-muted/20">
                     <div className="flex flex-col">
                       <span className="text-xs">
-                        <span className="text-blue-400">{item.income.ton}</span>
+                        <span className="text-blue-400 font-mono">{item.income.ton}</span>
                       </span>
                       <span className="text-xs opacity-80">
-                        <span className="text-purple-400">{item.income.uni}</span>
+                        <span className="text-purple-400 font-mono">{item.income.uni}</span>
                       </span>
                     </div>
                   </td>
