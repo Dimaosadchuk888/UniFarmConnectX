@@ -45,10 +45,7 @@ function App() {
     authError: null
   });
 
-  // Временно отключаем useTelegram для диагностики useState ошибки
-  const telegramReady = true;
-  const telegramUser = null;
-  const initData = "";
+  const { isReady: telegramReady, user: telegramUser, initData } = useTelegram();
 
   // Initialize app
   useEffect(() => {
