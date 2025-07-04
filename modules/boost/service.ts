@@ -857,7 +857,7 @@ export class BoostService {
       const { data: user, error } = await supabase
         .from('users')
         .select('*')
-        .eq('telegram_id', userId)
+        .eq('id', parseInt(userId))
         .single();
 
       if (error || !user) {
@@ -875,8 +875,20 @@ export class BoostService {
       const activeBoostId = user.ton_boost_package;
       const tonBalance = parseFloat(user.balance_ton || '0');
 
+      logger.info('[BoostService] Анализ пользователя для TON Boost', {
+        userId,
+        activeBoostId,
+        tonBalance,
+        hasActiveBoost: !!activeBoostId,
+        hasEnoughBalance: tonBalance >= 10
+      });
+
       if (!activeBoostId || tonBalance < 10) {
-        // Нет активного Boost или недостаточный баланс TON
+        logger.info('[BoostService] TON Boost неактивен - нет пакета или недостаточно баланса', {
+          activeBoostId,
+          tonBalance,
+          required: 10
+        });
         return {
           totalTonRatePerSecond: '0',
           totalUniRatePerSecond: '0',
@@ -887,8 +899,15 @@ export class BoostService {
       }
 
       // Получаем данные о Boost пакете
-      const boostPackage = await this.getBoostPackageById(activeBoostId);
+      const boostPackage = await this.getBoostPackageById(activeBoostId.toString());
+      logger.info('[BoostService] Результат поиска Boost пакета', {
+        activeBoostId,
+        packageFound: !!boostPackage,
+        packageData: boostPackage
+      });
+      
       if (!boostPackage) {
+        logger.warn('[BoostService] Boost пакет не найден', { activeBoostId });
         return {
           totalTonRatePerSecond: '0',
           totalUniRatePerSecond: '0',

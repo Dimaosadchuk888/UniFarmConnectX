@@ -54,9 +54,18 @@ export class BoostController extends BaseController {
   async getFarmingStatus(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
       const userId = req.query.user_id as string;
+      
+      if (!userId) {
+        res.status(400).json({
+          success: false,
+          error: 'user_id is required'
+        });
+        return;
+      }
+      
       logger.info('[BoostController] Получение статуса TON Boost фарминга', { userId });
       
-      const farmingStatus = await this.boostService.getTonBoostFarmingStatus(userId || '43');
+      const farmingStatus = await this.boostService.getTonBoostFarmingStatus(userId);
 
       this.sendSuccess(res, farmingStatus);
     }, 'получения статуса TON Boost фарминга');
