@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import { logger } from '../logger';
 
 /**
@@ -32,9 +33,7 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
       console.log('[TelegramAuth] Token preview:', token.substring(0, 20) + '...');
       console.log('[TelegramAuth] About to enter try block for JWT verification');
       try {
-          console.log('[TelegramAuth] Inside try block - requiring jsonwebtoken');
-          const jwt = require('jsonwebtoken');
-          console.log('[TelegramAuth] jsonwebtoken required successfully');
+          console.log('[TelegramAuth] Inside try block - using jsonwebtoken');
           const jwtSecret = process.env.JWT_SECRET;
           console.log('[TelegramAuth] JWT_SECRET exists:', !!jwtSecret);
           console.log('[TelegramAuth] JWT_SECRET preview:', jwtSecret ? jwtSecret.substring(0, 10) + '...' : 'NOT SET');
