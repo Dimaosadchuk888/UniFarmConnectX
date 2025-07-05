@@ -13,6 +13,7 @@ import tonFarmingRoutes from '../modules/tonFarming/routes';
 import transactionsRoutes from '../modules/transactions/routes';
 import airdropRoutes from '../modules/airdrop/routes';
 import adminRoutes from '../modules/admin/routes';
+import { adminBotRoutes } from '../modules/adminBot/routes';
 import { supabase } from '../core/supabase';
 
 const router = express.Router();
@@ -429,6 +430,9 @@ router.use('/airdrop', airdropRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);
+
+// Admin bot routes
+router.use('/admin-bot', adminBotRoutes);
 
 // Monitor routes
 router.use('/monitor', monitorRoutes);

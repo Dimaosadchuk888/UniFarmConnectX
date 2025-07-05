@@ -41,6 +41,8 @@ import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeSche
 import { alertingService } from '../core/alerting';
 import { setupViteIntegration } from './setupViteIntegration';
 import { BalanceNotificationService } from '../core/balanceNotificationService';
+import { AdminBotService } from '../modules/adminBot/service';
+import { adminBotConfig } from '../config/adminBot';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
@@ -741,6 +743,26 @@ async function startServer() {
       } catch (error) {
         logger.error('❌ Ошибка запуска TON Boost планировщика', { error });
       }
+      
+      // Инициализация админ-бота
+      (async () => {
+        try {
+          const adminBot = new AdminBotService();
+          const appUrl = process.env.APP_DOMAIN || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+          const webhookUrl = `${appUrl}/api/v2/admin-bot/webhook`;
+          
+          const webhookSet = await adminBot.setupWebhook(webhookUrl);
+          if (webhookSet) {
+            logger.info('✅ Admin bot webhook установлен', { webhookUrl });
+          } else {
+            // Fallback to polling if webhook fails
+            await adminBot.startPolling();
+            logger.info('✅ Admin bot polling запущен');
+          }
+        } catch (error) {
+          logger.error('❌ Ошибка инициализации админ-бота', { error });
+        }
+      })();
       
       // Инициализация системы алертинга для production мониторинга
       try {
