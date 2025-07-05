@@ -1,5 +1,6 @@
 import { logger } from '../../core/logger';
 import { AdminBotService } from './service';
+import { InlineKeyboardButton, InlineKeyboardMarkup } from './types';
 
 export class AdminBotController {
   private adminBotService: AdminBotService;
@@ -127,6 +128,47 @@ export class AdminBotController {
     const [action, ...params] = data.split(':');
     
     switch (action) {
+      case 'stats':
+        await this.handleStatsCommand(chatId);
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
+        break;
+        
+      case 'missions':
+        await this.handleMissionsCommand(chatId);
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
+        break;
+        
+      case 'withdrawals':
+        await this.handleWithdrawalsCommand(chatId, []);
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
+        break;
+        
+      case 'ban_prompt':
+        await this.adminBotService.sendMessage(
+          chatId,
+          '🚫 <b>Блокировка пользователя</b>\n\n' +
+          'Отправьте команду в формате:\n' +
+          '<code>/ban telegram_id</code>\n\n' +
+          'Пример: <code>/ban 123456789</code>'
+        );
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
+        break;
+        
+      case 'refresh_admin':
+        await this.handleAdminCommand(chatId);
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Меню обновлено');
+        break;
+        
+      case 'copy_ton_address':
+        const tonAddress = params.join(':'); // На случай если в адресе есть двоеточия
+        await this.adminBotService.sendMessage(
+          chatId,
+          `TON адрес:\n<code>${tonAddress}</code>\n\n` +
+          '<i>Нажмите на адрес для копирования</i>'
+        );
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Адрес отправлен');
+        break;
+        
       case 'users_page':
         const page = parseInt(params[0]) || 1;
         await this.handleUsersCommand(chatId, [page.toString()]);
@@ -160,28 +202,25 @@ export class AdminBotController {
     const keyboard = {
       inline_keyboard: [
         [
-          { text: '📊 Статистика', callback_data: 'stats' },
-          { text: '👥 Пользователи', callback_data: 'users_page:1' }
+          { text: '👥 Пользователи', callback_data: 'users_page:1' },
+          { text: '📊 Статистика', callback_data: 'stats' }
         ],
         [
           { text: '🎯 Миссии', callback_data: 'missions' },
-          { text: '💸 Выплаты', callback_data: 'withdrawals' }
+          { text: '💸 Заявки на вывод', callback_data: 'withdrawals' }
+        ],
+        [
+          { text: '🚫 Заблокировать', callback_data: 'ban_prompt' },
+          { text: '🔄 Обновить', callback_data: 'refresh_admin' }
         ]
       ]
     };
     
     await this.adminBotService.sendMessage(
       chatId,
-      `🔐 <b>Админ-панель UniFarm</b>\n\n` +
-      `Доступные команды:\n` +
-      `/stats - Общая статистика\n` +
-      `/users - Список пользователей\n` +
-      `/user <telegram_id> - Информация о пользователе\n` +
-      `/missions - Управление миссиями\n` +
-      `/withdrawals - Заявки на вывод\n` +
-      `/approve <id> - Одобрить выплату\n` +
-      `/reject <id> - Отклонить выплату\n` +
-      `/ban <telegram_id> - Заблокировать пользователя`,
+      `📋 <b>Главное меню</b>\n\n` +
+      `Выберите действие с помощью кнопок ниже:\n\n` +
+      `<i>Все команды теперь доступны через кнопки!</i>`,
       { reply_markup: keyboard }
     );
   }
@@ -192,6 +231,12 @@ export class AdminBotController {
   private async handleStatsCommand(chatId: number): Promise<void> {
     try {
       const stats = await this.adminBotService.getSystemStats();
+      
+      const keyboard: InlineKeyboardMarkup = {
+        inline_keyboard: [
+          [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
+        ]
+      };
       
       await this.adminBotService.sendMessage(
         chatId,
@@ -207,7 +252,8 @@ export class AdminBotController {
         `Всего сессий: ${stats.totalFarmingSessions}\n\n` +
         `📝 <b>Транзакции:</b>\n` +
         `Всего: ${stats.totalTransactions}\n` +
-        `За последние 24ч: ${stats.transactionsLast24h}`
+        `За последние 24ч: ${stats.transactionsLast24h}`,
+        { reply_markup: keyboard }
       );
     } catch (error) {
       await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения статистики');
@@ -241,23 +287,34 @@ export class AdminBotController {
       }
       
       // Navigation buttons
-      const keyboard: any = {
-        inline_keyboard: [[]]
+      const keyboard: InlineKeyboardMarkup = {
+        inline_keyboard: []
       };
       
+      const navButtons: InlineKeyboardButton[] = [];
+      
       if (page > 1) {
-        keyboard.inline_keyboard[0].push({
+        navButtons.push({
           text: '⬅️ Назад',
           callback_data: `users_page:${page - 1}`
         });
       }
       
       if (page < Math.ceil(result.total / limit)) {
-        keyboard.inline_keyboard[0].push({
+        navButtons.push({
           text: 'Вперед ➡️',
           callback_data: `users_page:${page + 1}`
         });
       }
+      
+      if (navButtons.length > 0) {
+        keyboard.inline_keyboard.push(navButtons);
+      }
+      
+      // Кнопка возврата в главное меню
+      keyboard.inline_keyboard.push([
+        { text: '🏠 Главное меню', callback_data: 'refresh_admin' }
+      ]);
       
       await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
     } catch (error) {
@@ -325,7 +382,13 @@ export class AdminBotController {
         message += `─────────────────\n`;
       }
       
-      await this.adminBotService.sendMessage(chatId, message);
+      const keyboard: InlineKeyboardMarkup = {
+        inline_keyboard: [
+          [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
+        ]
+      };
+      
+      await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
     } catch (error) {
       await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения данных о миссиях');
     }
@@ -388,7 +451,17 @@ export class AdminBotController {
       const requests = await this.adminBotService.getWithdrawalRequests(status);
       
       if (requests.length === 0) {
-        await this.adminBotService.sendMessage(chatId, '📭 Нет заявок на вывод');
+        const keyboard: InlineKeyboardMarkup = {
+          inline_keyboard: [
+            [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
+          ]
+        };
+        
+        await this.adminBotService.sendMessage(
+          chatId, 
+          '📭 Нет заявок на вывод', 
+          { reply_markup: keyboard }
+        );
         return;
       }
       
@@ -407,20 +480,43 @@ export class AdminBotController {
           message += `👮 Обработал: ${request.processed_by}\n`;
         }
         
+        // Создаем кнопки для каждой заявки
+        const inlineKeyboard: InlineKeyboardButton[][] = [];
+        
+        // Кнопка копирования адреса для всех заявок
+        inlineKeyboard.push([
+          { text: '📋 Копировать адрес', callback_data: `copy_ton_address:${request.ton_wallet}` }
+        ]);
+        
+        // Кнопки одобрения/отклонения только для pending заявок
         if (request.status === 'pending') {
-          const keyboard = {
-            inline_keyboard: [[
-              { text: '✅ Одобрить', callback_data: `approve_withdrawal:${request.id}` },
-              { text: '❌ Отклонить', callback_data: `reject_withdrawal:${request.id}` }
-            ]]
-          };
-          await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
-        } else {
-          await this.adminBotService.sendMessage(chatId, message);
+          inlineKeyboard.push([
+            { text: '✅ Одобрить', callback_data: `approve_withdrawal:${request.id}` },
+            { text: '❌ Отклонить', callback_data: `reject_withdrawal:${request.id}` }
+          ]);
         }
+        
+        const keyboard: InlineKeyboardMarkup = {
+          inline_keyboard: inlineKeyboard
+        };
+        
+        await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
         
         message = ''; // Reset for next iteration
       }
+      
+      // Добавляем финальную кнопку после всех заявок
+      const finalKeyboard: InlineKeyboardMarkup = {
+        inline_keyboard: [
+          [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
+        ]
+      };
+      
+      await this.adminBotService.sendMessage(
+        chatId,
+        `📊 Показано заявок: ${requests.length}`,
+        { reply_markup: finalKeyboard }
+      );
     } catch (error) {
       await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения заявок на вывод');
     }

@@ -42,6 +42,16 @@ export interface AdminUser {
   last_active?: string;
 }
 
+export interface InlineKeyboardButton {
+  text: string;
+  callback_data?: string;
+  url?: string;
+}
+
+export interface InlineKeyboardMarkup {
+  inline_keyboard: InlineKeyboardButton[][];
+}
+
 export interface AdminBotUpdate {
   update_id: number;
   message?: {
