@@ -67,7 +67,7 @@ const WelcomeSection: React.FC = () => {
   }, [userData]);
   
   return (
-    <div className="welcome-card-bg subtle-pattern rounded-xl p-5 mb-6 shadow-lg shadow-primary/20 backdrop-blur-md border border-white/10 overflow-hidden">
+    <div className="welcome-card-bg subtle-pattern rounded-xl p-3 sm:p-5 mb-4 sm:mb-6 shadow-lg shadow-primary/20 backdrop-blur-md border border-white/10 overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-purple-600/5 via-transparent to-accent/5"></div>
       
       {/* Тонкая светящаяся линия сверху */}
@@ -78,7 +78,7 @@ const WelcomeSection: React.FC = () => {
         {/* Лого UniFarm с эффектом парения */}
         <div className="flex items-center float-animation">
           {/* Усовершенствованная монета с буквой U */}
-          <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-primary via-purple-600 to-purple-800 flex items-center justify-center mr-3 border-[1.5px] border-white/20 shadow-md shadow-primary/30 unifarm-logo-glow overflow-hidden coin-3d-effect">
+          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary via-purple-600 to-purple-800 flex items-center justify-center mr-2 sm:mr-3 border-[1.5px] border-white/20 shadow-md shadow-primary/30 unifarm-logo-glow overflow-hidden coin-3d-effect">
             {/* Внутреннее свечение */}
             <div className="absolute inset-1 bg-gradient-to-tr from-accent/30 to-transparent opacity-70 rounded-full"></div>
             
@@ -109,7 +109,7 @@ const WelcomeSection: React.FC = () => {
             
             {/* Буква U с металлическим эффектом */}
             <div className="relative z-10 flex items-center justify-center">
-              <span className="relative text-white text-2xl font-extrabold bg-clip-text drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">U</span>
+              <span className="relative text-white text-xl sm:text-2xl font-extrabold bg-clip-text drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">U</span>
               {/* Блик на букве */}
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-white/70 blur-[1px] rounded-full"></div>
             </div>

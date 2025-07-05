@@ -115,31 +115,31 @@ const TransactionHistory: React.FC = () => {
   }
 
   return (
-    <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
+    <div className="bg-card rounded-xl p-3 sm:p-5 mb-5 shadow-lg overflow-hidden relative">
       {/* Неоновая рамка */}
       <div className="absolute inset-0 rounded-xl border border-primary/30"></div>
       
       {/* Заголовок с кнопкой обновления */}
-      <div className="flex items-center justify-between mb-4 relative z-10">
-        <h2 className="text-lg font-semibold text-white flex items-center">
-          <i className="fas fa-history text-primary mr-2"></i>
-          История транзакций
+      <div className="flex items-center justify-between mb-3 sm:mb-4 relative z-10">
+        <h2 className="text-base sm:text-lg font-semibold text-white flex items-center">
+          <i className="fas fa-history text-primary mr-2 text-sm sm:text-base"></i>
+          <span className="truncate">История транзакций</span>
         </h2>
         <button 
           onClick={handleRefresh}
           disabled={isFetching}
-          className="text-sm text-gray-400 hover:text-primary transition-colors"
+          className="text-sm text-gray-400 hover:text-primary transition-colors p-1"
           title="Обновить историю"
         >
           <i className={`fas fa-sync-alt ${isFetching ? 'animate-spin' : ''}`}></i>
         </button>
       </div>
       
-      {/* Фильтры валют */}
-      <div className="flex space-x-2 mb-4 relative z-10">
+      {/* Фильтры валют - адаптивные */}
+      <div className="flex flex-wrap gap-2 mb-3 sm:mb-4 relative z-10">
         <button
           onClick={() => handleFilterChange('ALL')}
-          className={`px-3 py-1 rounded-lg text-xs transition-all duration-200 ${
+          className={`px-3 py-1 rounded-lg text-xs transition-all duration-200 flex-1 sm:flex-initial min-w-[60px] ${
             activeFilter === 'ALL'
               ? 'bg-primary text-white shadow-lg shadow-primary/25'
               : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -149,7 +149,7 @@ const TransactionHistory: React.FC = () => {
         </button>
         <button
           onClick={() => handleFilterChange('UNI')}
-          className={`px-3 py-1 rounded-lg text-xs transition-all duration-200 ${
+          className={`px-3 py-1 rounded-lg text-xs transition-all duration-200 flex-1 sm:flex-initial min-w-[60px] ${
             activeFilter === 'UNI'
               ? 'bg-primary text-white shadow-lg shadow-primary/25'
               : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -159,7 +159,7 @@ const TransactionHistory: React.FC = () => {
         </button>
         <button
           onClick={() => handleFilterChange('TON')}
-          className={`px-3 py-1 rounded-lg text-xs transition-all duration-200 ${
+          className={`px-3 py-1 rounded-lg text-xs transition-all duration-200 flex-1 sm:flex-initial min-w-[60px] ${
             activeFilter === 'TON'
               ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
               : 'bg-gray-700 text-gray-300 hover:bg-gray-600'

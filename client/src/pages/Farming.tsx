@@ -41,13 +41,13 @@ const Farming: React.FC = () => {
   }, []);
 
   return (
-    <div className="container mx-auto p-4 min-h-full">
-      <h1 className="text-2xl font-bold mb-6">Фарминг</h1>
+    <div className="px-3 sm:px-4 py-3 sm:py-4 min-h-full max-w-7xl mx-auto">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Фарминг</h1>
       
       <Tabs defaultValue="uni" className="w-full mb-6">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="uni" className="text-lg">UNI Фарминг</TabsTrigger>
-          <TabsTrigger value="ton" className="text-lg">TON Фарминг</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6">
+          <TabsTrigger value="uni" className="text-sm sm:text-lg px-2 sm:px-4">UNI Фарминг</TabsTrigger>
+          <TabsTrigger value="ton" className="text-sm sm:text-lg px-2 sm:px-4">TON Фарминг</TabsTrigger>
         </TabsList>
         
         <TabsContent value="uni" className="space-y-6">

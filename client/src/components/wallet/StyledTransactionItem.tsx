@@ -264,11 +264,11 @@ const StyledTransactionItem: React.FC<StyledTransactionItemProps> = ({
   return (
     <div 
       className={`
-        relative overflow-hidden rounded-xl p-4 
+        relative overflow-hidden rounded-xl p-3 sm:p-4 
         bg-gradient-to-r ${config.bgGradient} 
         border ${config.borderColor}
         backdrop-blur-sm
-        hover:scale-[1.02] transition-all duration-300
+        hover:scale-[1.01] transition-all duration-300
         shadow-lg hover:shadow-xl
       `}
     >
@@ -277,25 +277,25 @@ const StyledTransactionItem: React.FC<StyledTransactionItemProps> = ({
         <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
       </div>
       
-      <div className="relative z-10 flex items-center justify-between">
-        {/* Left side - Icon and Details */}
-        <div className="flex items-center space-x-4">
-          {/* Icon Container */}
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* Top section - Icon and Details */}
+        <div className="flex items-start space-x-3 sm:space-x-4 min-w-0 flex-1">
+          {/* Icon Container - Responsive sizes */}
           <div className={`
-            w-12 h-12 rounded-xl ${config.iconBg} 
-            flex items-center justify-center
+            w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${config.iconBg} 
+            flex items-center justify-center flex-shrink-0
             border ${config.borderColor}
             shadow-lg
           `}>
-            <IconComponent className={`w-6 h-6 ${config.iconColor}`} />
+            <IconComponent className={`w-5 h-5 sm:w-6 sm:h-6 ${config.iconColor}`} />
           </div>
           
           {/* Transaction Details */}
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0 flex-1">
             {/* Transaction Type with Emoji */}
             <div className="flex items-center space-x-2">
-              <span className="text-lg">{config.emoji}</span>
-              <span className={`font-semibold text-sm ${config.textColor}`}>
+              <span className="text-base sm:text-lg">{config.emoji}</span>
+              <span className={`font-semibold text-xs sm:text-sm ${config.textColor}`}>
                 {config.label}
               </span>
             </div>
@@ -305,47 +305,58 @@ const StyledTransactionItem: React.FC<StyledTransactionItemProps> = ({
               {formatDateTime(transaction.createdAt)}
             </div>
             
-            {/* Description if available */}
+            {/* Description with proper wrapping */}
             {transaction.description && (
-              <div className="text-xs text-gray-500 max-w-48 truncate">
+              <div className="text-xs text-gray-500 break-words pr-2">
                 {transaction.description}
               </div>
             )}
           </div>
         </div>
         
-        {/* Right side - Amount and Currency */}
-        <div className="text-right space-y-1">
+        {/* Bottom/Right section - Amount and Currency */}
+        <div className="flex sm:flex-col items-end sm:text-right space-x-3 sm:space-x-0 sm:space-y-1 ml-[52px] sm:ml-0">
           {/* Amount with Sign */}
-          <div className={`text-lg font-bold ${config.amountColor}`}>
+          <div className={`text-sm sm:text-lg font-bold ${config.amountColor} whitespace-nowrap`}>
             {sign}{formatAmount(transaction.amount, transaction.currency)} {transaction.currency}
           </div>
           
-          {/* Status Badge */}
-          <div className={`
-            inline-flex items-center px-2 py-1 rounded-md text-xs font-medium
-            ${transaction.status === 'completed' 
-              ? 'bg-green-500/20 text-green-400 border border-green-500/40' 
-              : transaction.status === 'pending'
-              ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
-              : 'bg-gray-500/20 text-gray-400 border border-gray-500/40'
-            }
-          `}>
-            {transaction.status === 'completed' ? '✓ Завершено' :
-             transaction.status === 'pending' ? '⏳ В обработке' :
-             transaction.status === 'confirmed' ? '✓ Подтверждено' :
-             transaction.status}
-          </div>
-          
-          {/* Currency specific badge */}
-          <div className={`
-            text-xs px-2 py-0.5 rounded-md inline-block
-            ${transaction.currency === 'UNI' 
-              ? 'bg-green-500/10 text-green-400 border border-green-500/30' 
-              : 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
-            }
-          `}>
-            {transaction.currency}
+          {/* Status and Currency badges in a row on mobile */}
+          <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1">
+            {/* Status Badge */}
+            <div className={`
+              inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs font-medium whitespace-nowrap
+              ${transaction.status === 'completed' 
+                ? 'bg-green-500/20 text-green-400 border border-green-500/40' 
+                : transaction.status === 'pending'
+                ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
+                : 'bg-gray-500/20 text-gray-400 border border-gray-500/40'
+              }
+            `}>
+              <span className="hidden sm:inline">
+                {transaction.status === 'completed' ? '✓ Завершено' :
+                 transaction.status === 'pending' ? '⏳ В обработке' :
+                 transaction.status === 'confirmed' ? '✓ Подтверждено' :
+                 transaction.status}
+              </span>
+              <span className="sm:hidden">
+                {transaction.status === 'completed' ? '✓' :
+                 transaction.status === 'pending' ? '⏳' :
+                 transaction.status === 'confirmed' ? '✓' :
+                 transaction.status.slice(0, 3)}
+              </span>
+            </div>
+            
+            {/* Currency specific badge */}
+            <div className={`
+              text-xs px-1.5 sm:px-2 py-0.5 rounded-md inline-block
+              ${transaction.currency === 'UNI' 
+                ? 'bg-green-500/10 text-green-400 border border-green-500/30' 
+                : 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+              }
+            `}>
+              {transaction.currency}
+            </div>
           </div>
         </div>
       </div>

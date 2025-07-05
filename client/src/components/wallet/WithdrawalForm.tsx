@@ -174,14 +174,14 @@ const WithdrawalForm: React.FC = () => {
   }, [selectedCurrency, setValue]);
 
   return (
-    <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
+    <div className="bg-card rounded-xl p-3 sm:p-5 mb-5 shadow-lg overflow-hidden relative">
       {/* Неоновая рамка с градиентом */}
       <div className="absolute inset-0 rounded-xl border border-primary/30"></div>
       
       {/* Заголовок секции */}
-      <h2 className="text-lg font-semibold text-white mb-4 relative z-10 flex items-center">
-        <i className="fas fa-money-bill-wave text-primary mr-2"></i>
-        Вывод средств
+      <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 relative z-10 flex items-center">
+        <i className="fas fa-money-bill-wave text-primary mr-2 text-sm sm:text-base"></i>
+        <span>Вывод средств</span>
       </h2>
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative z-10">
@@ -190,11 +190,11 @@ const WithdrawalForm: React.FC = () => {
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Выберите валюту для вывода:
           </label>
-          <div className="flex space-x-2">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => handleCurrencyChange('UNI')}
-              className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
+              className={`flex-1 px-3 py-2 rounded-lg border transition-all duration-200 text-sm sm:text-base ${
                 selectedCurrency === 'UNI'
                   ? 'bg-primary text-white border-primary shadow-lg shadow-primary/25'
                   : 'bg-gray-700 text-gray-300 border-gray-600 hover:border-primary/50'
@@ -205,7 +205,7 @@ const WithdrawalForm: React.FC = () => {
             <button
               type="button"
               onClick={() => handleCurrencyChange('TON')}
-              className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
+              className={`flex-1 px-3 py-2 rounded-lg border transition-all duration-200 text-sm sm:text-base ${
                 selectedCurrency === 'TON'
                   ? 'bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/25'
                   : 'bg-gray-700 text-gray-300 border-gray-600 hover:border-blue-500/50'

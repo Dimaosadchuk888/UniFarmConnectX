@@ -231,15 +231,15 @@ const BalanceCard: React.FC = () => {
 
   // ===== Рендеринг согласно UX спецификации =====
   return (
-    <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
+    <div className="bg-card rounded-xl p-3 sm:p-5 mb-5 shadow-lg overflow-hidden relative">
       {/* Неоновая рамка */}
       <div className="absolute inset-0 rounded-xl border border-primary/30"></div>
       
       {/* Заголовок с кнопками управления */}
-      <h2 className="text-lg font-semibold text-white mb-4 relative z-10 flex items-center justify-between">
+      <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 relative z-10 flex items-center justify-between">
         <div className="flex items-center">
-          <i className="fas fa-wallet text-primary mr-2"></i>
-          Ваш баланс
+          <i className="fas fa-wallet text-primary mr-2 text-sm sm:text-base"></i>
+          <span className="truncate">Ваш баланс</span>
         </div>
         <div className="flex space-x-2">
           <button 
@@ -263,9 +263,9 @@ const BalanceCard: React.FC = () => {
       </h2>
       
       {/* Сетка карточек токенов */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
         {/* UNI Token - фиолетово-синий градиент */}
-        <div className="bg-black/20 rounded-lg p-4 backdrop-blur-sm relative overflow-hidden border border-primary/20">
+        <div className="bg-black/20 rounded-lg p-3 sm:p-4 backdrop-blur-sm relative overflow-hidden border border-primary/20">
           {/* Декоративный градиентный фон UNI */}
           <div className="absolute inset-0 opacity-20">
             <div 
@@ -287,14 +287,14 @@ const BalanceCard: React.FC = () => {
           
           {/* Баланс UNI с анимацией */}
           <div className="mb-2 relative z-10">
-            <div className="text-2xl font-bold text-white flex items-center">
+            <div className="text-xl sm:text-2xl font-bold text-white flex items-center">
               <span className={`transition-all duration-300 ${uniAnimating ? 'text-green-400 scale-105' : ''}`}>
-                {formatUniNumber(uniBalance)}
+                {formatUniNumber(Number(uniBalance) || 0)}
               </span>
               <span className="text-sm ml-1 text-gray-400">UNI</span>
             </div>
             <div className="text-xs text-gray-400">
-              {getUSDEquivalent(uniBalance, 'UNI')}
+              {getUSDEquivalent(Number(uniBalance) || 0, 'UNI')}
             </div>
           </div>
           
@@ -309,7 +309,7 @@ const BalanceCard: React.FC = () => {
         </div>
         
         {/* TON Balance - сине-голубой градиент */}
-        <div className="bg-black/20 rounded-lg p-4 backdrop-blur-sm relative overflow-hidden border border-blue-500/20">
+        <div className="bg-black/20 rounded-lg p-3 sm:p-4 backdrop-blur-sm relative overflow-hidden border border-blue-500/20">
           {/* Декоративный градиентный фон TON */}
           <div className="absolute inset-0 opacity-20">
             <div 
@@ -331,14 +331,14 @@ const BalanceCard: React.FC = () => {
           
           {/* Баланс TON с анимацией */}
           <div className="mb-2 relative z-10">
-            <div className="text-2xl font-bold text-white flex items-center">
+            <div className="text-xl sm:text-2xl font-bold text-white flex items-center">
               <span className={`transition-all duration-300 ${tonAnimating ? 'text-green-400 scale-105' : ''}`}>
-                {formatTonNumber(tonBalance)}
+                {formatTonNumber(Number(tonBalance) || 0)}
               </span>
               <span className="text-sm ml-1 text-gray-400">TON</span>
             </div>
             <div className="text-xs text-gray-400">
-              {getUSDEquivalent(tonBalance, 'TON')}
+              {getUSDEquivalent(Number(tonBalance) || 0, 'TON')}
             </div>
           </div>
           
