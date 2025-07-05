@@ -22,8 +22,10 @@ type ConnectionListener = (connected: boolean) => void;
 // Хранение слушателей
 const connectionListeners: ConnectionListener[] = [];
 
-// Адрес TON кошелька проекта
-export const TON_PROJECT_ADDRESS = 'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8';
+// Адрес TON кошелька проекта из переменной окружения
+export const TON_PROJECT_ADDRESS = 
+  import.meta.env.VITE_TON_BOOST_RECEIVER_ADDRESS || 
+  'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8';
 
 // Время жизни транзакции в секундах (30 минут)
 const TX_LIFETIME = 30 * 60;

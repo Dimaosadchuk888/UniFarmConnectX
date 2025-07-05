@@ -120,9 +120,10 @@ const BoostPackagesCard: React.FC = () => {
     
     try {
       // Получаем ID пользователя
-      let userIdStr = userId?.toString();
+      let userIdStr: string | undefined = userId?.toString();
       if (!userIdStr) {
-        userIdStr = getUserIdFromURL();
+        const urlUserId = getUserIdFromURL();
+        userIdStr = urlUserId || undefined;
       }
       
       if (!userIdStr) {
@@ -176,40 +177,90 @@ const BoostPackagesCard: React.FC = () => {
 
         // Отправляем TON транзакцию через подключенный кошелек
         try {
-          const transactionComment = createTonTransactionComment(
-            Number(userId),
-            boostId,
-            'ton_boost_purchase'
+          // Формируем комментарий для транзакции
+          const transactionComment = `UniFarmBoost:${userId}:${boostId}`;
+
+          console.log('[DEBUG] Отправка транзакции TON:', {
+            amount: selectedPackage.priceTon,
+            comment: transactionComment,
+            userId,
+            boostId
+          });
+          
+          // Вызываем функцию sendTonTransaction с правильными параметрами
+          const result = await sendTonTransaction(
+            tonConnectUI, 
+            selectedPackage.priceTon, // Сумма в TON
+            transactionComment // Комментарий
           );
-
-          const transactionRequest = {
-            validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
-            messages: [
-              {
-                address: 'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8',
-                amount: (parseFloat(selectedPackage.priceTon) * 1e9).toString(),
-                payload: transactionComment
-              }
-            ]
-          };
-
-          console.log('[DEBUG] Отправка транзакции TON:', transactionRequest);
           
-          const result = await sendTonTransaction(tonConnectUI, transactionRequest);
-          
-          if (result?.boc) {
+          if (result?.txHash) {
             // Транзакция успешно отправлена
             toast({
               title: "Транзакция отправлена",
-              description: "TON Boost будет активирован после подтверждения транзакции",
+              description: "Ожидается подтверждение транзакции... Это может занять до 30 секунд",
               variant: "default"
             });
+
+            // Отправляем tx_hash на backend для верификации
+            try {
+              console.log('[DEBUG] Отправка tx_hash на верификацию:', {
+                user_id: userId,
+                tx_hash: result.txHash,
+                boost_id: boostId
+              });
+
+              const verifyResponse = await fetch('/api/v2/boost/verify-ton-payment', {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('unifarm_jwt_token')}`
+                },
+                body: JSON.stringify({
+                  user_id: (userId || userIdNum).toString(),
+                  tx_hash: result.txHash,
+                  boost_id: boostId.toString()
+                })
+              });
+
+              const verifyData = await verifyResponse.json();
+              
+              if (verifyData.success && verifyData.data?.status === 'confirmed') {
+                toast({
+                  title: "Платеж подтвержден",
+                  description: `TON Boost "${selectedPackage.name}" успешно активирован!`,
+                  variant: "default"
+                });
+              } else if (verifyData.data?.status === 'waiting') {
+                toast({
+                  title: "Ожидание подтверждения",
+                  description: "Транзакция еще не подтверждена в блокчейне. Проверьте статус через несколько минут.",
+                  variant: "default"
+                });
+              } else {
+                toast({
+                  title: "Требуется ручная проверка",
+                  description: "Платеж будет проверен администратором в течение нескольких минут",
+                  variant: "default"
+                });
+              }
+            } catch (error) {
+              console.error('[ERROR] Ошибка при верификации транзакции:', error);
+              toast({
+                title: "Платеж обрабатывается",
+                description: "Транзакция отправлена. Boost будет активирован после подтверждения.",
+                variant: "default"
+              });
+            }
 
             // Обновляем данные
             queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
             queryClient.invalidateQueries({ queryKey: ['/api/v2/boost'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
+            
+            // Обновляем баланс пользователя
+            refreshBalance();
           } else {
             toast({
               title: "Транзакция отменена",
@@ -247,7 +298,7 @@ const BoostPackagesCard: React.FC = () => {
           });
 
           const data = await correctApiRequest('/api/v2/boost/purchase', 'POST', {
-            user_id: userId.toString(),
+            user_id: (userId || userIdNum).toString(),
             boost_id: boostId.toString(),
             payment_method: 'wallet'  // для внутреннего баланса используем 'wallet'
           });
