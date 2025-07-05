@@ -448,15 +448,12 @@ async function startServer() {
     // API routes
     const apiPrefix = `/api/v2`;
     
-    // Bypass auth middleware for demo mode - applied before routes
-    // Force bypass for replit.app deployment
-    const forceBypass = process.env.BYPASS_AUTH === 'true' || 
-                       process.env.NODE_ENV === 'development' ||
-                       process.env.HOST?.includes('replit.app');
+    // Bypass auth middleware - ONLY for explicit development mode
+    const forceBypass = process.env.BYPASS_AUTH === 'true' || process.env.NODE_ENV === 'development';
     
     if (forceBypass) {
-      console.log('[Server] Auth bypass enabled - JWT authentication will be used');
-      // Удалён хардкод user ID=48 - теперь используется JWT авторизация
+      console.log('[Server] Development mode - auth bypass enabled');
+      // В development режиме используется JWT авторизация без принудительного user ID
     }
     
     // КРИТИЧЕСКИЙ ИСПРАВЛЕННЫЙ DAILY BONUS ENDPOINT
