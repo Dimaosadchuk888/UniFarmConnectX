@@ -23,13 +23,23 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
     console.log('[TelegramAuth] Auth check - Production:', isProduction, 'Auth header:', !!authHeader, 'Dev header:', hasDevHeader);
     
     // Всегда проверяем JWT токен, если он есть
+    console.log('[TelegramAuth] Before JWT check - authHeader:', authHeader?.substring(0, 30));
+    console.log('[TelegramAuth] Starts with Bearer?', authHeader?.startsWith('Bearer '));
+    
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      console.log('[TelegramAuth] Processing JWT token');
+      console.log('[TelegramAuth] Processing JWT token - INSIDE IF BLOCK');
       const token = authHeader.substring(7);
+      console.log('[TelegramAuth] Token preview:', token.substring(0, 20) + '...');
+      console.log('[TelegramAuth] About to enter try block for JWT verification');
       try {
+          console.log('[TelegramAuth] Inside try block - requiring jsonwebtoken');
           const jwt = require('jsonwebtoken');
+          console.log('[TelegramAuth] jsonwebtoken required successfully');
           const jwtSecret = process.env.JWT_SECRET;
+          console.log('[TelegramAuth] JWT_SECRET exists:', !!jwtSecret);
+          console.log('[TelegramAuth] JWT_SECRET preview:', jwtSecret ? jwtSecret.substring(0, 10) + '...' : 'NOT SET');
           if (!jwtSecret) {
+            console.log('[TelegramAuth] JWT_SECRET is missing!');
             throw new Error('JWT_SECRET environment variable not set');
           }
           const decoded = jwt.verify(token, jwtSecret) as any;
@@ -90,14 +100,23 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
           (req as any).telegram = { user, validated: true };
           next();
           return;
-        } catch (jwtError) {
-          console.log('[TelegramAuth] JWT verification failed:', jwtError);
+        } catch (jwtError: any) {
+          console.log('[TelegramAuth] JWT verification failed:', jwtError.message);
+          console.log('[TelegramAuth] Full error:', jwtError);
+          // Если JWT токен был предоставлен, но невалиден - возвращаем специфичную ошибку
+          res.status(401).json({ 
+            success: false, 
+            error: 'Invalid or expired JWT token',
+            jwt_error: jwtError.message,
+            need_new_token: true 
+          });
+          return;
         }
     }
     
     // Если JWT токен отсутствует или невалиден, проверяем режим работы
-    if (process.env.NODE_ENV === 'production') {
-      console.log('[TelegramAuth] Production mode - authentication required');
+    if (process.env.NODE_ENV === 'production' && !authHeader) {
+      console.log('[TelegramAuth] Production mode - no auth header provided');
       res.status(401).json({ 
         success: false, 
         error: 'Authentication required',

@@ -15,6 +15,7 @@ import airdropRoutes from '../modules/airdrop/routes';
 import adminRoutes from '../modules/admin/routes';
 import { adminBotRoutes } from '../modules/adminBot/routes';
 import { supabase } from '../core/supabase';
+import { requireTelegramAuth } from '../core/middleware/telegramAuth';
 
 const router = express.Router();
 
@@ -24,6 +25,18 @@ const router = express.Router();
 router.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// JWT debug endpoint
+router.get('/jwt-debug', requireTelegramAuth, (req: Request, res: Response) => {
+  console.log('[JWT-DEBUG] Endpoint called');
+  res.json({ 
+    success: true,
+    user: (req as any).user,
+    telegramUser: (req as any).telegramUser,
+    telegram: (req as any).telegram,
     timestamp: new Date().toISOString()
   });
 });
