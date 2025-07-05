@@ -1,5 +1,10 @@
+// Проверка обязательной переменной
+if (!process.env.TELEGRAM_BOT_TOKEN) {
+  throw new Error('TELEGRAM_BOT_TOKEN environment variable is not set');
+}
+
 export const telegramConfig = {
-  botToken: process.env.TELEGRAM_BOT_TOKEN || '',
+  botToken: process.env.TELEGRAM_BOT_TOKEN,
   webhookUrl: process.env.TELEGRAM_WEBHOOK_URL || '',
   webAppUrl: process.env.TELEGRAM_WEBAPP_URL || '',
   

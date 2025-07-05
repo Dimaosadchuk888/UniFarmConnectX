@@ -128,7 +128,14 @@ export class AuthService {
         };
       }
 
-      const validation = validateTelegramInitData(initData, process.env.TELEGRAM_BOT_TOKEN || '');
+      if (!process.env.TELEGRAM_BOT_TOKEN) {
+        logger.error('[AuthService] TELEGRAM_BOT_TOKEN not set');
+        return {
+          success: false,
+          error: 'Сервер неправильно настроен'
+        };
+      }
+      const validation = validateTelegramInitData(initData, process.env.TELEGRAM_BOT_TOKEN);
       if (!validation.valid || !validation.user) {
         logger.warn('[AuthService] Невалидные данные Telegram', { validation });
         return {
@@ -281,7 +288,14 @@ export class AuthService {
    */
   async registerWithTelegram(initData: string, refBy?: string): Promise<AuthenticationResult> {
     try {
-      const validation = validateTelegramInitData(initData, process.env.TELEGRAM_BOT_TOKEN || '');
+      if (!process.env.TELEGRAM_BOT_TOKEN) {
+        logger.error('[AuthService] TELEGRAM_BOT_TOKEN not set');
+        return {
+          success: false,
+          error: 'Сервер неправильно настроен'
+        };
+      }
+      const validation = validateTelegramInitData(initData, process.env.TELEGRAM_BOT_TOKEN);
       if (!validation.valid || !validation.user) {
         return {
           success: false,
