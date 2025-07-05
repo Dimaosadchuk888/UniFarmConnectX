@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniFarm - Проверка активного пользователя</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0f0f0f;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        h1 { color: #8b5cf6; }
+        h2 { color: #10b981; }
+        .data-block {
+            background: #252525;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .status-ok { color: #10b981; }
+        .status-warn { color: #f59e0b; }
+        .status-error { color: #ef4444; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        td, th {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #374151;
+        }
+        th { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 UniFarm Preview User Check</h1>
+        
+        <div class="section">
+            <h2>1. JWT Token Analysis</h2>
+            <div id="jwtAnalysis" class="data-block">Анализ...</div>
+        </div>
+        
+        <div class="section">
+            <h2>2. API Profile Response</h2>
+            <div id="apiProfile" class="data-block">Загрузка...</div>
+        </div>
+        
+        <div class="section">
+            <h2>3. UserContext State</h2>
+            <div id="contextState" class="data-block">Проверка...</div>
+        </div>
+        
+        <div class="section">
+            <h2>4. Wallet Data Check</h2>
+            <div id="walletData" class="data-block">Ожидание...</div>
+        </div>
+        
+        <div class="section">
+            <h2>📊 Summary</h2>
+            <table id="summaryTable">
+                <tr>
+                    <th>Компонент</th>
+                    <th>Факт</th>
+                    <th>Подключен</th>
+                    <th>Комментарий</th>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function checkPreviewUser() {
+            const results = {};
+            
+            // 1. JWT Token Analysis
+            const jwtDiv = document.getElementById('jwtAnalysis');
+            const jwtToken = localStorage.getItem('unifarm_jwt_token') || localStorage.getItem('telegramJWT');
+            
+            if (jwtToken) {
+                try {
+                    const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+                    jwtDiv.innerHTML = `<span class="status-ok">✅ JWT найден</span><br>
+                        user_id: ${payload.userId || payload.user_id}<br>
+                        telegram_id: ${payload.telegram_id}<br>
+                        username: ${payload.username}<br>
+                        ref_code: ${payload.ref_code}<br>
+                        exp: ${new Date(payload.exp * 1000).toLocaleString()}`;
+                    
+                    results.jwt = {
+                        status: '✅',
+                        userId: payload.userId || payload.user_id,
+                        comment: `user_id = ${payload.userId || payload.user_id}`
+                    };
+                } catch (e) {
+                    jwtDiv.innerHTML = `<span class="status-error">❌ Ошибка декодирования JWT</span><br>${e.message}`;
+                    results.jwt = { status: '❌', comment: 'Ошибка декодирования' };
+                }
+            } else {
+                jwtDiv.innerHTML = '<span class="status-warn">⚠️ JWT токен не найден в localStorage</span>';
+                results.jwt = { status: '❌', comment: 'Токен не найден' };
+            }
+            
+            // 2. API Profile Request
+            const profileDiv = document.getElementById('apiProfile');
+            try {
+                const response = await fetch('/api/v2/users/profile?user_id=48', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': jwtToken ? `Bearer ${jwtToken}` : ''
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const user = data.data.user;
+                    profileDiv.innerHTML = `<span class="status-ok">✅ API успешно</span><br>
+                        user_id: ${user.id}<br>
+                        telegram_id: ${user.telegram_id}<br>
+                        username: ${user.username}<br>
+                        balance_uni: ${user.balance_uni}<br>
+                        balance_ton: ${user.balance_ton}`;
+                    
+                    results.api = {
+                        status: '✅',
+                        userId: user.id,
+                        comment: `user_id = ${user.id}`,
+                        balances: { uni: user.balance_uni, ton: user.balance_ton }
+                    };
+                } else {
+                    profileDiv.innerHTML = `<span class="status-error">❌ API ошибка</span><br>${JSON.stringify(data)}`;
+                    results.api = { status: '❌', comment: 'Ошибка API' };
+                }
+            } catch (e) {
+                profileDiv.innerHTML = `<span class="status-error">❌ Запрос не удался</span><br>${e.message}`;
+                results.api = { status: '❌', comment: e.message };
+            }
+            
+            // 3. Check UserContext (через консоль)
+            const contextDiv = document.getElementById('contextState');
+            contextDiv.innerHTML = `<span class="status-warn">⚠️ Проверьте консоль браузера</span><br>
+                Выполните в консоли:<br>
+                <code>console.log('UserContext userId:', window.__unifarm_user_id);</code>`;
+            
+            // 4. Wallet Data
+            const walletDiv = document.getElementById('walletData');
+            try {
+                const walletResponse = await fetch('/api/v2/wallet/balance?user_id=48', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': jwtToken ? `Bearer ${jwtToken}` : ''
+                    }
+                });
+                const walletData = await walletResponse.json();
+                
+                if (walletData.success) {
+                    walletDiv.innerHTML = `<span class="status-ok">✅ Wallet API работает</span><br>
+                        ${JSON.stringify(walletData.data, null, 2)}`;
+                    results.wallet = { status: '✅', comment: 'API возвращает данные' };
+                } else {
+                    walletDiv.innerHTML = `<span class="status-warn">⚠️ Wallet API вернул:</span><br>${JSON.stringify(walletData)}`;
+                    results.wallet = { status: '⚠️', comment: 'Проверьте ответ' };
+                }
+            } catch (e) {
+                walletDiv.innerHTML = `<span class="status-error">❌ Wallet запрос не удался</span><br>${e.message}`;
+                results.wallet = { status: '❌', comment: e.message };
+            }
+            
+            // Update summary table
+            const summaryTable = document.getElementById('summaryTable');
+            const rows = [
+                ['JWT токен', `payload с user_id = ${results.jwt?.userId || '?'}`, results.jwt?.status || '?', results.jwt?.comment || ''],
+                ['/profile', `возвращает user_id=${results.api?.userId || '?'}`, results.api?.status || '?', results.api?.comment || ''],
+                ['Wallet API', 'баланс приходит?', results.wallet?.status || '?', results.wallet?.comment || ''],
+                ['UI Wallet', 'отображает баланс?', '🔍', 'Проверьте на странице /wallet'],
+                ['Ошибки в консоли', 'есть?', '🔍', 'Откройте DevTools'],
+                ['Сопоставление с БД', 'совпадают ли цифры?', '🔍', `UNI: ${results.api?.balances?.uni || '?'}, TON: ${results.api?.balances?.ton || '?'}`]
+            ];
+            
+            rows.forEach(row => {
+                const tr = document.createElement('tr');
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.innerHTML = cell;
+                    tr.appendChild(td);
+                });
+                summaryTable.appendChild(tr);
+            });
+        }
+        
+        // Запуск проверки при загрузке
+        window.onload = checkPreviewUser;
+    </script>
+</body>
+</html>
