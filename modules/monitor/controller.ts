@@ -5,65 +5,62 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
-import { supabase } from '../../core/supabase';
+import { MonitorService } from './service';
+import { logger } from '../../core/logger';
 
 export class MonitorController extends BaseController {
+  private monitorService: MonitorService;
+
+  constructor() {
+    super();
+    this.monitorService = new MonitorService();
+  }
   /**
-   * GET /api/monitor/pool
-   * Возвращает статистику connection pool
+   * GET /api/v2/monitor/health
+   * Возвращает общее состояние системы
    */
-  async getPoolStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getSystemHealth(req: Request, res: Response): Promise<void> {
     try {
       await this.handleRequest(req, res, async () => {
-      const stats = getPoolStats();
-      
-      this.sendSuccess(res, {
-        active: stats.activeCount,
-        idle: stats.idleCount,
-        waiting: stats.waitingCount,
-        total: stats.totalCount,
-        timestamp: new Date().toISOString()
-      });
-    }, 'получения статистики пула соединений');
+        const health = await this.monitorService.getSystemHealth();
+        this.sendSuccess(res, health);
+      }, 'получения состояния системы');
     } catch (error) {
-      next(error);
+      this.handleControllerError(error, res, 'получения состояния системы');
     }
   }
 
   /**
-   * GET /api/monitor/pool/detailed
-   * Возвращает расширенную статистику с анализом здоровья
+   * GET /api/v2/monitor/stats
+   * Возвращает статистику системы
    */
-  async getDetailedPoolStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getSystemStats(req: Request, res: Response): Promise<void> {
     try {
       await this.handleRequest(req, res, async () => {
-      const stats = getDetailedPoolStats();
-      
-      this.sendSuccess(res, {
-        ...stats,
-        timestamp: new Date().toISOString()
-      });
-    }, 'получения детальной статистики пула');
+        const stats = await this.monitorService.getSystemStats();
+        this.sendSuccess(res, stats);
+      }, 'получения статистики системы');
     } catch (error) {
-      next(error);
+      this.handleControllerError(error, res, 'получения статистики системы');
     }
   }
 
   /**
-   * POST /api/monitor/pool/log
-   * Выводит текущую статистику в консоль сервера
+   * GET /api/v2/monitor/status
+   * Проверяет доступность критических API endpoints
    */
-  async logPoolStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getEndpointsStatus(req: Request, res: Response): Promise<void> {
     try {
       await this.handleRequest(req, res, async () => {
-      logPoolStats();
-      
-      this.sendSuccess(res, {
-        message: 'Статистика пула выведена в консоль сервера'
-      });
-    }, 'вывода статистики пула в консоль');
+        const endpoints = await this.monitorService.checkCriticalEndpoints();
+        
+        // Логируем результаты проверки
+        logger.info('[MonitorController] Результаты проверки endpoints:', endpoints);
+        
+        res.json(endpoints);
+      }, 'проверки критических endpoints');
     } catch (error) {
-      next(error);
+      this.handleControllerError(error, res, 'проверки критических endpoints');
     }
   }
 }

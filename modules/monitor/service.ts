@@ -1,6 +1,7 @@
 
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
+import fetch from 'node-fetch';
 import { 
   SystemStats, 
   UserStats, 
@@ -236,5 +237,70 @@ export class MonitorService {
         lastCheck: new Date().toISOString()
       };
     }
+  }
+
+  /**
+   * Мониторинг критических API endpoints
+   */
+  async checkCriticalEndpoints(): Promise<Record<string, string>> {
+    logger.info('[MonitorService] Проверка критических API endpoints');
+
+    const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
+    const timeout = 5000; // 5 секунд таймаут
+    
+    const endpoints = {
+      boostPackages: '/api/v2/boost/packages',
+      walletTransactions: '/api/v2/wallet/transactions',
+      verifyTon: '/api/v2/ton/verify',
+      farmingDeposits: '/api/v2/farming/deposits',
+      userProfile: '/api/v2/user/profile',
+      wsStatus: '/api/v2/ws/status'
+    };
+
+    const results: Record<string, string> = {};
+
+    // Проверяем каждый endpoint параллельно
+    await Promise.all(
+      Object.entries(endpoints).map(async ([key, endpoint]) => {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+          
+          const response = await fetch(`${baseUrl}${endpoint}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Monitor-Check': 'true' // Помечаем как системную проверку
+            },
+            signal: controller.signal as any
+          });
+          
+          clearTimeout(timeoutId);
+          
+          // Для некоторых endpoints 401 (требуется авторизация) - это нормально
+          if (response.ok || response.status === 401) {
+            results[key] = 'OK';
+          } else {
+            results[key] = `FAIL - ${response.status} ${response.statusText}`;
+            logger.warn(`[MonitorService] Endpoint ${endpoint} вернул ошибку:`, {
+              status: response.status,
+              statusText: response.statusText
+            });
+          }
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            results[key] = 'FAIL - Timeout';
+          } else {
+            results[key] = `FAIL - ${error instanceof Error ? error.message : 'Unknown error'}`;
+          }
+          
+          logger.error(`[MonitorService] Ошибка проверки endpoint ${endpoint}:`, {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      })
+    );
+
+    return results;
   }
 }
