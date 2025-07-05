@@ -2,9 +2,12 @@
  * TON Boost Payment Configuration
  */
 
+import { getTonBoostReceiverAddress } from './tonBoostPayment';
+
 export const tonBoostConfig = {
   // Адрес кошелька для получения платежей за Boost пакеты
-  WALLET_ADDRESS: process.env.TON_BOOST_WALLET_ADDRESS || 'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8',
+  // Используем централизованную конфигурацию из tonBoostPayment.ts
+  WALLET_ADDRESS: getTonBoostReceiverAddress(),
   
   // Настройки транзакций
   TRANSACTION_TIMEOUT: 300, // 5 минут в секундах
