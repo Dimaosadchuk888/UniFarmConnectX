@@ -80,43 +80,17 @@ export class TelegramController extends BaseController {
         
         if (text.startsWith('/start')) {
           await this.handleStartCommand(chatId, userId, username);
-        } else if (text.startsWith('/admin') && isAdmin) {
-          await this.handleAdminCommand(chatId, userId);
-        } else if (text.startsWith('/stats') && isAdmin) {
-          await this.handleStatsCommand(chatId, userId);
-        } else if (text.startsWith('/users') && isAdmin) {
-          await this.handleUsersCommand(chatId, userId, text);
-        } else if (text.startsWith('/user ') && isAdmin) {
-          const targetUserId = text.split(' ')[1];
-          await this.handleUserCommand(chatId, userId, targetUserId);
-        } else if (text.startsWith('/missions') && isAdmin) {
-          await this.handleMissionsCommand(chatId, userId);
-        } else if (text.startsWith('/ban ') && isAdmin) {
-          const targetUserId = text.split(' ')[1];
-          await this.handleBanCommand(chatId, userId, targetUserId);
-        } else if (text.startsWith('/mission_complete ') && isAdmin) {
-          const missionId = text.split(' ')[1];
-          await this.handleMissionCompleteCommand(chatId, userId, missionId);
-        } else if (text.startsWith('/mission_reward ') && isAdmin) {
-          const missionId = text.split(' ')[1];
-          await this.handleMissionRewardCommand(chatId, userId, missionId);
-        } else if (isAdmin && (text.startsWith('/admin') || text.startsWith('/stats') || text.startsWith('/users') || text.startsWith('/missions') || text.startsWith('/ban') || text.startsWith('/mission_'))) {
-          // Если команда админская, но не распознана
+        } else if (text.startsWith('/admin') || text.startsWith('/stats') || text.startsWith('/users') || text.startsWith('/user ') || text.startsWith('/missions') || text.startsWith('/ban') || text.startsWith('/mission_')) {
+          // Admin commands moved to @unifarm_admin_bot
           await this.telegramService.sendMessage(chatId, 
-            '❌ Неизвестная команда\n\n' +
-            'Доступные команды:\n' +
-            '/admin - Главное меню\n' +
-            '/stats - Статистика\n' +
-            '/users - Список пользователей\n' +
-            '/user <id> - Информация о пользователе\n' +
-            '/missions - Миссии\n' +
-            '/mission_complete <id> - Выполнить миссию\n' +
-            '/mission_reward <id> - Выдать награду\n' +
-            '/ban <id> - Заблокировать пользователя'
+            '🔐 Административные команды перенесены в отдельный бот\n\n' +
+            'Используйте @unifarm_admin_bot для:\n' +
+            '• Просмотра статистики\n' +
+            '• Управления пользователями\n' +
+            '• Обработки заявок на вывод\n' +
+            '• Управления миссиями\n\n' +
+            'Доступ только для авторизованных администраторов.'
           );
-        } else if (!isAdmin && (text.startsWith('/admin') || text.startsWith('/stats') || text.startsWith('/users') || text.startsWith('/missions') || text.startsWith('/ban'))) {
-          // Если пользователь не админ, но пытается использовать админ команды
-          await this.telegramService.sendMessage(chatId, '❌ У вас нет прав администратора');
         }
       }
 
@@ -331,16 +305,11 @@ export class TelegramController extends BaseController {
   }
 
   private async handleAdminCallback(chatId: number, userId: number, data: string) {
-    if (data === 'admin_stats') {
-      await this.handleStatsCommand(chatId, userId);
-    } else if (data === 'admin_users') {
-      await this.handleUsersCommand(chatId, userId, '/users 1');
-    } else if (data === 'admin_missions') {
-      await this.handleMissionsCommand(chatId, userId);
-    } else if (data.startsWith('users_page_')) {
-      const page = parseInt(data.split('_')[2]);
-      await this.handleUsersCommand(chatId, userId, `/users ${page}`);
-    }
+    // All admin functionality moved to @unifarm_admin_bot
+    await this.telegramService.sendMessage(chatId, 
+      '🔐 Административные функции перенесены в @unifarm_admin_bot\n\n' +
+      'Пожалуйста, используйте отдельный админ-бот для всех административных задач.'
+    );
   }
 
   private async handleMissionCompleteCommand(chatId: number, userId: number, missionId: string) {
