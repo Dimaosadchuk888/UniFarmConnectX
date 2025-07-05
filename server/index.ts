@@ -452,17 +452,11 @@ async function startServer() {
     // Force bypass for replit.app deployment
     const forceBypass = process.env.BYPASS_AUTH === 'true' || 
                        process.env.NODE_ENV === 'development' ||
-                       process.env.HOST?.includes('replit.app') ||
-                       true; // Force bypass for balance testing
+                       process.env.HOST?.includes('replit.app');
     
     if (forceBypass) {
-      console.log('[Server] Auth bypass enabled for production user ID=48');
-      app.use(apiPrefix, (req: any, res, next) => {
-        // ИСПРАВЛЕНО: Используем production пользователя ID=48 вместо тестового ID=1
-        req.user = { id: 48, telegram_id: 88888888, username: 'demo_user', ref_code: 'REF_1750952576614_t938vs' };
-        req.telegramUser = { id: 88888888, telegram_id: 88888888, username: 'demo_user', first_name: 'Demo User' };
-        next();
-      });
+      console.log('[Server] Auth bypass enabled - JWT authentication will be used');
+      // Удалён хардкод user ID=48 - теперь используется JWT авторизация
     }
     
     // КРИТИЧЕСКИЙ ИСПРАВЛЕННЫЙ DAILY BONUS ENDPOINT

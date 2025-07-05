@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>UniFarm - Обновление JWT токена</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #6B46C1;
+        }
+        .success {
+            color: green;
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+            margin-top: 20px;
+        }
+        .info {
+            background-color: #f0f0ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Обновление JWT токена UniFarm</h1>
+        
+        <div class="info">
+            <p><strong>Что произойдет:</strong></p>
+            <ul>
+                <li>Старый JWT токен с userId: 48 будет удален</li>
+                <li>Установлен новый токен для пользователя ID: 61</li>
+                <li>Автоматический переход на главную страницу</li>
+            </ul>
+        </div>
+        
+        <div id="status"></div>
+        
+        <script>
+            const statusDiv = document.getElementById('status');
+            
+            // Новый JWT токен для user 61
+            const newToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYxLCJ0ZWxlZ3JhbV9pZCI6MTIzNDU2Nzg5LCJ1c2VybmFtZSI6InRlc3RfbmV3X2F1dGhfdXNlciIsInJlZl9jb2RlIjoiUkVGXzE3NTE2NDY0OTYxODNfbmV3X2F1dGgiLCJpYXQiOjE3NTE2OTA5NzgsImV4cCI6MTc1MjI5NTc3OH0.WVQV4_XxSznRTq4JdERynhBX3a9F3Ej9IIja_abvLXA';
+            
+            try {
+                // Очищаем старые токены
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('telegramUser');
+                statusDiv.innerHTML += '<p>✅ Старые токены удалены</p>';
+                
+                // Устанавливаем новый токен
+                localStorage.setItem('authToken', newToken);
+                localStorage.setItem('jwt_token', newToken);
+                statusDiv.innerHTML += '<p>✅ Новый токен установлен (user ID: 61)</p>';
+                
+                // Показываем информацию о новом пользователе
+                statusDiv.innerHTML += `
+                    <div class="info">
+                        <strong>Новый пользователь:</strong><br>
+                        ID: 61<br>
+                        Username: test_new_auth_user<br>
+                        Telegram ID: 123456789
+                    </div>
+                `;
+                
+                // Перенаправляем через 3 секунды
+                statusDiv.innerHTML += '<p class="success">🚀 Перенаправление через 3 секунды...</p>';
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="error">❌ Ошибка: ${error.message}</p>`;
+            }
+        </script>
+    </div>
+</body>
+</html>
