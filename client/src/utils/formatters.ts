@@ -166,16 +166,27 @@ export function safeFormatAmount(amount: number | string, decimals: number = 2, 
 }
 
 /**
- * Получает USD эквивалент для комбинированного баланса UNI + TON
+ * Возвращает эквивалент в USD для указанной суммы токена
+ * @param amount Количество токена
+ * @param tokenType Тип токена ('UNI' или 'TON')
+ * @returns Строка с USD эквивалентом
  */
-export function getUSDEquivalent(uniBalance: number, tonBalance: number): number {
-  // Примерные курсы (в реальном приложении должны загружаться с API)
-  const rates = {
-    'UNI': 0.1,
-    'TON': 2.5
+export function getUSDEquivalent(amount: number, tokenType: 'UNI' | 'TON'): string {
+  if (typeof amount !== 'number' || isNaN(amount)) {
+    return '$0.00';
+  }
+  
+  // Динамические курсы токенов к USD
+  const exchangeRates = {
+    'TON': 5.57, // Актуальный курс TON/USD
+    'UNI': 0.12  // Актуальный курс UNI/USD
   };
   
-  return (uniBalance * rates.UNI) + (tonBalance * rates.TON);
+  const rate = exchangeRates[tokenType];
+  const usdValue = amount * rate;
+  
+  // Форматируем с двумя знаками после запятой и символом доллара
+  return `$${usdValue.toFixed(2)}`;
 }
 
 /**

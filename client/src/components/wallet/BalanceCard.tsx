@@ -294,7 +294,7 @@ const BalanceCard: React.FC = () => {
               <span className="text-sm ml-1 text-gray-400">UNI</span>
             </div>
             <div className="text-xs text-gray-400">
-              {getUSDEquivalent(Number(uniBalance) || 0, 'UNI')}
+              {getUSDEquivalent(typeof uniBalance === 'string' ? parseFloat(uniBalance) || 0 : uniBalance || 0, 'UNI')}
             </div>
           </div>
           
@@ -338,7 +338,7 @@ const BalanceCard: React.FC = () => {
               <span className="text-sm ml-1 text-gray-400">TON</span>
             </div>
             <div className="text-xs text-gray-400">
-              {getUSDEquivalent(Number(tonBalance) || 0, 'TON')}
+              {getUSDEquivalent(typeof tonBalance === 'string' ? parseFloat(tonBalance) || 0 : tonBalance || 0, 'TON')}
             </div>
           </div>
           
