@@ -215,6 +215,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       } else if (guestId) {
         apiUrl = `/api/v2/users/profile?guest_id=${guestId}`;
+      } else {
+        // Fallback для Preview режима без токена
+        apiUrl = `/api/v2/users/profile?user_id=48`;
       }
       
       console.log('[UserContext] Выполняем API запрос:', apiUrl);
