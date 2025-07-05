@@ -317,6 +317,12 @@ router.get('/farming/status', async (req: Request, res: Response) => {
 router.use('/farming', farmingRoutes);
 router.use('/uni-farming', farmingRoutes); // Alias for uni-farming endpoints
 
+// Debug middleware for /users
+router.use('/users/*', (req, res, next) => {
+  console.log('[MAIN ROUTES] /users/* request:', req.method, req.path, req.originalUrl);
+  next();
+});
+
 // User routes
 router.use('/users', userRoutes);
 

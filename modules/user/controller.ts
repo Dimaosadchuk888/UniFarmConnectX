@@ -31,6 +31,11 @@ export class UserController extends BaseController {
 
 
   async getCurrentUser(req: Request, res: Response) {
+    console.log('[UserController.getCurrentUser] ===== METHOD CALLED =====');
+    console.log('[UserController.getCurrentUser] Full URL:', req.url);
+    console.log('[UserController.getCurrentUser] Path:', req.path);
+    console.log('[UserController.getCurrentUser] Method:', req.method);
+    
     await this.handleRequest(req, res, async (req: Request, res: Response) => {
       
       console.log('[GetMe FIX] === НОВЫЙ ПОИСК ПОЛЬЗОВАТЕЛЯ BEЗ ХАРДКОДА ===');
