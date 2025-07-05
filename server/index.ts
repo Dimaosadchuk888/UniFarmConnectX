@@ -536,6 +536,8 @@ async function startServer() {
       res.json({ success: true, message: 'Direct referral debug test works', timestamp: Date.now() });
     });
 
+    // Removed test handler that was intercepting /api/v2/users/profile requests
+    
     // Import centralized routes (after critical endpoints)
     console.log('[ROUTES] Attempting to import ./routes...');
     try {
