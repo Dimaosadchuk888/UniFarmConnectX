@@ -71,7 +71,7 @@ interface UserState {
 // Начальное состояние - получаем данные из JWT токена
 const getInitialUserData = () => {
   try {
-    const jwtToken = localStorage.getItem('telegramJWT');
+    const jwtToken = localStorage.getItem('unifarm_jwt_token');
     if (jwtToken) {
       const payload = JSON.parse(atob(jwtToken.split('.')[1]));
       return {
@@ -192,64 +192,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     try {
       // Production mode - demo disabled
-      const isDemoMode = window.location.hostname.includes('replit') || true; // Включаем для отображения реальных данных
+      const isDemoMode = window.location.hostname.includes('replit');
       
-      if (isDemoMode) {
-        console.log('[UserContext] Демо-режим активирован, выполняем авторизацию для demo_user');
-        
-        try {
-          // Авторизуем пользователя ID=48 через API для получения JWT токена
-          const authResponse = await correctApiRequest('/api/v2/auth/telegram', 'POST', {
-            direct_registration: true,
-            telegram_id: 88888888, // ID для пользователя 48
-            username: 'demo_user',
-            first_name: 'Demo User'
-          });
-          
-          console.log('[UserContext] Ответ авторизации в демо-режиме:', authResponse);
-          
-          if (authResponse.success && authResponse.data) {
-            const { user, token } = authResponse.data;
-            
-            // Сохраняем JWT токен в localStorage
-            if (token) {
-              localStorage.setItem('unifarm_jwt_token', token);
-              console.log('[UserContext] JWT токен сохранен в localStorage');
-            }
-            
-            // Устанавливаем данные пользователя ID=1
-            dispatch({
-              type: 'SET_USER_DATA',
-              payload: {
-                userId: user.id || 1,
-                username: user.username || 'testuser',
-                guestId: null,
-                telegramId: user.telegram_id || 12345,
-                refCode: user.ref_code || null
-              }
-            });
-            
-            // Сохраняем сессию
-            localStorage.setItem('unifarm_last_session', JSON.stringify({
-              timestamp: new Date().toISOString(),
-              user_id: user.id,
-              username: user.username,
-              refCode: user.ref_code
-            }));
-            
-            dispatch({ type: 'SET_ERROR', payload: null });
-            console.log('[UserContext] Демо-режим: авторизация успешна, userId:', user.id);
-            return;
-          }
-        } catch (error) {
-          console.error('[UserContext] Ошибка авторизации в демо-режиме:', error);
-        }
-        
-        // Ошибка: не используем fallback данные для user_id=48
-        dispatch({ type: 'SET_ERROR', payload: new Error('Ошибка авторизации: требуется валидный JWT токен') });
-        console.error('[UserContext] Ошибка авторизации: не используем fallback данные');
-        return;
-      }
+      // Демо-режим отключен в production
+      // if (isDemoMode) {
+      //   console.log('[UserContext] Демо-режим деактивирован для production');
+      // }
       
       // Получаем данные пользователя из localStorage или используем guest_id
       let apiUrl = '/api/v2/users/profile';

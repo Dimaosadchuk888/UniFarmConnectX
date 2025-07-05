@@ -31,7 +31,7 @@ router.get('/ref-debug-test', (req, res) => {
   res.json({ success: true, message: 'Referral debug test works', timestamp: Date.now() });
 });
 
-// Debug endpoint для проверки данных пользователя 48
+// Debug endpoint для проверки данных пользователя 48 - DEBUG ONLY
 router.get('/debug/user48', async (req: Request, res: Response) => {
   try {
     const { data: user, error } = await supabase
@@ -172,7 +172,10 @@ router.get('/users/profile', async (req: Request, res: Response) => {
   console.log('[USERS PROFILE] Route accessed from main routes');
   
   try {
-    const userId = req.query.user_id || 48;
+    if (!req.query.user_id) {
+      return res.status(400).json({ error: 'Missing user_id' });
+    }
+    const userId = req.query.user_id;
     
     const { data: user, error } = await supabase
       .from('users')

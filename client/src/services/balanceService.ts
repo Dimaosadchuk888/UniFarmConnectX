@@ -27,7 +27,7 @@ let balanceCache: {
 export async function fetchBalance(userId: number, forceRefresh: boolean = false): Promise<Balance> {
   try {
     // Получаем user_id из JWT токена в localStorage
-    const jwtToken = localStorage.getItem('telegramJWT');
+    const jwtToken = localStorage.getItem('unifarm_jwt_token');
     let targetUserId = userId;
     
     // Если userId не передан, получаем из JWT
