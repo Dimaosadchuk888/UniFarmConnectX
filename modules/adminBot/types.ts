@@ -3,18 +3,16 @@
  */
 
 export interface WithdrawalRequest {
-  id: string;
-  user_id: string;
-  amount: string;
-  wallet_address: string;
-  status: 'pending' | 'approved' | 'rejected' | 'processing';
+  id: string; // UUID
+  user_id: number;
+  telegram_id?: string;
+  username?: string;
+  amount_ton: number;
+  ton_wallet: string;
+  status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   processed_at?: string;
-  admin_notes?: string;
-  user?: {
-    username?: string;
-    telegram_id: string;
-  };
+  processed_by?: string;
 }
 
 export interface AdminStats {

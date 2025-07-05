@@ -91,11 +91,11 @@ export class AdminBotController {
         break;
         
       case '/approve':
-        await this.handleApproveCommand(chatId, args);
+        await this.handleApproveCommand(chatId, args, username);
         break;
         
       case '/reject':
-        await this.handleRejectCommand(chatId, args);
+        await this.handleRejectCommand(chatId, args, username);
         break;
         
       default:
@@ -139,12 +139,12 @@ export class AdminBotController {
         break;
         
       case 'approve_withdrawal':
-        await this.handleApproveCommand(chatId, [params[0]]);
+        await this.handleApproveCommand(chatId, [params[0]], username);
         await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Выплата одобрена');
         break;
         
       case 'reject_withdrawal':
-        await this.handleRejectCommand(chatId, [params[0]]);
+        await this.handleRejectCommand(chatId, [params[0]], username);
         await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Выплата отклонена');
         break;
         
@@ -396,11 +396,16 @@ export class AdminBotController {
       
       for (const request of requests) {
         message += `🆔 ID: ${request.id}\n`;
-        message += `👤 Пользователь: @${request.user?.username || 'unknown'} (${request.user?.telegram_id})\n`;
-        message += `💰 Сумма: ${request.amount} TON\n`;
-        message += `👛 Кошелек: ${request.wallet_address}\n`;
+        message += `👤 Пользователь: @${request.username || 'unknown'} (${request.telegram_id || request.user_id})\n`;
+        message += `💰 Сумма: ${request.amount_ton} TON\n`;
+        message += `👛 Кошелек: ${request.ton_wallet}\n`;
         message += `📅 Дата: ${new Date(request.created_at).toLocaleString()}\n`;
         message += `📌 Статус: ${request.status}\n`;
+        
+        if (request.processed_at) {
+          message += `⏱ Обработано: ${new Date(request.processed_at).toLocaleString()}\n`;
+          message += `👮 Обработал: ${request.processed_by}\n`;
+        }
         
         if (request.status === 'pending') {
           const keyboard = {
@@ -424,14 +429,14 @@ export class AdminBotController {
   /**
    * Handle /approve command
    */
-  private async handleApproveCommand(chatId: number, args: string[]): Promise<void> {
+  private async handleApproveCommand(chatId: number, args: string[], adminUsername?: string): Promise<void> {
     if (!args[0]) {
       await this.adminBotService.sendMessage(chatId, 'Использование: /approve <request_id>');
       return;
     }
     
     try {
-      const success = await this.adminBotService.approveWithdrawal(args[0]);
+      const success = await this.adminBotService.approveWithdrawal(args[0], adminUsername);
       
       if (success) {
         await this.adminBotService.sendMessage(chatId, `✅ Выплата ${args[0]} одобрена`);
@@ -446,14 +451,14 @@ export class AdminBotController {
   /**
    * Handle /reject command
    */
-  private async handleRejectCommand(chatId: number, args: string[]): Promise<void> {
+  private async handleRejectCommand(chatId: number, args: string[], adminUsername?: string): Promise<void> {
     if (!args[0]) {
       await this.adminBotService.sendMessage(chatId, 'Использование: /reject <request_id>');
       return;
     }
     
     try {
-      const success = await this.adminBotService.rejectWithdrawal(args[0], args.slice(1).join(' '));
+      const success = await this.adminBotService.rejectWithdrawal(args[0], adminUsername);
       
       if (success) {
         await this.adminBotService.sendMessage(chatId, `❌ Выплата ${args[0]} отклонена`);

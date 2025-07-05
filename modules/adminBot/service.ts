@@ -276,11 +276,8 @@ export class AdminBotService {
   async getWithdrawalRequests(status?: string): Promise<any[]> {
     try {
       let query = supabase
-        .from('withdrawal_requests')
-        .select(`
-          *,
-          user:users!user_id(username, telegram_id)
-        `)
+        .from('withdraw_requests')
+        .select('*')
         .order('created_at', { ascending: false });
         
       if (status) {
@@ -304,11 +301,11 @@ export class AdminBotService {
   /**
    * Approve withdrawal request
    */
-  async approveWithdrawal(requestId: string): Promise<boolean> {
+  async approveWithdrawal(requestId: string, adminUsername?: string): Promise<boolean> {
     try {
       // Update request status
       const { data: request, error: fetchError } = await supabase
-        .from('withdrawal_requests')
+        .from('withdraw_requests')
         .select('*')
         .eq('id', requestId)
         .single();
@@ -320,10 +317,11 @@ export class AdminBotService {
       
       // Update status to approved
       const { error: updateError } = await supabase
-        .from('withdrawal_requests')
+        .from('withdraw_requests')
         .update({ 
           status: 'approved',
-          processed_at: new Date().toISOString()
+          processed_at: new Date().toISOString(),
+          processed_by: adminUsername || 'admin'
         })
         .eq('id', requestId);
         
@@ -333,7 +331,7 @@ export class AdminBotService {
       }
       
       // TODO: Here you would integrate with actual TON wallet to send transaction
-      logger.info('[AdminBot] Withdrawal approved', { requestId, amount: request.amount });
+      logger.info('[AdminBot] Withdrawal approved', { requestId, amount: request.amount_ton });
       
       return true;
     } catch (error) {
@@ -345,14 +343,14 @@ export class AdminBotService {
   /**
    * Reject withdrawal request
    */
-  async rejectWithdrawal(requestId: string, reason?: string): Promise<boolean> {
+  async rejectWithdrawal(requestId: string, adminUsername?: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('withdrawal_requests')
+        .from('withdraw_requests')
         .update({ 
           status: 'rejected',
           processed_at: new Date().toISOString(),
-          admin_notes: reason || 'Rejected by admin'
+          processed_by: adminUsername || 'admin'
         })
         .eq('id', requestId);
         
