@@ -46,6 +46,14 @@ api.log
 server.log
 app.log
 
+# Test and debug files
+test-*.js
+test-*.sql
+debug-*.js
+check-*.js
+*.test.js
+*.debug.js
+
 # Process files
 *.pid
 api.pid
