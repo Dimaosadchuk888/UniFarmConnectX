@@ -63,16 +63,19 @@
             const newToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYxLCJ0ZWxlZ3JhbV9pZCI6MTIzNDU2Nzg5LCJ1c2VybmFtZSI6InRlc3RfbmV3X2F1dGhfdXNlciIsInJlZl9jb2RlIjoiUkVGXzE3NTE2NDY0OTYxODNfbmV3X2F1dGgiLCJpYXQiOjE3NTE2OTA5NzgsImV4cCI6MTc1MjI5NTc3OH0.WVQV4_XxSznRTq4JdERynhBX3a9F3Ej9IIja_abvLXA';
             
             try {
-                // Очищаем старые токены
+                // Очищаем ВСЕ старые токены и данные
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('jwt_token');
+                localStorage.removeItem('unifarm_jwt_token');
                 localStorage.removeItem('telegramUser');
-                statusDiv.innerHTML += '<p>✅ Старые токены удалены</p>';
+                localStorage.removeItem('unifarm_last_session');
+                statusDiv.innerHTML += '<p>✅ Все старые токены удалены</p>';
                 
-                // Устанавливаем новый токен
+                // Устанавливаем новый токен во ВСЕ возможные ключи
                 localStorage.setItem('authToken', newToken);
                 localStorage.setItem('jwt_token', newToken);
-                statusDiv.innerHTML += '<p>✅ Новый токен установлен (user ID: 61)</p>';
+                localStorage.setItem('unifarm_jwt_token', newToken);
+                statusDiv.innerHTML += '<p>✅ Новый токен установлен во все ключи (user ID: 61)</p>';
                 
                 // Показываем информацию о новом пользователе
                 statusDiv.innerHTML += `
