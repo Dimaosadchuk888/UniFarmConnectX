@@ -10,6 +10,7 @@ import {
   connectWallet as connectTonWallet,
   disconnectWallet as disconnectTonWallet
 } from '@/services/tonConnectService';
+import { useTelegram } from '@/hooks/useTelegram';
 
 // Интерфейс для API-ответов
 interface ApiResponse<T = any> {
@@ -173,6 +174,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Инициализация хуков
   const queryClient = useQueryClient();
   const [tonConnectUI] = useTonConnectUI();
+  const { isReady: isTelegramReady, initData, user: telegramUser } = useTelegram();
   
   // Создаем состояние с помощью useReducer
   const [state, dispatch] = useReducer(userReducer, initialState);
@@ -180,6 +182,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Рефы для предотвращения повторных вызовов
   const refreshInProgressRef = useRef<boolean>(false);
   const initializedRef = useRef<boolean>(false);
+  const authorizationAttemptedRef = useRef<boolean>(false);
   
   // Обновление данных пользователя
   const refreshUserData = useCallback(async () => {
@@ -199,32 +202,41 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       //   console.log('[UserContext] Демо-режим деактивирован для production');
       // }
       
-      // Получаем данные пользователя из localStorage или используем guest_id
-      let apiUrl = '/api/v2/users/profile';
-      const lastSessionStr = localStorage.getItem('unifarm_last_session');
-      const guestId = localStorage.getItem('unifarm_guest_id');
+      // Сначала проверяем наличие JWT токена
+      const existingToken = localStorage.getItem('unifarm_jwt_token');
       
-      if (lastSessionStr) {
+      // Если есть Telegram initData и нет токена, сначала авторизуемся
+      if (initData && !existingToken && !authorizationAttemptedRef.current) {
+        authorizationAttemptedRef.current = true;
+        console.log('[UserContext] Обнаружен Telegram initData, выполняем авторизацию...');
+        
         try {
-          const lastSession = JSON.parse(lastSessionStr);
-          if (lastSession.user_id) {
-            apiUrl = `/api/v2/users/profile?user_id=${lastSession.user_id}`;
+          const authResponse = await correctApiRequest('/api/v2/auth/telegram', 'POST', {
+            initData: initData
+          });
+          
+          if (authResponse.success && authResponse.data?.token) {
+            localStorage.setItem('unifarm_jwt_token', authResponse.data.token);
+            console.log('[UserContext] JWT токен получен и сохранен');
+            
+            // Сохраняем данные пользователя
+            if (authResponse.data.user) {
+              const userData = authResponse.data.user;
+              localStorage.setItem('unifarm_last_session', JSON.stringify({
+                timestamp: new Date().toISOString(),
+                user_id: userData.id,
+                username: userData.username || null,
+                refCode: userData.ref_code || null
+              }));
+            }
           }
-        } catch (e) {
-          console.warn('[UserContext] Ошибка парсинга данных сессии:', e);
+        } catch (authError) {
+          console.error('[UserContext] Ошибка авторизации через Telegram:', authError);
         }
-      } else if (guestId) {
-        apiUrl = `/api/v2/users/profile?guest_id=${guestId}`;
-      } else if (window.location.hostname.includes('replit')) {
-        // Fallback ТОЛЬКО для Preview режима
-        console.log('[UserContext] Preview mode detected - using fallback user_id=48');
-        apiUrl = `/api/v2/users/profile?user_id=48`;
-      } else {
-        // Production режим - требуем авторизацию
-        console.error('[UserContext] No authentication found - authorization required');
-        dispatch({ type: 'SET_ERROR', payload: new Error('Authorization required') });
-        return;
       }
+      
+      // Теперь получаем данные пользователя
+      let apiUrl = '/api/v2/users/profile';
       
       console.log('[UserContext] Выполняем API запрос:', apiUrl);
       const response = await correctApiRequest(apiUrl);

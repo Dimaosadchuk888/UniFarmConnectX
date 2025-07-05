@@ -535,12 +535,91 @@ async function startServer() {
       console.log('[DIRECT ROUTE] 🔥 REF DEBUG TEST WORKS DIRECTLY!');
       res.json({ success: true, message: 'Direct referral debug test works', timestamp: Date.now() });
     });
+    
+    // Direct route for /users/profile to fix authorization issue
+    app.get(`${apiPrefix}/users/profile`, async (req: Request, res: Response) => {
+      try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({
+            success: false,
+            error: 'Authorization required'
+          });
+        }
+        
+        const token = authHeader.substring(7);
+        const jwt = require('jsonwebtoken');
+        const jwtSecret = process.env.JWT_SECRET;
+        
+        if (!jwtSecret) {
+          throw new Error('JWT_SECRET not configured');
+        }
+        
+        const decoded = jwt.verify(token, jwtSecret) as any;
+        const userId = decoded.userId;
+        
+        if (!userId) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid token: missing userId'
+          });
+        }
+        
+        // Get user from database
+        const { data: user, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single();
+          
+        if (error || !user) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+        
+        res.json({
+          success: true,
+          data: {
+            user: {
+              id: user.id,
+              telegram_id: user.telegram_id,
+              username: user.username,
+              first_name: user.first_name,
+              ref_code: user.ref_code,
+              balance_uni: user.balance_uni,
+              balance_ton: user.balance_ton,
+              uni_farming_active: user.uni_farming_active,
+              uni_deposit_amount: user.uni_deposit_amount,
+              uni_farming_balance: user.uni_farming_balance
+            }
+          }
+        });
+      } catch (error) {
+        console.error('[/users/profile] Error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+        });
+      }
+    });
 
     // Import centralized routes (after critical endpoints)
     console.log('[ROUTES] Attempting to import ./routes...');
     try {
       const { default: apiRoutes } = await import('./routes');
       console.log('[ROUTES] Successfully imported routes, registering...');
+      
+      // Debug middleware to log all API requests
+      app.use((req, res, next) => {
+        if (req.path.startsWith('/api/')) {
+          console.log(`[API REQUEST] ${req.method} ${req.path}`);
+          console.log('[API REQUEST] Headers:', req.headers.authorization ? 'Has Auth' : 'No Auth');
+        }
+        next();
+      });
+      
       app.use(apiPrefix, apiRoutes);
       console.log('[ROUTES] Routes registered successfully at', apiPrefix);
       

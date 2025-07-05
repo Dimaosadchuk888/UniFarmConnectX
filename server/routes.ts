@@ -18,6 +18,8 @@ import { supabase } from '../core/supabase';
 
 const router = express.Router();
 
+// Removed test endpoint - will add after module routes
+
 // Health check endpoint for production monitoring
 router.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
@@ -175,50 +177,9 @@ router.get('/me', async (req: Request, res: Response) => {
 });
 
 // Endpoint для получения базовых данных пользователя
-router.get('/users/profile', async (req: Request, res: Response) => {
-  console.log('[USERS PROFILE] Route accessed from main routes');
-  
-  try {
-    if (!req.query.user_id) {
-      return res.status(400).json({ error: 'Missing user_id' });
-    }
-    const userId = req.query.user_id;
-    
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (error || !user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          telegram_id: user.telegram_id,
-          username: user.username,
-          first_name: user.first_name,
-          ref_code: user.ref_code,
-          balance_uni: user.balance_uni,
-          balance_ton: user.balance_ton
-        }
-      }
-    });
-  } catch (error) {
-    console.error('[USERS PROFILE] Error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
-  }
-});
+// ПРИМЕЧАНИЕ: Этот endpoint конфликтует с модульным /users/profile
+// Удаляем его чтобы использовать правильный endpoint из modules/user/routes.ts
+// который поддерживает JWT авторизацию
 
 // Main auth routes
 router.use('/auth', authRoutes);
@@ -257,46 +218,8 @@ router.get('/test-routes', (req: Request, res: Response) => {
   });
 });
 
-// Endpoint для проверки данных пользователя
-router.get('/users/:id', async (req: Request, res: Response) => {
-  const userId = req.params.id;
-  
-  try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (error || !user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          telegram_id: user.telegram_id,
-          username: user.username,
-          first_name: user.first_name,
-          ref_code: user.ref_code,
-          balance_uni: user.balance_uni,
-          balance_ton: user.balance_ton
-        }
-      }
-    });
-  } catch (error) {
-    console.error('[USERS/:ID] Error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
-  }
-});
+// Removed conflicting /users/:id route - it was intercepting /users/profile requests
+// User profile should be accessed via /users/profile with authentication from modules/user/routes.ts
 
 // Endpoint для проверки balance пользователя
 router.get('/wallet/balance', async (req: Request, res: Response) => {
@@ -436,5 +359,17 @@ router.use('/admin-bot', adminBotRoutes);
 
 // Monitor routes
 router.use('/monitor', monitorRoutes);
+
+// Debug endpoint to test if routes are working
+router.get('/debug/profile-test', (req: Request, res: Response) => {
+  console.log('[DEBUG] /debug/profile-test hit');
+  res.json({
+    success: true,
+    message: 'Debug endpoint works',
+    headers: {
+      authorization: req.headers.authorization ? 'Present' : 'Missing'
+    }
+  });
+});
 
 export default router;

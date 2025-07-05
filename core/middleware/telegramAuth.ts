@@ -5,6 +5,9 @@ import { logger } from '../logger';
  * Middleware для перевірки Telegram авторизації
  */
 export async function requireTelegramAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  console.log(`[requireTelegramAuth] Processing ${req.method} ${req.path}`);
+  console.log(`[requireTelegramAuth] Has Authorization: ${!!req.headers.authorization}`);
+  
   try {
     console.log('[TelegramAuth] Middleware invoked for:', req.method, req.path);
     console.log('[TelegramAuth] Host:', req.headers.host);

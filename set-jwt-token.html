@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniFarm JWT Token Setup</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #1976d2;
+        }
+        .token-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #da190b;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        .status.error {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+        .current-token {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3e0;
+            border-radius: 4px;
+            color: #e65100;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UniFarm JWT Token Setup</h1>
+        
+        <div class="info">
+            <strong>Информация:</strong> Этот инструмент позволяет установить JWT токен для тестирования UniFarm без Telegram.
+            Токен содержит данные пользователя ID 48 (demo_user).
+        </div>
+
+        <h3>JWT Token для User ID 48:</h3>
+        <div class="token-box" id="tokenDisplay">
+            eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ4LCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4ODgsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmQ29kZSI6IlJFRl8xNzUwOTUyNTc2NjE0X3Q5Mzh2cyIsImlhdCI6MTc1MTcyOTY2NCwiZXhwIjoxNzUyMzM0NDY0fQ.vIqJCOUZEcJNh6JQqaFgYkZ7xQBHK3VPwKTcSUPq-xQ
+        </div>
+
+        <button onclick="setToken()">Установить токен</button>
+        <button onclick="checkToken()">Проверить текущий токен</button>
+        <button class="danger" onclick="clearToken()">Очистить токен</button>
+
+        <div id="currentToken" class="current-token" style="display:none;"></div>
+        <div id="status" class="status" style="display:none;"></div>
+    </div>
+
+    <script>
+        const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ4LCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4ODgsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmQ29kZSI6IlJFRl8xNzUwOTUyNTc2NjE0X3Q5Mzh2cyIsImlhdCI6MTc1MTcyOTY2NCwiZXhwIjoxNzUyMzM0NDY0fQ.vIqJCOUZEcJNh6JQqaFgYkZ7xQBHK3VPwKTcSUPq-xQ';
+
+        function setToken() {
+            try {
+                localStorage.setItem('unifarm_jwt_token', JWT_TOKEN);
+                showStatus('JWT токен успешно установлен! Перезагрузите UniFarm приложение.', 'success');
+                checkToken();
+            } catch (error) {
+                showStatus('Ошибка при установке токена: ' + error.message, 'error');
+            }
+        }
+
+        function checkToken() {
+            const currentToken = localStorage.getItem('unifarm_jwt_token');
+            const tokenDiv = document.getElementById('currentToken');
+            
+            if (currentToken) {
+                tokenDiv.style.display = 'block';
+                tokenDiv.innerHTML = '<strong>Текущий токен в localStorage:</strong><br>' + 
+                    '<div style="margin-top:10px; font-family:monospace; font-size:10px; word-break:break-all;">' + 
+                    currentToken + '</div>';
+                
+                // Декодируем payload
+                try {
+                    const payload = JSON.parse(atob(currentToken.split('.')[1]));
+                    tokenDiv.innerHTML += '<br><strong>Данные токена:</strong><br>' +
+                        'User ID: ' + payload.userId + '<br>' +
+                        'Telegram ID: ' + payload.telegram_id + '<br>' +
+                        'Username: ' + payload.username + '<br>' +
+                        'Ref Code: ' + payload.refCode + '<br>' +
+                        'Выдан: ' + new Date(payload.iat * 1000).toLocaleString() + '<br>' +
+                        'Истекает: ' + new Date(payload.exp * 1000).toLocaleString();
+                } catch (e) {
+                    tokenDiv.innerHTML += '<br><em>Не удалось декодировать токен</em>';
+                }
+            } else {
+                tokenDiv.style.display = 'block';
+                tokenDiv.innerHTML = '<strong>Токен не установлен в localStorage</strong>';
+            }
+        }
+
+        function clearToken() {
+            localStorage.removeItem('unifarm_jwt_token');
+            showStatus('JWT токен удален из localStorage', 'success');
+            checkToken();
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status ' + type;
+            statusDiv.textContent = message;
+        }
+
+        // Проверяем токен при загрузке
+        window.onload = function() {
+            checkToken();
+        };
+    </script>
+</body>
+</html>
