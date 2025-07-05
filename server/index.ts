@@ -443,6 +443,47 @@ async function startServer() {
       });
     });
 
+    // JWT debug endpoint
+    app.get('/api/v2/debug/jwt', (req: Request, res: Response) => {
+      const authHeader = req.headers.authorization;
+      console.log('[JWT Debug] Auth header:', authHeader);
+      
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.json({
+          success: false,
+          error: 'No JWT token provided',
+          auth_header: authHeader || 'none'
+        });
+      }
+      
+      const token = authHeader.substring(7);
+      try {
+        const jwt = require('jsonwebtoken');
+        const jwtSecret = process.env.JWT_SECRET;
+        
+        if (!jwtSecret) {
+          return res.json({
+            success: false,
+            error: 'JWT_SECRET not configured',
+            env_check: 'JWT_SECRET' in process.env
+          });
+        }
+        
+        const decoded = jwt.verify(token, jwtSecret);
+        res.json({
+          success: true,
+          decoded,
+          jwt_secret_preview: jwtSecret.substring(0, 10) + '...'
+        });
+      } catch (error: any) {
+        res.json({
+          success: false,
+          error: 'JWT verification failed',
+          message: error.message
+        });
+      }
+    });
+
 
 
 

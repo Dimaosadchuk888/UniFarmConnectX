@@ -9,18 +9,7 @@ const referralController = new ReferralController();
 router.post('/process', requireTelegramAuth, referralController.processReferralCode.bind(referralController));
 
 // ПРИОРИТЕТНЫЕ РОУТЫ (должны быть перед /:userId)
-// ТЕСТОВЫЙ endpoint для проверки роутинга (БЕЗ АВТОРИЗАЦИИ ДЛЯ ДИАГНОСТИКИ)
-router.get('/test-routing', (req, res) => {
-  console.log('[REFERRAL ROUTES] ✅ TEST ROUTING WORKS! Route hit successfully');
-  console.log('[REFERRAL ROUTES] URL:', req.url, 'originalUrl:', req.originalUrl, 'path:', req.path);
-  res.json({ success: true, message: 'Referral routing is working', timestamp: Date.now() });
-});
-
-// GET /api/referrals/debug-stats - ВРЕМЕННЫЙ endpoint без авторизации для диагностики
-router.get('/debug-stats', (req, res) => {
-  console.log('[REFERRAL ROUTES] DEBUG-STATS ROUTE HIT!');
-  referralController.getReferralLevelsStats(req, res);
-});
+// [SECURITY FIX] Удалены незащищенные тестовые маршруты /test-routing и /debug-stats
 
 // GET /api/referrals/stats - Получить статистику реферальных уровней  
 router.get('/stats', requireTelegramAuth, referralController.getReferralLevelsStats.bind(referralController));

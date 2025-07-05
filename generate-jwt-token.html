@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniFarm JWT Token Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+        .copy-btn {
+            background-color: #28a745;
+            margin-top: 10px;
+        }
+        .copy-btn:hover {
+            background-color: #218838;
+        }
+        .test-command {
+            background-color: #343a40;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UniFarm JWT Token Generator</h1>
+        
+        <div class="form-group">
+            <label for="userId">User ID:</label>
+            <input type="number" id="userId" value="48" />
+        </div>
+        
+        <div class="form-group">
+            <label for="telegramId">Telegram ID:</label>
+            <input type="number" id="telegramId" value="88888888" />
+        </div>
+        
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" value="demo_user" />
+        </div>
+        
+        <div class="form-group">
+            <label for="refCode">Referral Code:</label>
+            <input type="text" id="refCode" value="REF_1750952576614_t938vs" />
+        </div>
+        
+        <div class="form-group">
+            <label for="expiresIn">Expires In:</label>
+            <select id="expiresIn">
+                <option value="1d">1 Day</option>
+                <option value="7d" selected>7 Days</option>
+                <option value="30d">30 Days</option>
+            </select>
+        </div>
+        
+        <button onclick="generateToken()">Generate JWT Token</button>
+        
+        <div id="result" style="display: none;">
+            <div class="result">
+                <h3>Generated JWT Token:</h3>
+                <p id="tokenOutput"></p>
+                <button class="copy-btn" onclick="copyToken()">Copy Token</button>
+            </div>
+            
+            <div class="test-command">
+                <h4>Test Command:</h4>
+                <pre id="testCommand"></pre>
+                <button class="copy-btn" onclick="copyCommand()">Copy Command</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsonwebtoken@8.5.1/dist/jsonwebtoken.min.js"></script>
+    <script>
+        // JWT Secret from UniFarm .env
+        const JWT_SECRET = 'unifarm-jwt-secret-2024-secure';
+        
+        function generateToken() {
+            const userId = parseInt(document.getElementById('userId').value);
+            const telegramId = parseInt(document.getElementById('telegramId').value);
+            const username = document.getElementById('username').value;
+            const refCode = document.getElementById('refCode').value;
+            const expiresIn = document.getElementById('expiresIn').value;
+            
+            const payload = {
+                userId: userId,
+                telegram_id: telegramId,
+                username: username,
+                ref_code: refCode
+            };
+            
+            // Generate token with expiration
+            const token = jwt.sign(payload, JWT_SECRET, { expiresIn: expiresIn });
+            
+            // Display result
+            document.getElementById('tokenOutput').textContent = token;
+            document.getElementById('result').style.display = 'block';
+            
+            // Generate test command
+            const testCommand = `curl -s -H "Authorization: Bearer ${token}" -w "\\nHTTP Code: %{http_code}" http://localhost:3000/api/v2/referral/stats | jq .`;
+            document.getElementById('testCommand').textContent = testCommand;
+            
+            // Decode to show expiration
+            const decoded = jwt.decode(token);
+            console.log('Token payload:', decoded);
+            console.log('Expires at:', new Date(decoded.exp * 1000));
+        }
+        
+        function copyToken() {
+            const token = document.getElementById('tokenOutput').textContent;
+            navigator.clipboard.writeText(token).then(() => {
+                alert('Token copied to clipboard!');
+            });
+        }
+        
+        function copyCommand() {
+            const command = document.getElementById('testCommand').textContent;
+            navigator.clipboard.writeText(command).then(() => {
+                alert('Command copied to clipboard!');
+            });
+        }
+        
+        // Generate initial token on load
+        window.onload = () => generateToken();
+    </script>
+</body>
+</html>

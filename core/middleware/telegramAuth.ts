@@ -9,23 +9,24 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
   console.log(`[requireTelegramAuth] Has Authorization: ${!!req.headers.authorization}`);
   
   try {
-    console.log('[TelegramAuth] Middleware invoked for:', req.method, req.path);
+    console.log('[TelegramAuth] === START MIDDLEWARE ===');
+    console.log('[TelegramAuth] Method:', req.method, 'Path:', req.path);
     console.log('[TelegramAuth] Host:', req.headers.host);
     console.log('[TelegramAuth] Auth header present:', !!req.headers.authorization);
+    console.log('[TelegramAuth] Auth header value:', req.headers.authorization?.substring(0, 50) + '...');
     
-    // Development auth bypass - проверяем наличие специального заголовка для Replit preview или localhost
-    const isReplitPreview = req.headers.host && (req.headers.host.includes('replit.dev') || req.headers.host.includes('localhost'));
+    // Проверяем JWT токен для всех режимов
+    const authHeader = req.headers.authorization;
     const hasDevHeader = req.headers['x-dev-mode'] === 'true';
+    const isProduction = process.env.NODE_ENV === 'production';
     
-    console.log('[TelegramAuth] Preview mode:', isReplitPreview, 'Dev header:', hasDevHeader);
+    console.log('[TelegramAuth] Auth check - Production:', isProduction, 'Auth header:', !!authHeader, 'Dev header:', hasDevHeader);
     
-    if (isReplitPreview || hasDevHeader) {
-      console.log('[TelegramAuth] Replit Preview mode - checking JWT token');
-      // В режиме preview используем JWT токен, если он есть
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        try {
+    // Всегда проверяем JWT токен, если он есть
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      console.log('[TelegramAuth] Processing JWT token');
+      const token = authHeader.substring(7);
+      try {
           const jwt = require('jsonwebtoken');
           const jwtSecret = process.env.JWT_SECRET;
           if (!jwtSecret) {
@@ -90,60 +91,29 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
           next();
           return;
         } catch (jwtError) {
-          console.log('[TelegramAuth] JWT verification failed in preview:', jwtError);
+          console.log('[TelegramAuth] JWT verification failed:', jwtError);
         }
-      }
-      
-      // Fallback только если JWT недоступен
-      console.log('[TelegramAuth] No valid JWT - using fallback auth');
-      next();
+    }
+    
+    // Если JWT токен отсутствует или невалиден, проверяем режим работы
+    if (process.env.NODE_ENV === 'production') {
+      console.log('[TelegramAuth] Production mode - authentication required');
+      res.status(401).json({ 
+        success: false, 
+        error: 'Authentication required',
+        need_jwt_token: true 
+      });
       return;
     }
+    
+    // В development режиме разрешаем доступ для тестирования
+    console.log('[TelegramAuth] Development mode - using fallback auth');
+    next();
+    return;
 
+    // Если мы не обработали JWT токен выше, проверяем дополнительные методы авторизации
     const telegramUser = (req as any).telegramUser;
     const guestId = req.headers['x-guest-id'] as string;
-    const authHeader = req.headers.authorization;
-    
-    // Check for JWT token first
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      console.log('[TelegramAuth] JWT token found, attempting verification');
-      try {
-        const jwt = require('jsonwebtoken');
-        const jwtSecret = process.env.JWT_SECRET;
-        if (!jwtSecret) {
-          throw new Error('JWT_SECRET environment variable not set');
-        }
-        const decoded = jwt.verify(token, jwtSecret) as any;
-        console.log('[TelegramAuth] JWT decoded:', decoded);
-        
-        if (decoded.userId && (decoded.telegram_id || decoded.telegramId)) {
-          // Valid JWT token - set user data and continue
-          const user_id = decoded.userId; // ИСПРАВЛЕНО: используем userId из JWT
-          const telegram_id = decoded.telegram_id || decoded.telegramId;
-          console.log('[TelegramAuth] Setting user data from JWT, user_id:', user_id, 'telegram_id:', telegram_id);
-          (req as any).telegramUser = {
-            id: user_id, // ИСПРАВЛЕНО: правильный user_id
-            telegram_id: telegram_id,
-            username: decoded.username || 'user',
-            first_name: decoded.first_name || 'User',
-            ref_code: decoded.ref_code || decoded.refCode
-          };
-          // Также устанавливаем req.user для совместимости с контроллерами
-          (req as any).user = {
-            id: user_id, // ИСПРАВЛЕНО: правильный user_id
-            telegram_id: telegram_id,
-            username: decoded.username || 'user',
-            ref_code: decoded.ref_code || decoded.refCode
-          };
-          next();
-          return;
-        }
-      } catch (jwtError) {
-        // JWT token invalid, continue to other auth methods
-        console.log('[TelegramAuth] JWT verification failed:', jwtError);
-      }
-    }
     
     // Allow access if we have telegram user or guest ID (demo mode)
     if (!telegramUser && !guestId) {
