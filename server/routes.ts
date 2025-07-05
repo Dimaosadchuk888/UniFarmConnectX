@@ -61,7 +61,13 @@ router.get('/debug/user48', async (req: Request, res: Response) => {
 // Direct balance endpoint for testing user_id=1
 router.get('/wallet/balance-direct', async (req: Request, res: Response) => {
   try {
-    const userId = req.query.user_id as string || "1";
+    const userId = req.query.user_id as string;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing user_id parameter'
+      });
+    }
     
     const { data: user, error } = await supabase
       .from('users')
@@ -293,7 +299,13 @@ router.get('/users/:id', async (req: Request, res: Response) => {
 
 // Endpoint для проверки balance пользователя
 router.get('/wallet/balance', async (req: Request, res: Response) => {
-  const userId = (req as any).user?.id || (req as any).telegramUser?.id || req.query.user_id || "43";
+  const userId = (req as any).user?.id || (req as any).telegramUser?.id || req.query.user_id;
+  if (!userId) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized - user authentication required'
+    });
+  }
   
   try {
     const { data: user, error } = await supabase
@@ -332,7 +344,13 @@ router.get('/wallet/balance', async (req: Request, res: Response) => {
 
 // Endpoint для проверки farming статуса
 router.get('/farming/status', async (req: Request, res: Response) => {
-  const userId = (req as any).user?.id || (req as any).telegramUser?.id || "43";
+  const userId = (req as any).user?.id || (req as any).telegramUser?.id;
+  if (!userId) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized - user authentication required'
+    });
+  }
   
   try {
     const { data: user, error } = await supabase

@@ -10,7 +10,13 @@ const dailyBonusController = new DailyBonusController();
 router.get('/status', async (req: Request, res: Response) => {
   try {
     // Упрощенная логика для Dashboard без сложной авторизации
-    const userId = req.query.user_id || "43"; // Используем известного пользователя из базы
+    const userId = req.query.user_id;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing user_id parameter'
+      });
+    }
     const { data: users, error } = await supabase
       .from('users')
       .select('*')

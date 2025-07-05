@@ -215,9 +215,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       } else if (guestId) {
         apiUrl = `/api/v2/users/profile?guest_id=${guestId}`;
-      } else {
-        // Fallback для Preview режима без токена
+      } else if (window.location.hostname.includes('replit')) {
+        // Fallback ТОЛЬКО для Preview режима
+        console.log('[UserContext] Preview mode detected - using fallback user_id=48');
         apiUrl = `/api/v2/users/profile?user_id=48`;
+      } else {
+        // Production режим - требуем авторизацию
+        console.error('[UserContext] No authentication found - authorization required');
+        dispatch({ type: 'SET_ERROR', payload: new Error('Authorization required') });
+        return;
       }
       
       console.log('[UserContext] Выполняем API запрос:', apiUrl);

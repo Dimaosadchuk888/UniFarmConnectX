@@ -462,7 +462,10 @@ async function startServer() {
     // КРИТИЧЕСКИЙ ИСПРАВЛЕННЫЙ DAILY BONUS ENDPOINT
     app.get(`${apiPrefix}/daily-bonus-fixed`, async (req: Request, res: Response): Promise<any> => {
       try {
-        const userId = req.query.user_id || "43";
+        const userId = req.query.user_id;
+        if (!userId) {
+          return res.status(400).json({ success: false, error: 'Missing user_id parameter' });
+        }
         
         const userIdNumber = parseInt(userId as string);
         if (isNaN(userIdNumber)) {
