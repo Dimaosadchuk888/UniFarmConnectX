@@ -82,7 +82,11 @@ export class UserController extends BaseController {
         try {
           const jwt = await import('jsonwebtoken');
           console.log('[GetMe] JWT токен для декодирования:', token.substring(0, 50) + '...');
-          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
+          const jwtSecret = process.env.JWT_SECRET;
+          if (!jwtSecret) {
+            throw new Error('JWT_SECRET environment variable not set');
+          }
+          const decoded = jwt.verify(token, jwtSecret) as any;
           console.log('[GetMe] JWT успешно декодирован:', { userId: decoded.userId, telegram_id: decoded.telegram_id });
           
           logger.info('[GetMe] Поиск пользователя по JWT', {
@@ -285,7 +289,11 @@ export class UserController extends BaseController {
       
       try {
         const jwt = await import('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+          throw new Error('JWT_SECRET environment variable not set');
+        }
+        const decoded = jwt.verify(token, jwtSecret) as any;
         
         if (!decoded || !decoded.telegram_id) {
           return this.sendError(res, 'Invalid token', 401);

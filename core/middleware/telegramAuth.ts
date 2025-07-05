@@ -24,7 +24,10 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
         const token = authHeader.substring(7);
         try {
           const jwt = require('jsonwebtoken');
-          const jwtSecret = process.env.JWT_SECRET || 'unifarm_jwt_secret_key_2025_production';
+          const jwtSecret = process.env.JWT_SECRET;
+          if (!jwtSecret) {
+            throw new Error('JWT_SECRET environment variable not set');
+          }
           const decoded = jwt.verify(token, jwtSecret) as any;
           console.log('[TelegramAuth] JWT decoded for preview:', decoded);
           
@@ -104,7 +107,10 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
       console.log('[TelegramAuth] JWT token found, attempting verification');
       try {
         const jwt = require('jsonwebtoken');
-        const jwtSecret = process.env.JWT_SECRET || 'unifarm_jwt_secret_key_2025_production';
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+          throw new Error('JWT_SECRET environment variable not set');
+        }
         const decoded = jwt.verify(token, jwtSecret) as any;
         console.log('[TelegramAuth] JWT decoded:', decoded);
         
