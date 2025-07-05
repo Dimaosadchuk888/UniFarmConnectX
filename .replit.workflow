@@ -1,3 +1,3 @@
 onBoot:
   name: UniFarm
-  run: node start-unifarm.cjs
+  run: npm run dev
