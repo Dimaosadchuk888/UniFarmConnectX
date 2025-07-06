@@ -10,9 +10,9 @@ packages = ["nodejs", "wget", "git", "unzip", "jq"]
 NODE_ENV = "production"
 PORT = "3000"
 
-# Supabase API подключение
-SUPABASE_URL = "https://wunnsvicbebssrjqedor.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1bm5zdmljYmVic3NyanFlZG9yIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTkwMzA3NywiZXhwIjoyMDY1NDc5MDc3fQ.pjlz8qlmQLUa9BZb12pt9QZU5Fk9YvqxpSZGA84oqog"
+# Supabase переменные должны быть установлены через Replit Secrets
+# SUPABASE_URL - установите через Replit Secrets
+# SUPABASE_KEY - установите через Replit Secrets
 
 [deployment]
 run = ["sh", "-c", "npm start"]
