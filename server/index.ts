@@ -29,6 +29,7 @@ if (process.env.SENTRY_DSN) {
 import express, { Request, Response, NextFunction } from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
+import compression from 'compression';
 import path from 'path';
 import { createServer } from 'http';
 // @ts-ignore
@@ -43,6 +44,7 @@ import { setupViteIntegration } from './setupViteIntegration';
 import { BalanceNotificationService } from '../core/balanceNotificationService';
 import { AdminBotService } from '../modules/adminBot/service';
 import { adminBotConfig } from '../config/adminBot';
+import { metricsCollector } from '../core/metrics';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
@@ -244,6 +246,19 @@ async function startServer() {
 
     const app = express();
 
+    // Compression middleware для улучшения производительности
+    app.use(compression({
+      level: 6, // Баланс между скоростью и степенью сжатия
+      threshold: 1024, // Сжимать ответы больше 1KB
+      filter: (req, res) => {
+        // Сжимать все текстовые форматы
+        if (req.headers['x-no-compression']) {
+          return false;
+        }
+        return compression.filter(req, res);
+      }
+    }));
+
     // Sentry middleware disabled for deployment compatibility
 
     // TELEGRAM WEBHOOK - МАКСИМАЛЬНЫЙ ПРИОРИТЕТ (первая регистрация)
@@ -382,6 +397,9 @@ async function startServer() {
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true }));
 
+    // Performance metrics middleware
+    app.use(metricsCollector.apiMetricsMiddleware());
+
     // Логирование запросов
     app.use((req: Request, res: Response, next: NextFunction) => {
       const start = Date.now();
@@ -441,6 +459,23 @@ async function startServer() {
         version: config.app.apiVersion,
         environment: config.app.nodeEnv
       });
+    });
+
+    // Performance metrics endpoint
+    app.get(`${apiPrefix}/metrics`, async (req: Request, res: Response) => {
+      try {
+        const metrics = metricsCollector.getMetricsSummary();
+        res.json({
+          success: true,
+          data: metrics
+        });
+      } catch (error) {
+        logger.error('[Metrics] Error getting metrics summary:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get metrics'
+        });
+      }
     });
 
     // JWT debug endpoint
@@ -804,6 +839,14 @@ async function startServer() {
       } catch (error) {
         logger.error('❌ Ошибка запуска TON Boost планировщика', { error });
       }
+
+      // Start performance metrics logging
+      try {
+        metricsCollector.startMetricsLogging(300000); // Log metrics every 5 minutes
+        logger.info('✅ Performance metrics logging started');
+      } catch (error) {
+        logger.error('❌ Error starting metrics logging', { error });
+      }
       
       // Инициализация админ-бота
       (async () => {
@@ -833,19 +876,62 @@ async function startServer() {
         logger.error('❌ Ошибка запуска системы алертинга', { error });
       }
       
-      // Graceful shutdown
-      process.on('SIGTERM', () => {
-        logger.info('🔄 Получен сигнал SIGTERM, завершение работы...');
-        // Supabase не требует очистки connection pool
-        farmingScheduler.stop();
-        logger.info('✅ Фарминг-планировщик остановлен');
-        tonBoostIncomeScheduler.stop();
-        logger.info('✅ TON Boost планировщик остановлен');
-        server.close(() => {
-          logger.info('✅ Сервер корректно завершен');
+      // Enhanced graceful shutdown для production
+      const gracefulShutdown = async (signal: string) => {
+        logger.info(`🔄 Получен сигнал ${signal}, начинаем graceful shutdown...`);
+        
+        // Устанавливаем флаг для отклонения новых запросов
+        app.set('isShuttingDown', true);
+        
+        // Даём 30 секунд на завершение текущих операций
+        const shutdownTimeout = setTimeout(() => {
+          logger.error('⏱ Превышен таймаут graceful shutdown, принудительное завершение');
+          process.exit(1);
+        }, 30000);
+        
+        try {
+          // 1. Останавливаем прием новых WebSocket соединений
+          wss.close(() => {
+            logger.info('✅ WebSocket сервер остановлен');
+          });
+          
+          // 2. Закрываем активные WebSocket соединения
+          wss.clients.forEach((ws) => {
+            ws.close(1001, 'Server shutting down');
+          });
+          
+          // 3. Останавливаем планировщики
+          farmingScheduler.stop();
+          logger.info('✅ Фарминг-планировщик остановлен');
+          
+          tonBoostIncomeScheduler.stop();
+          logger.info('✅ TON Boost планировщик остановлен');
+          
+          // 4. Останавливаем мониторинг
+          alertingService.stopMonitoring();
+          logger.info('✅ Система алертинга остановлена');
+          
+          // 5. Закрываем HTTP сервер
+          await new Promise((resolve) => {
+            server.close(resolve);
+          });
+          logger.info('✅ HTTP сервер остановлен');
+          
+          // 6. Финальная очистка
+          clearTimeout(shutdownTimeout);
+          logger.info('✅ Graceful shutdown завершен успешно');
           process.exit(0);
-        });
-      });
+        } catch (error) {
+          logger.error('❌ Ошибка при graceful shutdown', { error });
+          clearTimeout(shutdownTimeout);
+          process.exit(1);
+        }
+      };
+      
+      // Обработка различных сигналов
+      process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+      process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+      process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // Для nodemon
     });
 
     return server;

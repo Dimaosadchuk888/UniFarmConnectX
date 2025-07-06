@@ -17,6 +17,7 @@ interface Alert {
 class AlertingService {
   private alertHistory: Alert[] = [];
   private readonly MAX_ALERTS = 100;
+  private monitoringInterval: NodeJS.Timer | null = null;
   
   async sendAlert(alert: Alert): Promise<void> {
     // Логируем алерт
@@ -94,13 +95,25 @@ class AlertingService {
   }
   
   startMonitoring(intervalMs: number = 60000): void {
-    setInterval(() => {
+    if (this.monitoringInterval) {
+      this.stopMonitoring();
+    }
+    
+    this.monitoringInterval = setInterval(() => {
       this.checkCriticalThresholds().catch(error => {
         logger.error('[AlertingService] Ошибка мониторинга', error);
       });
     }, intervalMs);
     
     logger.info('[AlertingService] Система алертинга запущена');
+  }
+  
+  stopMonitoring(): void {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+      logger.info('[AlertingService] Система алертинга остановлена');
+    }
   }
 }
 
