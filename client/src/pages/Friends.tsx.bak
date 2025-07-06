@@ -132,7 +132,110 @@ const Friends: React.FC = () => {
   
 
 
-
+    
+    try {
+      // Получаем guest_id пользователя с защитой от ошибок
+      let guestId;
+      try {
+        guestId = localStorage.getItem('unifarm_guest_id');
+      } catch (storageError) {
+        console.error('Ошибка при доступе к localStorage:', storageError);
+        setDirectLinkData({ 
+          isLoading: false, 
+          refCode: '', 
+          error: 'Не удалось получить данные из локального хранилища' 
+        });
+        return;
+      }
+      
+      if (!guestId) {
+        console.warn('guest_id отсутствует в localStorage');
+        setDirectLinkData({ 
+          isLoading: false, 
+          refCode: '', 
+          error: 'Не удалось получить идентификатор гостя' 
+        });
+        return;
+      }
+      
+      // Делаем запрос к API с использованием correctApiRequest
+      let data;
+      try {
+        // Используем correctApiRequest вместо прямого fetch
+        data = await correctApiRequest(`/api/users/guest/${guestId}`, 'GET');
+      } catch (apiError: any) {
+        console.error('Ошибка при запросе данных пользователя:', apiError);
+        setDirectLinkData({ 
+          isLoading: false, 
+          refCode: '', 
+          error: apiError.message || 'Не удалось подключиться к серверу' 
+        });
+        return;
+      }
+      
+      if (data.success && data.data && data.data.ref_code) {
+        setDirectLinkData({ 
+          isLoading: false, 
+          refCode: data.data.ref_code, 
+          error: '' 
+        });
+      } else if (data.success && data.data && !data.data.ref_code) {
+        // Если нет ref_code, пробуем генерировать с использованием correctApiRequest
+        try {
+          // Используем correctApiRequest вместо прямого fetch
+          const genData = await correctApiRequest('/api/users/generate-refcode', 'POST', { 
+            user_id: data.data.id 
+          });
+          
+          if (genData.success && genData.data && genData.data.ref_code) {
+            setDirectLinkData({ 
+              isLoading: false, 
+              refCode: genData.data.ref_code, 
+              error: '' 
+            });
+          } else {
+            console.warn('Неуспешный ответ при генерации кода:', genData);
+            setDirectLinkData({ 
+              isLoading: false, 
+              refCode: '', 
+              error: genData.message || 'Не удалось сгенерировать реферальный код' 
+            });
+          }
+        } catch (genError) {
+          console.error('Ошибка при генерации реферального кода:', genError);
+          setDirectLinkData({ 
+            isLoading: false, 
+            refCode: '', 
+            error: 'Ошибка при генерации реферального кода' 
+          });
+        }
+      } else {
+        console.warn('Неуспешный ответ при получении пользователя:', data);
+        setDirectLinkData({ 
+          isLoading: false, 
+          refCode: '', 
+          error: data.message || 'Не удалось получить данные пользователя' 
+        });
+      }
+    } catch (error) {
+      console.error('Необработанная ошибка в fetchDirectRefCode:', error);
+      setDirectLinkData({ 
+        isLoading: false, 
+        refCode: '', 
+        error: (error as Error).message || 'Произошла ошибка при запросе данных' 
+      });
+    }
+  };
+  
+  // Загружаем данные при первом рендере с защитой от ошибок
+  useEffect(() => {
+    try {
+      fetchDirectRefCode();
+    } catch (error) {
+      console.error('Необработанная ошибка при первоначальной загрузке данных:', error);
+      // Тихая обработка ошибки для пользователя, продолжаем выполнение
+    }
+  }, []);
   
   // Безопасное приведение типов
   const safeUser = userData as User | undefined;
