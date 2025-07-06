@@ -117,9 +117,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   };
 
   useEffect(() => {
-    connect();
+    // Откладываем подключение на следующий тик для избежания race condition
+    const timer = setTimeout(() => {
+      connect();
+    }, 0);
 
     return () => {
+      clearTimeout(timer);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
