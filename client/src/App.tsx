@@ -265,7 +265,7 @@ function App() {
         <ErrorBoundary>
           <NotificationProvider>
             <UserProvider>
-
+              <WebSocketProvider>
                 <TelegramWebAppCheck>
                   <MainLayout 
                     activeTab={state.activeTab} 
@@ -276,6 +276,7 @@ function App() {
                   <NetworkStatusIndicator />
                   <Toaster />
                 </TelegramWebAppCheck>
+              </WebSocketProvider>
             </UserProvider>
           </NotificationProvider>
         </ErrorBoundary>
