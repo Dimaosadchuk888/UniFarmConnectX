@@ -59,11 +59,14 @@ const BoostPackagesCard: React.FC = () => {
     queryKey: ['/api/v2/boost/packages'],
     queryFn: async () => {
       try {
+        console.log("[DEBUG TON Boost] Загрузка пакетов начата...");
         const response = await correctApiRequest('/api/v2/boost/packages', 'GET');
-        console.log("API Response:", response); // Для отладки
+        console.log("[DEBUG TON Boost] API Response:", response); // Для отладки
+        
         if (response.success && response.data && response.data.packages) {
+          console.log("[DEBUG TON Boost] Получены пакеты:", response.data.packages);
           // Преобразуем данные из API в формат компонента
-          return response.data.packages.map((pkg: any) => ({
+          const mappedPackages = response.data.packages.map((pkg: any) => ({
             id: pkg.id,
             name: pkg.name,
             priceTon: pkg.min_amount, // Оставляем как число
@@ -71,10 +74,22 @@ const BoostPackagesCard: React.FC = () => {
             rateTon: (pkg.daily_rate * 100), // Конвертируем в проценты как число
             rateUni: 0 // API не возвращает UNI rate, ставим 0
           }));
+          console.log("[DEBUG TON Boost] Преобразованные пакеты:", mappedPackages);
+          return mappedPackages;
         }
+        console.log("[DEBUG TON Boost] Ответ API не содержит packages, возвращаем пустой массив");
         return [];
-      } catch (error) {
-        console.error("Failed to fetch TON Boost packages:", error);
+      } catch (error: any) {
+        console.error("[DEBUG TON Boost] Ошибка загрузки пакетов:", error);
+        console.error("[DEBUG TON Boost] Тип ошибки:", error?.constructor?.name);
+        console.error("[DEBUG TON Boost] Статус ошибки:", error?.status);
+        console.error("[DEBUG TON Boost] Текст ошибки:", error?.message);
+        
+        // Проверяем, это 401 ошибка или что-то другое
+        if (error?.status === 401) {
+          console.log("[DEBUG TON Boost] Ошибка 401 - пользователь не авторизован");
+        }
+        
         toast({
           title: "Ошибка",
           description: "Не удалось загрузить TON Boost-пакеты",
@@ -86,6 +101,10 @@ const BoostPackagesCard: React.FC = () => {
   });
 
   const boostPackages = data || [];
+  
+  console.log("[DEBUG TON Boost] Компонент BoostPackagesCard рендерится");
+  console.log("[DEBUG TON Boost] boostPackages:", boostPackages);
+  console.log("[DEBUG TON Boost] isLoadingPackages:", isLoadingPackages);
 
   // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету
   const handleBoostClick = (boostId: number) => {
@@ -416,7 +435,8 @@ const BoostPackagesCard: React.FC = () => {
         <CardContent className="space-y-4">
           {boostPackages.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Пакеты недоступны
+              <p>Не удалось загрузить TON Boost пакеты</p>
+              <p className="text-sm mt-2 opacity-70">Проверьте авторизацию или попробуйте обновить страницу</p>
             </div>
           ) : (
             boostPackages.map((pkg: TonBoostPackage, index: number) => (
