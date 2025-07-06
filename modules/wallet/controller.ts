@@ -60,12 +60,37 @@ export class WalletController extends BaseController {
   async withdraw(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {
-      this.validateRequiredFields(req.body, ['userId', 'amount', 'type']);
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
       
-      const { userId, amount, type } = req.body;
-      const result = await walletService.processWithdrawal(userId, amount, type);
+      const { amount, currency, wallet_address } = req.body;
       
-      this.sendSuccess(res, { processed: result });
+      // Автоматическая регистрация пользователя если нужно
+      const user = await userRepository.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        first_name: telegram.user.first_name
+      });
+      
+      if (!user) {
+        return this.sendError(res, 'Не удалось создать или найти пользователя', 500);
+      }
+      
+      const result = await walletService.processWithdrawal(
+        user.id.toString(), 
+        amount, 
+        currency as 'UNI' | 'TON',
+        wallet_address
+      );
+      
+      if (!result) {
+        return this.sendError(res, 'Не удалось обработать вывод средств. Проверьте баланс.', 400);
+      }
+      
+      this.sendSuccess(res, { 
+        success: true,
+        message: `Заявка на вывод ${amount} ${currency} создана успешно` 
+      });
     }, 'вывода средств');
     } catch (error) {
       next(error);

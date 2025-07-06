@@ -281,7 +281,7 @@ export class WalletService {
     }
   }
 
-  async processWithdrawal(userId: string, amount: string, type: 'UNI' | 'TON'): Promise<boolean> {
+  async processWithdrawal(userId: string, amount: string, type: 'UNI' | 'TON', walletAddress?: string): Promise<boolean> {
     try {
       // Получаем пользователя
       const { data: user, error: getUserError } = await supabase
@@ -318,6 +318,33 @@ export class WalletService {
         return false;
       }
 
+      // Сначала создаем заявку на вывод (только для TON, так как UNI не выводится)
+      if (type === 'TON') {
+        const { data: withdrawRequest, error: withdrawError } = await supabase
+          .from('withdraw_requests')
+          .insert({
+            user_id: parseInt(userId),
+            telegram_id: user.telegram_id?.toString() || '',
+            username: user.username || '',
+            amount_ton: withdrawAmount,
+            ton_wallet: walletAddress || '',
+            status: 'pending',
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (withdrawError) {
+          logger.error('[WalletService] Ошибка создания заявки на вывод', { 
+            userId, 
+            error: withdrawError.message 
+          });
+          return false;
+        }
+      }
+
+
+
       // Обновляем баланс через централизованный BalanceManager
       const { balanceManager } = await import('../../core/BalanceManager');
       const amount_uni = type === 'UNI' ? withdrawAmount : 0;
@@ -331,6 +358,17 @@ export class WalletService {
       );
 
       if (!result.success) {
+        // Если не удалось списать баланс, отменяем заявку (только для TON)
+        if (type === 'TON') {
+          await supabase
+            .from('withdraw_requests')
+            .update({ status: 'rejected' })
+            .eq('user_id', parseInt(userId))
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(1);
+        }
+          
         logger.error('[WalletService] Ошибка обновления баланса при выводе', { 
           userId, 
           error: result.error 
@@ -347,7 +385,8 @@ export class WalletService {
           amount_uni: type === 'UNI' ? withdrawAmount.toString() : '0',
           amount_ton: type === 'TON' ? withdrawAmount.toString() : '0',
           currency: type,
-          status: 'completed',
+          status: 'pending', // Изменено с 'completed' на 'pending'
+          description: `Вывод ${withdrawAmount} ${type}`,
           created_at: new Date().toISOString()
         });
 
@@ -358,11 +397,12 @@ export class WalletService {
         });
       }
 
-      logger.info('[WalletService] Вывод средств выполнен успешно', { 
+      logger.info('[WalletService] Вывод средств обработан успешно', { 
         userId, 
         amount: withdrawAmount, 
         type,
-        newBalance 
+        isWithdrawRequest: type === 'TON',
+        newBalance: result.newBalance 
       });
       
       return true;
