@@ -461,23 +461,6 @@ async function startServer() {
       });
     });
 
-    // Performance metrics endpoint
-    app.get(`${apiPrefix}/metrics`, async (req: Request, res: Response) => {
-      try {
-        const metrics = metricsCollector.getMetricsSummary();
-        res.json({
-          success: true,
-          data: metrics
-        });
-      } catch (error) {
-        logger.error('[Metrics] Error getting metrics summary:', error);
-        res.status(500).json({
-          success: false,
-          error: 'Failed to get metrics'
-        });
-      }
-    });
-
     // JWT debug endpoint
     app.get('/api/v2/debug/jwt', (req: Request, res: Response) => {
       const authHeader = req.headers.authorization;
@@ -525,6 +508,23 @@ async function startServer() {
 
     // API routes
     const apiPrefix = `/api/v2`;
+    
+    // Performance metrics endpoint
+    app.get(`${apiPrefix}/metrics`, async (req: Request, res: Response) => {
+      try {
+        const metrics = metricsCollector.getMetricsSummary();
+        res.json({
+          success: true,
+          data: metrics
+        });
+      } catch (error) {
+        logger.error('[Metrics] Error getting metrics summary:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to get metrics'
+        });
+      }
+    });
     
     // Bypass auth middleware - ONLY for explicit development mode
     const forceBypass = process.env.BYPASS_AUTH === 'true' || process.env.NODE_ENV === 'development';
