@@ -5,6 +5,7 @@ import userService from '@/services/userService';
 import { createReferralLink, generateReferralCode } from '@/utils/referralUtils';
 import { apiRequest } from '@/lib/queryClient';
 import { correctApiRequest } from '@/lib/correctApiRequest';
+import { useToast } from '@/hooks/use-toast';
 
 /**
  * Компонент для отображения реферальной ссылки
@@ -31,6 +32,9 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
   
   // Доступ к React Query Client для управления кэшем
   const queryClient = useQueryClient();
+  
+  // Hook для toast уведомлений
+  const { toast } = useToast();
   
   // Запрос данных пользователя через централизованный userService (резервный вариант)
   const { 
@@ -258,17 +262,51 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
       navigator.clipboard.writeText(linkToCopy);
       setIsCopied(true);
       
+      // Показываем toast уведомление
+      toast({
+        title: "Ссылка скопирована",
+        description: "Реферальная ссылка скопирована в буфер обмена",
+      });
+      
       setTimeout(() => {
         setIsCopied(false);
       }, 2000);
     } catch (err) {
       // Отключаем небезопасный fallback для устранения DOM ошибок
       setIsCopied(true);
+      toast({
+        title: "Ошибка копирования",
+        description: "Не удалось скопировать ссылку",
+        variant: "destructive"
+      });
       setTimeout(() => {
         setIsCopied(false);
       }, 2000);
       console.log('Копирование недоступно, используйте долгое нажатие на ссылку');
     }
+  }, [linkType, referralLink, directBotLink, toast]);
+  
+  // Функция для отправки в Telegram
+  const shareViaTelegram = useCallback((type: 'app' | 'bot' = linkType) => {
+    const linkToShare = type === 'app' ? referralLink : directBotLink;
+    if (!linkToShare) return;
+    
+    // Фиксированный текст сообщения согласно ТЗ
+    const messageText = `Привет 🙋‍♂️
+Я только что забрал 500 монет в UNI — просто за вход в Telegram-приложение.
+Без подвязок и лишних условий: зашёл в бота — и они у тебя на балансе 🪙
+
+⚠️ Пока дают — лучше не тянуть.
+👉 ${linkToShare}`;
+    
+    // Кодируем текст для URL
+    const encodedText = encodeURIComponent(messageText);
+    
+    // Формируем Telegram URL
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(linkToShare)}&text=${encodedText}`;
+    
+    // Открываем Telegram
+    window.open(telegramUrl, '_blank');
   }, [linkType, referralLink, directBotLink]);
   
   // Функция для повторной попытки получения данных
@@ -497,15 +535,18 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
             )}
           </div>
           
+          {/* Кнопка копирования */}
           <button 
             className={`
-              px-3 py-2 rounded-r-lg relative overflow-hidden
+              px-3 py-2 relative overflow-hidden
               ${isCopied ? 'bg-accent' : 'bg-primary'}
               transition-all duration-300
+              flex items-center justify-center
             `}
             onClick={() => copyToClipboard(linkType)}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            title="Копировать ссылку"
           >
             {/* Анимированный фон для кнопки */}
             <div 
@@ -519,21 +560,36 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
               }}
             ></div>
             
-            {/* Иконка в кнопке */}
+            {/* Иконка копирования */}
             <i className={`
-              fas ${isCopied ? 'fa-check' : 'fa-copy'} 
+              fas ${isCopied ? 'fa-check' : 'fa-clipboard'} 
               relative z-10 text-white
               ${isCopied ? 'scale-110' : ''}
               transition-transform duration-300
             `}></i>
           </button>
           
-          {/* Тултип о статусе копирования */}
-          {isCopied && (
-            <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
-              Ссылка скопирована
-            </div>
-          )}
+          {/* Кнопка "Поделиться через Telegram" */}
+          <button 
+            className={`
+              px-3 py-2 rounded-r-lg relative overflow-hidden
+              bg-[#2AABEE] hover:bg-[#229ED9]
+              transition-all duration-300
+              flex items-center justify-center ml-1
+            `}
+            onClick={() => shareViaTelegram(linkType)}
+            title="Поделиться через Telegram"
+          >
+            {/* Иконка Telegram */}
+            <svg 
+              className="w-5 h-5 text-white relative z-10"
+              viewBox="0 0 24 24" 
+              fill="currentColor"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.903-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.015-.15-.056-.212s-.174-.041-.248-.024c-.106.024-1.793 1.139-5.062 3.345-.479.329-.913.489-1.302.481-.429-.009-1.253-.242-1.865-.442-.752-.244-1.349-.374-1.297-.789.027-.216.324-.437.893-.661 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.322.023.465.141.121.099.154.232.17.337.015.105.034.236.019.365z"/>
+            </svg>
+          </button>
         </div>
 
         {/* Подсказка о типе ссылки */}
