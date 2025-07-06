@@ -3,8 +3,13 @@
  * Separate bot for administrative functions
  */
 
+// Check if admin bot token is set
+if (!process.env.ADMIN_BOT_TOKEN) {
+  console.warn('[AdminBot] ADMIN_BOT_TOKEN not set in environment');
+}
+
 export const adminBotConfig = {
-  token: process.env.ADMIN_BOT_TOKEN || '7662298323:AAFLgX05fWtgNYJfT_VeZ_kRZhIBixoseIY',
+  token: process.env.ADMIN_BOT_TOKEN || '',
   username: '@unifarm_admin_bot',
   
   // Authorized admin usernames

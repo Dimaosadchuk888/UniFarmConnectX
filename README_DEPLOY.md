@@ -6,8 +6,8 @@
 ```env
 NODE_ENV=production
 BYPASS_AUTH=false
-JWT_SECRET=unifarm_jwt_secret_key_2025_production
-SUPABASE_URL=https://wunnsvicbebssrjqedor.supabase.co
+JWT_SECRET=<your_jwt_secret_key>
+SUPABASE_URL=<your_supabase_project_url>
 SUPABASE_KEY=<your_supabase_key>
 TELEGRAM_BOT_TOKEN=<your_telegram_bot_token>
 ```

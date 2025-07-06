@@ -296,7 +296,7 @@ async function startServer() {
                 reply_markup: {
                   inline_keyboard: [[{
                     text: '🚀 Запустить UniFarm',
-                    web_app: { url: process.env.APP_DOMAIN || process.env.TELEGRAM_WEBAPP_URL || 'https://uni-farm-connect-x-ab245275.replit.app' }
+                    web_app: { url: process.env.APP_DOMAIN || process.env.TELEGRAM_WEBAPP_URL || 'https://t.me/UniFarming_Bot' }
                   }]]
                 }
               }
