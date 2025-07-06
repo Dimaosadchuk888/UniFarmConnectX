@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import MainLayout from "@/layouts/MainLayout";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useBalance } from "@/hooks/useBalance";
+import { useAutoAuth } from "@/hooks/useAutoAuth";
 
 // Components
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
@@ -46,11 +47,20 @@ function App() {
   });
 
   const { isReady: telegramReady, user: telegramUser, initData } = useTelegram();
+  const { isAuthenticating, authError: autoAuthError } = useAutoAuth();
 
   // Initialize app
   useEffect(() => {
+    console.log('[App] Component mounted, auto auth status:', { isAuthenticating, autoAuthError });
     initializeApp();
   }, []);
+  
+  // Логируем изменения статуса автоматической авторизации
+  useEffect(() => {
+    if (autoAuthError) {
+      console.error('[App] Auto auth error:', autoAuthError);
+    }
+  }, [autoAuthError]);
 
   const initializeApp = async () => {
     try {
@@ -81,6 +91,10 @@ function App() {
   };
 
   const authenticateUser = async () => {
+    console.log('[App] authenticateUser вызван');
+    console.log('[App] Telegram WebApp доступен:', !!window.Telegram?.WebApp);
+    console.log('[App] Telegram initData:', window.Telegram?.WebApp?.initData ? 'Есть' : 'Нет');
+    
     try {
       // Get referral code from URL
       const urlParams = new URLSearchParams(window.location.search);
@@ -141,11 +155,15 @@ function App() {
       } else {
         // Проверяем наличие существующего JWT токена
         const existingToken = localStorage.getItem('unifarm_jwt_token');
+        console.log('[App] Проверка JWT токена:', existingToken ? 'Найден' : 'Отсутствует');
+        
         if (!existingToken) {
           console.log('[App] Telegram WebApp не найден и нет JWT токена');
           
           // Проверяем, находимся ли мы в Preview режиме Replit
-          const isReplitPreview = window.location.hostname.includes('replit');
+          const hostname = window.location.hostname;
+          const isReplitPreview = hostname.includes('replit');
+          console.log('[App] Hostname:', hostname, 'Is Replit Preview:', isReplitPreview);
           
           if (isReplitPreview) {
             console.log('[App] Preview режим Replit - создаем тестового пользователя');
@@ -159,23 +177,29 @@ function App() {
                 },
                 body: JSON.stringify({
                   direct_registration: true,
-                  telegram_id: '88888848',
+                  telegram_id: 88888848, // Передаем как число, а не строку
                   username: 'preview_user',
                   first_name: 'Preview'
                 })
               });
 
-              if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.data?.token) {
-                  console.log('[App] Preview авторизация успешна');
-                  localStorage.setItem('unifarm_jwt_token', data.data.token);
-                  window.location.reload();
-                }
+              console.log('[App] Preview auth response status:', response.status);
+              const data = await response.json();
+              console.log('[App] Preview auth response data:', data);
+
+              if (response.ok && data.success && data.data?.token) {
+                console.log('[App] Preview авторизация успешна, сохраняем токен');
+                localStorage.setItem('unifarm_jwt_token', data.data.token);
+                console.log('[App] Токен сохранен, перезагружаем страницу...');
+                window.location.reload();
+              } else {
+                console.error('[App] Preview авторизация не удалась:', data.error || 'Unknown error');
               }
             } catch (error) {
               console.error('[App] Ошибка создания preview пользователя:', error);
             }
+          } else {
+            console.log('[App] Не в Preview режиме Replit, пропускаем автоматическую авторизацию');
           }
         } else {
           console.log('[App] Используем существующий JWT токен');

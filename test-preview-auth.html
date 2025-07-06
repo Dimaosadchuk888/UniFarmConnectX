@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Preview Auth</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a1a; color: #fff; }
+        .section { margin: 20px 0; padding: 15px; background: #2a2a2a; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+    </style>
+</head>
+<body>
+    <h1>Test Preview Auth</h1>
+    
+    <div class="section">
+        <h2>Current Status</h2>
+        <p>Hostname: <span id="hostname"></span></p>
+        <p>Is Replit: <span id="isReplit"></span></p>
+        <p>JWT Token: <span id="hasToken"></span></p>
+    </div>
+    
+    <div class="section">
+        <button onclick="clearToken()">Clear Token</button>
+        <button onclick="testAutoAuth()">Test Auto Auth</button>
+        <button onclick="goToApp()">Go to App</button>
+    </div>
+    
+    <div id="logs" class="section"></div>
+
+    <script>
+        function updateStatus() {
+            const hostname = window.location.hostname;
+            const isReplit = hostname.includes('replit');
+            const token = localStorage.getItem('unifarm_jwt_token');
+            
+            document.getElementById('hostname').textContent = hostname;
+            document.getElementById('isReplit').textContent = isReplit ? '✅ YES' : '❌ NO';
+            document.getElementById('hasToken').textContent = token ? '✅ YES' : '❌ NO';
+        }
+        
+        function addLog(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const log = document.createElement('p');
+            log.className = type;
+            log.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(log);
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('unifarm_jwt_token');
+            addLog('Token cleared', 'error');
+            updateStatus();
+        }
+        
+        async function testAutoAuth() {
+            addLog('Testing auto auth...');
+            
+            // Симулируем логику из App.tsx
+            const existingToken = localStorage.getItem('unifarm_jwt_token');
+            if (existingToken) {
+                addLog('Token already exists!', 'success');
+                return;
+            }
+            
+            const hostname = window.location.hostname;
+            const isReplitPreview = hostname.includes('replit');
+            addLog(`Hostname: ${hostname}, Is Replit: ${isReplitPreview}`);
+            
+            if (!isReplitPreview) {
+                addLog('Not in Replit Preview mode', 'error');
+                return;
+            }
+            
+            try {
+                addLog('Creating preview user...');
+                const response = await fetch('/api/v2/auth/telegram', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        direct_registration: true,
+                        telegram_id: 88888848,
+                        username: 'preview_user',
+                        first_name: 'Preview'
+                    })
+                });
+                
+                const data = await response.json();
+                addLog(`Response: ${response.status} - ${JSON.stringify(data)}`);
+                
+                if (response.ok && data.success && data.data?.token) {
+                    localStorage.setItem('unifarm_jwt_token', data.data.token);
+                    addLog('Token saved! User ID: ' + data.data.user.id, 'success');
+                    updateStatus();
+                } else {
+                    addLog('Auth failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addLog('Error: ' + error.message, 'error');
+            }
+        }
+        
+        function goToApp() {
+            window.location.href = '/';
+        }
+        
+        updateStatus();
+    </script>
+</body>
+</html>
