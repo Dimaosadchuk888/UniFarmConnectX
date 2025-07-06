@@ -17,7 +17,20 @@ const withdrawSchema = z.object({
   ),
   currency: z.enum(['UNI', 'TON'], { errorMap: () => ({ message: 'Currency must be UNI or TON' }) }),
   wallet_address: z.string().min(10, 'Invalid wallet address').max(100, 'Wallet address too long')
-});
+}).refine(
+  (data) => {
+    // Проверка минимальной суммы для TON
+    if (data.currency === 'TON') {
+      const amount = parseFloat(data.amount);
+      return amount >= 1;
+    }
+    return true;
+  },
+  {
+    message: 'Минимальная сумма вывода — 1 TON',
+    path: ['amount']
+  }
+);
 
 const userIdSchema = z.object({
   userId: z.string().regex(/^\d+$/, 'User ID must be numeric')

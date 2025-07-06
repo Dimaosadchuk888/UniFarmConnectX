@@ -281,7 +281,7 @@ export class WalletService {
     }
   }
 
-  async processWithdrawal(userId: string, amount: string, type: 'UNI' | 'TON', walletAddress?: string): Promise<boolean> {
+  async processWithdrawal(userId: string, amount: string, type: 'UNI' | 'TON', walletAddress?: string): Promise<boolean | { success: false; error: string }> {
     try {
       // Получаем пользователя
       const { data: user, error: getUserError } = await supabase
@@ -292,7 +292,7 @@ export class WalletService {
 
       if (getUserError || !user) {
         logger.error('[WalletService] Пользователь не найден для вывода', { userId, error: getUserError?.message });
-        return false;
+        return { success: false, error: 'Пользователь не найден' };
       }
 
       const withdrawAmount = parseFloat(amount);
@@ -307,6 +307,16 @@ export class WalletService {
         balanceField = 'balance_ton';
       }
 
+      // Проверка минимальной суммы для TON
+      if (type === 'TON' && withdrawAmount < 1) {
+        logger.warn('[WalletService] Сумма вывода TON меньше минимальной', { 
+          userId, 
+          requested: withdrawAmount, 
+          minimum: 1
+        });
+        return { success: false, error: 'Минимальная сумма вывода — 1 TON' };
+      }
+
       // Проверяем достаточность средств
       if (currentBalance < withdrawAmount) {
         logger.warn('[WalletService] Недостаточно средств для вывода', { 
@@ -315,7 +325,7 @@ export class WalletService {
           available: currentBalance,
           type 
         });
-        return false;
+        return { success: false, error: `Недостаточно средств. Доступно: ${currentBalance} ${type}` };
       }
 
       // Сначала создаем заявку на вывод (только для TON, так как UNI не выводится)
@@ -339,7 +349,7 @@ export class WalletService {
             userId, 
             error: withdrawError.message 
           });
-          return false;
+          return { success: false, error: 'Ошибка создания заявки на вывод' };
         }
       }
 
@@ -373,7 +383,7 @@ export class WalletService {
           userId, 
           error: result.error 
         });
-        return false;
+        return { success: false, error: result.error || 'Ошибка обновления баланса' };
       }
 
       // Создаем запись транзакции
@@ -414,7 +424,7 @@ export class WalletService {
         type,
         error: error instanceof Error ? error.message : String(error) 
       });
-      return false;
+      return { success: false, error: 'Внутренняя ошибка сервера при обработке вывода' };
     }
   }
 

@@ -83,8 +83,12 @@ export class WalletController extends BaseController {
         wallet_address
       );
       
+      if (typeof result === 'object' && result.success === false) {
+        return this.sendError(res, result.error, 400);
+      }
+      
       if (!result) {
-        return this.sendError(res, 'Не удалось обработать вывод средств. Проверьте баланс.', 400);
+        return this.sendError(res, 'Не удалось обработать вывод средств', 400);
       }
       
       this.sendSuccess(res, { 
