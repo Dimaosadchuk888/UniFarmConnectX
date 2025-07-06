@@ -345,7 +345,45 @@ export class AdminBotService {
    */
   async rejectWithdrawal(requestId: string, adminUsername?: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      // Сначала получаем информацию о заявке
+      const { data: request, error: fetchError } = await supabase
+        .from('withdraw_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+        
+      if (fetchError || !request) {
+        logger.error('[AdminBot] Withdrawal request not found', { requestId });
+        return false;
+      }
+      
+      // Проверяем, что заявка в статусе pending
+      if (request.status !== 'pending') {
+        logger.warn('[AdminBot] Cannot reject non-pending withdrawal', { requestId, status: request.status });
+        return false;
+      }
+      
+      // Возвращаем средства пользователю
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const returnResult = await balanceManager.addBalance(
+        request.user_id,
+        0, // amount_uni
+        parseFloat(request.amount_ton), // amount_ton
+        'AdminBot.rejectWithdrawal'
+      );
+      
+      if (!returnResult.success) {
+        logger.error('[AdminBot] Failed to return funds to user', { 
+          requestId, 
+          user_id: request.user_id,
+          amount: request.amount_ton,
+          error: returnResult.error 
+        });
+        return false;
+      }
+      
+      // Обновляем статус заявки
+      const { error: updateError } = await supabase
         .from('withdraw_requests')
         .update({ 
           status: 'rejected',
@@ -354,12 +392,24 @@ export class AdminBotService {
         })
         .eq('id', requestId);
         
-      if (error) {
-        logger.error('[AdminBot] Error rejecting withdrawal', { error });
+      if (updateError) {
+        logger.error('[AdminBot] Error updating withdrawal status', { error: updateError });
+        // Пытаемся откатить возврат средств
+        await balanceManager.subtractBalance(
+          request.user_id,
+          0,
+          parseFloat(request.amount_ton),
+          'AdminBot.rejectWithdrawal.rollback'
+        );
         return false;
       }
       
-      logger.info('[AdminBot] Withdrawal rejected', { requestId });
+      logger.info('[AdminBot] Withdrawal rejected and funds returned', { 
+        requestId, 
+        user_id: request.user_id,
+        amount_returned: request.amount_ton 
+      });
+      
       return true;
     } catch (error) {
       logger.error('[AdminBot] Error in rejectWithdrawal', { error: error instanceof Error ? error.message : String(error) });

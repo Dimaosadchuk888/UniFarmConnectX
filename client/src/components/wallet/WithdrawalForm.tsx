@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { submitWithdrawal } from '@/services/withdrawalService';
 
 // Схема валидации для формы вывода средств
 const withdrawalFormSchema = z.object({
@@ -120,31 +121,39 @@ const WithdrawalForm: React.FC = () => {
         throw new Error('Неверный формат TON адреса');
       }
       
-      // Имитация отправки запроса на сервер
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Отправляем реальный запрос на сервер
+      const result = await submitWithdrawal(parseInt(userId || '0'), {
+        amount: data.amount,
+        currency: selectedCurrency,
+        wallet_address: data.walletAddress
+      });
       
-      // Генерируем ID транзакции для демонстрации
-      const newTransactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      setTransactionId(newTransactionId);
-      
-      setSubmitState(SubmitState.SUCCESS);
-      
-      // Показываем уведомление об успешной отправке
-      success(`Заявка на вывод ${data.amount} ${selectedCurrency} создана успешно!`);
-      
-      // Очищаем форму после успешной отправки
-      setTimeout(() => {
-        reset({
-          walletAddress: walletAddress || '',
-          amount: getMinAmount(),
-          currency: selectedCurrency
-        });
-        setSubmitState(SubmitState.IDLE);
-        setTransactionId(null);
-      }, 3000);
-      
-      // Обновляем баланс
-      refreshBalance();
+      // Обработка результата
+      if (typeof result === 'number') {
+        // Успешный вывод - получили ID транзакции
+        setTransactionId(`TXN-${result}`);
+        setSubmitState(SubmitState.SUCCESS);
+        
+        // Показываем уведомление об успешной отправке
+        success(`Заявка на вывод ${data.amount} ${selectedCurrency} создана успешно!`);
+        
+        // Очищаем форму после успешной отправки
+        setTimeout(() => {
+          reset({
+            walletAddress: walletAddress || '',
+            amount: getMinAmount(),
+            currency: selectedCurrency
+          });
+          setSubmitState(SubmitState.IDLE);
+          setTransactionId(null);
+        }, 3000);
+        
+        // Обновляем баланс
+        refreshBalance();
+      } else {
+        // Ошибка вывода
+        throw new Error(result.message || 'Неизвестная ошибка при выводе средств');
+      }
       
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Неизвестная ошибка';
