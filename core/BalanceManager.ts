@@ -53,7 +53,8 @@ export class BalanceManager {
         amount_ton,
         operation,
         source,
-        transaction_id
+        transaction_id,
+        timestamp: new Date().toISOString()
       });
 
       // Валидация данных
@@ -119,6 +120,19 @@ export class BalanceManager {
         balance_ton: parseFloat(updatedUser.balance_ton),
         last_updated: updatedUser.last_active
       };
+
+      // Логируем успешное обновление с деталями изменений
+      logger.info('[BalanceManager] Баланс успешно обновлен', {
+        user_id,
+        operation,
+        source,
+        previous_uni: current.balance_uni,
+        previous_ton: current.balance_ton,
+        new_uni: newBalance.balance_uni,
+        new_ton: newBalance.balance_ton,
+        change_uni: operation === 'set' ? 'set' : (newBalance.balance_uni - current.balance_uni).toFixed(6),
+        change_ton: operation === 'set' ? 'set' : (newBalance.balance_ton - current.balance_ton).toFixed(6)
+      });
 
       logger.info('[BalanceManager] Баланс успешно обновлен:', {
         user_id,

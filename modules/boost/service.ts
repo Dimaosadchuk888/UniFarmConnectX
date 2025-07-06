@@ -183,17 +183,17 @@ export class BoostService {
         return false;
       }
 
-      const currentBalance = parseFloat(user.balance_uni || '0');
-      const newBalance = currentBalance + boostPackage.uni_bonus;
+      // Обновляем баланс UNI через централизованный BalanceManager
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const result = await balanceManager.addBalance(
+        userId,
+        boostPackage.uni_bonus,
+        0,
+        'BoostService.uni_bonus'
+      );
 
-      // Обновляем баланс UNI
-      const { error: updateError } = await supabase
-        .from(BOOST_TABLES.USERS)
-        .update({ balance_uni: newBalance.toString() })
-        .eq('id', userId);
-
-      if (updateError) {
-        logger.error('[BoostService] Ошибка обновления баланса UNI:', updateError);
+      if (!result.success) {
+        logger.error('[BoostService] Ошибка обновления баланса UNI:', result.error);
         return false;
       }
 

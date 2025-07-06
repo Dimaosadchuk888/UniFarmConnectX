@@ -163,14 +163,25 @@ export class FarmingService {
         return { success: false, message: 'Недостаточно средств' };
       }
 
-      const newBalance = (currentBalance - depositAmount).toFixed(8);
+      // Обновляем баланс через централизованный BalanceManager
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const result = await balanceManager.subtractBalance(
+        user.id,
+        depositAmount,
+        0,
+        'FarmingService.depositUni'
+      );
+
+      if (!result.success) {
+        return { success: false, message: result.error || 'Ошибка обновления баланса' };
+      }
+
+      // Обновляем депозит и данные фарминга отдельно
       const currentDeposit = parseFloat(user.uni_deposit_amount || '0');
       const newDepositAmount = (currentDeposit + depositAmount).toFixed(8);
 
-      logger.info('[FarmingService] Подготовка обновления базы данных', { 
+      logger.info('[FarmingService] Подготовка обновления депозита', { 
         userId: user.id,
-        currentBalance,
-        newBalance,
         currentDeposit,
         newDepositAmount,
         farmingRate: FARMING_CONFIG.DEFAULT_RATE
@@ -179,7 +190,6 @@ export class FarmingService {
       const { data: updateData, error: updateError } = await supabase
         .from(FARMING_TABLES.USERS)
         .update({
-          balance_uni: newBalance,
           uni_deposit_amount: newDepositAmount,
           uni_farming_start_timestamp: new Date().toISOString(),
           uni_farming_last_update: new Date().toISOString(),
@@ -296,20 +306,29 @@ export class FarmingService {
         return { success: false, message: 'Нет доступных вознаграждений' };
       }
 
-      // Обновляем баланс и время последнего сбора
-      const currentBalance = parseFloat(user.balance_uni || '0');
-      const newBalance = (currentBalance + rewards).toFixed(8);
+      // Обновляем баланс через централизованный BalanceManager
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const result = await balanceManager.addBalance(
+        user.id,
+        rewards,
+        0,
+        'FarmingService.harvestUni'
+      );
 
+      if (!result.success) {
+        return { success: false, message: result.error || 'Ошибка обновления баланса' };
+      }
+
+      // Обновляем время последнего сбора отдельно
       const { error } = await supabase
         .from(FARMING_TABLES.USERS)
         .update({
-          balance_uni: newBalance,
           uni_farming_last_update: new Date().toISOString()
         })
         .eq('id', user.id);
 
       if (error) {
-        return { success: false, message: 'Ошибка обновления баланса' };
+        return { success: false, message: 'Ошибка обновления времени сбора' };
       }
 
       return { success: true, message: 'Вознаграждения собраны', amount: rewards };

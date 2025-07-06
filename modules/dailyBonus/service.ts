@@ -138,14 +138,25 @@ export class DailyBonusService {
       }
 
       const bonusAmount = this.calculateBonusAmount(newStreak);
-      const currentBalance = parseFloat(user.balance_uni || '0');
-      const newBalance = currentBalance + parseFloat(bonusAmount);
+      
+      // Update balance through centralized BalanceManager
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const result = await balanceManager.addBalance(
+        userIdNumber,
+        parseFloat(bonusAmount),
+        0,
+        'DailyBonusService.claim'
+      );
 
-      // Update user balance and streak
+      if (!result.success) {
+        logger.error('[DailyBonusService] Ошибка обновления баланса:', result.error);
+        return { success: false, message: result.error || 'Ошибка начисления бонуса' };
+      }
+
+      // Update streak and last claim date separately
       const { error: updateError } = await supabase
         .from(DAILY_BONUS_TABLES.USERS)
         .update({
-          balance_uni: newBalance.toFixed(6),
           checkin_last_date: now.toISOString(),
           checkin_streak: newStreak
         })

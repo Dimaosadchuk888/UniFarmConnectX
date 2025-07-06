@@ -243,21 +243,26 @@ export class MonitorService {
    * Мониторинг критических API endpoints
    */
   async checkCriticalEndpoints(): Promise<Record<string, string>> {
-    logger.info('[MonitorService] Проверка критических API endpoints');
-
     const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
     const timeout = 5000; // 5 секунд таймаут
     
     const endpoints = {
       boostPackages: '/api/v2/boost/packages',
-      walletTransactions: '/api/v2/wallet/transactions',
-      verifyTon: '/api/v2/ton/verify',
-      farmingDeposits: '/api/v2/farming/deposits',
-      userProfile: '/api/v2/user/profile',
-      wsStatus: '/api/v2/ws/status'
+      walletBalance: '/api/v2/wallet/balance',
+      farmingStatus: '/api/v2/farming/status',
+      userProfile: '/api/v2/users/profile',
+      dailyBonusStatus: '/api/v2/daily-bonus/status',
+      referralStats: '/api/v2/referrals/stats'
     };
 
     const results: Record<string, string> = {};
+
+    logger.info('[MonitorService] Начинаем проверку критических API endpoints', {
+      timestamp: new Date().toISOString(),
+      baseUrl,
+      totalEndpoints: Object.keys(endpoints).length,
+      endpoints: Object.keys(endpoints)
+    });
 
     // Проверяем каждый endpoint параллельно
     await Promise.all(

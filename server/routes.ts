@@ -234,95 +234,9 @@ router.get('/test-routes', (req: Request, res: Response) => {
 // Removed conflicting /users/:id route - it was intercepting /users/profile requests
 // User profile should be accessed via /users/profile with authentication from modules/user/routes.ts
 
-// Endpoint для проверки balance пользователя
-router.get('/wallet/balance', async (req: Request, res: Response) => {
-  const userId = (req as any).user?.id || (req as any).telegramUser?.id || req.query.user_id;
-  if (!userId) {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized - user authentication required'
-    });
-  }
-  
-  try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, balance_uni, balance_ton, uni_farming_active, uni_deposit_amount, uni_farming_balance')
-      .eq('id', parseInt(userId))
-      .single();
-    
-    if (error || !user) {
-      return res.status(404).json({
-        success: false,
-        error: 'Пользователь не найден'
-      });
-    }
+// Removed duplicate wallet/balance endpoint - using module routes instead
 
-    const balanceData = {
-      uniBalance: parseFloat(user.balance_uni?.toString() || "0"),
-      tonBalance: parseFloat(user.balance_ton?.toString() || "0"),
-      uniFarmingActive: user.uni_farming_active || false,
-      uniDepositAmount: parseFloat(user.uni_deposit_amount?.toString() || "0"),
-      uniFarmingBalance: parseFloat(user.uni_farming_balance?.toString() || "0")
-    };
-
-    return res.status(200).json({
-      success: true,
-      data: balanceData,
-      user_id: userId
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: 'Внутренняя ошибка сервера'
-    });
-  }
-});
-
-// Endpoint для проверки farming статуса
-router.get('/farming/status', async (req: Request, res: Response) => {
-  const userId = (req as any).user?.id || (req as any).telegramUser?.id;
-  if (!userId) {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized - user authentication required'
-    });
-  }
-  
-  try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', parseInt(userId))
-      .single();
-    
-    if (error || !user) {
-      return res.status(404).json({
-        success: false,
-        error: 'Пользователь не найден'
-      });
-    }
-
-    const farmingData = {
-      isActive: user.uni_farming_active || false,
-      depositAmount: parseFloat(user.uni_deposit_amount?.toString() || "0"),
-      farmingBalance: parseFloat(user.uni_farming_balance?.toString() || "0"),
-      farmingRate: parseFloat(user.uni_farming_rate?.toString() || "0"),
-      startTime: user.uni_farming_start_timestamp || null
-    };
-
-    return res.status(200).json({
-      success: true,
-      data: farmingData,
-      user_id: userId
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: 'Внутренняя ошибка сервера'
-    });
-  }
-});
+// Removed duplicate farming/status endpoint - using module routes instead
 
 // ===== ПОДКЛЮЧЕНИЕ ВСЕХ МОДУЛЬНЫХ РОУТОВ =====
 

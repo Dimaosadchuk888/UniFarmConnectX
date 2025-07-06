@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 export function useAutoAuth() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [tokenValidated, setTokenValidated] = useState(false);
 
   useEffect(() => {
     const performAutoAuth = async () => {
@@ -11,8 +12,34 @@ export function useAutoAuth() {
       console.log('[useAutoAuth] Checking token:', existingToken ? 'Found' : 'Not found');
       
       if (existingToken) {
-        console.log('[useAutoAuth] Using existing token');
-        return;
+        console.log('[useAutoAuth] Validating existing token...');
+        
+        // Валидируем токен через API
+        try {
+          const response = await fetch('/api/v2/users/profile', {
+            headers: {
+              'Authorization': `Bearer ${existingToken}`
+            }
+          });
+
+          if (response.ok) {
+            console.log('[useAutoAuth] Token is valid');
+            setTokenValidated(true);
+            return;
+          } else if (response.status === 401) {
+            console.log('[useAutoAuth] Token is invalid or expired, removing...');
+            localStorage.removeItem('unifarm_jwt_token');
+            // Продолжаем с авто-авторизацией
+          } else {
+            console.log('[useAutoAuth] Unexpected response:', response.status);
+            setTokenValidated(true); // Assume valid to avoid infinite loops
+            return;
+          }
+        } catch (error) {
+          console.error('[useAutoAuth] Error validating token:', error);
+          setTokenValidated(true); // Assume valid to avoid infinite loops
+          return;
+        }
       }
 
       // Проверяем, находимся ли мы в Preview режиме Replit
@@ -74,5 +101,5 @@ export function useAutoAuth() {
     return () => clearTimeout(timer);
   }, []);
 
-  return { isAuthenticating, authError };
+  return { isAuthenticating, authError, tokenValidated };
 }

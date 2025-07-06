@@ -120,17 +120,19 @@ export class MissionsService {
         return { success: false, message: 'Неизвестная миссия' };
       }
 
-      // Начисляем награду на баланс пользователя
-      const currentUniBalance = parseFloat(user.balance_uni || '0');
-      const newUniBalance = currentUniBalance + rewardAmount;
+      // Начисляем награду на баланс пользователя через централизованный BalanceManager
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const result = await balanceManager.addBalance(
+        user.id,
+        rewardAmount,
+        0,
+        'MissionsService.mission_reward'
+      );
 
-      await supabase
-        .from('users')
-        .update({ 
-          balance_uni: newUniBalance.toString(),
-          uni_balance: newUniBalance.toString()
-        })
-        .eq('id', user.id);
+      if (!result.success) {
+        logger.error('[MissionsService] Ошибка начисления награды:', result.error);
+        return { success: false, message: result.error || 'Ошибка начисления награды' };
+      }
 
       // Добавляем транзакцию о награде
       await supabase

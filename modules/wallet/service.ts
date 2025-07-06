@@ -102,25 +102,28 @@ export class WalletService {
         return false;
       }
 
-      // Обновляем баланс UNI
-      const currentBalance = parseFloat(user.balance_uni || "0");
-      const newBalance = currentBalance + parseFloat(amount);
+      // Обновляем баланс UNI через централизованный BalanceManager
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const result = await balanceManager.addBalance(
+        userId,
+        parseFloat(amount),
+        0,
+        'WalletService.updateUniBalance'
+      );
 
-      const { error: updateError } = await supabase
-        .from(WALLET_TABLES.USERS)
-        .update({ 
-          balance_uni: newBalance.toString(),
-          checkin_last_date: new Date().toISOString() 
-        })
-        .eq('id', userId);
-
-      if (updateError) {
+      if (!result.success) {
         logger.error('[WalletService] Ошибка обновления баланса UNI', { 
           userId, 
-          error: updateError.message 
+          error: result.error 
         });
         return false;
       }
+
+      // Обновляем дату последней активности отдельно
+      await supabase
+        .from(WALLET_TABLES.USERS)
+        .update({ checkin_last_date: new Date().toISOString() })
+        .eq('id', userId);
 
       logger.info('[WalletService] UNI баланс обновлен', { 
         userId, 
@@ -153,25 +156,28 @@ export class WalletService {
         return false;
       }
 
-      // Обновляем баланс TON
-      const currentBalance = parseFloat(user.balance_ton || "0");
-      const newBalance = currentBalance + parseFloat(amount);
+      // Обновляем баланс TON через централизованный BalanceManager
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const result = await balanceManager.addBalance(
+        userId,
+        0,
+        parseFloat(amount),
+        'WalletService.updateTonBalance'
+      );
 
-      const { error: updateError } = await supabase
-        .from(WALLET_TABLES.USERS)
-        .update({ 
-          balance_ton: newBalance.toString(),
-          checkin_last_date: new Date().toISOString()
-        })
-        .eq('id', userId);
-
-      if (updateError) {
+      if (!result.success) {
         logger.error('[WalletService] Ошибка обновления баланса TON', { 
           userId, 
-          error: updateError.message 
+          error: result.error 
         });
         return false;
       }
+
+      // Обновляем дату последней активности отдельно
+      await supabase
+        .from(WALLET_TABLES.USERS)
+        .update({ checkin_last_date: new Date().toISOString() })
+        .eq('id', userId);
 
       logger.info('[WalletService] TON баланс обновлен', { 
         userId, 
@@ -312,20 +318,22 @@ export class WalletService {
         return false;
       }
 
-      // Обновляем баланс
-      const newBalance = currentBalance - withdrawAmount;
-      const updateData: any = {};
-      updateData[balanceField] = newBalance.toString();
+      // Обновляем баланс через централизованный BalanceManager
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const amount_uni = type === 'UNI' ? withdrawAmount : 0;
+      const amount_ton = type === 'TON' ? withdrawAmount : 0;
+      
+      const result = await balanceManager.subtractBalance(
+        userId,
+        amount_uni,
+        amount_ton,
+        'WalletService.withdraw'
+      );
 
-      const { error: updateError } = await supabase
-        .from(WALLET_TABLES.USERS)
-        .update(updateData)
-        .eq('id', userId);
-
-      if (updateError) {
+      if (!result.success) {
         logger.error('[WalletService] Ошибка обновления баланса при выводе', { 
           userId, 
-          error: updateError.message 
+          error: result.error 
         });
         return false;
       }

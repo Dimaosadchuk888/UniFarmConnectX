@@ -272,28 +272,19 @@ export class ReferralService {
             sourceUserId
           });
 
-          // Обновляем баланс получателя награды
-          const balanceField = currency === 'UNI' ? 'balance_uni' : 'balance_ton';
+          // Обновляем баланс получателя награды через централизованный BalanceManager
+          const { balanceManager } = await import('../../core/BalanceManager');
+          const amount_uni = currency === 'UNI' ? parseFloat(commission.amount) : 0;
+          const amount_ton = currency === 'TON' ? parseFloat(commission.amount) : 0;
           
-          const { data: recipient, error: getUserError } = await supabase
-            .from(REFERRAL_TABLES.USERS)
-            .select(balanceField)
-            .eq('id', parseInt(commission.userId))
-            .single();
+          const result = await balanceManager.addBalance(
+            parseInt(commission.userId),
+            amount_uni,
+            amount_ton,
+            'ReferralService.distributeCommissions'
+          );
 
-          if (!getUserError && recipient) {
-            const currentBalance = parseFloat((recipient as any)[balanceField] || '0');
-            const newBalance = currentBalance + parseFloat(commission.amount);
-            
-            const updateData: any = {};
-            updateData[balanceField] = newBalance.toString();
-
-            const { error: updateError } = await supabase
-              .from(REFERRAL_TABLES.USERS)
-              .update(updateData)
-              .eq('id', parseInt(commission.userId));
-
-            if (!updateError) {
+          if (result.success) {
               distributedCount++;
               totalDistributedAmount += parseFloat(commission.amount);
 
