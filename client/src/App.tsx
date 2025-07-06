@@ -97,8 +97,90 @@ function App() {
       // Save guest ID for future sessions
       localStorage.setItem('unifarm_guest_id', guestId);
       
-      // Не устанавливаем fallback userId - требуется авторизация
-      console.log('Требуется авторизация через JWT токен');
+      // Проверяем наличие Telegram WebApp
+      if (window.Telegram?.WebApp?.initData) {
+        console.log('[App] Найден Telegram WebApp, выполняем авторизацию...');
+        
+        try {
+          const response = await fetch('/api/v2/auth/telegram', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Telegram-Init-Data': window.Telegram.WebApp.initData
+            },
+            body: JSON.stringify({
+              initData: window.Telegram.WebApp.initData,
+              ref_by: refCode || undefined
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data?.token) {
+              console.log('[App] Авторизация успешна, сохраняем JWT токен');
+              localStorage.setItem('unifarm_jwt_token', data.data.token);
+              
+              // Сохраняем данные пользователя
+              if (data.data.user) {
+                setState(prev => ({
+                  ...prev,
+                  userId: data.data.user.id,
+                  authError: null
+                }));
+              }
+              
+              // Обновляем страницу для применения авторизации
+              window.location.reload();
+            }
+          } else {
+            console.error('[App] Ошибка авторизации:', response.status, response.statusText);
+          }
+        } catch (authError) {
+          console.error('[App] Ошибка при вызове auth/telegram:', authError);
+        }
+      } else {
+        // Проверяем наличие существующего JWT токена
+        const existingToken = localStorage.getItem('unifarm_jwt_token');
+        if (!existingToken) {
+          console.log('[App] Telegram WebApp не найден и нет JWT токена');
+          
+          // Проверяем, находимся ли мы в Preview режиме Replit
+          const isReplitPreview = window.location.hostname.includes('replit');
+          
+          if (isReplitPreview) {
+            console.log('[App] Preview режим Replit - создаем тестового пользователя');
+            
+            try {
+              // Создаем тестового пользователя для Preview режима
+              const response = await fetch('/api/v2/auth/telegram', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  direct_registration: true,
+                  telegram_id: '88888848',
+                  username: 'preview_user',
+                  first_name: 'Preview'
+                })
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data?.token) {
+                  console.log('[App] Preview авторизация успешна');
+                  localStorage.setItem('unifarm_jwt_token', data.data.token);
+                  window.location.reload();
+                }
+              }
+            } catch (error) {
+              console.error('[App] Ошибка создания preview пользователя:', error);
+            }
+          }
+        } else {
+          console.log('[App] Используем существующий JWT токен');
+        }
+      }
       
       console.log('Demo mode: using guest ID', guestId);
     } catch (error) {
