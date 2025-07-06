@@ -285,56 +285,51 @@ export class ReferralService {
           );
 
           if (result.success) {
-              distributedCount++;
-              totalDistributedAmount += parseFloat(commission.amount);
+            distributedCount++;
+            totalDistributedAmount += parseFloat(commission.amount);
 
-              // Записываем в referral_earnings таблицу
-              await supabase
-                .from('referral_earnings')
-                .insert({
-                  referrer_user_id: parseInt(commission.userId),
-                  referred_user_id: parseInt(sourceUserId),
-                  level: commission.level,
-                  percentage: commission.percentage,
-                  amount: parseFloat(commission.amount),
-                  currency: currency,
-                  source_type: sourceType,
-                  created_at: new Date().toISOString()
-                });
-
-              // Создаем транзакцию REFERRAL_REWARD
-              await supabase
-                .from(REFERRAL_TABLES.TRANSACTIONS)
-                .insert({
-                  user_id: parseInt(commission.userId),
-                  type: 'REFERRAL_REWARD',
-                  amount_uni: currency === 'UNI' ? commission.amount : '0',
-                  amount_ton: currency === 'TON' ? commission.amount : '0', 
-                  status: 'completed',
-                  description: `Referral L${commission.level} from User ${sourceUserId}: ${commission.amount} ${currency} (${commission.percentage}%)`,
-                  source_user_id: parseInt(sourceUserId),
-                  created_at: new Date().toISOString()
-                });
-
-              logger.info('[ReferralService] Реферальная награда начислена', {
-                recipientId: commission.userId,
+            // Записываем в referral_earnings таблицу
+            await supabase
+              .from('referral_earnings')
+              .insert({
+                referrer_user_id: parseInt(commission.userId),
+                referred_user_id: parseInt(sourceUserId),
                 level: commission.level,
-                amount: commission.amount,
-                currency,
-                newBalance: newBalance.toFixed(8),
-                sourceType,
-                sourceUserId
+                percentage: commission.percentage,
+                amount: parseFloat(commission.amount),
+                currency: currency,
+                source_type: sourceType,
+                created_at: new Date().toISOString()
               });
-            } else {
-              logger.error('[ReferralService] Ошибка обновления баланса', {
-                recipientId: commission.userId,
-                error: updateError.message
+
+            // Создаем транзакцию REFERRAL_REWARD
+            await supabase
+              .from(REFERRAL_TABLES.TRANSACTIONS)
+              .insert({
+                user_id: parseInt(commission.userId),
+                type: 'REFERRAL_REWARD',
+                amount_uni: currency === 'UNI' ? commission.amount : '0',
+                amount_ton: currency === 'TON' ? commission.amount : '0', 
+                status: 'completed',
+                description: `Referral L${commission.level} from User ${sourceUserId}: ${commission.amount} ${currency} (${commission.percentage}%)`,
+                source_user_id: parseInt(sourceUserId),
+                created_at: new Date().toISOString()
               });
-            }
-          } else {
-            logger.warn('[ReferralService] Получатель награды не найден', {
+
+            logger.info('[ReferralService] Реферальная награда начислена', {
               recipientId: commission.userId,
-              error: getUserError?.message
+              level: commission.level,
+              amount: commission.amount,
+              currency,
+              newBalance: result.newBalance ? 
+                (currency === 'UNI' ? result.newBalance.balance_uni : result.newBalance.balance_ton) : 0,
+              sourceType,
+              sourceUserId
+            });
+          } else {
+            logger.error('[ReferralService] Ошибка обновления баланса', {
+              recipientId: commission.userId,
+              error: result.error
             });
           }
         } catch (error) {
