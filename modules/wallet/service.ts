@@ -448,4 +448,60 @@ export class WalletService {
       throw error;
     }
   }
+
+  /**
+   * Метод для списания средств с баланса пользователя
+   * Используется при покупке Boost-пакетов через внутренний баланс
+   * @param userId - ID пользователя
+   * @param amount - Сумма для списания
+   * @param currency - Валюта (UNI или TON)
+   * @returns Результат операции
+   */
+  async withdrawFunds(userId: string, amount: number, currency: 'UNI' | 'TON'): Promise<{ success: boolean; error?: string }> {
+    try {
+      logger.info('[WalletService] withdrawFunds вызван', { userId, amount, currency });
+
+      // Проверяем наличие средств
+      const balance = await this.getBalance(userId);
+      const currentBalance = currency === 'TON' ? balance.ton : balance.uni;
+
+      if (currentBalance < amount) {
+        logger.warn('[WalletService] Недостаточно средств для списания', {
+          userId,
+          requested: amount,
+          available: currentBalance,
+          currency
+        });
+        return { 
+          success: false, 
+          error: `Недостаточно средств. Доступно: ${currentBalance} ${currency}` 
+        };
+      }
+
+      // Используем существующий метод processWithdrawal
+      const result = await this.processWithdrawal(userId, amount.toString(), currency);
+
+      if (result) {
+        logger.info('[WalletService] Средства успешно списаны', { userId, amount, currency });
+        return { success: true };
+      } else {
+        return { 
+          success: false, 
+          error: 'Ошибка при списании средств' 
+        };
+      }
+
+    } catch (error) {
+      logger.error('[WalletService] Ошибка в withdrawFunds', {
+        userId,
+        amount,
+        currency,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка' 
+      };
+    }
+  }
 }

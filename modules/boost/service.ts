@@ -607,8 +607,30 @@ export class BoostService {
         boostId
       });
 
-      // Ищем pending запись покупки
       const { supabase } = await import('../../core/supabase');
+
+      // Проверяем, не был ли этот tx_hash уже использован
+      const { data: existingConfirmed, error: duplicateError } = await supabase
+        .from('boost_purchases')
+        .select('*')
+        .eq('tx_hash', txHash)
+        .eq('status', 'confirmed')
+        .single();
+
+      if (existingConfirmed) {
+        logger.warn('[BoostService] Попытка повторного использования tx_hash', {
+          txHash,
+          existingPurchaseId: existingConfirmed.id,
+          existingUserId: existingConfirmed.user_id
+        });
+        return {
+          success: false,
+          status: 'error',
+          message: 'Эта транзакция уже была использована для активации Boost'
+        };
+      }
+
+      // Ищем pending запись покупки
       const { data: purchase, error: purchaseError } = await supabase
         .from('boost_purchases')
         .select('*')

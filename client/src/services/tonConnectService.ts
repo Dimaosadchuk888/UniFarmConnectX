@@ -176,16 +176,7 @@ export async function sendTonTransaction(
     const userId = parts.length > 1 ? parts[1] : '1';
     const boostId = parts.length > 2 ? parts[2] : '1';
     
-    // ПО ТЗ: Добавляем максимально заметный лог для отладки
-    console.log("===============================================================");
-    console.log("🔴 ВЫЗОВ sendTonTransaction ПО НОВОМУ ТЗ");
-    console.log("🔴 СУММА:", amount, "TON");
-    console.log("🔴 КОММЕНТАРИЙ:", comment);
-    console.log("🔴 tonConnectUI:", tonConnectUI ? "ПРИСУТСТВУЕТ" : "ОТСУТСТВУЕТ");
-    console.log("🔴 ПОДКЛЮЧЕН:", tonConnectUI?.connected ? "ДА" : "НЕТ");
-    console.log("🔴 АДРЕС КОШЕЛЬКА:", tonConnectUI?.account?.address || "НЕТ АДРЕСА");
-    console.log("🔴 ФУНКЦИЯ sendTransaction:", typeof tonConnectUI?.sendTransaction === 'function' ? "ДОСТУПНА" : "НЕДОСТУПНА");
-    console.log("===============================================================");
+    // Отладка удалена согласно ТЗ для production
     
     // Проверяем только наличие tonConnectUI и состояние подключения
     if (!tonConnectUI) {
@@ -215,7 +206,6 @@ export async function sendTonTransaction(
     
     // Конвертируем TON в наноTON, округляем до ближайшего целого
     const nanoTonAmount = Math.round(tonAmount * 1000000000).toString();
-    console.log(`[TON] Конвертация суммы: ${amount} TON = ${nanoTonAmount} nanoTON`);
     
     // По ТЗ: генерируем rawPayload в формате UniFarmBoost:userId:boostId
     const rawPayload = `UniFarmBoost:${userId}:${boostId}`;

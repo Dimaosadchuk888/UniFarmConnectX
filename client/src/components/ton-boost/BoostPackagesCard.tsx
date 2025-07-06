@@ -74,20 +74,16 @@ const BoostPackagesCard: React.FC = () => {
             rateTon: (pkg.daily_rate * 100), // Конвертируем в проценты как число
             rateUni: 0 // API не возвращает UNI rate, ставим 0
           }));
-          console.log("[DEBUG TON Boost] Преобразованные пакеты:", mappedPackages);
+
           return mappedPackages;
         }
-        console.log("[DEBUG TON Boost] Ответ API не содержит packages, возвращаем пустой массив");
+
         return [];
       } catch (error: any) {
-        console.error("[DEBUG TON Boost] Ошибка загрузки пакетов:", error);
-        console.error("[DEBUG TON Boost] Тип ошибки:", error?.constructor?.name);
-        console.error("[DEBUG TON Boost] Статус ошибки:", error?.status);
-        console.error("[DEBUG TON Boost] Текст ошибки:", error?.message);
-        
+
         // Проверяем, это 401 ошибка или что-то другое
         if (error?.status === 401) {
-          console.log("[DEBUG TON Boost] Ошибка 401 - пользователь не авторизован");
+          // Пользователь не авторизован
         }
         
         toast({
@@ -102,18 +98,10 @@ const BoostPackagesCard: React.FC = () => {
 
   const boostPackages = data || [];
   
-  console.log("[DEBUG TON Boost] Компонент BoostPackagesCard рендерится");
-  console.log("[DEBUG TON Boost] boostPackages:", boostPackages);
-  console.log("[DEBUG TON Boost] isLoadingPackages:", isLoadingPackages);
+
 
   // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету
   const handleBoostClick = (boostId: number) => {
-    console.log('[DEBUG] Нажата кнопка покупки TON Boost:', {
-      boostId,
-      tonConnectUI: !!tonConnectUI,
-      tonConnectUIWallet: tonConnectUI?.wallet,
-      isConnected: isTonWalletConnected(tonConnectUI)
-    });
 
     // Сохраняем ID буста и ВСЕГДА показываем диалог выбора способа оплаты
     setSelectedBoostId(boostId);
@@ -125,13 +113,6 @@ const BoostPackagesCard: React.FC = () => {
 
   // Обработчик выбора способа оплаты
   const handleSelectPaymentMethod = async (boostId: number, paymentMethod: 'internal_balance' | 'external_wallet') => {
-    console.log('[DEBUG] Выбран способ оплаты:', {
-      boostId,
-      paymentMethod,
-      tonConnectAvailable: !!tonConnectUI,
-      tonConnectUIWallet: tonConnectUI?.wallet,
-      connected: isTonWalletConnected(tonConnectUI)
-    });
     
     // Закрываем диалог выбора метода оплаты
     setPaymentMethodDialogOpen(false);
