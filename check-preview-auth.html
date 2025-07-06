@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Preview Auth Check</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a1a; color: #fff; }
+        .section { margin: 20px 0; padding: 15px; background: #2a2a2a; border-radius: 5px; }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>UniFarm Preview Auth Diagnostic</h1>
+    
+    <div class="section">
+        <h2>1. Environment Check</h2>
+        <p>Hostname: <span id="hostname" class="info"></span></p>
+        <p>Is Replit: <span id="isReplit" class="info"></span></p>
+        <p>Telegram WebApp: <span id="telegramWebApp" class="info"></span></p>
+    </div>
+    
+    <div class="section">
+        <h2>2. JWT Token Status</h2>
+        <p>Token exists: <span id="tokenExists" class="info"></span></p>
+        <p>Token value: <span id="tokenValue" class="info" style="word-break: break-all;"></span></p>
+        <p>Decoded data: <pre id="decodedToken" class="info"></pre></p>
+    </div>
+    
+    <div class="section">
+        <h2>3. API Test</h2>
+        <button onclick="testAuth()">Test Auth Endpoint</button>
+        <button onclick="testBoostPackages()">Test Boost Packages</button>
+        <button onclick="createPreviewUser()">Create Preview User</button>
+        <div id="apiResults"></div>
+    </div>
+
+    <script>
+        // Environment check
+        document.getElementById('hostname').textContent = window.location.hostname;
+        document.getElementById('isReplit').textContent = window.location.hostname.includes('replit') ? '✅ YES' : '❌ NO';
+        document.getElementById('telegramWebApp').textContent = window.Telegram?.WebApp ? '✅ Available' : '❌ Not available';
+        
+        // JWT check
+        const token = localStorage.getItem('unifarm_jwt_token');
+        document.getElementById('tokenExists').textContent = token ? '✅ YES' : '❌ NO';
+        document.getElementById('tokenValue').textContent = token || 'No token';
+        
+        if (token) {
+            try {
+                const parts = token.split('.');
+                const payload = JSON.parse(atob(parts[1]));
+                document.getElementById('decodedToken').textContent = JSON.stringify(payload, null, 2);
+            } catch (e) {
+                document.getElementById('decodedToken').textContent = 'Invalid token format';
+            }
+        }
+        
+        async function testAuth() {
+            const results = document.getElementById('apiResults');
+            results.innerHTML = '<p>Testing /api/v2/auth/telegram...</p>';
+            
+            try {
+                const response = await fetch('/api/v2/auth/telegram', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: true })
+                });
+                
+                const data = await response.json();
+                results.innerHTML = `<pre class="${response.ok ? 'success' : 'error'}">${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                results.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testBoostPackages() {
+            const results = document.getElementById('apiResults');
+            const token = localStorage.getItem('unifarm_jwt_token');
+            
+            results.innerHTML = '<p>Testing /api/v2/boost/packages...</p>';
+            
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+                
+                const response = await fetch('/api/v2/boost/packages', { headers });
+                const data = await response.json();
+                
+                results.innerHTML = `<pre class="${response.ok ? 'success' : 'error'}">Status: ${response.status}
+${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                results.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function createPreviewUser() {
+            const results = document.getElementById('apiResults');
+            results.innerHTML = '<p>Creating preview user...</p>';
+            
+            try {
+                const response = await fetch('/api/v2/auth/telegram', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        direct_registration: true,
+                        telegram_id: '88888848',
+                        username: 'preview_user',
+                        first_name: 'Preview'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success && data.data?.token) {
+                    localStorage.setItem('unifarm_jwt_token', data.data.token);
+                    results.innerHTML = `<p class="success">✅ Preview user created! Token saved. Reloading...</p>`;
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    results.innerHTML = `<pre class="error">${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
