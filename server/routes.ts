@@ -305,4 +305,8 @@ router.get('/debug/profile-test', (req: Request, res: Response) => {
   });
 });
 
+// Import debug routes
+import debugRoutes from '../modules/debug/debugRoutes';
+router.use('/debug', debugRoutes);
+
 export default router;
