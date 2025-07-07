@@ -85,19 +85,13 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
             console.log('[TelegramAuth] Failed to load user from database:', dbError);
           }
           
-          // Fallback: используем только данные из JWT
-          const user = {
-            id: userId,
-            telegram_id: telegramId,
-            username: decoded.username || 'user',
-            first_name: decoded.first_name || 'User',
-            ref_code: decoded.ref_code || decoded.refCode
-          };
-          
-          (req as any).telegramUser = user;
-          (req as any).user = user;
-          (req as any).telegram = { user, validated: true };
-          next();
+          // Если пользователь не найден в базе - JWT невалиден
+          console.log('[TelegramAuth] User not found in database for userId:', userId);
+          res.status(401).json({ 
+            success: false, 
+            error: 'Invalid JWT token - user not found',
+            need_new_token: true 
+          });
           return;
         } catch (jwtError: any) {
           console.log('[TelegramAuth] JWT verification failed:', jwtError.message);

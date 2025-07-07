@@ -30,6 +30,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
 import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { createServer } from 'http';
 // @ts-ignore
@@ -389,6 +390,33 @@ async function startServer() {
     // Запускаем проверку через 15 секунд после старта сервера
     setTimeout(initPollingFallback, 15000);
 
+    // Блокировка доступа к конфиденциальным файлам (КРИТИЧЕСКАЯ ЗАЩИТА)
+    app.use('/.env', (_, res) => res.status(403).send('Forbidden'));
+    app.use('/.replit', (_, res) => res.status(403).send('Forbidden'));
+    app.use('/config', (_, res) => res.status(403).send('Forbidden'));
+    app.use('/.git', (_, res) => res.status(403).send('Forbidden'));
+    app.use('/node_modules', (_, res) => res.status(403).send('Forbidden'));
+
+    // Rate limiting для защиты от DDoS
+    const limiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 минут
+      max: 100, // максимум 100 запросов с одного IP
+      message: 'Too many requests from this IP, please try again after 15 minutes',
+      standardHeaders: true, // Возвращает `RateLimit-*` заголовки
+      legacyHeaders: false, // Отключает `X-RateLimit-*` заголовки
+      handler: (req, res) => {
+        logger.warn(`[RateLimit] IP ${req.ip} превысил лимит запросов`);
+        res.status(429).json({
+          success: false,
+          error: 'Too many requests',
+          message: 'Слишком много запросов с вашего IP. Пожалуйста, подождите 15 минут.'
+        });
+      }
+    });
+    
+    // Применяем rate limiting ко всем маршрутам
+    app.use(limiter);
+
     // Middleware
     app.use(cors({
       origin: config.security.cors.origin,
@@ -739,15 +767,21 @@ async function startServer() {
       }
     });
     
-    // Подключаем Vite интеграцию с исправленной конфигурацией
-    await setupViteIntegration(app);
+    // Проверяем существование dist папки
+    const fs = await import('fs');
+    const distPath = path.resolve(process.cwd(), 'dist', 'public');
+    const distExists = fs.existsSync(distPath);
     
-    // В режиме разработки Vite обрабатывает все файлы
-    if (process.env.NODE_ENV === 'production') {
-      // Serve static files from dist/public только в production
-      const staticPath = path.resolve(process.cwd(), 'dist', 'public');
-      logger.info(`[Static Files] Serving from: ${staticPath}`);
-      app.use(express.static(staticPath, {
+    // Подключаем Vite интеграцию всегда если нет собранных файлов
+    if (!distExists || process.env.NODE_ENV !== 'production') {
+      logger.info(`[Vite] Включаем Vite интеграцию (dist не найден или dev режим)`);
+      await setupViteIntegration(app);
+    }
+    
+    // В режиме production и если есть dist - используем статические файлы
+    if (process.env.NODE_ENV === 'production' && distExists) {
+      logger.info(`[Static Files] Serving from: ${distPath}`);
+      app.use(express.static(distPath, {
         maxAge: '0',
         etag: false,
         lastModified: false,
@@ -757,6 +791,8 @@ async function startServer() {
           res.setHeader('Expires', '0');
         }
       }));
+    } else if (process.env.NODE_ENV === 'production') {
+      logger.warn(`[Static Files] Папка dist не найдена! Используем Vite в production режиме.`);
     }
     
     // SPA fallback - serve index.html for non-API routes
