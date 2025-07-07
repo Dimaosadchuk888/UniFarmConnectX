@@ -1,3 +1,3 @@
 onBoot:
   name: UniFarm
-  run: npm run dev
+  run: npm start
