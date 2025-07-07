@@ -168,7 +168,7 @@ export class BalanceManager {
 
       const { data: user, error } = await supabase
         .from('users')
-        .select('id, balance_uni, balance_ton, last_active')
+        .select('id, balance_uni, balance_ton')
         .eq('id', user_id)
         .single();
 
@@ -184,7 +184,7 @@ export class BalanceManager {
         user_id: user.id,
         balance_uni: parseFloat(user.balance_uni || '0'),
         balance_ton: parseFloat(user.balance_ton || '0'),
-        last_updated: user.last_active || new Date().toISOString()
+        last_updated: new Date().toISOString()
       };
 
       logger.info('[BalanceManager] Баланс получен:', balance);

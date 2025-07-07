@@ -352,7 +352,6 @@ export class AdminBotController {
         `UNI: ${parseFloat(user.balance_uni || '0').toFixed(2)}\n` +
         `TON: ${parseFloat(user.balance_ton || '0').toFixed(2)}\n\n` +
         `📅 Регистрация: ${new Date(user.created_at).toLocaleDateString()}\n` +
-        `🕐 Последняя активность: ${user.last_active ? new Date(user.last_active).toLocaleString() : 'Нет данных'}\n` +
         `${user.is_active ? '✅ Активен' : '❌ Заблокирован'}\n` +
         `${user.is_admin ? '👑 Администратор' : ''}`,
         { reply_markup: keyboard }

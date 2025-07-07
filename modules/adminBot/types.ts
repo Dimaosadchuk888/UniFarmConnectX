@@ -39,7 +39,6 @@ export interface AdminUser {
   is_active: boolean;
   is_admin: boolean;
   created_at: string;
-  last_active?: string;
 }
 
 export interface InlineKeyboardButton {
