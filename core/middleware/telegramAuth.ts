@@ -50,7 +50,7 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
           
           // Подгружаем полные данные пользователя из базы данных
           try {
-            const { SupabaseUserRepository } = require('../../modules/user/service');
+            const { SupabaseUserRepository } = await import('../../modules/user/service.js');
             const userRepository = new SupabaseUserRepository();
             
             // Ищем пользователя по userId из JWT токена (primary key)
