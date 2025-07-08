@@ -259,35 +259,29 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // Показываем уведомление об успешном создании депозита
         success('Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!');
 
-        // Обновляем контекст пользователя для обновления баланса без перезагрузки
-        if (userData && response?.data?.newBalance) {
-          console.log('[INFO] Обновляем баланс пользователя:', {
-            oldBalance: userData.balance_uni,
-            newBalance: response.data.newBalance
+        // Логируем успешный депозит
+        if (response?.data?.newBalance) {
+          console.log('[INFO] Депозит успешно обработан:', {
+            amount: response.data.depositAmount || 'N/A',
+            newBalance: response.data.newBalance,
+            transactionId: response.data.transactionId || 'N/A'
           });
-
-          // Обновляем userData напрямую для мгновенного эффекта
-          userData.balance_uni = response.data.newBalance;
         }
 
-        // Обновляем данные с учетом динамического ID пользователя
-        // Используем новую функцию вместо прямого вызова invalidateQueries
-        // Обновляем сразу все основные эндпоинты
-        invalidateQueryWithUserId('/api/v2/uni-farming/status', [
-          '/api/v2/wallet/balance',
-          '/api/v2/transactions',
-          '/api/v2/users/profile'  // Обновляем профиль пользователя для обновления баланса
-        ]);
-
-        // Принудительно обновляем профиль пользователя и баланс
-        queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });
+        // Обновляем данные в правильном порядке
+        console.log('[INFO] Начинаем обновление данных после депозита');
         
-        // Обновляем баланс в UserContext
+        // 1. Обновляем баланс в UserContext (приоритет)
         if (refreshBalance) {
           console.log('[INFO] Обновляем баланс через UserContext');
           refreshBalance(true); // Принудительное обновление без кэша
         }
+        
+        // 2. Обновляем кэш React Query
+        queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile', userId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance', userId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/v2/uni-farming/status', userId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions', userId] });
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess depositMutation:', error);
         // Даже в случае ошибки отображаем успех
@@ -385,17 +379,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           return;
         }
 
-        // Проверка минимальной суммы депозита
-        if (amount.isLessThan(MIN_DEPOSIT)) {
-          setError(`Минимальная сумма депозита: ${MIN_DEPOSIT} UNI`);
-          setIsSubmitting(false);
-          return;
-        }
-
-        // Получаем и проверяем баланс
+        // Получаем и проверяем баланс пользователя
         let balance: BigNumber;
         try {
-          // Безопасное получение баланса
           const balanceStr = userData?.balance_uni;
           if (balanceStr === undefined || balanceStr === null) {
             console.error('Не удалось получить баланс пользователя');
@@ -404,10 +390,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             return;
           }
 
-          // Создаем BigNumber для баланса
           balance = new BigNumber(balanceStr);
-
-          // Проверка на валидный баланс
           if (balance.isNaN() || !balance.isFinite()) {
             console.error('Получен некорректный баланс:', balanceStr);
             setError('Ошибка получения баланса');
@@ -415,7 +398,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             return;
           }
         } catch (balanceError) {
-          console.error('Ошибка при получении или обработке баланса:', balanceError);
+          console.error('Ошибка при обработке баланса:', balanceError);
           setError('Ошибка проверки баланса');
           setIsSubmitting(false);
           return;
@@ -423,7 +406,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
 
         // Проверка достаточности средств
         if (amount.isGreaterThan(balance)) {
-          setError('Недостаточно средств на балансе');
+          setError(`Недостаточно средств. Доступно: ${balance.toFixed(3)} UNI`);
           setIsSubmitting(false);
           return;
         }
