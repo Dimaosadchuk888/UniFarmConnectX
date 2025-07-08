@@ -118,7 +118,10 @@ export const createRateLimitWithSkip = (config: RateLimitConfig, skipCondition?:
                           req.path.includes('/boost/farming-status') ||
                           req.path.includes('/daily-bonus/claim') ||
                           req.path.includes('/farming/deposit') ||
-                          req.path.includes('/boost/purchase');
+                          req.path.includes('/boost/purchase') ||
+                          req.path.includes('/missions/list') ||
+                          req.path.includes('/missions/user') ||
+                          req.path.includes('/users/profile');
     
     // Проверяем наличие Authorization header с Bearer токеном
     const authHeader = req.headers.authorization;
@@ -147,7 +150,7 @@ export const standardRateLimit = createRateLimit({
 // Строгий rate limiter только для публичных endpoints (auth, referral, debug)
 export const strictRateLimit = createRateLimit({
   windowMs: 60 * 1000, // 1 минута
-  max: 10, // 10 запросов для публичных endpoints
+  max: 50, // Увеличено с 10 до 50 запросов
   message: 'Превышен лимит для публичных операций. Попробуйте через минуту'
 });
 

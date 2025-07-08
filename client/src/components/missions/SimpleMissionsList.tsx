@@ -41,7 +41,7 @@ const SimpleMissionsList: React.FC = () => {
     queryKey: ['/api/v2/missions/list', userId],
     queryFn: () => correctApiRequest(`/api/v2/missions/list?user_id=${userId}`),
     enabled: hasAuth, // Включаем запрос только при наличии авторизации
-    refetchInterval: 30000, // Увеличено с 10 до 30 секунд
+    refetchInterval: hasAuth ? 30000 : false, // Отключаем автообновление без авторизации
     retry: (failureCount, error: any) => {
       // Не повторять при 429 ошибках
       if (error?.status === 429) {
@@ -56,7 +56,7 @@ const SimpleMissionsList: React.FC = () => {
     queryKey: ['/api/v2/missions/user', userId],
     queryFn: () => correctApiRequest(`/api/v2/missions/user/${userId}`),
     enabled: hasAuth, // Включаем запрос только при наличии авторизации
-    refetchInterval: 30000, // Увеличено с 10 до 30 секунд
+    refetchInterval: hasAuth ? 30000 : false, // Отключаем автообновление без авторизации
     retry: (failureCount, error: any) => {
       // Не повторять при 429 ошибках
       if (error?.status === 429) {
