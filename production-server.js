@@ -5,7 +5,7 @@
  * Bypasses workflow dependencies and runs server directly
  */
 
-const { spawn } = require('child_process');
+import { spawn } from 'child_process';
 const path = require('path');
 
 console.log('🚀 Starting UniFarm Production Server...');
