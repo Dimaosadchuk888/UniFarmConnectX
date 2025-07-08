@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { AuthController } from './controller';
 import { validateBody } from '../../core/middleware/validate';
+import { strictRateLimit, liberalRateLimit } from '../../core/middleware/rateLimiting';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -45,22 +46,22 @@ const tokenValidationSchema = z.object({
   token: z.string().min(1, 'Token is required')
 });
 
-// POST /api/auth/telegram - Аутентификация через Telegram
-router.post('/telegram', validateBody(telegramAuthSchema), authController.authenticateTelegram.bind(authController));
+// POST /api/auth/telegram - Аутентификация через Telegram (строгий лимит для публичного endpoint)
+router.post('/telegram', strictRateLimit, validateBody(telegramAuthSchema), authController.authenticateTelegram.bind(authController));
 
-// POST /api/auth/register/telegram - Регистрация через Telegram (правильный путь)
-router.post('/register/telegram', validateBody(telegramRegistrationSchema), authController.registerTelegram.bind(authController));
+// POST /api/auth/register/telegram - Регистрация через Telegram (строгий лимит для публичного endpoint)
+router.post('/register/telegram', strictRateLimit, validateBody(telegramRegistrationSchema), authController.registerTelegram.bind(authController));
 
-// GET /api/auth/check - Проверка токена и получение информации о пользователе
-router.get('/check', authController.checkToken.bind(authController));
+// GET /api/auth/check - Проверка токена и получение информации о пользователе (либеральный лимит для проверок)
+router.get('/check', liberalRateLimit, authController.checkToken.bind(authController));
 
-// POST /api/auth/validate - Проверка валидности токена
-router.post('/validate', validateBody(tokenValidationSchema), authController.validateToken.bind(authController));
+// POST /api/auth/validate - Проверка валидности токена (либеральный лимит для проверок)
+router.post('/validate', liberalRateLimit, validateBody(tokenValidationSchema), authController.validateToken.bind(authController));
 
-// POST /api/auth/logout - Выход из системы
-router.post('/logout', authController.logout.bind(authController));
+// POST /api/auth/logout - Выход из системы (либеральный лимит)
+router.post('/logout', liberalRateLimit, authController.logout.bind(authController));
 
-// GET /api/auth/session - Получение информации о текущей сессии
-router.get('/session', authController.getSessionInfo.bind(authController));
+// GET /api/auth/session - Получение информации о текущей сессии (либеральный лимит)
+router.get('/session', liberalRateLimit, authController.getSessionInfo.bind(authController));
 
 export default router;

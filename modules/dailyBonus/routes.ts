@@ -1,6 +1,7 @@
 import express, { Request, Response, Router } from 'express';
 import { DailyBonusController } from './controller';
 import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
+import { internalRateLimit, liberalRateLimit } from '../../core/middleware/rateLimiting';
 import { supabase } from '../../core/supabase';
 
 const router: Router = express.Router();
@@ -73,10 +74,10 @@ router.get('/status', async (req: Request, res: Response) => {
 });
 
 // GET /api/daily-bonus/status-auth - Версия с авторизацией
-router.get('/status-auth', requireTelegramAuth, dailyBonusController.getDailyBonusInfo.bind(dailyBonusController));
+router.get('/status-auth', requireTelegramAuth, liberalRateLimit, dailyBonusController.getDailyBonusInfo.bind(dailyBonusController));
 
 // GET /api/daily-bonus/demo - Демо endpoint для frontend тестирования
-router.get('/demo', (req: Request, res: Response) => {
+router.get('/demo', liberalRateLimit, (req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
@@ -88,18 +89,18 @@ router.get('/demo', (req: Request, res: Response) => {
 });
 
 // GET /api/daily-bonus/:userId - Получить информацию о ежедневном бонусе пользователя
-router.get('/:userId', requireTelegramAuth, dailyBonusController.getDailyBonusInfo.bind(dailyBonusController));
+router.get('/:userId', requireTelegramAuth, liberalRateLimit, dailyBonusController.getDailyBonusInfo.bind(dailyBonusController));
 
-// POST /api/daily-bonus/claim - Забрать ежедневный бонус
-router.post('/claim', requireTelegramAuth, dailyBonusController.claimDailyBonus.bind(dailyBonusController));
+// POST /api/daily-bonus/claim - Забрать ежедневный бонус (используем internalRateLimit для частых операций)
+router.post('/claim', requireTelegramAuth, internalRateLimit, dailyBonusController.claimDailyBonus.bind(dailyBonusController));
 
 // GET /api/daily-bonus/:userId/calendar - Получить календарь ежедневных бонусов
-router.get('/:userId/calendar', requireTelegramAuth, dailyBonusController.getDailyBonusCalendar.bind(dailyBonusController));
+router.get('/:userId/calendar', requireTelegramAuth, liberalRateLimit, dailyBonusController.getDailyBonusCalendar.bind(dailyBonusController));
 
 // GET /api/daily-bonus/:userId/stats - Получить статистику ежедневных бонусов
-router.get('/:userId/stats', requireTelegramAuth, dailyBonusController.getDailyBonusStats.bind(dailyBonusController));
+router.get('/:userId/stats', requireTelegramAuth, liberalRateLimit, dailyBonusController.getDailyBonusStats.bind(dailyBonusController));
 
 // GET /api/daily-bonus/:userId/check - Проверить доступность ежедневного бонуса
-router.get('/:userId/check', requireTelegramAuth, dailyBonusController.checkDailyBonusAvailability.bind(dailyBonusController));
+router.get('/:userId/check', requireTelegramAuth, liberalRateLimit, dailyBonusController.checkDailyBonusAvailability.bind(dailyBonusController));
 
 export default router;

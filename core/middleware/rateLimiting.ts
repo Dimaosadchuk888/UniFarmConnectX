@@ -97,28 +97,78 @@ export const createRateLimit = (config: RateLimitConfig) => {
   return new RateLimiter(config).middleware;
 };
 
-// Стандартный rate limiter - 100 запросов в 15 минут
+// Создаем функцию для пропуска rate limiting для внутренних операций
+export const createRateLimitWithSkip = (config: RateLimitConfig, skipCondition?: (req: Request) => boolean) => {
+  const limiter = new RateLimiter(config);
+  
+  return (req: Request, res: Response, next: NextFunction) => {
+    // Пропускаем rate limiting для внутренних операций
+    if (skipCondition && skipCondition(req)) {
+      logger.info('[RateLimit] Пропуск лимита по условию skipCondition', {
+        path: req.path,
+        method: req.method
+      });
+      return next();
+    }
+    
+    // Пропускаем rate limiting для авторизованных пользователей с JWT для определенных endpoints
+    const isInternalAPI = req.path.includes('/transactions') || 
+                          req.path.includes('/farming/status') || 
+                          req.path.includes('/wallet/balance') ||
+                          req.path.includes('/boost/farming-status') ||
+                          req.path.includes('/daily-bonus/claim') ||
+                          req.path.includes('/farming/deposit') ||
+                          req.path.includes('/boost/purchase');
+    
+    // Проверяем наличие Authorization header с Bearer токеном
+    const authHeader = req.headers.authorization;
+    const hasValidAuth = authHeader && authHeader.startsWith('Bearer ');
+    
+    if (isInternalAPI && hasValidAuth) {
+      logger.info('[RateLimit] Пропуск лимита для внутренних API с Bearer авторизацией', {
+        path: req.path,
+        method: req.method,
+        hasAuth: !!hasValidAuth
+      });
+      return next();
+    }
+    
+    return limiter.middleware(req, res, next);
+  };
+};
+
+// Стандартный rate limiter - увеличен лимит для UniFarm операций
 export const standardRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000, // 15 минут
-  max: 100, // 100 запросов
+  max: 500, // Увеличено с 100 до 500 запросов
   message: 'Слишком много запросов. Попробуйте через 15 минут'
 });
 
-// Строгий rate limiter для критических операций - 10 запросов в 1 минуту
+// Строгий rate limiter только для публичных endpoints (auth, referral, debug)
 export const strictRateLimit = createRateLimit({
   windowMs: 60 * 1000, // 1 минута
-  max: 10, // 10 запросов
-  message: 'Превышен лимит для финансовых операций. Попробуйте через минуту'
+  max: 10, // 10 запросов для публичных endpoints
+  message: 'Превышен лимит для публичных операций. Попробуйте через минуту'
 });
 
-// Либеральный rate limiter для чтения данных - 200 запросов в 15 минут
+// Либеральный rate limiter для чтения данных - увеличен лимит
 export const liberalRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000, // 15 минут
-  max: 200, // 200 запросов
+  max: 1000, // Увеличено с 200 до 1000 запросов
   message: 'Слишком много запросов на чтение. Попробуйте через 15 минут'
 });
 
-// Admin rate limiter - 50 запросов в 5 минут
+// Специальный rate limiter для внутренних API (транзакции, фарминг, баланс)
+export const internalRateLimit = createRateLimitWithSkip({
+  windowMs: 5 * 60 * 1000, // 5 минут
+  max: 2000, // Очень высокий лимит для внутренних операций
+  message: 'Слишком много внутренних запросов. Попробуйте через 5 минут'
+}, (req) => {
+  // Полностью пропускаем rate limiting для авторизованных пользователей
+  return !!(req as any).telegramUser && (req as any).telegramUser.id;
+});
+
+// Admin rate limiter - без изменений
 export const adminRateLimit = createRateLimit({
   windowMs: 5 * 60 * 1000, // 5 минут
   max: 50, // 50 запросов
