@@ -41,4 +41,58 @@ export class AirdropController extends BaseController {
       });
     }, 'регистрации в airdrop');
   }
+
+  async getActiveAirdrops(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+
+      const result = await airdropService.getActiveAirdrops();
+
+      this.sendSuccess(res, result);
+    }, 'получения активных airdrop кампаний');
+  }
+
+  async claimAirdrop(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+
+      const { airdrop_id } = req.body;
+      
+      if (!airdrop_id) {
+        return this.sendError(res, 'Требуется airdrop_id', 400);
+      }
+
+      const result = await airdropService.claimAirdrop(telegram.user.id, airdrop_id);
+
+      if (!result.success) {
+        return this.sendError(res, result.message, result.code || 400);
+      }
+
+      this.sendSuccess(res, result);
+    }, 'получения airdrop');
+  }
+
+  async getAirdropHistory(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+
+      const result = await airdropService.getAirdropHistory(telegram.user.id);
+
+      this.sendSuccess(res, result);
+    }, 'получения истории airdrop');
+  }
+
+  async checkEligibility(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+
+      const result = await airdropService.checkEligibility(telegram.user.id);
+
+      this.sendSuccess(res, result);
+    }, 'проверки права на airdrop');
+  }
 }

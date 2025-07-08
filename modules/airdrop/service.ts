@@ -72,4 +72,136 @@ export class AirdropService {
       };
     }
   }
+
+  async getActiveAirdrops(): Promise<any> {
+    try {
+      logger.info('[AirdropService] Получение активных airdrop кампаний');
+
+      // Возвращаем demo данные для активных airdrop кампаний
+      return {
+        active_airdrops: [
+          {
+            id: 1,
+            name: 'UNI Token Launch Airdrop',
+            description: 'Получите UNI токены за активность в системе',
+            reward_amount: 50,
+            reward_currency: 'UNI',
+            end_date: '2025-08-08',
+            status: 'active'
+          },
+          {
+            id: 2,
+            name: 'TON Boost Airdrop',
+            description: 'Бонусные TON токены для активных пользователей',
+            reward_amount: 1,
+            reward_currency: 'TON',
+            end_date: '2025-07-31',
+            status: 'active'
+          }
+        ],
+        total: 2
+      };
+    } catch (error) {
+      logger.error('[AirdropService] Ошибка получения активных airdrop', { error });
+      return { active_airdrops: [], total: 0 };
+    }
+  }
+
+  async claimAirdrop(telegramId: number, airdropId: number): Promise<AirdropServiceResponse> {
+    try {
+      logger.info('[AirdropService] Получение airdrop', { telegramId, airdropId });
+
+      // Проверяем есть ли уже запись о получении
+      const { data: existingClaim } = await supabase
+        .from('airdrop_claims')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .eq('airdrop_id', airdropId)
+        .single();
+
+      if (existingClaim) {
+        return {
+          success: false,
+          message: 'Airdrop уже получен',
+          code: 409
+        };
+      }
+
+      // Создаем запись о получении airdrop
+      await supabase
+        .from('airdrop_claims')
+        .insert([{
+          telegram_id: telegramId,
+          airdrop_id: airdropId,
+          claimed_at: new Date().toISOString()
+        }]);
+
+      return {
+        success: true,
+        message: 'Airdrop успешно получен',
+        code: 200
+      };
+    } catch (error) {
+      logger.error('[AirdropService] Ошибка получения airdrop', { telegramId, airdropId, error });
+      return {
+        success: false,
+        message: 'Ошибка при получении airdrop',
+        code: 500
+      };
+    }
+  }
+
+  async getAirdropHistory(telegramId: number): Promise<any> {
+    try {
+      logger.info('[AirdropService] Получение истории airdrop', { telegramId });
+
+      const { data: history } = await supabase
+        .from('airdrop_claims')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .order('claimed_at', { ascending: false });
+
+      return {
+        history: history || [],
+        total: history?.length || 0
+      };
+    } catch (error) {
+      logger.error('[AirdropService] Ошибка получения истории airdrop', { telegramId, error });
+      return { history: [], total: 0 };
+    }
+  }
+
+  async checkEligibility(telegramId: number): Promise<any> {
+    try {
+      logger.info('[AirdropService] Проверка права на airdrop', { telegramId });
+
+      const user = await this.userRepository.getUserByTelegramId(telegramId);
+      
+      if (!user) {
+        return {
+          eligible: false,
+          reason: 'Пользователь не найден'
+        };
+      }
+
+      // Проверка критериев для airdrop
+      const hasMinBalance = (user.balance_uni || 0) >= 10;
+      const hasReferrals = user.ref_code && user.ref_code.length > 0;
+
+      return {
+        eligible: hasMinBalance && hasReferrals,
+        criteria: {
+          min_balance: hasMinBalance,
+          has_referrals: hasReferrals
+        },
+        reason: hasMinBalance && hasReferrals ? 'Все критерии выполнены' : 'Не все критерии выполнены'
+      };
+    } catch (error) {
+      logger.error('[AirdropService] Ошибка проверки права на airdrop', { telegramId, error });
+      return {
+        eligible: false,
+        reason: 'Ошибка проверки критериев'
+      };
+    }
+  }
 }

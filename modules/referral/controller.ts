@@ -258,4 +258,40 @@ export class ReferralController extends BaseController {
       });
     }, 'валидации реферального кода');
   }
+
+  /**
+   * Получить историю реферальных доходов
+   */
+  async getReferralHistory(req: Request, res: Response): Promise<void> {
+    return this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+      
+      const userId = (req as any).user?.id || telegram.user.id;
+      
+      logger.info('[ReferralController] Получение истории реферальных доходов', { userId });
+      
+      const history = await this.referralService.getReferralHistory(userId);
+      
+      this.sendSuccess(res, history);
+    }, 'получения истории реферальных доходов');
+  }
+
+  /**
+   * Получить реферальную цепочку
+   */
+  async getReferralChain(req: Request, res: Response): Promise<void> {
+    return this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+      
+      const userId = (req as any).user?.id || telegram.user.id;
+      
+      logger.info('[ReferralController] Получение реферальной цепочки', { userId });
+      
+      const chain = await this.referralService.getReferralChain(userId);
+      
+      this.sendSuccess(res, chain);
+    }, 'получения реферальной цепочки');
+  }
 }

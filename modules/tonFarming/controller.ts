@@ -83,4 +83,21 @@ export class TonFarmingController extends BaseController {
       next(error);
     }
   }
+
+  async getTonFarmingBalance(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+
+      const balance = await tonFarmingService.getTonFarmingBalance(
+        telegram.user.id.toString()
+      );
+
+      this.sendSuccess(res, balance);
+    }, 'получения баланса TON фарминга');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

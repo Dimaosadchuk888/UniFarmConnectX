@@ -753,4 +753,78 @@ export class ReferralService {
 
     return chain;
   }
+
+  /**
+   * Получить историю реферальных доходов
+   */
+  async getReferralHistory(userId: number): Promise<any> {
+    try {
+      logger.info('[ReferralService] Получение истории реферальных доходов', { userId });
+
+      // Получаем транзакции типа REFERRAL_REWARD для пользователя
+      const { data: transactions, error } = await supabase
+        .from(REFERRAL_TABLES.TRANSACTIONS)
+        .select('*')
+        .eq('user_id', userId)
+        .eq('type', 'REFERRAL_REWARD')
+        .order('timestamp', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        logger.error('[ReferralService] Ошибка получения истории доходов', { userId, error });
+        return { history: [], total: 0 };
+      }
+
+      const history = transactions?.map(tx => ({
+        id: tx.id,
+        amount: parseFloat(tx.amount),
+        currency: tx.currency,
+        timestamp: tx.timestamp,
+        from_user: tx.from_user_id,
+        level: tx.referral_level || 1
+      })) || [];
+
+      const total = history.reduce((sum, item) => sum + item.amount, 0);
+
+      return {
+        history,
+        total,
+        currency: 'UNI'
+      };
+    } catch (error) {
+      logger.error('[ReferralService] Ошибка получения истории доходов', { userId, error });
+      return { history: [], total: 0 };
+    }
+  }
+
+  /**
+   * Получить реферальную цепочку
+   */
+  async getReferralChain(userId: number): Promise<any> {
+    try {
+      logger.info('[ReferralService] Получение реферальной цепочки', { userId });
+
+      // Получаем всех пользователей для построения цепочки
+      const { data: users, error } = await supabase
+        .from(REFERRAL_TABLES.USERS)
+        .select('id, username, first_name, referred_by, ref_code, balance_uni, balance_ton');
+
+      if (error) {
+        logger.error('[ReferralService] Ошибка получения данных пользователей', { error });
+        return { chain: [], levels: 0 };
+      }
+
+      // Строим цепочку рефералов
+      const chain = this.buildReferralChain(userId, users || [], 1, new Set());
+
+      return {
+        chain,
+        levels: Math.max(...chain.map(user => user.level), 0),
+        total_referrals: chain.length
+      };
+    } catch (error) {
+      logger.error('[ReferralService] Ошибка получения реферальной цепочки', { userId, error });
+      return { chain: [], levels: 0 };
+    }
+  }
 }

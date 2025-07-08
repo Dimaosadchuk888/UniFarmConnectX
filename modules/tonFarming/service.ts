@@ -165,4 +165,40 @@ export class TonFarmingService {
       };
     }
   }
+
+  async getTonFarmingBalance(telegramId: string): Promise<{ balance: string; currency: string }> {
+    try {
+      logger.info(`[TON FARMING] Balance check for user ${telegramId}`, {
+        telegramId,
+        operation: 'BALANCE_CHECK',
+        timestamp: new Date().toISOString()
+      });
+      
+      const { supabase } = await import('../../core/supabase');
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('balance_ton')
+        .eq('telegram_id', telegramId)
+        .single();
+      
+      if (error || !user) {
+        logger.warn('[TonFarmingService] Пользователь не найден при получении баланса', { telegramId, error });
+        return {
+          balance: '0',
+          currency: 'TON'
+        };
+      }
+      
+      return {
+        balance: user.balance_ton?.toString() || '0',
+        currency: 'TON'
+      };
+    } catch (error) {
+      logger.error('[TonFarmingService] Ошибка получения баланса:', error);
+      return {
+        balance: '0',
+        currency: 'TON'
+      };
+    }
+  }
 }

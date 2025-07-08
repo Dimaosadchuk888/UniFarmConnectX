@@ -12,5 +12,6 @@ router.get('/info', requireTelegramAuth, tonFarmingController.getTonFarmingData.
 router.get('/status', requireTelegramAuth, tonFarmingController.getTonFarmingStatus.bind(tonFarmingController));
 router.post('/start', requireTelegramAuth, tonFarmingController.startTonFarming.bind(tonFarmingController));
 router.post('/claim', requireTelegramAuth, tonFarmingController.claimTonFarming.bind(tonFarmingController));
+router.get('/balance', requireTelegramAuth, tonFarmingController.getTonFarmingBalance.bind(tonFarmingController));
 
 export default router;

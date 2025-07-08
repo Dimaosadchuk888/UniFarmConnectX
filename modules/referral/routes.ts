@@ -35,6 +35,12 @@ router.get('/validate/:refCode', requireTelegramAuth, strictRateLimit, referralC
 // POST /api/referrals/generate-code - Генерировать реферальный код (строгий лимит для публичного endpoint)
 router.post('/generate-code', requireTelegramAuth, strictRateLimit, referralController.generateReferralCode.bind(referralController));
 
+// GET /api/referrals/history - История реферальных доходов
+router.get('/history', requireTelegramAuth, strictRateLimit, referralController.getReferralHistory.bind(referralController));
+
+// GET /api/referrals/chain - Реферальная цепочка
+router.get('/chain', requireTelegramAuth, strictRateLimit, referralController.getReferralChain.bind(referralController));
+
 // WILDCARD ROUTES (ДОЛЖНЫ БЫТЬ В КОНЦЕ!)
 // GET /api/referrals/:userId - Получить реферальную информацию пользователя
 router.get('/:userId', requireTelegramAuth, referralController.getReferralInfo.bind(referralController));
