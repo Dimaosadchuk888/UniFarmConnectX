@@ -50,9 +50,15 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
         balanceCache.userId === userId && 
         balanceCache.data && 
         balanceCache.timestamp && 
-        (now - balanceCache.timestamp) < 60000) { // Кэш действителен 60 секунд
+        (now - balanceCache.timestamp) < 10000) { // Кэш действителен только 10 секунд для быстрого обновления
       console.log('[balanceService] Использование кэшированных данных баланса');
       return balanceCache.data;
+    }
+    
+    // Если forceRefresh=true, очищаем кэш принудительно
+    if (forceRefresh) {
+      console.log('[balanceService] Принудительная очистка кэша баланса');
+      balanceCache = {};
     }
     
     // Выполняем запрос к API

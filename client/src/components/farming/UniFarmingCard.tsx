@@ -268,17 +268,25 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // Обновляем данные в правильном порядке
         console.log('[INFO] Начинаем обновление данных после депозита');
         
-        // 1. Обновляем баланс в UserContext (приоритет)
+        // 1. Принудительно обновляем все кэши запросов
+        await queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/v2/uni-farming/status'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions'] });
+        
+        // 2. Принудительно перезагружаем все данные
+        await queryClient.refetchQueries({ queryKey: ['/api/v2/users/profile', userId] });
+        await queryClient.refetchQueries({ queryKey: ['/api/v2/wallet/balance', userId] });
+        await queryClient.refetchQueries({ queryKey: ['/api/v2/uni-farming/status', userId] });
+        
+        // 3. Обновляем UserContext с принудительным обновлением 
         if (refreshBalance) {
-          console.log('[INFO] Обновляем баланс через UserContext');
-          await refreshBalance(true); // Ждем обновления
+          console.log('[INFO] Принудительно обновляем UserContext');
+          await refreshBalance(true);
         }
         
-        // 2. Обновляем кэш React Query после обновления контекста
-        await queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile', userId] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance', userId] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/v2/uni-farming/status', userId] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions', userId] });
+        // 4. Добавляем задержку для гарантии обновления UI
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Показываем уведомление об успешном создании депозита ПОСЛЕ обновления данных
         success('Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!');

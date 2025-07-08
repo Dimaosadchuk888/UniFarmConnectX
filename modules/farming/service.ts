@@ -3,6 +3,7 @@ import { SupabaseUserRepository } from '../user/service';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { logger } from '../../core/logger.js';
 import { FARMING_TABLES, FARMING_CONFIG } from './model';
+import { balanceManager } from '../../core/BalanceManager';
 
 export class FarmingService {
   private userRepository: SupabaseUserRepository;
@@ -189,11 +190,34 @@ export class FarmingService {
         farmingRate: FARMING_CONFIG.DEFAULT_RATE
       });
 
-      // Обновляем баланс и депозит в одной транзакции
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Обновление баланса через BalanceManager
+      logger.info('[FarmingService] ЭТАП 6: Обновление баланса через BalanceManager', { 
+        userId: user.id,
+        currentBalance,
+        newBalance,
+        depositAmount
+      });
+      
+      // Используем BalanceManager для надежного обновления баланса
+      const balanceUpdateResult = await balanceManager.subtractBalance(
+        user.id,
+        depositAmount,
+        0,
+        'UNI farming deposit'
+      );
+
+      if (!balanceUpdateResult.success) {
+        logger.error('[FarmingService] ЭТАП 6.1: Ошибка обновления баланса', { 
+          error: balanceUpdateResult.error,
+          userId: user.id
+        });
+        return { success: false, message: 'Ошибка обновления баланса' };
+      }
+
+      // Обновляем депозит в фарминге
       const { data: updateData, error: updateError } = await supabase
         .from(FARMING_TABLES.USERS)
         .update({
-          balance_uni: newBalance,
           uni_deposit_amount: newDepositAmount,
           uni_farming_start_timestamp: new Date().toISOString(),
           uni_farming_last_update: new Date().toISOString(),
