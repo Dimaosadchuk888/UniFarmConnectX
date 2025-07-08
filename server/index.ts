@@ -43,6 +43,7 @@ import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeSche
 import { alertingService } from '../core/alerting';
 import { setupViteIntegration } from './setupViteIntegration';
 import { BalanceNotificationService } from '../core/balanceNotificationService';
+import { requireTelegramAuth } from '../core/middleware/telegramAuth';
 import { AdminBotService } from '../modules/adminBot/service';
 import { adminBotConfig } from '../config/adminBot';
 import { metricsCollector } from '../core/metrics';
@@ -626,6 +627,61 @@ async function startServer() {
     app.get(`${apiPrefix}/ref-debug-test`, (req: Request, res: Response) => {
       console.log('[DIRECT ROUTE] 🔥 REF DEBUG TEST WORKS DIRECTLY!');
       res.json({ success: true, message: 'Direct referral debug test works', timestamp: Date.now() });
+    });
+    
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Прямой endpoint для farming status
+    app.get(`${apiPrefix}/uni-farming/status`, requireTelegramAuth, async (req: Request, res: Response) => {
+      try {
+        console.log('[DIRECT FARMING] 🔥 DIRECT FARMING STATUS ENDPOINT WORKS!');
+        const userId = req.query.user_id || (req as any).user?.id;
+        
+        if (!userId) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Missing user_id parameter',
+            receivedQuery: req.query,
+            receivedUser: (req as any).user
+          });
+        }
+        
+        // Получаем данные пользователя из Supabase
+        const { data: user, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        
+        if (error || !user) {
+          return res.status(404).json({ 
+            success: false, 
+            error: 'User not found',
+            details: error?.message 
+          });
+        }
+        
+        // Возвращаем данные фарминга
+        res.json({
+          success: true,
+          data: {
+            user_id: user.id,
+            balance_uni: parseFloat(user.balance_uni?.toString() || "0"),
+            uni_farming_active: user.uni_farming_active || false,
+            uni_deposit_amount: parseFloat(user.uni_deposit_amount?.toString() || "0"),
+            uni_farming_balance: parseFloat(user.uni_farming_balance?.toString() || "0"),
+            uni_farming_rate: parseFloat(user.uni_farming_rate?.toString() || "0"),
+            uni_farming_start_timestamp: user.uni_farming_start_timestamp,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+      } catch (error) {
+        console.error('[DIRECT FARMING] Ошибка:', error);
+        res.status(500).json({ 
+          success: false, 
+          error: 'Internal server error',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     });
 
     // Removed test handler that was intercepting /api/v2/users/profile requests

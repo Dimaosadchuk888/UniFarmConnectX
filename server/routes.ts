@@ -309,4 +309,14 @@ router.get('/debug/profile-test', (req: Request, res: Response) => {
 import debugRoutes from '../modules/debug/debugRoutes';
 router.use('/debug', debugRoutes);
 
+// ТЕСТ: Простой test endpoint для проверки импорта routes
+router.get('/test-import', (req, res) => {
+  console.log('[SERVER ROUTES] 🔥 TEST IMPORT WORKS! Routes импортированы успешно');
+  res.json({ 
+    success: true, 
+    message: 'Routes импортированы и работают!',
+    timestamp: new Date().toISOString()
+  });
+});
+
 export default router;

@@ -414,3 +414,6 @@ export class FarmingService {
     }
   }
 }
+
+// Экспорт экземпляра для использования в directDeposit
+export const farmingService = new FarmingService();
