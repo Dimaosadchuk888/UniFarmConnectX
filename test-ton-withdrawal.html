@@ -1,389 +1,284 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тестирование системы вывода TON</title>
+    <title>Тест API депозитов и баланса</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1200px;
+            font-family: Arial, sans-serif;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             background: #f5f5f5;
         }
         .container {
             background: white;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
         h1, h2 {
             color: #333;
-            margin-top: 0;
         }
-        .status {
-            padding: 12px;
-            border-radius: 8px;
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
             margin: 10px 0;
+            border-left: 4px solid #007bff;
         }
         .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            border-left-color: #28a745;
         }
         .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        .warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #555;
-        }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
+            border-left-color: #dc3545;
+            background: #fdf2f2;
         }
         button {
             background: #007bff;
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-size: 16px;
+            padding: 10px 20px;
+            border-radius: 4px;
             cursor: pointer;
-            margin-right: 10px;
+            margin: 5px;
         }
         button:hover {
             background: #0056b3;
         }
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .balance-card {
+        pre {
             background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .status {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .balance-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
         }
         .balance-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 18px;
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
         }
-        .withdrawals-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+        .balance-item .label {
+            font-size: 12px;
+            color: #666;
         }
-        .withdrawals-table th, .withdrawals-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+        .balance-item .value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
         }
-        .withdrawals-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-        }
-        .status-pending { color: #856404; }
-        .status-approved { color: #155724; }
-        .status-rejected { color: #721c24; }
-        #logs {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 14px;
-        }
-        .log-entry {
-            margin-bottom: 5px;
-            padding: 5px;
-        }
-        .log-info { color: #0c5460; }
-        .log-success { color: #155724; }
-        .log-error { color: #721c24; }
-        .log-warning { color: #856404; }
     </style>
 </head>
 <body>
-    <h1>🧪 Тестирование системы вывода TON</h1>
-    
-    <!-- Текущий баланс -->
     <div class="container">
-        <h2>💰 Текущий баланс</h2>
-        <div class="balance-card">
+        <h1>🧪 Тест API депозитов и баланса</h1>
+        
+        <div class="status">
+            <span>Пользователь: ID 62 (preview_test)</span><br>
+            <span>JWT: Активен</span>
+        </div>
+        
+        <div class="balance-info">
             <div class="balance-item">
-                <span>UNI баланс:</span>
-                <strong id="uniBalance">Загрузка...</strong>
+                <div class="label">Баланс UNI</div>
+                <div class="value" id="uniBalance">-</div>
             </div>
             <div class="balance-item">
-                <span>TON баланс:</span>
-                <strong id="tonBalance">Загрузка...</strong>
+                <div class="label">Баланс TON</div>
+                <div class="value" id="tonBalance">-</div>
             </div>
             <div class="balance-item">
-                <span>User ID:</span>
-                <strong id="userId">Загрузка...</strong>
+                <div class="label">Депозит в фарминге</div>
+                <div class="value" id="farmingDeposit">-</div>
+            </div>
+            <div class="balance-item">
+                <div class="label">Ставка фарминга</div>
+                <div class="value" id="farmingRate">-</div>
             </div>
         </div>
-        <button onclick="loadBalance()">🔄 Обновить баланс</button>
-    </div>
-
-    <!-- Форма вывода -->
-    <div class="container">
-        <h2>📤 Создать заявку на вывод TON</h2>
-        <form id="withdrawForm">
-            <div class="form-group">
-                <label for="amount">Сумма для вывода (TON):</label>
-                <input type="number" id="amount" step="0.001" min="0.001" value="2" required>
-            </div>
-            <div class="form-group">
-                <label for="wallet">TON кошелек:</label>
-                <input type="text" id="wallet" value="UQCZm66N6h86EFy7uKaS9gqbfmDHUlDV1c2TQ7OnB7Y85HQz" required>
-            </div>
-            <button type="submit" id="submitBtn">Отправить заявку</button>
-            <button type="button" onclick="testInsufficientFunds()">Тест: недостаточно средств</button>
-        </form>
-        <div id="withdrawResult"></div>
-    </div>
-
-    <!-- История заявок -->
-    <div class="container">
-        <h2>📋 История заявок на вывод</h2>
-        <button onclick="loadWithdrawals()">🔄 Обновить список</button>
-        <div id="withdrawalsList">
-            <p>Нажмите "Обновить список" для загрузки заявок</p>
-        </div>
-    </div>
-
-    <!-- Логи -->
-    <div class="container">
-        <h2>📝 Логи операций</h2>
-        <button onclick="clearLogs()">🗑️ Очистить логи</button>
-        <div id="logs"></div>
+        
+        <button onclick="checkFarmingStatus()">Проверить статус фарминга</button>
+        <button onclick="checkWalletBalance()">Проверить баланс кошелька</button>
+        <button onclick="checkTransactions()">Проверить транзакции</button>
+        <button onclick="testDeposit()">Тест депозита 2 UNI</button>
+        
+        <div id="results"></div>
     </div>
 
     <script>
-        // Настройки
-        const API_BASE = 'http://localhost:3000/api/v2';
-        let currentJWT = localStorage.getItem('unifarm_jwt_token');
-        let currentUserId = null;
+        const API_BASE = 'https://uni-farm-connect-x-ab245275.replit.app';
+        const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYyLCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4NDgsInVzZXJuYW1lIjoicHJldmlld190ZXN0IiwiZmlyc3RfbmFtZSI6IlByZXZpZXciLCJyZWZfY29kZSI6IlJFRl8xNzUxNzgwNTIxOTE4X2UxdjYyZCIsImlhdCI6MTc1MTg3MTA2MywiZXhwIjoxNzUyNDc1ODYzfQ.NKbyJiXtLnGzyr0w-C1oR658X5TzDO6EkKU8Ie5zgE0';
 
-        // Логирование
-        function log(message, type = 'info') {
-            const logs = document.getElementById('logs');
-            const entry = document.createElement('div');
-            entry.className = `log-entry log-${type}`;
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            logs.appendChild(entry);
-            logs.scrollTop = logs.scrollHeight;
+        function addResult(title, content, isSuccess = true) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${isSuccess ? 'success' : 'error'}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <div>${content}</div>
+            `;
+            results.appendChild(div);
         }
 
-        function clearLogs() {
-            document.getElementById('logs').innerHTML = '';
-            log('Логи очищены', 'info');
-        }
-
-        // Показать результат
-        function showResult(elementId, message, type) {
-            const element = document.getElementById(elementId);
-            element.className = `status ${type}`;
-            element.textContent = message;
-        }
-
-        // API запрос с авторизацией
-        async function apiRequest(endpoint, method = 'GET', body = null) {
-            const options = {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${currentJWT}`
-                }
-            };
-            
-            if (body) {
-                options.body = JSON.stringify(body);
-            }
-
+        async function checkFarmingStatus() {
             try {
-                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const response = await fetch(`${API_BASE}/api/v2/uni-farming/status?user_id=62`, {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
                 const data = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(data.error || `HTTP ${response.status}`);
+                if (response.ok && data.success) {
+                    document.getElementById('uniBalance').textContent = data.data.balance_uni + ' UNI';
+                    document.getElementById('farmingDeposit').textContent = data.data.uni_deposit_amount + ' UNI';
+                    document.getElementById('farmingRate').textContent = data.data.uni_farming_rate;
+                    
+                    addResult('✅ Статус фарминга', `
+                        <div>Баланс UNI: ${data.data.balance_uni}</div>
+                        <div>Депозит в фарминге: ${data.data.uni_deposit_amount}</div>
+                        <div>Ставка фарминга: ${data.data.uni_farming_rate}</div>
+                        <div>Активен: ${data.data.uni_farming_active ? 'Да' : 'Нет'}</div>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                    `);
+                } else {
+                    addResult('❌ Ошибка фарминга', `
+                        <div>Статус: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, false);
                 }
-                
-                return data;
             } catch (error) {
-                log(`Ошибка API: ${error.message}`, 'error');
-                throw error;
+                addResult('❌ Ошибка запроса фарминга', error.message, false);
             }
         }
 
-        // Загрузить баланс
-        async function loadBalance() {
+        async function checkWalletBalance() {
             try {
-                log('Загрузка баланса...', 'info');
-                
-                // Получаем профиль пользователя
-                const profile = await apiRequest('/users/profile');
-                currentUserId = profile.data.id;
-                
-                document.getElementById('userId').textContent = currentUserId;
-                document.getElementById('uniBalance').textContent = `${profile.data.balance_uni} UNI`;
-                document.getElementById('tonBalance').textContent = `${profile.data.balance_ton} TON`;
-                
-                log(`Баланс загружен: ${profile.data.balance_ton} TON, ${profile.data.balance_uni} UNI`, 'success');
-            } catch (error) {
-                log(`Ошибка загрузки баланса: ${error.message}`, 'error');
-                document.getElementById('userId').textContent = 'Ошибка';
-                document.getElementById('uniBalance').textContent = 'Ошибка';
-                document.getElementById('tonBalance').textContent = 'Ошибка';
-            }
-        }
-
-        // Создать заявку на вывод
-        async function createWithdrawal(amount, wallet) {
-            try {
-                log(`Создание заявки на вывод ${amount} TON...`, 'info');
-                
-                const result = await apiRequest('/wallet/withdraw', 'POST', {
-                    amount: amount.toString(),
-                    currency: 'TON',
-                    wallet_address: wallet
+                const response = await fetch(`${API_BASE}/api/v2/wallet/balance?user_id=62`, {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
-                log(`Заявка создана успешно!`, 'success');
-                showResult('withdrawResult', 
-                    `✅ Заявка на вывод ${amount} TON создана успешно!`, 
-                    'success'
-                );
+                const data = await response.json();
                 
-                // Обновляем баланс и список заявок
-                setTimeout(() => {
-                    loadBalance();
-                    loadWithdrawals();
-                }, 1000);
-                
-                return result;
+                if (response.ok && data.success) {
+                    document.getElementById('tonBalance').textContent = data.data.balance_ton + ' TON';
+                    
+                    addResult('✅ Баланс кошелька', `
+                        <div>Баланс UNI: ${data.data.balance_uni}</div>
+                        <div>Баланс TON: ${data.data.balance_ton}</div>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                    `);
+                } else {
+                    addResult('❌ Ошибка баланса', `
+                        <div>Статус: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, false);
+                }
             } catch (error) {
-                log(`Ошибка создания заявки: ${error.message}`, 'error');
-                showResult('withdrawResult', 
-                    `❌ Ошибка: ${error.message}`, 
-                    'error'
-                );
-                throw error;
+                addResult('❌ Ошибка запроса баланса', error.message, false);
             }
         }
 
-        // Загрузить список заявок
-        async function loadWithdrawals() {
+        async function checkTransactions() {
             try {
-                log('Загрузка списка заявок...', 'info');
-                
-                // Получаем транзакции типа withdrawal
-                const result = await apiRequest(`/wallet/${currentUserId}/transactions?type=withdrawal&limit=10`);
-                
-                const withdrawals = result.data.transactions || [];
-                
-                if (withdrawals.length === 0) {
-                    document.getElementById('withdrawalsList').innerHTML = 
-                        '<p class="info">Заявок на вывод пока нет</p>';
-                    return;
-                }
-                
-                let html = '<table class="withdrawals-table"><thead><tr>' +
-                    '<th>ID</th><th>Сумма</th><th>Статус</th><th>Дата</th>' +
-                    '</tr></thead><tbody>';
-                
-                withdrawals.forEach(w => {
-                    const date = new Date(w.createdAt).toLocaleString('ru-RU');
-                    html += `<tr>
-                        <td>${w.id}</td>
-                        <td>${w.amount} ${w.currency}</td>
-                        <td class="status-${w.status}">${w.status}</td>
-                        <td>${date}</td>
-                    </tr>`;
+                const response = await fetch(`${API_BASE}/api/v2/transactions/history?user_id=62&limit=10`, {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
-                html += '</tbody></table>';
-                document.getElementById('withdrawalsList').innerHTML = html;
+                const data = await response.json();
                 
-                log(`Загружено ${withdrawals.length} заявок`, 'success');
+                if (response.ok && data.success) {
+                    const transactions = data.data.transactions || [];
+                    const deposits = transactions.filter(tx => 
+                        tx.type === 'FARMING_REWARD' && parseFloat(tx.amount) < 0
+                    );
+                    
+                    addResult('✅ Транзакции', `
+                        <div>Всего транзакций: ${transactions.length}</div>
+                        <div>Депозитов: ${deposits.length}</div>
+                        <h4>Последние депозиты:</h4>
+                        ${deposits.map(tx => `
+                            <div>• ${Math.abs(tx.amount)} ${tx.currency} (${new Date(tx.created_at).toLocaleString()})</div>
+                        `).join('')}
+                        <details>
+                            <summary>Все транзакции</summary>
+                            <pre>${JSON.stringify(transactions, null, 2)}</pre>
+                        </details>
+                    `);
+                } else {
+                    addResult('❌ Ошибка транзакций', `
+                        <div>Статус: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, false);
+                }
             } catch (error) {
-                log(`Ошибка загрузки заявок: ${error.message}`, 'error');
-                document.getElementById('withdrawalsList').innerHTML = 
-                    `<p class="error">Ошибка загрузки: ${error.message}</p>`;
+                addResult('❌ Ошибка запроса транзакций', error.message, false);
             }
         }
 
-        // Тест недостаточно средств
-        async function testInsufficientFunds() {
+        async function testDeposit() {
             try {
-                log('Тест: попытка вывода суммы больше баланса...', 'warning');
-                await createWithdrawal(99999, 'UQCZm66N6h86EFy7uKaS9gqbfmDHUlDV1c2TQ7OnB7Y85HQz');
+                const response = await fetch(`${API_BASE}/api/v2/uni-farming/deposit`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: '2',
+                        user_id: 62
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addResult('✅ Депозит выполнен', `
+                        <div>Сумма: 2 UNI</div>
+                        <div>Результат: ${data.message}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `);
+                    
+                    // Автоматически обновить статус
+                    setTimeout(() => {
+                        checkFarmingStatus();
+                    }, 1000);
+                } else {
+                    addResult('❌ Ошибка депозита', `
+                        <div>Статус: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, false);
+                }
             } catch (error) {
-                // Ожидаемая ошибка
+                addResult('❌ Ошибка запроса депозита', error.message, false);
             }
         }
 
-        // Обработчик формы
-        document.getElementById('withdrawForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const amount = parseFloat(document.getElementById('amount').value);
-            const wallet = document.getElementById('wallet').value;
-            const submitBtn = document.getElementById('submitBtn');
-            
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Отправка...';
-            
-            try {
-                await createWithdrawal(amount, wallet);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Отправить заявку';
-            }
-        });
-
-        // Проверка JWT токена
-        if (!currentJWT) {
-            document.body.innerHTML = `
-                <div class="container">
-                    <h2>❌ Требуется авторизация</h2>
-                    <p>JWT токен не найден. Сначала авторизуйтесь в системе.</p>
-                    <p>Откройте консоль браузера и выполните:</p>
-                    <code>localStorage.setItem('unifarm_jwt_token', 'ВАШ_JWT_ТОКЕН')</code>
-                </div>
-            `;
-        } else {
-            // Загружаем баланс при старте
-            loadBalance();
-            log('Система тестирования готова к работе', 'success');
-        }
+        // Автоматически проверить статус при загрузке
+        window.onload = function() {
+            checkFarmingStatus();
+        };
     </script>
 </body>
 </html>

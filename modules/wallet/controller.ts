@@ -103,6 +103,10 @@ export class WalletController extends BaseController {
 
   async getBalance(req: Request, res: Response, next: NextFunction) {
     try {
+      // Проверяем JWT авторизацию
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return; // 401 уже отправлен
+
       const userId = req.query.user_id as string;
       
       if (!userId) {
