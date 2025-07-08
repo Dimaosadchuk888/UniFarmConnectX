@@ -506,27 +506,41 @@ export class ReferralService {
         query: `users table where id = ${userId}`
       });
 
-      // Создаем fallback данные если пользователь не найден в базе (временно для диагностики)
-      let actualUser = user;
+      // ИСПРАВЛЕНО: Если пользователь не найден в базе, возвращаем пустую статистику вместо fallback данных
       if (userError || !user) {
-        console.log('[ReferralService КРИТИЧЕСКАЯ ОШИБКА] Пользователь не найден в базе, создаем fallback данные:', {
+        console.log('[ReferralService] Пользователь не найден в базе, возвращаем пустую статистику:', {
           userId,
           userError: userError?.message,
           userErrorCode: userError?.code
         });
-        logger.warn('[ReferralService] Пользователь не найден в базе, используем fallback', { userId, error: userError?.message });
-        actualUser = {
-          id: userId,
-          username: 'demo_user', 
-          ref_code: 'REF_1750952576614_t938vs'
+        logger.info('[ReferralService] Пользователь не найден, возвращаем пустую статистику', { userId, error: userError?.message });
+        
+        // Возвращаем пустую статистику для нового пользователя
+        return {
+          success: true,
+          user: {
+            id: userId,
+            username: 'Новый пользователь',
+            ref_code: 'Не найден'
+          },
+          summary: {
+            total_partners: 0,
+            total_transactions: 0,
+            total_income: {
+              uni: 0,
+              ton: 0
+            }
+          },
+          levels: []
         };
-      } else if (actualUser) {
-        console.log('[ReferralService DEBUG] Пользователь найден успешно:', {
-          userId,
-          username: actualUser.username,
-          ref_code: actualUser.ref_code
-        });
       }
+
+      const actualUser = user;
+      console.log('[ReferralService DEBUG] Пользователь найден успешно:', {
+        userId,
+        username: actualUser.username,
+        ref_code: actualUser.ref_code
+      });
 
       logger.info('[ReferralService] Использую данные пользователя', { actualUser });
 

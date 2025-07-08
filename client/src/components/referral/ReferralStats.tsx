@@ -4,7 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useQuery } from '@tanstack/react-query';
 import { Users, TrendingUp, DollarSign, Share2, Clock, Star } from 'lucide-react';
-// import { formatNumber } from '@/lib/utils';
+import userService from '@/services/userService';
+import { correctApiRequest } from '@/lib/correctApiRequest';
+import apiConfig from '../../../config/apiConfig';
 
 // Временная функция форматирования для избежания проблем с импортом
 const formatNumber = (value: number | string): string => {
@@ -16,15 +18,43 @@ const formatNumber = (value: number | string): string => {
   return numValue.toFixed(6);
 };
 
+// Интерфейсы соответствующие структуре backend API
 interface ReferralLevel {
-  id: number;
-  username: string;
   level: number;
-  balance_uni: number;
-  balance_ton: number;
-  referrals: ReferralLevel[];
+  partners: number;
+  income: {
+    uni: number;
+    ton: number;
+  };
+  partnersList: Array<{
+    id: number;
+    username: string;
+    balance_uni: number;
+    balance_ton: number;
+    is_farming: boolean;
+    has_boost: boolean;
+  }>;
 }
 
+interface ReferralStatsResponse {
+  success: boolean;
+  user: {
+    id: number;
+    username: string;
+    ref_code: string;
+  };
+  summary: {
+    total_partners: number;
+    total_transactions: number;
+    total_income: {
+      uni: number;
+      ton: number;
+    };
+  };
+  levels: ReferralLevel[];
+}
+
+// Упрощенная структура для отображения (legacy support для компонента)
 interface ReferralStatsData {
   user: string;
   refCode: string;
@@ -37,12 +67,128 @@ interface ReferralStatsData {
 }
 
 const ReferralStats: React.FC = () => {
-  const { data: statsData, isLoading, error } = useQuery<{ success: boolean; data: ReferralStatsData }>({
-    queryKey: ['/api/v2/referrals/stats'],
+  // Получаем информацию о текущем пользователе из API
+  const { data: currentUser, isLoading: isUserLoading } = useQuery({
+    queryKey: ['/api/v2/users/profile'],
+    queryFn: () => userService.getCurrentUser(),
+    staleTime: 1000 * 5, // Кэшируем данные только на 5 секунд
+    refetchOnWindowFocus: true, // Обновляем при возвращении на страницу
+    retry: 2 // Пробуем несколько раз при ошибке
+  });
+  
+  // Логика определения userId из данных пользователя
+  const userId = currentUser?.id;
+  const guestId = currentUser?.guest_id;
+  
+  // Запрос статистики партнерской программы с правильным user_id
+  const { data: rawStatsData, isLoading, error } = useQuery<ReferralStatsResponse>({
+    queryKey: userId ? ['/api/v2/referrals/stats', 'userId', userId] : ['/api/v2/referrals/stats', 'guestId', guestId],
+    queryFn: async () => {
+      // Проверяем наличие идентификаторов
+      const hasUserId = !!userId;
+      const hasGuestId = !!guestId;
+      
+      // Если нет ни userId, ни guestId, возвращаем пустые данные
+      if (!hasUserId && !hasGuestId) {
+        return {
+          success: true,
+          user: {
+            id: 0,
+            username: currentUser?.username || 'Пользователь',
+            ref_code: currentUser?.ref_code || 'Не определен'
+          },
+          summary: {
+            total_partners: 0,
+            total_transactions: 0,
+            total_income: {
+              uni: 0,
+              ton: 0
+            }
+          },
+          levels: []
+        };
+      }
+      
+      // Определяем параметр для запроса: предпочитаем userId, но используем guestId если userId отсутствует
+      const queryParam = hasUserId 
+        ? `user_id=${userId}` 
+        : `guest_id=${guestId}`;
+      
+      // Формируем полный URL для запроса с нужным параметром (user_id или guest_id)
+      const url = `/api/v2/referrals/stats?${queryParam}`;
+      
+      try {
+        // Используем correctApiRequest для стандартизированного запроса с обработкой ошибок
+        const responseData = await correctApiRequest<ReferralStatsResponse>(url, 'GET');
+        
+        // Проверяем базовую структуру ответа
+        if (!responseData || typeof responseData !== 'object' || !responseData.success) {
+          // Возвращаем пустые данные для новых пользователей
+          return {
+            success: true,
+            user: {
+              id: userId || 0,
+              username: currentUser?.username || 'Пользователь',
+              ref_code: currentUser?.ref_code || 'Не определен'
+            },
+            summary: {
+              total_partners: 0,
+              total_transactions: 0,
+              total_income: {
+                uni: 0,
+                ton: 0
+              }
+            },
+            levels: []
+          };
+        }
+        
+        return responseData;
+      } catch (fetchError) {
+        // В случае ошибки также возвращаем пустые данные
+        return {
+          success: true,
+          user: {
+            id: userId || 0,
+            username: currentUser?.username || 'Пользователь',
+            ref_code: currentUser?.ref_code || 'Не определен'
+          },
+          summary: {
+            total_partners: 0,
+            total_transactions: 0,
+            total_income: {
+              uni: 0,
+              ton: 0
+            }
+          },
+          levels: []
+        };
+      }
+    },
+    // Запрос выполняется если есть userId или guestId
+    enabled: (!!userId || !!guestId) && !isUserLoading,
+    staleTime: 1000 * 5, // Кэшируем на 5 секунд
     refetchInterval: 30000, // Обновляем каждые 30 секунд
+    refetchOnWindowFocus: true, // Обновляем при возврате фокуса
+    retry: 2 // Повторяем запрос не более 2 раз
   });
 
-  if (isLoading) {
+  // Преобразуем данные из нового формата в старый для совместимости с компонентом
+  const statsData = rawStatsData ? {
+    success: rawStatsData.success,
+    data: {
+      user: rawStatsData.user?.username || 'Пользователь',
+      refCode: rawStatsData.user?.ref_code || 'Не определен',
+      totalReferrals: rawStatsData.summary?.total_partners || 0,
+      activeReferrals: rawStatsData.summary?.total_partners || 0, // Все партнеры считаются активными
+      referralEarnings: (rawStatsData.summary?.total_income?.uni || 0) + (rawStatsData.summary?.total_income?.ton || 0),
+      levels: rawStatsData.levels || [],
+      timestamp: new Date().toISOString(),
+      source: rawStatsData.levels && rawStatsData.levels.length > 0 ? 'supabase-live-data' : 'empty-for-new-user'
+    }
+  } : null;
+
+  if (isLoading || isUserLoading) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -82,38 +228,53 @@ const ReferralStats: React.FC = () => {
 
   const { data } = statsData;
 
-  const renderReferralLevel = (level: ReferralLevel, depth: number = 0) => {
-    const indent = depth * 20;
-    
+  const renderReferralLevel = (level: ReferralLevel) => {
     return (
-      <div key={level.id} className="space-y-2">
-        <div 
-          className="flex items-center justify-between p-3 rounded-lg border bg-gray-50"
-          style={{ marginLeft: `${indent}px` }}
-        >
+      <div key={level.level} className="space-y-2">
+        <div className="flex items-center justify-between p-3 rounded-lg border bg-gray-50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
               <Users className="h-4 w-4 text-blue-600" />
             </div>
             <div>
-              <p className="font-medium text-sm">{level.username}</p>
-              <p className="text-xs text-gray-500">Уровень {level.level}</p>
+              <p className="font-medium text-sm">Уровень {level.level}</p>
+              <p className="text-xs text-gray-500">{level.partners} партнеров</p>
             </div>
           </div>
           <div className="text-right">
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
-                {formatNumber(level.balance_uni)} UNI
+                {formatNumber(level.income?.uni || 0)} UNI
               </Badge>
               <Badge variant="outline" className="text-xs">
-                {formatNumber(level.balance_ton)} TON
+                {formatNumber(level.income?.ton || 0)} TON
               </Badge>
             </div>
           </div>
         </div>
         
-        {level.referrals && level.referrals.map(subLevel => 
-          renderReferralLevel(subLevel, depth + 1)
+        {/* Показываем список партнеров на этом уровне если они есть */}
+        {level.partnersList && level.partnersList.length > 0 && (
+          <div className="ml-6 space-y-1">
+            {level.partnersList.slice(0, 3).map((partner, index) => ( // Показываем максимум 3 партнеров
+              <div key={partner.id} className="flex items-center justify-between p-2 rounded bg-gray-25 border-l-2 border-blue-200">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+                    <Users className="h-3 w-3 text-gray-600" />
+                  </div>
+                  <span className="text-sm text-gray-700">{partner.username}</span>
+                  {partner.is_farming && <Badge variant="secondary" className="text-xs">Фарминг</Badge>}
+                  {partner.has_boost && <Badge variant="secondary" className="text-xs">Буст</Badge>}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {formatNumber(partner.balance_uni)} UNI | {formatNumber(partner.balance_ton)} TON
+                </div>
+              </div>
+            ))}
+            {level.partnersList.length > 3 && (
+              <p className="text-xs text-gray-500 ml-8">... и еще {level.partnersList.length - 3} партнеров</p>
+            )}
+          </div>
         )}
       </div>
     );

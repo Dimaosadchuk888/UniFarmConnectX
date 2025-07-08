@@ -67,6 +67,10 @@ export class ReferralController extends BaseController {
     console.log('[ReferralController] URL:', req.url);
     console.log('[ReferralController] Method:', req.method);
     console.log('[ReferralController] req.user:', (req as any).user);
+    console.log('[ReferralController] req.user?.id:', (req as any).user?.id);
+    console.log('[ReferralController] req.telegramUser:', (req as any).telegramUser);
+    console.log('[ReferralController] req.telegramUser?.id:', (req as any).telegramUser?.id);
+    console.log('[ReferralController] Authorization header:', req.headers.authorization);
     console.log('[ReferralController] Headers:', req.headers);
     console.log('[ReferralController] Params:', req.params);
     console.log('[ReferralController] Query:', req.query);
@@ -76,8 +80,32 @@ export class ReferralController extends BaseController {
       const userId = (req as any).user?.id || 
                     parseInt(req.params.userId as string) || 
                     parseInt(req.query.userId as string) || 
-                    parseInt(req.query.user_id as string) ||
-                    48; // Fallback для тестирования
+                    parseInt(req.query.user_id as string);
+      
+      // Если userId не определен, возвращаем пустые данные
+      if (!userId) {
+        console.log('[ReferralController] ПОЛЬЗОВАТЕЛЬ НЕ НАЙДЕН - возвращаем пустые данные');
+        return res.json({
+          success: true,
+          data: {
+            success: true,
+            user: {
+              id: 0,
+              username: 'Пользователь',
+              ref_code: 'Не определен'
+            },
+            summary: {
+              total_partners: 0,
+              total_transactions: 0,
+              total_income: {
+                uni: 0,
+                ton: 0
+              }
+            },
+            levels: []
+          }
+        });
+      }
       
       logger.info('[ReferralController] Получение реальной статистики реферальных уровней', { 
         userId,
@@ -88,8 +116,8 @@ export class ReferralController extends BaseController {
         authHeader: req.headers.authorization ? 'SET' : 'NOT SET'
       });
       
-      // Принудительно используем userId=48 для тестирования
-      const finalUserId = 48;
+      // Используем реальный userId без хардкода
+      const finalUserId = userId;
       
       logger.info('[ReferralController] Вызываем getRealReferralStats для userId:', finalUserId);
       console.log('[ReferralController] ПЫТАЕМСЯ ВЫЗВАТЬ getRealReferralStats для userId:', finalUserId);
