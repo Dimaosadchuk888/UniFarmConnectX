@@ -3,169 +3,157 @@
  * Цель: Определить почему списывается только 1 монета вместо введенной суммы
  */
 
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+import { supabase } from './core/supabase.js';
+import { balanceManager } from './core/BalanceManager.js';
+import { FarmingService } from './modules/farming/service.js';
 
 async function investigateDepositDeduction() {
-  console.log('🔍 ИССЛЕДОВАНИЕ: Проблема списания монет при депозитах');
-  console.log('='.repeat(60));
-
+  console.log('=== ИССЛЕДОВАНИЕ НЕКОРРЕКТНОГО СПИСАНИЯ ДЕПОЗИТОВ ===');
+  
   const userId = 62;
   
   try {
-    // 1. Проверяем текущий баланс пользователя
-    console.log('\n1. ТЕКУЩИЙ БАЛАНС ПОЛЬЗОВАТЕЛЯ:');
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, username, balance_uni, balance_ton, uni_deposit_amount, uni_farming_rate')
-      .eq('id', userId)
-      .single();
+    // 1. Проверим текущий баланс
+    console.log('\n1. Проверка текущего баланса...');
+    const currentBalance = await balanceManager.getUserBalance(userId);
+    console.log('Текущий баланс:', JSON.stringify(currentBalance, null, 2));
     
-    if (userError) {
-      console.error('❌ Ошибка получения пользователя:', userError);
+    if (!currentBalance.success) {
+      console.error('Не удалось получить текущий баланс');
       return;
     }
     
-    console.log(`👤 Пользователь: ${user.username} (ID: ${user.id})`);
-    console.log(`💰 Баланс UNI: ${user.balance_uni}`);
-    console.log(`💰 Баланс TON: ${user.balance_ton}`);
-    console.log(`📊 Общий депозит: ${user.uni_deposit_amount}`);
-    console.log(`⚡ Ставка фарминга: ${user.uni_farming_rate}`);
-
-    // 2. Сначала проверяем схему таблицы transactions
-    console.log('\n2. СХЕМА ТАБЛИЦЫ TRANSACTIONS:');
-    const { data: tableInfo, error: tableError } = await supabase
-      .from('transactions')
-      .select('*')
-      .limit(1);
+    const initialBalance = currentBalance.balance.balance_uni;
+    console.log(`Начальный баланс: ${initialBalance} UNI`);
     
-    if (tableError) {
-      console.error('❌ Ошибка получения схемы таблицы:', tableError);
-      return;
+    // 2. Создадим экземпляр FarmingService для тестирования
+    const farmingService = new FarmingService();
+    
+    // 3. Протестируем различные суммы депозитов
+    const testAmounts = [5, 10, 25, 50];
+    
+    for (const testAmount of testAmounts) {
+      console.log(`\n=== ТЕСТ ДЕПОЗИТА ${testAmount} UNI ===`);
+      
+      // Проверим баланс перед депозитом
+      const beforeBalance = await balanceManager.getUserBalance(userId);
+      const beforeAmount = beforeBalance.balance.balance_uni;
+      
+      console.log(`Баланс до депозита: ${beforeAmount} UNI`);
+      
+      if (beforeAmount < testAmount) {
+        console.log(`❌ Пропускаем тест: недостаточно средств (${beforeAmount} < ${testAmount})`);
+        continue;
+      }
+      
+      // Выполним депозит через реальный API
+      console.log(`Выполняем депозит ${testAmount} UNI через FarmingService...`);
+      
+      const depositResult = await farmingService.depositUniForFarming(
+        '88888848',  // telegram_id пользователя 62
+        testAmount.toString()
+      );
+      
+      console.log('Результат депозита:', JSON.stringify(depositResult, null, 2));
+      
+      // Проверим баланс после депозита
+      const afterBalance = await balanceManager.getUserBalance(userId);
+      const afterAmount = afterBalance.balance.balance_uni;
+      
+      console.log(`Баланс после депозита: ${afterAmount} UNI`);
+      
+      const actualDeduction = beforeAmount - afterAmount;
+      console.log(`Фактическое списание: ${actualDeduction} UNI`);
+      console.log(`Ожидаемое списание: ${testAmount} UNI`);
+      
+      if (Math.abs(actualDeduction - testAmount) < 0.000001) {
+        console.log(`✅ ТЕСТ ПРОЙДЕН: Списание корректно`);
+      } else {
+        console.log(`❌ ТЕСТ ПРОВАЛЕН: Списание некорректно`);
+      }
+      
+      // Найдем созданную транзакцию
+      const { data: newTransaction, error: txError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (txError) {
+        console.error('Ошибка поиска транзакции:', txError);
+      } else if (newTransaction && newTransaction.length > 0) {
+        const tx = newTransaction[0];
+        console.log(`Создана транзакция: ID=${tx.id}, type=${tx.type}, amount_uni=${tx.amount_uni}`);
+      } else {
+        console.log('❌ Транзакция не найдена');
+      }
+      
+      // Небольшая пауза между тестами
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    if (tableInfo && tableInfo.length > 0) {
-      console.log('📋 Доступные колонки:', Object.keys(tableInfo[0]));
-    }
-
-    // 3. Проверяем последние транзакции депозитов с правильными полями
-    console.log('\n3. ПОСЛЕДНИЕ ТРАНЗАКЦИИ ДЕПОЗИТОВ:');
-    const { data: deposits, error: depositsError } = await supabase
+    // 4. Проверим общие результаты
+    console.log('\n=== ОБЩИЕ РЕЗУЛЬТАТЫ ===');
+    
+    const finalBalance = await balanceManager.getUserBalance(userId);
+    const finalAmount = finalBalance.balance.balance_uni;
+    
+    console.log(`Финальный баланс: ${finalAmount} UNI`);
+    console.log(`Общее списание: ${initialBalance - finalAmount} UNI`);
+    
+    // Найдем все новые транзакции
+    const { data: allTransactions, error: allTxError } = await supabase
       .from('transactions')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(10);
-
-    if (depositsError) {
-      console.error('❌ Ошибка получения транзакций:', depositsError);
-      return;
-    }
-
-    deposits.forEach((tx, index) => {
-      // Используем правильные названия полей
-      const amount = tx.amount_uni || tx.amount_ton || tx.amount || 'N/A';
-      const type = tx.type || 'UNKNOWN';
-      const description = tx.description || 'Нет описания';
-      const currency = tx.currency || (tx.amount_uni ? 'UNI' : 'TON');
-      
-      console.log(`${index + 1}. ${type}: ${amount} ${currency} - ${description}`);
-      console.log(`   Создано: ${new Date(tx.created_at).toLocaleString()}`);
-    });
-
-    // 4. Анализируем паттерны депозитов
-    console.log('\n4. АНАЛИЗ ПАТТЕРНОВ ДЕПОЗИТОВ:');
-    const farmingDeposits = deposits.filter(tx => tx.type === 'FARMING_DEPOSIT' || tx.type === 'FARMING_REWARD');
-    const farmingRewards = deposits.filter(tx => tx.type === 'FARMING_REWARD');
     
-    console.log(`📈 Депозиты фарминга: ${farmingDeposits.length}`);
-    console.log(`🎁 Награды фарминга: ${farmingRewards.length}`);
-    
-    if (farmingDeposits.length > 0) {
-      const amounts = farmingDeposits.map(tx => {
-        const amount = tx.amount_uni || tx.amount_ton || tx.amount || 0;
-        return parseFloat(amount);
-      });
-      const totalDeposited = amounts.reduce((sum, amount) => sum + amount, 0);
-      const avgDeposit = totalDeposited / amounts.length;
-      
-      console.log(`💸 Общая сумма депозитов: ${totalDeposited.toFixed(6)} UNI`);
-      console.log(`📊 Средний депозит: ${avgDeposit.toFixed(6)} UNI`);
-      console.log(`🔢 Суммы депозитов: ${amounts.join(', ')}`);
-      
-      // Проверяем есть ли депозиты на 1 UNI (подозрительно)
-      const oneUniDeposits = amounts.filter(amount => amount === 1);
-      if (oneUniDeposits.length > 0) {
-        console.log(`⚠️  НАЙДЕНО ${oneUniDeposits.length} депозитов на точно 1 UNI - это подозрительно!`);
-      }
-    }
-
-    // 5. Проверяем консистентность данных
-    console.log('\n5. КОНСИСТЕНТНОСТЬ ДАННЫХ:');
-    const depositSum = farmingDeposits.reduce((sum, tx) => {
-      const amount = tx.amount_uni || tx.amount_ton || tx.amount || 0;
-      return sum + parseFloat(amount);
-    }, 0);
-    const currentDepositAmount = parseFloat(user.uni_deposit_amount);
-    
-    console.log(`💰 Сумма депозитов в транзакциях: ${depositSum.toFixed(6)} UNI`);
-    console.log(`📊 Текущий uni_deposit_amount: ${currentDepositAmount.toFixed(6)} UNI`);
-    console.log(`🔍 Разница: ${Math.abs(depositSum - currentDepositAmount).toFixed(6)} UNI`);
-    
-    if (Math.abs(depositSum - currentDepositAmount) > 0.001) {
-      console.log('⚠️  ОБНАРУЖЕНА НЕСООТВЕТСТВИЕ! Сумма транзакций не совпадает с uni_deposit_amount');
+    if (allTxError) {
+      console.error('Ошибка получения транзакций:', allTxError);
     } else {
-      console.log('✅ Данные консистентны');
-    }
-
-    // 5. Проверяем баланс после депозитов
-    console.log('\n5. АНАЛИЗ ИЗМЕНЕНИЙ БАЛАНСА:');
-    
-    // Симулируем как должен изменяться баланс
-    const initialBalance = 1000; // Предполагаемый начальный баланс
-    const expectedBalance = initialBalance - depositSum;
-    const actualBalance = parseFloat(user.balance_uni);
-    
-    console.log(`💰 Ожидаемый баланс: ${expectedBalance.toFixed(6)} UNI`);
-    console.log(`💰 Фактический баланс: ${actualBalance.toFixed(6)} UNI`);
-    console.log(`🔍 Разница: ${Math.abs(expectedBalance - actualBalance).toFixed(6)} UNI`);
-
-    // 6. Проводим тест создания депозита
-    console.log('\n6. ТЕСТ СОЗДАНИЯ ДЕПОЗИТА:');
-    console.log('Для полного анализа нужно создать тестовый депозит через API...');
-    
-    const testAmount = 5.5; // Тестовая сумма
-    console.log(`🧪 Тестовая сумма: ${testAmount} UNI`);
-    console.log(`📋 Рекомендация: Проверить запрос POST /api/v2/uni-farming/deposit`);
-    console.log(`📋 Параметры: { amount: "${testAmount}" }`);
-    
-    // 7. Итоговый анализ
-    console.log('\n7. ИТОГОВЫЙ АНАЛИЗ:');
-    console.log('=' .repeat(60));
-    
-    if (farmingDeposits.some(tx => parseFloat(tx.amount) === 1)) {
-      console.log('🚨 ПРОБЛЕМА ОБНАРУЖЕНА:');
-      console.log('   • Множественные депозиты на точно 1 UNI');
-      console.log('   • Возможная проблема в frontend передаче параметров');
-      console.log('   • Или проблема в backend парсинге суммы');
+      console.log('\nПоследние 10 транзакций:');
+      allTransactions.forEach((tx, i) => {
+        console.log(`  ${i + 1}. ${tx.type} - ${tx.amount_uni} UNI (${tx.created_at})`);
+      });
     }
     
-    console.log('\n📋 РЕКОМЕНДАЦИИ ДЛЯ ДАЛЬНЕЙШЕГО ИССЛЕДОВАНИЯ:');
-    console.log('1. Проверить какие данные передаются в API запросе');
-    console.log('2. Проверить как backend обрабатывает параметр amount');
-    console.log('3. Проверить логику FarmingService.depositUniForFarming()');
-    console.log('4. Проверить валидацию на frontend');
-
+    // 5. Анализируем данные пользователя
+    console.log('\n=== АНАЛИЗ ДАННЫХ ПОЛЬЗОВАТЕЛЯ ===');
+    
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (userError) {
+      console.error('Ошибка получения данных пользователя:', userError);
+    } else {
+      console.log('Данные пользователя:');
+      console.log(`  ID: ${userData.id}`);
+      console.log(`  Telegram ID: ${userData.telegram_id}`);
+      console.log(`  Username: ${userData.username}`);
+      console.log(`  Balance UNI: ${userData.balance_uni}`);
+      console.log(`  Balance TON: ${userData.balance_ton}`);
+      console.log(`  UNI Deposit Amount: ${userData.uni_deposit_amount}`);
+      console.log(`  UNI Farming Rate: ${userData.uni_farming_rate}`);
+      console.log(`  UNI Farming Start: ${userData.uni_farming_start_timestamp}`);
+    }
+    
+    console.log('\n=== ЗАКЛЮЧЕНИЕ ===');
+    console.log('Исследование завершено. Проанализированы:');
+    console.log('✅ Работа BalanceManager');
+    console.log('✅ Создание транзакций');
+    console.log('✅ Различные суммы депозитов');
+    console.log('✅ Корректность списания');
+    
   } catch (error) {
-    console.error('❌ Ошибка при исследовании:', error);
+    console.error('Критическая ошибка в исследовании:', error);
+    console.error('Stack:', error.stack);
   }
 }
 
 // Запуск исследования
-investigateDepositDeduction()
-  .then(() => console.log('\n✅ Исследование завершено'))
-  .catch(error => console.error('❌ Ошибка:', error));
+investigateDepositDeduction().catch(console.error);

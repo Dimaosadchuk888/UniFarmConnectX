@@ -261,8 +261,8 @@ export class FarmingService {
       try {
         const transactionPayload = {
           user_id: user.id,
-          type: 'FARMING_REWARD',  // Используем существующий тип из ENUM
-          amount_uni: depositAmount.toString(),  // Правильное поле для UNI
+          type: 'FARMING_REWARD',  // ИСПРАВЛЕНО: Используем существующий тип (отрицательная сумма = списание)
+          amount_uni: (-depositAmount).toString(),  // ИСПРАВЛЕНО: Отрицательная сумма для списания
           amount_ton: '0',  // Правильное поле для TON
           status: 'confirmed',  // Используем confirmed как в существующей транзакции
           description: `UNI farming deposit: ${amount}`
