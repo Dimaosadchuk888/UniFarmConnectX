@@ -26,23 +26,45 @@ interface UserMission {
 
 const SimpleMissionsList: React.FC = () => {
   const { userId, refreshUserData } = useUser();
-  const validUserId = userId || '1';
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [openedMissions, setOpenedMissions] = useState<Set<number>>(new Set());
   const [checkingMission, setCheckingMission] = useState<number | null>(null);
   const [processingMissions, setProcessingMissions] = useState<Set<number>>(new Set());
 
+  // Проверяем наличие авторизации перед запросами
+  const hasAuth = !!userId && !!localStorage.getItem('unifarm_jwt_token');
+  
+  console.log('[SimpleMissionsList] Авторизация:', { userId, hasAuth, hasToken: !!localStorage.getItem('unifarm_jwt_token') });
+
   const { data: missionsData, refetch: refetchMissions } = useQuery({
-    queryKey: ['/api/v2/missions/list', validUserId],
-    queryFn: () => correctApiRequest(`/api/v2/missions/list?user_id=${validUserId}`),
-    refetchInterval: 10000,
+    queryKey: ['/api/v2/missions/list', userId],
+    queryFn: () => correctApiRequest(`/api/v2/missions/list?user_id=${userId}`),
+    enabled: hasAuth, // Включаем запрос только при наличии авторизации
+    refetchInterval: 30000, // Увеличено с 10 до 30 секунд
+    retry: (failureCount, error: any) => {
+      // Не повторять при 429 ошибках
+      if (error?.status === 429) {
+        console.log('[SimpleMissionsList] Пропускаем retry для 429 ошибки');
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   const { data: userMissionsData, refetch: refetchUserMissions } = useQuery({
-    queryKey: ['/api/v2/missions/user', validUserId],
-    queryFn: () => correctApiRequest(`/api/v2/missions/user/${validUserId}`),
-    refetchInterval: 10000,
+    queryKey: ['/api/v2/missions/user', userId],
+    queryFn: () => correctApiRequest(`/api/v2/missions/user/${userId}`),
+    enabled: hasAuth, // Включаем запрос только при наличии авторизации
+    refetchInterval: 30000, // Увеличено с 10 до 30 секунд
+    retry: (failureCount, error: any) => {
+      // Не повторять при 429 ошибках
+      if (error?.status === 429) {
+        console.log('[SimpleMissionsList] Пропускаем retry для 429 ошибки');
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   const missions: Mission[] = missionsData?.data || [];

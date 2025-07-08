@@ -79,9 +79,13 @@ export const MissionsList: React.FC = () => {
   const [processingMissionId, setProcessingMissionId] = useState<number | null>(null);
   const [timerIntervalId, setTimerIntervalId] = useState<number | null>(null);
   
+  // Проверяем наличие авторизации перед запросами
+  const hasAuth = !!userId && !!localStorage.getItem('unifarm_jwt_token');
+
   // Загружаем активные миссии через API с явным указанием queryFn
   const { data: dbMissions, isLoading: missionsLoading, error: missionsError } = useQuery<DbMission[]>({
     queryKey: ['/api/v2/missions/active'],
+    enabled: hasAuth, // Включаем запрос только при наличии авторизации
     queryFn: async () => {
       console.log('🚀 Запрос активных миссий');
       

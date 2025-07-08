@@ -81,6 +81,9 @@ export function useMissionData() {
     }
   }, []);
   
+  // Проверяем наличие авторизации перед запросами
+  const hasAuth = !!userId && !!localStorage.getItem('unifarm_jwt_token');
+
   // Загружаем активные миссии
   const { 
     data: dbMissions, 
@@ -88,6 +91,15 @@ export function useMissionData() {
     error: missionsError 
   } = useQuery<DbMission[]>({
     queryKey: ['/api/v2/missions/active'],
+    enabled: hasAuth, // Включаем запрос только при наличии авторизации
+    retry: (failureCount, error: any) => {
+      // Не повторять при 429 ошибках
+      if (error?.status === 429) {
+        console.log('[useMissionData] Пропускаем retry для 429 ошибки');
+        return false;
+      }
+      return failureCount < 3;
+    },
     queryFn: async () => {
       console.log('🚀 Запрос активных миссий');
       
