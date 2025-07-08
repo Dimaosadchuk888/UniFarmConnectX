@@ -27,8 +27,16 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
 
   // Добавляем JWT токен из localStorage
   const token = localStorage.getItem('unifarm_jwt_token');
+  console.log('[correctApiRequest] JWT токен проверка:', {
+    tokenExists: !!token,
+    tokenLength: token?.length || 0,
+    tokenPreview: token ? token.substring(0, 50) + '...' : 'НЕТ'
+  });
+  
   if (token) {
     requestHeaders['Authorization'] = `Bearer ${token}`;
+  } else {
+    console.warn('[correctApiRequest] КРИТИЧЕСКАЯ ОШИБКА: JWT токен НЕ НАЙДЕН в localStorage');
   }
 
   // Добавляем Telegram WebApp данные если доступны

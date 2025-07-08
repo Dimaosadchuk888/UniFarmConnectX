@@ -131,7 +131,7 @@ export class FarmingService {
 
   async depositUniForFarming(telegramId: string, amount: string): Promise<{ success: boolean; message: string }> {
     try {
-      logger.info('[FarmingService] Начало депозита', { 
+      logger.info('[FarmingService] ЭТАП 1: Начало депозита', { 
         telegramId, 
         telegramIdType: typeof telegramId,
         amount,
@@ -141,7 +141,7 @@ export class FarmingService {
       const numericTelegramId = Number(telegramId);
       const user = await this.userRepository.getUserByTelegramId(numericTelegramId);
       
-      logger.info('[FarmingService] Результат поиска пользователя', { 
+      logger.info('[FarmingService] ЭТАП 2: Результат поиска пользователя', { 
         numericTelegramId,
         userFound: !!user,
         userId: user?.id,
@@ -150,99 +150,161 @@ export class FarmingService {
       });
       
       if (!user) {
+        logger.error('[FarmingService] ЭТАП 2: Пользователь не найден', { telegramId, numericTelegramId });
         return { success: false, message: 'Пользователь не найден' };
       }
 
       const depositAmount = parseFloat(amount);
       if (depositAmount <= 0) {
+        logger.error('[FarmingService] ЭТАП 3: Некорректная сумма депозита', { amount, depositAmount });
         return { success: false, message: 'Некорректная сумма депозита' };
       }
 
       const currentBalance = parseFloat(user.balance_uni || '0');
       if (currentBalance < depositAmount) {
+        logger.error('[FarmingService] ЭТАП 4: Недостаточно средств', { 
+          currentBalance, 
+          depositAmount, 
+          userId: user.id 
+        });
         return { success: false, message: 'Недостаточно средств' };
       }
 
+      logger.info('[FarmingService] ЭТАП 5: Валидация прошла успешно', {
+        userId: user.id,
+        currentBalance,
+        depositAmount,
+        validationPassed: true
+      });
+
       // Обновляем баланс через централизованный BalanceManager
-      logger.info('[FarmingService] Попытка списания баланса через BalanceManager', {
+      logger.info('[FarmingService] ЭТАП 6: Попытка списания баланса через BalanceManager', {
         userId: user.id,
         currentBalance,
         depositAmount,
         operation: 'subtract'
       });
 
-      const { balanceManager } = await import('../../core/BalanceManager');
-      const result = await balanceManager.subtractBalance(
-        user.id,
-        depositAmount,
-        0,
-        'FarmingService.depositUni'
-      );
+      try {
+        const { balanceManager } = await import('../../core/BalanceManager');
+        logger.info('[FarmingService] ЭТАП 6.1: BalanceManager импортирован успешно');
+        
+        const result = await balanceManager.subtractBalance(
+          user.id,
+          depositAmount,
+          0,
+          'FarmingService.depositUni'
+        );
 
-      logger.info('[FarmingService] Результат BalanceManager.subtractBalance', {
-        success: result.success,
-        error: result.error,
-        newBalance: result.newBalance
-      });
-
-      if (!result.success) {
-        logger.error('[FarmingService] КРИТИЧЕСКАЯ ОШИБКА: BalanceManager.subtractBalance не удался', {
-          userId: user.id,
+        logger.info('[FarmingService] ЭТАП 6.2: Результат BalanceManager.subtractBalance', {
+          success: result.success,
           error: result.error,
+          newBalance: result.newBalance
+        });
+
+        if (!result.success) {
+          logger.error('[FarmingService] ЭТАП 6.3: КРИТИЧЕСКАЯ ОШИБКА: BalanceManager.subtractBalance не удался', {
+            userId: user.id,
+            error: result.error,
+            depositAmount
+          });
+          return { success: false, message: result.error || 'Ошибка обновления баланса' };
+        }
+
+        logger.info('[FarmingService] ЭТАП 6.4: BalanceManager.subtractBalance завершен успешно', {
+          userId: user.id,
+          newBalance: result.newBalance
+        });
+
+      } catch (balanceError) {
+        logger.error('[FarmingService] ЭТАП 6.5: Исключение в BalanceManager операции', {
+          error: balanceError instanceof Error ? balanceError.message : String(balanceError),
+          stack: balanceError instanceof Error ? balanceError.stack : undefined,
+          userId: user.id,
           depositAmount
         });
-        return { success: false, message: result.error || 'Ошибка обновления баланса' };
+        throw balanceError; // Пробрасываем исключение дальше для отладки
       }
 
       // Проверяем что баланс действительно обновился
-      const updatedUser = await this.userRepository.getUserById(user.id);
-      const newBalance = parseFloat(updatedUser?.balance_uni || '0');
-      
-      logger.info('[FarmingService] Проверка обновления баланса', {
+      logger.info('[FarmingService] ЭТАП 7: Проверка обновления баланса', {
         userId: user.id,
-        balanceBeforeDeposit: currentBalance,
-        balanceAfterDeposit: newBalance,
-        expectedBalance: currentBalance - depositAmount,
-        actuallyUpdated: newBalance === (currentBalance - depositAmount)
+        currentBalance,
+        depositAmount
       });
 
-      // Обновляем депозит и данные фарминга отдельно
-      const currentDeposit = parseFloat(user.uni_deposit_amount || '0');
-      const newDepositAmount = (currentDeposit + depositAmount).toFixed(8);
+      try {
+        const updatedUser = await this.userRepository.getUserById(user.id);
+        const newBalance = parseFloat(updatedUser?.balance_uni || '0');
+        
+        logger.info('[FarmingService] ЭТАП 7.1: Баланс после обновления', {
+          userId: user.id,
+          balanceBeforeDeposit: currentBalance,
+          balanceAfterDeposit: newBalance,
+          expectedBalance: currentBalance - depositAmount,
+          actuallyUpdated: newBalance === (currentBalance - depositAmount)
+        });
 
-      logger.info('[FarmingService] Подготовка обновления депозита', { 
-        userId: user.id,
-        currentDeposit,
-        newDepositAmount,
-        farmingRate: FARMING_CONFIG.DEFAULT_RATE
-      });
+        // Обновляем депозит и данные фарминга отдельно
+        const currentDeposit = parseFloat(user.uni_deposit_amount || '0');
+        const newDepositAmount = (currentDeposit + depositAmount).toFixed(8);
 
-      const { data: updateData, error: updateError } = await supabase
-        .from(FARMING_TABLES.USERS)
-        .update({
-          uni_deposit_amount: newDepositAmount,
-          uni_farming_start_timestamp: new Date().toISOString(),
-          uni_farming_last_update: new Date().toISOString(),
-          uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE // Устанавливаем ставку фарминга
-        })
-        .eq('id', user.id)
-        .select();
+        logger.info('[FarmingService] ЭТАП 8: Подготовка обновления депозита', { 
+          userId: user.id,
+          currentDeposit,
+          newDepositAmount,
+          farmingRate: FARMING_CONFIG.DEFAULT_RATE
+        });
 
-      logger.info('[FarmingService] Результат обновления базы данных', { 
-        updateError: updateError?.message || null,
-        updatedData: updateData,
-        success: !updateError
-      });
+        const { data: updateData, error: updateError } = await supabase
+          .from(FARMING_TABLES.USERS)
+          .update({
+            uni_deposit_amount: newDepositAmount,
+            uni_farming_start_timestamp: new Date().toISOString(),
+            uni_farming_last_update: new Date().toISOString(),
+            uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE // Устанавливаем ставку фарминга
+          })
+          .eq('id', user.id)
+          .select();
 
-      if (updateError) {
-        logger.error('[FarmingService] Ошибка обновления базы данных', { 
-          error: updateError,
+        logger.info('[FarmingService] ЭТАП 8.1: Результат обновления базы данных', { 
+          updateError: updateError?.message || null,
+          updatedData: updateData,
+          success: !updateError
+        });
+
+        if (updateError) {
+          logger.error('[FarmingService] ЭТАП 8.2: Ошибка обновления базы данных', { 
+            error: updateError,
+            userId: user.id,
+            errorMessage: updateError?.message,
+            errorDetails: updateError?.details,
+            errorCode: updateError?.code
+          });
+          return { success: false, message: 'Ошибка обновления данных' };
+        }
+
+        logger.info('[FarmingService] ЭТАП 8.3: Данные пользователя обновлены успешно', {
+          userId: user.id,
+          newDepositAmount,
+          updateSuccess: true
+        });
+
+      } catch (updateError) {
+        logger.error('[FarmingService] ЭТАП 7.2: Исключение при проверке/обновлении баланса', {
+          error: updateError instanceof Error ? updateError.message : String(updateError),
+          stack: updateError instanceof Error ? updateError.stack : undefined,
           userId: user.id
         });
-        return { success: false, message: 'Ошибка обновления данных' };
+        throw updateError;
       }
 
       // Создаем транзакцию напрямую с правильными полями для Supabase
+      logger.info('[FarmingService] ЭТАП 9: Создание транзакции фарминга', {
+        userId: user.id,
+        depositAmount
+      });
+
       try {
         const transactionPayload = {
           user_id: user.id,
@@ -253,7 +315,7 @@ export class FarmingService {
           description: `UNI farming deposit: ${amount}`
         };
 
-        logger.info('[FarmingService] Создание транзакции фарминга', { 
+        logger.info('[FarmingService] ЭТАП 9.1: Подготовка payload транзакции', { 
           payload: transactionPayload,
           userId: user.id,
           depositAmount: depositAmount
@@ -266,7 +328,7 @@ export class FarmingService {
           .single();
 
         if (transactionError) {
-          logger.error('[FarmingService] Ошибка создания транзакции', { 
+          logger.error('[FarmingService] ЭТАП 9.2: Ошибка создания транзакции', { 
             error: transactionError.message,
             details: transactionError.details,
             code: transactionError.code,
@@ -282,7 +344,7 @@ export class FarmingService {
             hint: transactionError.hint
           });
         } else {
-          logger.info('[FarmingService] Транзакция фарминга успешно создана', { 
+          logger.info('[FarmingService] ЭТАП 9.3: Транзакция фарминга успешно создана', { 
             transactionId: transactionData?.id,
             type: transactionData?.type,
             amount: transactionData?.amount_uni
@@ -294,24 +356,42 @@ export class FarmingService {
           });
         }
         
-      } catch (error) {
-        logger.error('[FarmingService] Исключение при создании транзакции', { 
-          error: error instanceof Error ? error.message : String(error)
+      } catch (transactionError) {
+        logger.error('[FarmingService] ЭТАП 9.4: Исключение при создании транзакции', { 
+          error: transactionError instanceof Error ? transactionError.message : String(transactionError),
+          stack: transactionError instanceof Error ? transactionError.stack : undefined,
+          userId: user.id
         });
-        console.error('[TRANSACTION EXCEPTION]', error);
+        console.error('[TRANSACTION EXCEPTION]', transactionError);
+        throw transactionError;
       }
 
-      logger.info(`[FARMING] User ${telegramId} deposited ${amount} UNI for farming`, {
+      logger.info('[FarmingService] ЭТАП 10: УСПЕШНОЕ ЗАВЕРШЕНИЕ', {
         userId: user.id,
         amount: depositAmount,
-        newBalance,
-        newDepositAmount,
-        transactionCreated: !transactionError
+        telegramId,
+        success: true
       });
 
       return { success: true, message: 'Депозит успешно добавлен в фарминг' };
     } catch (error) {
-      logger.error('[FarmingService] Ошибка депозита UNI:', error);
+      logger.error('[FarmingService] ФИНАЛЬНЫЙ CATCH: Критическое исключение в depositUniForFarming', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        errorType: typeof error,
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        telegramId,
+        amount,
+        userId: user?.id || 'unknown'
+      });
+      
+      console.error('[CRITICAL FARMING ERROR]', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        telegramId,
+        amount
+      });
+      
       return { success: false, message: 'Ошибка при обработке депозита' };
     }
   }
