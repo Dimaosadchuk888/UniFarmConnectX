@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест депозита UNI в реальном времени</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .status-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        .status-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .status-label {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        .status-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .uni { color: #3498db; }
+        .ton { color: #f39c12; }
+        .button {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 8px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        .button:hover {
+            background: linear-gradient(45deg, #2980b9, #1f5f99);
+            transform: translateY(-2px);
+        }
+        .button:active {
+            transform: translateY(0);
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 5px solid #3498db;
+        }
+        .success {
+            border-left-color: #27ae60;
+            background: #d5f4e6;
+        }
+        .error {
+            border-left-color: #e74c3c;
+            background: #fdf2f2;
+        }
+        .warning {
+            border-left-color: #f39c12;
+            background: #fef9e7;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        .input-group input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        .live-updates {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px solid #27ae60;
+        }
+        .timestamp {
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .balance-change {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .balance-decrease {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ef5350;
+        }
+        .balance-increase {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 2px solid #66bb6a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тест депозита UNI в реальном времени</h1>
+        
+        <div class="live-updates">
+            <h3>📊 Статус пользователя ID: 62</h3>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">Баланс UNI</div>
+                    <div class="status-value uni" id="currentUniBalance">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Баланс TON</div>
+                    <div class="status-value ton" id="currentTonBalance">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Депозит в фарминге</div>
+                    <div class="status-value" id="currentFarmingDeposit">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Ставка фарминга</div>
+                    <div class="status-value" id="currentFarmingRate">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="depositAmount">Сумма депозита UNI:</label>
+            <input type="number" id="depositAmount" value="3" min="1" max="100" step="0.1">
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="button" onclick="checkCurrentStatus()">🔄 Обновить статус</button>
+            <button class="button" onclick="testWalletAPI()">🔍 Тест Wallet API</button>
+            <button class="button" onclick="testDeposit()" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">💰 Выполнить депозит</button>
+            <button class="button" onclick="checkTransactionHistory()">📜 История транзакций</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://uni-farm-connect-x-ab245275.replit.app';
+        const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYyLCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4NDgsInVzZXJuYW1lIjoicHJldmlld190ZXN0IiwiZmlyc3RfbmFtZSI6IlByZXZpZXciLCJyZWZfY29kZSI6IlJFRl8xNzUxNzgwNTIxOTE4X2UxdjYyZCIsImlhdCI6MTc1MTg3MTA2MywiZXhwIjoxNzUyNDc1ODYzfQ.NKbyJiXtLnGzyr0w-C1oR658X5TzDO6EkKU8Ie5zgE0';
+
+        let previousBalance = null;
+        let previousFarmingDeposit = null;
+
+        function addResult(title, content, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <div>${content}</div>
+                <div class="timestamp">Время: ${new Date().toLocaleString()}</div>
+            `;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function updateBalanceDisplay(farmingData, walletData) {
+            const uniBalance = farmingData ? farmingData.balance_uni : (walletData ? walletData.uniBalance : 0);
+            const tonBalance = walletData ? walletData.tonBalance : 0;
+            const farmingDeposit = farmingData ? farmingData.uni_deposit_amount : 0;
+            const farmingRate = farmingData ? farmingData.uni_farming_rate : 0;
+
+            document.getElementById('currentUniBalance').textContent = uniBalance.toFixed(3);
+            document.getElementById('currentTonBalance').textContent = tonBalance.toFixed(3);
+            document.getElementById('currentFarmingDeposit').textContent = farmingDeposit.toFixed(0);
+            document.getElementById('currentFarmingRate').textContent = (farmingRate * 100).toFixed(1) + '%';
+
+            // Проверяем изменения баланса
+            if (previousBalance !== null) {
+                const balanceChange = uniBalance - previousBalance;
+                if (Math.abs(balanceChange) > 0.001) {
+                    const changeDiv = document.createElement('div');
+                    changeDiv.className = `balance-change ${balanceChange < 0 ? 'balance-decrease' : 'balance-increase'}`;
+                    changeDiv.innerHTML = `
+                        Изменение баланса: ${balanceChange > 0 ? '+' : ''}${balanceChange.toFixed(6)} UNI
+                    `;
+                    document.getElementById('results').appendChild(changeDiv);
+                }
+            }
+
+            // Проверяем изменения депозита
+            if (previousFarmingDeposit !== null) {
+                const depositChange = farmingDeposit - previousFarmingDeposit;
+                if (Math.abs(depositChange) > 0.001) {
+                    const changeDiv = document.createElement('div');
+                    changeDiv.className = `balance-change balance-increase`;
+                    changeDiv.innerHTML = `
+                        Изменение депозита: +${depositChange.toFixed(6)} UNI
+                    `;
+                    document.getElementById('results').appendChild(changeDiv);
+                }
+            }
+
+            previousBalance = uniBalance;
+            previousFarmingDeposit = farmingDeposit;
+        }
+
+        async function checkCurrentStatus() {
+            try {
+                // Получаем данные фарминга
+                const farmingResponse = await fetch(`${API_BASE}/api/v2/uni-farming/status?user_id=62`, {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const farmingData = await farmingResponse.json();
+                
+                // Получаем данные кошелька
+                const walletResponse = await fetch(`${API_BASE}/api/v2/wallet/balance?user_id=62`, {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const walletData = await walletResponse.json();
+
+                if (farmingResponse.ok && farmingData.success) {
+                    updateBalanceDisplay(farmingData.data, walletData.success ? walletData.data : null);
+                    
+                    addResult('✅ Статус обновлен', `
+                        <div><strong>Фарминг API:</strong> ${farmingResponse.status}</div>
+                        <div><strong>Кошелек API:</strong> ${walletResponse.status}</div>
+                        <div><strong>Баланс UNI:</strong> ${farmingData.data.balance_uni}</div>
+                        <div><strong>Депозит в фарминге:</strong> ${farmingData.data.uni_deposit_amount}</div>
+                        <div><strong>Активен:</strong> ${farmingData.data.uni_farming_active ? 'Да' : 'Нет'}</div>
+                    `, 'success');
+                } else {
+                    addResult('❌ Ошибка получения статуса', `
+                        <div>Фарминг API: ${farmingResponse.status}</div>
+                        <div>Кошелек API: ${walletResponse.status}</div>
+                        <pre>${JSON.stringify(farmingData, null, 2)}</pre>
+                    `, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Ошибка сети', error.message, 'error');
+            }
+        }
+
+        async function testDeposit() {
+            const amount = parseFloat(document.getElementById('depositAmount').value);
+            
+            if (!amount || amount <= 0) {
+                addResult('❌ Неверная сумма', 'Введите корректную сумму депозита', 'error');
+                return;
+            }
+
+            // Сохраняем текущий баланс для сравнения
+            const beforeBalance = previousBalance;
+            const beforeDeposit = previousFarmingDeposit;
+
+            addResult('🔄 Выполняем депозит...', `
+                <div><strong>Сумма:</strong> ${amount} UNI</div>
+                <div><strong>Баланс до:</strong> ${beforeBalance} UNI</div>
+                <div><strong>Депозит до:</strong> ${beforeDeposit} UNI</div>
+            `, 'warning');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v2/uni-farming/deposit`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: amount.toString(),
+                        user_id: 62
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addResult('✅ Депозит выполнен успешно!', `
+                        <div><strong>Сумма:</strong> ${amount} UNI</div>
+                        <div><strong>Ответ сервера:</strong> ${data.message}</div>
+                        <div><strong>Статус:</strong> ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, 'success');
+                    
+                    // Обновляем статус через 2 секунды
+                    setTimeout(() => {
+                        checkCurrentStatus();
+                    }, 2000);
+                } else {
+                    addResult('❌ Ошибка депозита', `
+                        <div><strong>Статус:</strong> ${response.status}</div>
+                        <div><strong>Ошибка:</strong> ${data.error || 'Неизвестная ошибка'}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Ошибка запроса', error.message, 'error');
+            }
+        }
+
+        async function testWalletAPI() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v2/wallet/balance?user_id=62`, {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const responseText = await response.text();
+                
+                addResult('🔍 Wallet API Тест', `
+                    <div><strong>Статус:</strong> ${response.status}</div>
+                    <div><strong>Headers:</strong> ${JSON.stringify(Object.fromEntries(response.headers))}</div>
+                    <div><strong>Raw Response:</strong></div>
+                    <pre>${responseText}</pre>
+                    <div><strong>Длина ответа:</strong> ${responseText.length} символов</div>
+                    <div><strong>Первые 50 символов:</strong> "${responseText.substring(0, 50)}"</div>
+                `, response.ok ? 'success' : 'error');
+                
+                // Попытка парсинга JSON
+                try {
+                    const data = JSON.parse(responseText);
+                    addResult('✅ JSON Парсинг', `<pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                } catch (parseError) {
+                    addResult('❌ JSON Парсинг', `Ошибка: ${parseError.message}`, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Ошибка Wallet API', error.message, 'error');
+            }
+        }
+
+        async function checkTransactionHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v2/transactions/history?user_id=62&limit=5`, {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const transactions = data.data.transactions || [];
+                    const deposits = transactions.filter(tx => 
+                        tx.type === 'FARMING_REWARD' && parseFloat(tx.amount) < 0
+                    ).slice(0, 3);
+                    
+                    addResult('📜 Последние депозиты', `
+                        <div><strong>Всего транзакций:</strong> ${transactions.length}</div>
+                        <div><strong>Депозитов найдено:</strong> ${deposits.length}</div>
+                        <hr>
+                        ${deposits.map(tx => `
+                            <div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                                <strong>${Math.abs(tx.amount)} ${tx.currency}</strong> - ${new Date(tx.created_at).toLocaleString()}
+                                <br><small>ID: ${tx.id}, Статус: ${tx.status}</small>
+                            </div>
+                        `).join('')}
+                    `, 'success');
+                } else {
+                    addResult('❌ Ошибка транзакций', `
+                        <div>Статус: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Ошибка запроса транзакций', error.message, 'error');
+            }
+        }
+
+        // Автоматически проверяем статус при загрузке
+        window.onload = function() {
+            checkCurrentStatus();
+            
+            // Автообновление каждые 10 секунд
+            setInterval(checkCurrentStatus, 10000);
+        };
+    </script>
+</body>
+</html>

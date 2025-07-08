@@ -1,7 +1,7 @@
 import { supabase } from '../../core/supabase';
 import { SupabaseUserRepository } from '../user/service';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
-import { logger } from '../../core/logger.js';
+import { logger } from '../../core/logger';
 import { FARMING_TABLES, FARMING_CONFIG } from './model';
 import { balanceManager } from '../../core/BalanceManager';
 

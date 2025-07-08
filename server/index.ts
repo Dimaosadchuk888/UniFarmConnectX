@@ -689,7 +689,7 @@ async function startServer() {
     // Import centralized routes (after critical endpoints)
     console.log('[ROUTES] Attempting to import ./routes...');
     try {
-      const { default: apiRoutes } = await import('./routes');
+      const { default: apiRoutes } = await import('./routes_minimal');
       console.log('[ROUTES] Successfully imported routes, registering...');
       
       // Debug middleware to log all API requests

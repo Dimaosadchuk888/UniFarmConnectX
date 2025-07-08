@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express';
 import { farmingService } from './service';
-import { logger } from '../../core/logger.js';
+import { logger } from '../../core/logger';
 
 export async function directDepositHandler(req: Request, res: Response) {
   try {
