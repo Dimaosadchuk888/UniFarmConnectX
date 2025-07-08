@@ -3,223 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UniFarm JWT Token Updater</title>
+    <title>JWT Token Update - UniFarm</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: Arial, sans-serif;
             max-width: 800px;
-            margin: 40px auto;
+            margin: 50px auto;
             padding: 20px;
-            background: #f5f5f7;
-            color: #1d1d1f;
+            background: #f5f5f5;
         }
         .container {
             background: white;
-            border-radius: 12px;
             padding: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1 {
-            font-size: 28px;
-            margin-bottom: 20px;
-            color: #1d1d1f;
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
         }
-        .status {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-weight: 500;
+        .btn:hover {
+            background: #0056b3;
         }
         .success {
-            background: #d1f4d1;
-            color: #0a5d0a;
-            border: 1px solid #4caf50;
+            color: #28a745;
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
         }
         .error {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #ef5350;
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
         }
         .info {
-            background: #e3f2fd;
-            color: #1565c0;
-            border: 1px solid #42a5f5;
-        }
-        button {
-            background: #007aff;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            margin: 10px 10px 10px 0;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background: #0051d5;
-        }
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .token-info {
-            background: #f5f5f7;
+            color: #17a2b8;
+            background: #d1ecf1;
             padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            word-break: break-all;
+            border-radius: 5px;
+            margin: 10px 0;
         }
-        .user-info {
-            margin: 20px 0;
+        pre {
+            background: #f8f9fa;
             padding: 15px;
-            background: #f0f8ff;
-            border-radius: 8px;
-            border: 1px solid #b0d4ff;
-        }
-        .user-info h3 {
-            margin-top: 0;
-            color: #1565c0;
-        }
-        .user-info p {
-            margin: 5px 0;
+            border-radius: 5px;
+            overflow-x: auto;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔐 UniFarm JWT Token Updater</h1>
+        <h1>🔧 JWT Token Update Tool</h1>
+        <p><strong>Назначение:</strong> Обновление JWT токена для пользователя 62 в системе UniFarm</p>
         
-        <div class="info status">
-            <strong>ℹ️ Информация:</strong> JWT авторизация исправлена. Используйте этот инструмент для обновления токена в браузере.
-        </div>
-
-        <div id="currentStatus" class="status"></div>
-
-        <div class="user-info">
-            <h3>Данные пользователя в токене:</h3>
-            <p><strong>User ID:</strong> 62</p>
-            <p><strong>Telegram ID:</strong> 88888848</p>
-            <p><strong>Username:</strong> preview_test</p>
-            <p><strong>Имя:</strong> Preview</p>
-            <p><strong>Реферальный код:</strong> REF_1751780521918_e1v62d</p>
-        </div>
-
-        <button onclick="updateToken()">🔄 Обновить JWT токен</button>
-        <button onclick="checkCurrentToken()">🔍 Проверить текущий токен</button>
-        <button onclick="clearToken()">🗑️ Удалить токен</button>
-        <button onclick="openApp()">🚀 Открыть приложение</button>
-
-        <div id="tokenInfo" class="token-info" style="display: none;"></div>
+        <div id="status"></div>
+        
+        <h3>Текущий статус</h3>
+        <div id="current-status">Проверка...</div>
+        
+        <h3>Действия</h3>
+        <button class="btn" onclick="updateJWTToken()">🔄 Обновить JWT токен</button>
+        <button class="btn" onclick="checkTokenStatus()">🔍 Проверить статус токена</button>
+        <button class="btn" onclick="testAPIEndpoint()">🧪 Тест API</button>
+        
+        <h3>Логи</h3>
+        <pre id="logs"></pre>
     </div>
 
     <script>
-        // Новый JWT токен
-        const NEW_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYyLCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4NDgsInVzZXJuYW1lIjoicHJldmlld190ZXN0IiwiZmlyc3RfbmFtZSI6IlByZXZpZXciLCJyZWZfY29kZSI6IlJFRl8xNzUxNzgwNTIxOTE4X2UxdjYyZCIsImlhdCI6MTc1MTg3MTA2MywiZXhwIjoxNzUyNDc1ODYzfQ.NKbyJiXtLnGzyr0w-C1oR658X5TzDO6EkKU8Ie5zgE0';
-
-        function updateStatus(message, type = 'info') {
-            const statusEl = document.getElementById('currentStatus');
-            statusEl.className = `status ${type}`;
-            statusEl.innerHTML = message;
-        }
-
-        function parseJWT(token) {
-            try {
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                return JSON.parse(jsonPayload);
-            } catch (e) {
-                return null;
-            }
-        }
-
-        function checkCurrentToken() {
-            const currentToken = localStorage.getItem('unifarm_jwt_token');
-            const tokenInfoEl = document.getElementById('tokenInfo');
-            
-            if (!currentToken) {
-                updateStatus('❌ JWT токен не найден в localStorage', 'error');
-                tokenInfoEl.style.display = 'none';
-                return;
-            }
-
-            const decoded = parseJWT(currentToken);
-            if (!decoded) {
-                updateStatus('⚠️ Невалидный JWT токен в localStorage', 'error');
-                tokenInfoEl.style.display = 'none';
-                return;
-            }
-
-            const expiryDate = new Date(decoded.exp * 1000);
-            const now = new Date();
-            const isExpired = expiryDate < now;
-
-            tokenInfoEl.style.display = 'block';
-            tokenInfoEl.innerHTML = `
-                <strong>Текущий токен:</strong><br>
-                User ID: ${decoded.userId || 'не указан'}<br>
-                Username: ${decoded.username || 'не указан'}<br>
-                Действителен до: ${expiryDate.toLocaleString('ru-RU')}<br>
-                Статус: ${isExpired ? '❌ Истек' : '✅ Активен'}
-            `;
-
-            if (isExpired) {
-                updateStatus('⚠️ Токен истек, необходимо обновить', 'error');
-            } else {
-                updateStatus(`✅ Токен активен для пользователя ${decoded.username} (ID: ${decoded.userId})`, 'success');
-            }
-        }
-
-        function updateToken() {
-            try {
-                localStorage.setItem('unifarm_jwt_token', NEW_TOKEN);
-                updateStatus('✅ JWT токен успешно обновлен!', 'success');
-                
-                // Показываем информацию о новом токене
-                const decoded = parseJWT(NEW_TOKEN);
-                const tokenInfoEl = document.getElementById('tokenInfo');
-                tokenInfoEl.style.display = 'block';
-                tokenInfoEl.innerHTML = `
-                    <strong>Установлен новый токен:</strong><br>
-                    User ID: ${decoded.userId}<br>
-                    Username: ${decoded.username}<br>
-                    Telegram ID: ${decoded.telegram_id}<br>
-                    Ref Code: ${decoded.ref_code}<br>
-                    Действителен до: ${new Date(decoded.exp * 1000).toLocaleString('ru-RU')}
-                `;
-                
-                setTimeout(() => {
-                    if (confirm('Токен обновлен. Перезагрузить страницу?')) {
-                        window.location.reload();
-                    }
-                }, 1000);
-            } catch (error) {
-                updateStatus(`❌ Ошибка обновления токена: ${error.message}`, 'error');
-            }
-        }
-
-        function clearToken() {
-            if (confirm('Вы уверены, что хотите удалить JWT токен?')) {
-                localStorage.removeItem('unifarm_jwt_token');
-                updateStatus('✅ JWT токен удален из localStorage', 'success');
-                document.getElementById('tokenInfo').style.display = 'none';
-            }
-        }
-
-        function openApp() {
-            window.open(window.location.origin, '_blank');
-        }
-
-        // Проверяем токен при загрузке
-        window.onload = () => {
-            checkCurrentToken();
+        const log = (message) => {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logs.textContent += `[${timestamp}] ${message}\n`;
+            logs.scrollTop = logs.scrollHeight;
         };
+
+        const showStatus = (message, type = 'info') => {
+            const status = document.getElementById('status');
+            status.innerHTML = `<div class="${type}">${message}</div>`;
+        };
+
+        const updateCurrentStatus = (message) => {
+            document.getElementById('current-status').innerHTML = message;
+        };
+
+        // Новый JWT токен для user_id=62 (срок действия 7 дней)
+        const newJWTToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYyLCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4NDgsInVzZXJuYW1lIjoicHJldmlld190ZXN0IiwiZmlyc3RfbmFtZSI6IlByZXZpZXciLCJyZWZfY29kZSI6IlJFRl8xNzUxNzgwNTIxOTE4X2UxdjYyZCIsImlhdCI6MTc1MTk5MzUzNiwiZXhwIjoxNzUyNTk4MzM2fQ.LNbvVJRm8-xrqVgVN6J8QbNGhXGKcQiGIVQ6YqnLhqE';
+
+        function updateJWTToken() {
+            log('Начинаю обновление JWT токена...');
+            
+            try {
+                // Очистка старого токена
+                localStorage.removeItem('unifarm_jwt_token');
+                localStorage.removeItem('telegramJWT');
+                log('Старые токены удалены');
+                
+                // Установка нового токена
+                localStorage.setItem('unifarm_jwt_token', newJWTToken);
+                log('Новый JWT токен установлен');
+                
+                showStatus('✅ JWT токен успешно обновлен!', 'success');
+                
+                // Проверка установки
+                const savedToken = localStorage.getItem('unifarm_jwt_token');
+                if (savedToken && savedToken === newJWTToken) {
+                    log('Подтверждение: токен сохранен в localStorage');
+                    updateCurrentStatus('<span style="color: green;">✅ Токен активен</span>');
+                } else {
+                    log('ОШИБКА: токен не сохранился');
+                    showStatus('❌ Ошибка сохранения токена', 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка при обновлении токена: ${error.message}`);
+                showStatus(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        function checkTokenStatus() {
+            log('Проверяю статус токена...');
+            
+            const token = localStorage.getItem('unifarm_jwt_token');
+            if (!token) {
+                log('Токен не найден в localStorage');
+                updateCurrentStatus('<span style="color: red;">❌ Токен отсутствует</span>');
+                showStatus('❌ JWT токен не найден', 'error');
+                return;
+            }
+            
+            try {
+                // Декодирование JWT токена
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                log(`Токен найден для пользователя: ${payload.userId}`);
+                log(`Telegram ID: ${payload.telegram_id}`);
+                log(`Username: ${payload.username}`);
+                log(`Срок действия: ${new Date(payload.exp * 1000).toLocaleString()}`);
+                
+                // Проверка срока действия
+                const now = Date.now() / 1000;
+                if (payload.exp > now) {
+                    updateCurrentStatus('<span style="color: green;">✅ Токен активен</span>');
+                    showStatus('✅ JWT токен действителен', 'success');
+                } else {
+                    updateCurrentStatus('<span style="color: red;">❌ Токен истек</span>');
+                    showStatus('❌ JWT токен истек', 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка при декодировании токена: ${error.message}`);
+                updateCurrentStatus('<span style="color: red;">❌ Токен поврежден</span>');
+                showStatus(`❌ Ошибка декодирования: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAPIEndpoint() {
+            log('Тестирую API endpoint...');
+            
+            const token = localStorage.getItem('unifarm_jwt_token');
+            if (!token) {
+                log('Токен не найден для тестирования');
+                showStatus('❌ Сначала обновите токен', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/v2/wallet/balance?user_id=62', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                log(`API ответ: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`Данные пользователя: ${JSON.stringify(data.data, null, 2)}`);
+                    showStatus('✅ API тест прошел успешно', 'success');
+                } else {
+                    const errorData = await response.json();
+                    log(`Ошибка API: ${JSON.stringify(errorData, null, 2)}`);
+                    showStatus(`❌ API ошибка: ${response.status}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка при тестировании API: ${error.message}`);
+                showStatus(`❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+
+        // Автоматическая проверка при загрузке страницы
+        window.addEventListener('load', () => {
+            log('Система JWT Token Updater загружена');
+            checkTokenStatus();
+        });
     </script>
 </body>
 </html>
