@@ -2,7 +2,7 @@ import express from 'express';
 import { BoostController } from './controller';
 import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
 import { validateBody, validateParams } from '../../core/middleware/validate';
-import { strictRateLimit, standardRateLimit, liberalRateLimit, internalRateLimit } from '../../core/middleware/rateLimiting';
+import { strictRateLimit, standardRateLimit, liberalRateLimit, massOperationsRateLimit } from '../../core/middleware/rateLimiting';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -53,13 +53,13 @@ router.get('/stats/:userId', requireTelegramAuth, liberalRateLimit, validatePara
 // GET /api/boosts/packages - Получить доступные пакеты бустов
 router.get('/packages', requireTelegramAuth, liberalRateLimit, boostController.getPackages.bind(boostController));
 
-// POST /api/boosts/purchase - Покупка Boost-пакета (используем internalRateLimit для массовых операций)
-router.post('/purchase', requireTelegramAuth, internalRateLimit, validateBody(boostPurchaseSchema), boostController.purchaseBoost.bind(boostController));
+// POST /api/boosts/purchase - Покупка Boost-пакета (используем massOperationsRateLimit для массовых операций)
+router.post('/purchase', requireTelegramAuth, massOperationsRateLimit, validateBody(boostPurchaseSchema), boostController.purchaseBoost.bind(boostController));
 
 // POST /api/boosts/verify-ton-payment - Проверка и подтверждение TON платежа (оставляем строгий лимит для безопасности)
 router.post('/verify-ton-payment', requireTelegramAuth, strictRateLimit, validateBody(tonPaymentSchema), boostController.verifyTonPayment.bind(boostController));
 
-// GET /api/boosts/farming-status - Получить статус TON Boost фарминга для дашборда (используем internalRateLimit для частых обновлений)
-router.get('/farming-status', requireTelegramAuth, internalRateLimit, boostController.getFarmingStatus.bind(boostController));
+// GET /api/boosts/farming-status - Получить статус TON Boost фарминга для дашборда (используем massOperationsRateLimit для частых обновлений)
+router.get('/farming-status', requireTelegramAuth, massOperationsRateLimit, boostController.getFarmingStatus.bind(boostController));
 
 export default router;

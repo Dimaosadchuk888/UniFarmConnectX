@@ -1,7 +1,7 @@
 import express, { Request, Response, Router } from 'express';
 import { DailyBonusController } from './controller';
 import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
-import { internalRateLimit, liberalRateLimit } from '../../core/middleware/rateLimiting';
+import { massOperationsRateLimit, liberalRateLimit } from '../../core/middleware/rateLimiting';
 import { supabase } from '../../core/supabase';
 
 const router: Router = express.Router();
@@ -91,8 +91,8 @@ router.get('/demo', liberalRateLimit, (req: Request, res: Response) => {
 // GET /api/daily-bonus/:userId - Получить информацию о ежедневном бонусе пользователя
 router.get('/:userId', requireTelegramAuth, liberalRateLimit, dailyBonusController.getDailyBonusInfo.bind(dailyBonusController));
 
-// POST /api/daily-bonus/claim - Забрать ежедневный бонус (используем internalRateLimit для частых операций)
-router.post('/claim', requireTelegramAuth, internalRateLimit, dailyBonusController.claimDailyBonus.bind(dailyBonusController));
+// POST /api/daily-bonus/claim - Забрать ежедневный бонус (используем massOperationsRateLimit для частых операций)
+router.post('/claim', requireTelegramAuth, massOperationsRateLimit, dailyBonusController.claimDailyBonus.bind(dailyBonusController));
 
 // GET /api/daily-bonus/:userId/calendar - Получить календарь ежедневных бонусов
 router.get('/:userId/calendar', requireTelegramAuth, liberalRateLimit, dailyBonusController.getDailyBonusCalendar.bind(dailyBonusController));

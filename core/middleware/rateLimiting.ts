@@ -158,6 +158,28 @@ export const liberalRateLimit = createRateLimit({
   message: 'Слишком много запросов на чтение. Попробуйте через 15 минут'
 });
 
+// Специальный rate limiter для массовых операций (максимально либеральный)
+export const massOperationsRateLimit = createRateLimitWithSkip({
+  windowMs: 1 * 60 * 1000, // 1 минута
+  max: 10000, // 10000 запросов в минуту
+  message: 'Слишком много массовых запросов',
+  skipSuccessfulRequests: true
+}, (req) => {
+  // Всегда пропускаем запросы с Bearer токеном для массовых операций
+  const authHeader = req.headers.authorization;
+  const hasValidAuth = authHeader && authHeader.startsWith('Bearer ');
+  
+  if (hasValidAuth) {
+    logger.info('[RateLimit] Пропуск массовых операций для Bearer токена', {
+      path: req.path,
+      method: req.method
+    });
+    return true;
+  }
+  
+  return false;
+});
+
 // Специальный rate limiter для внутренних API (транзакции, фарминг, баланс)
 export const internalRateLimit = createRateLimitWithSkip({
   windowMs: 5 * 60 * 1000, // 5 минут

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { WalletController } from './controller';
 import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
 import { validateBody, validateParams } from '../../core/middleware/validate';
-import { strictRateLimit, liberalRateLimit, internalRateLimit } from '../../core/middleware/rateLimiting';
+import { strictRateLimit, liberalRateLimit, massOperationsRateLimit } from '../../core/middleware/rateLimiting';
 import { getDirectBalance } from './directBalanceHandler';
 import { z } from 'zod';
 
@@ -43,14 +43,14 @@ const depositSchema = z.object({
   wallet_address: z.string().optional()
 });
 
-// Простой обработчик для получения баланса по user_id - используем internalRateLimit для частых обновлений
-router.get('/balance', internalRateLimit, getDirectBalance);
+// Простой обработчик для получения баланса по user_id - используем massOperationsRateLimit для частых обновлений
+router.get('/balance', massOperationsRateLimit, getDirectBalance);
 
 // Маршруты кошелька с обязательной авторизацией, валидацией и оптимизированным rate limiting
 router.get('/', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController));
 router.get('/data', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController)); // Alias для Telegram авторизации
-router.get('/:userId/transactions', requireTelegramAuth, internalRateLimit, validateParams(userIdSchema), walletController.getTransactions.bind(walletController));
-router.post('/deposit', requireTelegramAuth, internalRateLimit, validateBody(depositSchema), walletController.createDeposit.bind(walletController));
+router.get('/:userId/transactions', requireTelegramAuth, massOperationsRateLimit, validateParams(userIdSchema), walletController.getTransactions.bind(walletController));
+router.post('/deposit', requireTelegramAuth, massOperationsRateLimit, validateBody(depositSchema), walletController.createDeposit.bind(walletController));
 router.post('/withdraw', requireTelegramAuth, strictRateLimit, validateBody(withdrawSchema), walletController.withdraw.bind(walletController)); // Оставляем строгий лимит для выводов
 
 export default router;
