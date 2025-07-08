@@ -95,16 +95,30 @@ export class BalanceManager {
       }
 
       // Обновляем баланс в базе данных
+      logger.info('[BalanceManager] Попытка обновления баланса в Supabase', {
+        user_id,
+        newUniBalance: newUniBalance.toFixed(6),
+        newTonBalance: newTonBalance.toFixed(6),
+        operation
+      });
+
       const { data: updatedUser, error: updateError } = await supabase
         .from('users')
         .update({
-          balance_uni: newUniBalance.toFixed(6),
-          balance_ton: newTonBalance.toFixed(6),
+          balance_uni: parseFloat(newUniBalance.toFixed(6)), // Отправляем как число для NUMERIC типа
+          balance_ton: parseFloat(newTonBalance.toFixed(6)), // Отправляем как число для NUMERIC типа
           last_active: new Date().toISOString()
         })
         .eq('id', user_id)
         .select('id, balance_uni, balance_ton, last_active')
         .single();
+
+      logger.info('[BalanceManager] Результат обновления в Supabase', {
+        user_id,
+        updateError: updateError?.message || null,
+        updatedUser: updatedUser || null,
+        success: !updateError
+      });
 
       if (updateError) {
         logger.error('[BalanceManager] Ошибка обновления баланса в БД:', {

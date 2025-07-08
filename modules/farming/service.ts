@@ -164,6 +164,13 @@ export class FarmingService {
       }
 
       // Обновляем баланс через централизованный BalanceManager
+      logger.info('[FarmingService] Попытка списания баланса через BalanceManager', {
+        userId: user.id,
+        currentBalance,
+        depositAmount,
+        operation: 'subtract'
+      });
+
       const { balanceManager } = await import('../../core/BalanceManager');
       const result = await balanceManager.subtractBalance(
         user.id,
@@ -172,9 +179,32 @@ export class FarmingService {
         'FarmingService.depositUni'
       );
 
+      logger.info('[FarmingService] Результат BalanceManager.subtractBalance', {
+        success: result.success,
+        error: result.error,
+        newBalance: result.newBalance
+      });
+
       if (!result.success) {
+        logger.error('[FarmingService] КРИТИЧЕСКАЯ ОШИБКА: BalanceManager.subtractBalance не удался', {
+          userId: user.id,
+          error: result.error,
+          depositAmount
+        });
         return { success: false, message: result.error || 'Ошибка обновления баланса' };
       }
+
+      // Проверяем что баланс действительно обновился
+      const updatedUser = await this.userRepository.getUserById(user.id);
+      const newBalance = parseFloat(updatedUser?.balance_uni || '0');
+      
+      logger.info('[FarmingService] Проверка обновления баланса', {
+        userId: user.id,
+        balanceBeforeDeposit: currentBalance,
+        balanceAfterDeposit: newBalance,
+        expectedBalance: currentBalance - depositAmount,
+        actuallyUpdated: newBalance === (currentBalance - depositAmount)
+      });
 
       // Обновляем депозит и данные фарминга отдельно
       const currentDeposit = parseFloat(user.uni_deposit_amount || '0');
