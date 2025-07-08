@@ -248,15 +248,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         // Если нет JWT токена в localStorage, пытаемся авторизоваться
         const currentToken = localStorage.getItem('unifarm_jwt_token');
-        if (!currentToken && userData.telegram_id) {
+        if (!currentToken && userData.user?.telegram_id) {
           console.log('[UserContext] JWT токен не найден, выполняем авторизацию...');
           
           try {
             const authResponse = await correctApiRequest('/api/v2/auth/telegram', 'POST', {
               direct_registration: true,
-              telegram_id: userData.telegram_id,
-              username: userData.username || 'user',
-              first_name: userData.first_name || 'User'
+              telegram_id: userData.user.telegram_id,
+              username: userData.user.username || 'user',
+              first_name: userData.user.first_name || 'User'
             });
             
             if (authResponse.success && authResponse.data?.token) {
@@ -271,15 +271,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         dispatch({
           type: 'SET_USER_DATA',
           payload: {
-            userId: userData.id || null,
-            username: userData.username || null,
+            userId: userData.user?.id || null,
+            username: userData.user?.username || null,
             guestId: userData.guest_id || null,
-            telegramId: userData.telegram_id || null,
-            refCode: userData.ref_code || null
+            telegramId: userData.user?.telegram_id || null,
+            refCode: userData.user?.ref_code || null
           }
         });
         
-        console.log('[UserContext] Состояние обновлено, userId:', userData.id);
+        console.log('[UserContext] Состояние обновлено, userId:', userData.user?.id);
         
         dispatch({ type: 'SET_ERROR', payload: null });
         
@@ -287,9 +287,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         try {
           localStorage.setItem('unifarm_last_session', JSON.stringify({
             timestamp: new Date().toISOString(),
-            user_id: userData.id,
-            username: userData.username || null,
-            refCode: userData.ref_code || null
+            user_id: userData.user?.id,
+            username: userData.user?.username || null,
+            refCode: userData.user?.ref_code || null
           }));
         } catch (e) {
           console.warn('[UserContext] Ошибка при сохранении данных пользователя в localStorage:', e);
