@@ -363,7 +363,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   
   // Обновление баланса
   const refreshBalance = useCallback(async (forceRefresh: boolean = false) => {
-    if (refreshInProgressRef.current || !state.userId) {
+    // Убираем раннюю проверку !state.userId чтобы устранить race condition
+    if (refreshInProgressRef.current) {
+      return;
+    }
+    
+    // Проверяем userId непосредственно перед использованием
+    const currentUserId = state.userId;
+    if (!currentUserId) {
+      console.log('[UserContext] refreshBalance: userId не установлен, пропускаем запрос');
       return;
     }
     
@@ -372,12 +380,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     try {
       // Используем улучшенный сервис с поддержкой forceRefresh
-      console.log('[UserContext] Запрос баланса с forceRefresh:', forceRefresh);
-      const balance = await fetchBalance(state.userId, forceRefresh);
+      console.log('[UserContext] Запрос баланса для userId:', currentUserId, 'с forceRefresh:', forceRefresh);
+      const balance = await fetchBalance(currentUserId, forceRefresh);
       
       // Обновляем состояние баланса
       dispatch({ type: 'SET_BALANCE', payload: balance });
       dispatch({ type: 'SET_ERROR', payload: null });
+      console.log('[UserContext] refreshBalance успешно обновил баланс:', balance);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Ошибка получения баланса');
       console.error('[UserContext] Ошибка получения баланса:', error);
