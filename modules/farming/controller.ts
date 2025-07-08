@@ -214,6 +214,36 @@ export class FarmingController extends BaseController {
     }
   }
 
+  async stopFarming(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        // Автоматическая регистрация пользователя
+        const user = await userRepository.getOrCreateUserFromTelegram({
+          telegram_id: telegram.user.id,
+          username: telegram.user.username,
+          first_name: telegram.user.first_name,
+          ref_by: req.query.start_param as string
+        });
+
+        const result = await farmingService.stopFarming(
+          telegram.user.id.toString()
+        );
+
+        logger.info('[Farming] Остановка фарминга для пользователя', {
+          telegram_id: telegram.user.id,
+          result: result
+        });
+
+        this.sendSuccess(res, result);
+      }, 'остановки фарминга');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getFarmingHistory(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {

@@ -386,6 +386,64 @@ export class AuthService {
   }
 
   /**
+   * Обновление JWT токена
+   */
+  async refreshToken(token: string): Promise<{ success: boolean; newToken?: string; user?: User; error?: string }> {
+    try {
+      const validation = await this.validateToken(token);
+      if (!validation.valid || !validation.payload) {
+        return {
+          success: false,
+          error: validation.error || 'Невалидный токен для обновления'
+        };
+      }
+
+      // Получаем пользователя из базы данных
+      const userInfo = await this.findByTelegramId(validation.payload.telegram_id);
+      if (!userInfo) {
+        return {
+          success: false,
+          error: 'Пользователь не найден'
+        };
+      }
+
+      // Создаем новый токен
+      const telegramUser: TelegramUser = {
+        id: validation.payload.telegram_id,
+        first_name: validation.payload.first_name || 'User',
+        username: validation.payload.username
+      };
+
+      const userForToken = {
+        ...telegramUser,
+        id: userInfo.id,
+        telegram_id: userInfo.telegram_id
+      };
+
+      const newToken = generateJWTToken(userForToken, userInfo.ref_code);
+
+      logger.info('[AuthService] Токен успешно обновлен', { 
+        userId: userInfo.id, 
+        telegram_id: userInfo.telegram_id 
+      });
+
+      return {
+        success: true,
+        newToken,
+        user: userInfo as User
+      };
+    } catch (error) {
+      logger.error('[AuthService] Ошибка обновления токена', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      return {
+        success: false,
+        error: 'Ошибка обновления токена'
+      };
+    }
+  }
+
+  /**
    * Выход из системы (очистка клиентского токена)
    */
   async logout(): Promise<{ success: boolean }> {

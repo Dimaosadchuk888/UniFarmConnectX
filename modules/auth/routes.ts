@@ -46,6 +46,10 @@ const tokenValidationSchema = z.object({
   token: z.string().min(1, 'Token is required')
 });
 
+const refreshTokenSchema = z.object({
+  token: z.string().min(1, 'Token is required')
+});
+
 // POST /api/auth/telegram - Аутентификация через Telegram (строгий лимит для публичного endpoint)
 router.post('/telegram', strictRateLimit, validateBody(telegramAuthSchema), authController.authenticateTelegram.bind(authController));
 
@@ -57,6 +61,9 @@ router.get('/check', liberalRateLimit, authController.checkToken.bind(authContro
 
 // POST /api/auth/validate - Проверка валидности токена (либеральный лимит для проверок)
 router.post('/validate', liberalRateLimit, validateBody(tokenValidationSchema), authController.validateToken.bind(authController));
+
+// POST /api/auth/refresh - Обновление JWT токена (либеральный лимит для проверок)
+router.post('/refresh', liberalRateLimit, validateBody(refreshTokenSchema), authController.refreshToken.bind(authController));
 
 // POST /api/auth/logout - Выход из системы (либеральный лимит)
 router.post('/logout', liberalRateLimit, authController.logout.bind(authController));

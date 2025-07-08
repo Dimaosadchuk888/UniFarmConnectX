@@ -35,6 +35,7 @@ router.get('/info', requireTelegramAuth, liberalRateLimit, farmingController.get
 router.get('/status', requireTelegramAuth, massOperationsRateLimit, farmingController.getFarmingInfo.bind(farmingController)); // Используем massOperationsRateLimit для частых обновлений статуса
 router.post('/start', requireTelegramAuth, massOperationsRateLimit, validateBody(farmingStartSchema), farmingController.startFarming.bind(farmingController));
 router.get('/start', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingInfo.bind(farmingController)); // GET endpoint for start status
+router.post('/stop', requireTelegramAuth, massOperationsRateLimit, farmingController.stopFarming.bind(farmingController));
 router.post('/claim', requireTelegramAuth, massOperationsRateLimit, farmingController.claimFarming.bind(farmingController));
 
 // UNI Farming specific routes с валидацией депозитов (используем massOperationsRateLimit для массовых операций)

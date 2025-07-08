@@ -355,4 +355,70 @@ export class UserController extends BaseController {
       }
     }, 'восстановления реферального кода');
   }
+
+  /**
+   * Получение баланса пользователя
+   */
+  async getBalance(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const user = (req as any).user;
+      if (!user) {
+        return this.sendError(res, 'User not found', 404);
+      }
+
+      const userInfo = await userRepository.findUserById(user.id);
+      
+      if (!userInfo) {
+        return this.sendError(res, 'User not found', 404);
+      }
+
+      this.sendSuccess(res, {
+        user_id: userInfo.id,
+        balance_uni: userInfo.balance_uni,
+        balance_ton: userInfo.balance_ton,
+        updated_at: new Date().toISOString()
+      });
+    }, 'получения баланса пользователя');
+  }
+
+  /**
+   * Получение сессий пользователя
+   */
+  async getSessions(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const user = (req as any).user;
+      if (!user) {
+        return this.sendError(res, 'User not found', 404);
+      }
+
+      // Заглушка для сессий (для базовой реализации)
+      this.sendSuccess(res, {
+        sessions: [{
+          id: 1,
+          user_id: user.id,
+          created_at: new Date().toISOString(),
+          last_activity: new Date().toISOString(),
+          device_info: 'Telegram Web App'
+        }]
+      });
+    }, 'получения сессий пользователя');
+  }
+
+  /**
+   * Очистка сессий пользователя
+   */
+  async clearSessions(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const user = (req as any).user;
+      if (!user) {
+        return this.sendError(res, 'User not found', 404);
+      }
+
+      // Заглушка для очистки сессий (для базовой реализации)
+      this.sendSuccess(res, {
+        message: 'Сессии успешно очищены',
+        cleared_at: new Date().toISOString()
+      });
+    }, 'очистки сессий пользователя');
+  }
 }

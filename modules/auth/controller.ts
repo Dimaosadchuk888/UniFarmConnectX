@@ -212,6 +212,35 @@ export class AuthController extends BaseController {
   }
 
   /**
+   * Обновление JWT токена
+   */
+  async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const { token } = req.body;
+        
+        if (!token) {
+          return this.sendError(res, 'Токен для обновления не предоставлен', 400);
+        }
+
+        const result = await this.authService.refreshToken(token);
+        
+        if (result.success) {
+          this.sendSuccess(res, {
+            token: result.newToken,
+            user: result.user,
+            refreshed_at: new Date().toISOString()
+          });
+        } else {
+          this.sendError(res, result.error || 'Не удалось обновить токен', 401);
+        }
+      }, 'обновления токена');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Выход из системы (очистка клиентского токена)
    */
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {

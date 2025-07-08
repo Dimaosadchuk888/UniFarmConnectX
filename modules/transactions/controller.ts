@@ -108,4 +108,126 @@ export class TransactionsController extends BaseController {
       this.handleControllerError(error, res, 'создания тестовой TON транзакции');
     }
   }
+
+  /**
+   * Получение истории транзакций пользователя
+   */
+  async getTransactionHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const { page = 1, limit = 20, type } = req.query;
+        
+        const userRepository = new SupabaseUserRepository();
+        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        
+        if (!user) {
+          return this.sendError(res, 'Пользователь не найден', 404);
+        }
+        
+        const result = await transactionsService.getTransactionHistory(
+          user.id.toString(),
+          parseInt(page as string),
+          parseInt(limit as string),
+          type as string
+        );
+
+        this.sendSuccess(res, result);
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Получение истории изменений баланса
+   */
+  async getBalanceHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const userRepository = new SupabaseUserRepository();
+        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        
+        if (!user) {
+          return this.sendError(res, 'Пользователь не найден', 404);
+        }
+        
+        this.sendSuccess(res, {
+          current_balance: {
+            uni: user.balance_uni,
+            ton: user.balance_ton
+          },
+          last_updated: new Date().toISOString()
+        });
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Создание новой транзакции
+   */
+  async createTransaction(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const { type, amount_uni, amount_ton, description } = req.body;
+        
+        if (!type || (!amount_uni && !amount_ton)) {
+          return this.sendError(res, 'Тип транзакции и сумма обязательны', 400);
+        }
+
+        const userRepository = new SupabaseUserRepository();
+        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        
+        if (!user) {
+          return this.sendError(res, 'Пользователь не найден', 404);
+        }
+
+        const result = await transactionsService.createTransaction({
+          user_id: user.id,
+          type,
+          amount_uni: amount_uni || '0',
+          amount_ton: amount_ton || '0',
+          description: description || ''
+        });
+
+        this.sendSuccess(res, result);
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Получение статистики транзакций
+   */
+  async getTransactionStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const userRepository = new SupabaseUserRepository();
+        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        
+        if (!user) {
+          return this.sendError(res, 'Пользователь не найден', 404);
+        }
+
+        const stats = await transactionsService.getTransactionStats(user.id);
+        this.sendSuccess(res, stats);
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
