@@ -106,11 +106,10 @@ export class BalanceManager {
         .from('users')
         .update({
           balance_uni: parseFloat(newUniBalance.toFixed(6)), // Отправляем как число для NUMERIC типа
-          balance_ton: parseFloat(newTonBalance.toFixed(6)), // Отправляем как число для NUMERIC типа
-          last_active: new Date().toISOString()
+          balance_ton: parseFloat(newTonBalance.toFixed(6)) // Отправляем как число для NUMERIC типа
         })
         .eq('id', user_id)
-        .select('id, balance_uni, balance_ton, last_active')
+        .select('id, balance_uni, balance_ton')
         .single();
 
       logger.info('[BalanceManager] Результат обновления в Supabase', {
@@ -132,7 +131,7 @@ export class BalanceManager {
         user_id: updatedUser.id,
         balance_uni: parseFloat(updatedUser.balance_uni),
         balance_ton: parseFloat(updatedUser.balance_ton),
-        last_updated: updatedUser.last_active
+        last_updated: new Date().toISOString()
       };
 
       // Логируем успешное обновление с деталями изменений

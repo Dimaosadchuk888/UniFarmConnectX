@@ -25,7 +25,7 @@ interface FarmingInfo {
 
 const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const queryClient = useQueryClient();
-  const { userId, refreshBalance } = useUser(); // Получаем ID пользователя и функцию обновления баланса из контекста
+  const { userId, refreshBalance, uniBalance } = useUser(); // Получаем ID пользователя, функцию обновления баланса и текущий баланс из контекста
   const { success, error: showError } = useNotification(); // Для показа уведомлений
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -250,14 +250,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
       return correctApiRequest('/api/v2/uni-farming/deposit', 'POST', requestBody);
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       try {
         // Очищаем форму и сообщение об ошибке
         setDepositAmount('');
         setError(null);
-
-        // Показываем уведомление об успешном создании депозита
-        success('Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!');
 
         // Логируем успешный депозит
         if (response?.data?.newBalance) {
@@ -274,14 +271,17 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // 1. Обновляем баланс в UserContext (приоритет)
         if (refreshBalance) {
           console.log('[INFO] Обновляем баланс через UserContext');
-          refreshBalance(true); // Принудительное обновление без кэша
+          await refreshBalance(true); // Ждем обновления
         }
         
-        // 2. Обновляем кэш React Query
-        queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile', userId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance', userId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/v2/uni-farming/status', userId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions', userId] });
+        // 2. Обновляем кэш React Query после обновления контекста
+        await queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile', userId] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance', userId] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/v2/uni-farming/status', userId] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions', userId] });
+        
+        // Показываем уведомление об успешном создании депозита ПОСЛЕ обновления данных
+        success('Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!');
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess depositMutation:', error);
         // Даже в случае ошибки отображаем успех
@@ -379,12 +379,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           return;
         }
 
-        // Получаем и проверяем баланс пользователя
+        // Получаем и проверяем баланс пользователя из UserContext
         let balance: BigNumber;
         try {
-          const balanceStr = userData?.balance_uni;
+          // Используем баланс из useUser hook вместо userData prop
+          const balanceStr = uniBalance;
+          
           if (balanceStr === undefined || balanceStr === null) {
-            console.error('Не удалось получить баланс пользователя');
+            console.error('Не удалось получить баланс пользователя из UserContext');
             setError('Не удалось получить информацию о балансе');
             setIsSubmitting(false);
             return;
