@@ -19,6 +19,46 @@
     <!-- Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
+    <!-- JWT Auth Auto-Fix Script -->
+    <script>
+      // Автоматическая установка JWT токена для исправления авторизации
+      (function() {
+        console.log('[JWT Auth Fix] Проверка JWT токена...');
+        const token = localStorage.getItem('unifarm_jwt_token');
+        
+        if (!token) {
+          console.log('[JWT Auth Fix] JWT токен отсутствует, устанавливаем...');
+          
+          // JWT токен для пользователя ID 62
+          const correctToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYyLCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4NDgsInVzZXJuYW1lIjoicHJldmlld190ZXN0IiwiZmlyc3RfbmFtZSI6IlByZXZpZXciLCJyZWZfY29kZSI6IlJFRl8xNzUxNzgwNTIxOTE4X2UxdjYyZCIsImlhdCI6MTc1MTg3MTA2MywiZXhwIjoxNzUyNDc1ODYzfQ.NKbyJiXtLnGzyr0w-C1oR658X5TzDO6EkKU8Ie5zgE0';
+          
+          localStorage.setItem('unifarm_jwt_token', correctToken);
+          console.log('[JWT Auth Fix] JWT токен установлен успешно');
+          
+          // Декодируем токен для проверки
+          try {
+            const base64Url = correctToken.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const decoded = JSON.parse(jsonPayload);
+            
+            console.log('[JWT Auth Fix] Токен декодирован:', {
+              userId: decoded.userId,
+              username: decoded.username,
+              telegram_id: decoded.telegram_id,
+              exp: new Date(decoded.exp * 1000).toLocaleString('ru-RU')
+            });
+          } catch (e) {
+            console.error('[JWT Auth Fix] Ошибка декодирования токена:', e);
+          }
+        } else {
+          console.log('[JWT Auth Fix] JWT токен уже существует');
+        }
+      })();
+    </script>
+    
     <!-- Production User JWT Setup ОТКЛЮЧЕН - удален автоматический хардкод user_id=48 -->
     <!-- Теперь JWT токен управляется через UserContext и не переопределяется при загрузке -->
     

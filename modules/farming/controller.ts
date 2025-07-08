@@ -136,8 +136,22 @@ export class FarmingController extends BaseController {
   async depositUni(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {
+      console.log('[FarmingController] CRITICAL DEBUG: depositUni method called');
+      logger.info('[FarmingController] depositUni method called', {
+        body: req.body,
+        hasAuth: !!req.telegramUser
+      });
+      
       const telegram = this.validateTelegramAuth(req, res);
-      if (!telegram) return;
+      if (!telegram) {
+        console.log('[FarmingController] CRITICAL DEBUG: telegram validation failed');
+        return;
+      }
+
+      console.log('[FarmingController] CRITICAL DEBUG: telegram user data', {
+        telegram_id: telegram.user.id,
+        username: telegram.user.username
+      });
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
@@ -147,17 +161,30 @@ export class FarmingController extends BaseController {
         ref_by: req.query.start_param as string
       });
 
+      console.log('[FarmingController] CRITICAL DEBUG: user from telegram', {
+        userId: user?.id,
+        telegram_id: user?.telegram_id
+      });
+
       const { amount } = req.body;
       this.validateRequiredFields(req.body, ['amount']);
+
+      console.log('[FarmingController] CRITICAL DEBUG: calling depositUniForFarming', {
+        telegram_id: telegram.user.id,
+        amount
+      });
 
       const result = await farmingService.depositUniForFarming(
         telegram.user.id.toString(),
         amount
       );
 
+      console.log('[FarmingController] CRITICAL DEBUG: depositUniForFarming result', result);
+
       this.sendSuccess(res, result);
     }, 'депозита UNI для фарминга');
     } catch (error) {
+      console.error('[FarmingController] CRITICAL DEBUG: exception in depositUni', error);
       next(error);
     }
   }

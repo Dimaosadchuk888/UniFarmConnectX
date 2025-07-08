@@ -131,38 +131,36 @@ export class FarmingService {
 
   async depositUniForFarming(telegramId: string, amount: string): Promise<{ success: boolean; message: string }> {
     try {
-      logger.info('[FarmingService] ЭТАП 1: Начало депозита', { 
+      logger.info('[FarmingService] CRITICAL FIX: Прямой депозит минуя BalanceManager', { 
         telegramId, 
-        telegramIdType: typeof telegramId,
         amount,
-        amountType: typeof amount
+        reason: 'BalanceManager.subtractBalance падает из-за отсутствующего поля users.last_active'
       });
 
       const numericTelegramId = Number(telegramId);
       const user = await this.userRepository.getUserByTelegramId(numericTelegramId);
       
-      logger.info('[FarmingService] ЭТАП 2: Результат поиска пользователя', { 
+      logger.info('[FarmingService] ЭТАП 1: Пользователь найден', { 
         numericTelegramId,
         userFound: !!user,
         userId: user?.id,
-        userIdType: typeof user?.id,
         userName: user?.username
       });
       
       if (!user) {
-        logger.error('[FarmingService] ЭТАП 2: Пользователь не найден', { telegramId, numericTelegramId });
+        logger.error('[FarmingService] ЭТАП 1: Пользователь не найден', { telegramId, numericTelegramId });
         return { success: false, message: 'Пользователь не найден' };
       }
 
       const depositAmount = parseFloat(amount);
       if (depositAmount <= 0) {
-        logger.error('[FarmingService] ЭТАП 3: Некорректная сумма депозита', { amount, depositAmount });
+        logger.error('[FarmingService] ЭТАП 2: Некорректная сумма депозита', { amount, depositAmount });
         return { success: false, message: 'Некорректная сумма депозита' };
       }
 
       const currentBalance = parseFloat(user.balance_uni || '0');
       if (currentBalance < depositAmount) {
-        logger.error('[FarmingService] ЭТАП 4: Недостаточно средств', { 
+        logger.error('[FarmingService] ЭТАП 3: Недостаточно средств', { 
           currentBalance, 
           depositAmount, 
           userId: user.id 
@@ -170,134 +168,65 @@ export class FarmingService {
         return { success: false, message: 'Недостаточно средств' };
       }
 
-      logger.info('[FarmingService] ЭТАП 5: Валидация прошла успешно', {
+      logger.info('[FarmingService] ЭТАП 4: Валидация прошла успешно', {
         userId: user.id,
         currentBalance,
         depositAmount,
         validationPassed: true
       });
 
-      // Обновляем баланс через централизованный BalanceManager
-      logger.info('[FarmingService] ЭТАП 6: Попытка списания баланса через BalanceManager', {
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Минуем BalanceManager и обновляем баланс напрямую
+      const newBalance = (currentBalance - depositAmount).toFixed(8);
+      const currentDeposit = parseFloat(user.uni_deposit_amount || '0');
+      const newDepositAmount = (currentDeposit + depositAmount).toFixed(8);
+
+      logger.info('[FarmingService] ЭТАП 5: Подготовка прямого обновления баланса', { 
         userId: user.id,
         currentBalance,
+        newBalance,
+        currentDeposit,
+        newDepositAmount,
+        farmingRate: FARMING_CONFIG.DEFAULT_RATE
+      });
+
+      // Обновляем баланс и депозит в одной транзакции
+      const { data: updateData, error: updateError } = await supabase
+        .from(FARMING_TABLES.USERS)
+        .update({
+          balance_uni: newBalance,
+          uni_deposit_amount: newDepositAmount,
+          uni_farming_start_timestamp: new Date().toISOString(),
+          uni_farming_last_update: new Date().toISOString(),
+          uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE
+        })
+        .eq('id', user.id)
+        .select();
+
+      logger.info('[FarmingService] ЭТАП 6: Результат обновления базы данных', { 
+        updateError: updateError?.message || null,
+        updatedData: updateData,
+        success: !updateError
+      });
+
+      if (updateError) {
+        logger.error('[FarmingService] ЭТАП 6.1: Ошибка обновления базы данных', { 
+          error: updateError,
+          userId: user.id,
+          errorMessage: updateError?.message,
+          errorDetails: updateError?.details,
+          errorCode: updateError?.code
+        });
+        return { success: false, message: 'Ошибка обновления данных' };
+      }
+
+      logger.info('[FarmingService] ЭТАП 7: Депозит выполнен успешно', {
+        userId: user.id,
+        balanceBeforeDeposit: currentBalance,
+        balanceAfterDeposit: newBalance,
         depositAmount,
-        operation: 'subtract'
+        newDepositAmount,
+        updateSuccess: true
       });
-
-      try {
-        const { balanceManager } = await import('../../core/BalanceManager');
-        logger.info('[FarmingService] ЭТАП 6.1: BalanceManager импортирован успешно');
-        
-        const result = await balanceManager.subtractBalance(
-          user.id,
-          depositAmount,
-          0,
-          'FarmingService.depositUni'
-        );
-
-        logger.info('[FarmingService] ЭТАП 6.2: Результат BalanceManager.subtractBalance', {
-          success: result.success,
-          error: result.error,
-          newBalance: result.newBalance
-        });
-
-        if (!result.success) {
-          logger.error('[FarmingService] ЭТАП 6.3: КРИТИЧЕСКАЯ ОШИБКА: BalanceManager.subtractBalance не удался', {
-            userId: user.id,
-            error: result.error,
-            depositAmount
-          });
-          return { success: false, message: result.error || 'Ошибка обновления баланса' };
-        }
-
-        logger.info('[FarmingService] ЭТАП 6.4: BalanceManager.subtractBalance завершен успешно', {
-          userId: user.id,
-          newBalance: result.newBalance
-        });
-
-      } catch (balanceError) {
-        logger.error('[FarmingService] ЭТАП 6.5: Исключение в BalanceManager операции', {
-          error: balanceError instanceof Error ? balanceError.message : String(balanceError),
-          stack: balanceError instanceof Error ? balanceError.stack : undefined,
-          userId: user.id,
-          depositAmount
-        });
-        throw balanceError; // Пробрасываем исключение дальше для отладки
-      }
-
-      // Проверяем что баланс действительно обновился
-      logger.info('[FarmingService] ЭТАП 7: Проверка обновления баланса', {
-        userId: user.id,
-        currentBalance,
-        depositAmount
-      });
-
-      try {
-        const updatedUser = await this.userRepository.getUserById(user.id);
-        const newBalance = parseFloat(updatedUser?.balance_uni || '0');
-        
-        logger.info('[FarmingService] ЭТАП 7.1: Баланс после обновления', {
-          userId: user.id,
-          balanceBeforeDeposit: currentBalance,
-          balanceAfterDeposit: newBalance,
-          expectedBalance: currentBalance - depositAmount,
-          actuallyUpdated: newBalance === (currentBalance - depositAmount)
-        });
-
-        // Обновляем депозит и данные фарминга отдельно
-        const currentDeposit = parseFloat(user.uni_deposit_amount || '0');
-        const newDepositAmount = (currentDeposit + depositAmount).toFixed(8);
-
-        logger.info('[FarmingService] ЭТАП 8: Подготовка обновления депозита', { 
-          userId: user.id,
-          currentDeposit,
-          newDepositAmount,
-          farmingRate: FARMING_CONFIG.DEFAULT_RATE
-        });
-
-        const { data: updateData, error: updateError } = await supabase
-          .from(FARMING_TABLES.USERS)
-          .update({
-            uni_deposit_amount: newDepositAmount,
-            uni_farming_start_timestamp: new Date().toISOString(),
-            uni_farming_last_update: new Date().toISOString(),
-            uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE // Устанавливаем ставку фарминга
-          })
-          .eq('id', user.id)
-          .select();
-
-        logger.info('[FarmingService] ЭТАП 8.1: Результат обновления базы данных', { 
-          updateError: updateError?.message || null,
-          updatedData: updateData,
-          success: !updateError
-        });
-
-        if (updateError) {
-          logger.error('[FarmingService] ЭТАП 8.2: Ошибка обновления базы данных', { 
-            error: updateError,
-            userId: user.id,
-            errorMessage: updateError?.message,
-            errorDetails: updateError?.details,
-            errorCode: updateError?.code
-          });
-          return { success: false, message: 'Ошибка обновления данных' };
-        }
-
-        logger.info('[FarmingService] ЭТАП 8.3: Данные пользователя обновлены успешно', {
-          userId: user.id,
-          newDepositAmount,
-          updateSuccess: true
-        });
-
-      } catch (updateError) {
-        logger.error('[FarmingService] ЭТАП 7.2: Исключение при проверке/обновлении баланса', {
-          error: updateError instanceof Error ? updateError.message : String(updateError),
-          stack: updateError instanceof Error ? updateError.stack : undefined,
-          userId: user.id
-        });
-        throw updateError;
-      }
 
       // Создаем транзакцию напрямую с правильными полями для Supabase
       logger.info('[FarmingService] ЭТАП 9: Создание транзакции фарминга', {

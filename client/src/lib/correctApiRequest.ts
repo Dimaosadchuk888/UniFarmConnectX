@@ -37,6 +37,7 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
     requestHeaders['Authorization'] = `Bearer ${token}`;
   } else {
     console.warn('[correctApiRequest] КРИТИЧЕСКАЯ ОШИБКА: JWT токен НЕ НАЙДЕН в localStorage');
+    console.warn('[correctApiRequest] Используйте fix-jwt-auth.html для восстановления авторизации');
   }
 
   // Добавляем Telegram WebApp данные если доступны

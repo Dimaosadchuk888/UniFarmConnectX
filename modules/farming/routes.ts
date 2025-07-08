@@ -5,6 +5,7 @@ import { requireAuth } from '../../core/middleware/auth';
 import { validateBody } from '../../core/middleware/validate';
 import { strictRateLimit, standardRateLimit, liberalRateLimit, massOperationsRateLimit } from '../../core/middleware/rateLimiting';
 import { z } from 'zod';
+import { directDepositHandler } from './directDeposit';
 
 const router = Router();
 const farmingController = new FarmingController();
@@ -42,5 +43,8 @@ router.post('/harvest', requireTelegramAuth, massOperationsRateLimit, farmingCon
 
 // Farming history route
 router.get('/history', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingHistory.bind(farmingController));
+
+// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Прямой депозит минуя BaseController
+router.post('/direct-deposit', requireTelegramAuth, massOperationsRateLimit, directDepositHandler);
 
 export default router;
