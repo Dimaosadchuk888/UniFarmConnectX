@@ -397,25 +397,13 @@ async function startServer() {
     app.use('/.git', (_, res) => res.status(403).send('Forbidden'));
     app.use('/node_modules', (_, res) => res.status(403).send('Forbidden'));
 
-    // Rate limiting для защиты от DDoS
-    const limiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 минут
-      max: 100, // максимум 100 запросов с одного IP
-      message: 'Too many requests from this IP, please try again after 15 minutes',
-      standardHeaders: true, // Возвращает `RateLimit-*` заголовки
-      legacyHeaders: false, // Отключает `X-RateLimit-*` заголовки
-      handler: (req, res) => {
-        logger.warn(`[RateLimit] IP ${req.ip} превысил лимит запросов`);
-        res.status(429).json({
-          success: false,
-          error: 'Too many requests',
-          message: 'Слишком много запросов с вашего IP. Пожалуйста, подождите 15 минут.'
-        });
-      }
-    });
+    // Rate limiting ПОЛНОСТЬЮ ОТКЛЮЧЕН для production использования
+    // const limiter = rateLimit({...}); // ОТКЛЮЧЕН
     
-    // Применяем rate limiting ко всем маршрутам
-    app.use(limiter);
+    // Применяем rate limiting ко всем маршрутам - ОТКЛЮЧЕН
+    // app.use(limiter); // ОТКЛЮЧЕН
+    
+    logger.info('[Server] Express Rate Limiting ПОЛНОСТЬЮ ОТКЛЮЧЕН');
 
     // Middleware
     app.use(cors({
