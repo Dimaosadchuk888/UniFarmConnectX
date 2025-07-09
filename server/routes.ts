@@ -14,6 +14,7 @@ import transactionsRoutes from '../modules/transactions/routes';
 import airdropRoutes from '../modules/airdrop/routes';
 import adminRoutes from '../modules/admin/routes';
 import { adminBotRoutes } from '../modules/adminBot/routes';
+import debugRoutes from '../modules/debug/debugRoutes';
 import { supabase } from '../core/supabase';
 import { requireTelegramAuth } from '../core/middleware/telegramAuth';
 
@@ -305,8 +306,6 @@ router.get('/debug/profile-test', (req: Request, res: Response) => {
   });
 });
 
-// Import debug routes
-import debugRoutes from '../modules/debug/debugRoutes';
 router.use('/debug', debugRoutes);
 
 // ТЕСТ: Простой test endpoint для проверки импорта routes
