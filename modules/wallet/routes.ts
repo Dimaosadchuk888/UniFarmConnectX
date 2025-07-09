@@ -64,4 +64,9 @@ router.post('/deposit', requireTelegramAuth, massOperationsRateLimit, validateBo
 router.post('/withdraw', requireTelegramAuth, strictRateLimit, validateBody(withdrawSchema), walletController.withdraw.bind(walletController)); // Оставляем строгий лимит для выводов
 router.post('/transfer', requireTelegramAuth, strictRateLimit, validateBody(transferSchema), walletController.transfer.bind(walletController)); // Внутренние переводы
 
+// Внутренние системные endpoints (для использования другими модулями)
+// Эти endpoints предназначены для внутренних операций системы и требуют специальной авторизации
+router.post('/deposit-internal', requireTelegramAuth, massOperationsRateLimit, walletController.depositInternal.bind(walletController));
+router.post('/withdraw-internal', requireTelegramAuth, massOperationsRateLimit, walletController.withdrawInternal.bind(walletController));
+
 export default router;

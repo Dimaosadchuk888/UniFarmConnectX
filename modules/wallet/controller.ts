@@ -282,4 +282,122 @@ export class WalletController extends BaseController {
       next(error);
     }
   }
+
+  async depositInternal(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        // Внутренний депозит может использоваться системой для начисления бонусов, комиссий и т.д.
+        const { user_id, amount, currency, type, description } = req.body;
+
+        if (!user_id || !amount || !currency) {
+          return this.sendError(res, 'Отсутствуют обязательные параметры: user_id, amount, currency', 400);
+        }
+
+        if (currency !== 'UNI' && currency !== 'TON') {
+          return this.sendError(res, 'Поддерживаемые валюты: UNI, TON', 400);
+        }
+
+        if (parseFloat(amount) <= 0) {
+          return this.sendError(res, 'Сумма должна быть больше 0', 400);
+        }
+
+        // Проверяем существование пользователя
+        const user = await userRepository.getUserById(parseInt(user_id));
+        if (!user) {
+          return this.sendError(res, 'Пользователь не найден', 404);
+        }
+
+        // Создаем внутренний депозит
+        const result = await walletService.createInternalDeposit({
+          user_id: parseInt(user_id),
+          amount: parseFloat(amount),
+          currency: currency as 'UNI' | 'TON',
+          type: type || 'internal_credit',
+          description: description || 'Внутреннее начисление'
+        });
+
+        if (!result.success) {
+          return this.sendError(res, result.error || 'Ошибка создания депозита', 400);
+        }
+
+        logger.info('[Wallet] Внутренний депозит создан', {
+          user_id,
+          amount,
+          currency,
+          type,
+          transaction_id: result.transaction_id
+        });
+
+        this.sendSuccess(res, {
+          message: `Внутренний депозит ${amount} ${currency} успешно создан`,
+          transaction_id: result.transaction_id,
+          new_balance: result.new_balance
+        });
+      }, 'создания внутреннего депозита');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async withdrawInternal(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        // Внутреннее списание может использоваться для комиссий, штрафов и т.д.
+        const { user_id, amount, currency, type, description } = req.body;
+
+        if (!user_id || !amount || !currency) {
+          return this.sendError(res, 'Отсутствуют обязательные параметры: user_id, amount, currency', 400);
+        }
+
+        if (currency !== 'UNI' && currency !== 'TON') {
+          return this.sendError(res, 'Поддерживаемые валюты: UNI, TON', 400);
+        }
+
+        if (parseFloat(amount) <= 0) {
+          return this.sendError(res, 'Сумма должна быть больше 0', 400);
+        }
+
+        // Проверяем существование пользователя
+        const user = await userRepository.getUserById(parseInt(user_id));
+        if (!user) {
+          return this.sendError(res, 'Пользователь не найден', 404);
+        }
+
+        // Проверяем достаточность средств
+        const balance = currency === 'UNI' ? user.balance_uni : user.balance_ton;
+        if (parseFloat(balance?.toString() || '0') < parseFloat(amount)) {
+          return this.sendError(res, 'Недостаточно средств на балансе', 400);
+        }
+
+        // Создаем внутреннее списание
+        const result = await walletService.createInternalWithdrawal({
+          user_id: parseInt(user_id),
+          amount: parseFloat(amount),
+          currency: currency as 'UNI' | 'TON',
+          type: type || 'internal_debit',
+          description: description || 'Внутреннее списание'
+        });
+
+        if (!result.success) {
+          return this.sendError(res, result.error || 'Ошибка создания списания', 400);
+        }
+
+        logger.info('[Wallet] Внутреннее списание создано', {
+          user_id,
+          amount,
+          currency,
+          type,
+          transaction_id: result.transaction_id
+        });
+
+        this.sendSuccess(res, {
+          message: `Внутреннее списание ${amount} ${currency} успешно выполнено`,
+          transaction_id: result.transaction_id,
+          new_balance: result.new_balance
+        });
+      }, 'создания внутреннего списания');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

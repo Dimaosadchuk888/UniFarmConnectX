@@ -667,4 +667,169 @@ export class WalletService {
       };
     }
   }
+
+  async createInternalDeposit(params: {
+    user_id: number;
+    amount: number;
+    currency: 'UNI' | 'TON';
+    type: string;
+    description: string;
+  }): Promise<{ success: boolean; error?: string; transaction_id?: string; new_balance?: number }> {
+    try {
+      const { user_id, amount, currency, type, description } = params;
+
+      // Используем BalanceManager для атомарного начисления
+      const { balanceManager } = await import('../../core/BalanceManager');
+      
+      const result = await balanceManager.addBalance(
+        user_id,
+        currency === 'UNI' ? amount : 0,
+        currency === 'TON' ? amount : 0,
+        description
+      );
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || 'Ошибка создания внутреннего депозита'
+        };
+      }
+
+      // Создаем запись транзакции
+      const transactionId = `INTERNAL_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      try {
+        await supabase.from(WALLET_TABLES.TRANSACTIONS).insert({
+          user_id: user_id,
+          type: type || 'INTERNAL_CREDIT',
+          amount_uni: currency === 'UNI' ? amount.toString() : '0',
+          amount_ton: currency === 'TON' ? amount.toString() : '0',
+          description: description,
+          status: 'completed',
+          created_at: new Date().toISOString()
+        });
+      } catch (transactionError) {
+        logger.warn('[WalletService] Не удалось создать запись транзакции для внутреннего депозита', { 
+          user_id, 
+          error: transactionError 
+        });
+      }
+
+      logger.info('[WalletService] Внутренний депозит создан', {
+        transaction_id: transactionId,
+        user_id,
+        amount,
+        currency,
+        type,
+        description
+      });
+
+      return {
+        success: true,
+        transaction_id: transactionId,
+        new_balance: result.newBalance ? 
+          (currency === 'UNI' ? result.newBalance.balance_uni : result.newBalance.balance_ton) : 0
+      };
+
+    } catch (error) {
+      logger.error('[WalletService] Ошибка создания внутреннего депозита', {
+        params,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return {
+        success: false,
+        error: 'Внутренняя ошибка при создании депозита'
+      };
+    }
+  }
+
+  async createInternalWithdrawal(params: {
+    user_id: number;
+    amount: number;
+    currency: 'UNI' | 'TON';
+    type: string;
+    description: string;
+  }): Promise<{ success: boolean; error?: string; transaction_id?: string; new_balance?: number }> {
+    try {
+      const { user_id, amount, currency, type, description } = params;
+
+      // Используем BalanceManager для атомарного списания
+      const { balanceManager } = await import('../../core/BalanceManager');
+      
+      // Проверяем достаточность средств
+      const checkResult = await balanceManager.hasSufficientBalance(
+        user_id,
+        currency === 'UNI' ? amount : 0,
+        currency === 'TON' ? amount : 0
+      );
+
+      if (!checkResult.sufficient) {
+        return {
+          success: false,
+          error: `Недостаточно средств. Доступно: ${checkResult.current ? 
+            (currency === 'UNI' ? checkResult.current.balance_uni : checkResult.current.balance_ton) : 0} ${currency}`
+        };
+      }
+
+      const result = await balanceManager.subtractBalance(
+        user_id,
+        currency === 'UNI' ? amount : 0,
+        currency === 'TON' ? amount : 0,
+        description
+      );
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || 'Ошибка создания внутреннего списания'
+        };
+      }
+
+      // Создаем запись транзакции
+      const transactionId = `INTERNAL_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      try {
+        await supabase.from(WALLET_TABLES.TRANSACTIONS).insert({
+          user_id: user_id,
+          type: type || 'INTERNAL_DEBIT',
+          amount_uni: currency === 'UNI' ? `-${amount}` : '0',
+          amount_ton: currency === 'TON' ? `-${amount}` : '0',
+          description: description,
+          status: 'completed',
+          created_at: new Date().toISOString()
+        });
+      } catch (transactionError) {
+        logger.warn('[WalletService] Не удалось создать запись транзакции для внутреннего списания', { 
+          user_id, 
+          error: transactionError 
+        });
+      }
+
+      logger.info('[WalletService] Внутреннее списание создано', {
+        transaction_id: transactionId,
+        user_id,
+        amount,
+        currency,
+        type,
+        description
+      });
+
+      return {
+        success: true,
+        transaction_id: transactionId,
+        new_balance: result.newBalance ? 
+          (currency === 'UNI' ? result.newBalance.balance_uni : result.newBalance.balance_ton) : 0
+      };
+
+    } catch (error) {
+      logger.error('[WalletService] Ошибка создания внутреннего списания', {
+        params,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return {
+        success: false,
+        error: 'Внутренняя ошибка при создании списания'
+      };
+    }
+  }
 }
