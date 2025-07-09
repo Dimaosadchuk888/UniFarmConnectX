@@ -37,7 +37,10 @@ const userIdSchema = z.object({
 });
 
 const depositSchema = z.object({
-  amount: z.number().min(0.001, 'Minimum deposit amount is 0.001'),
+  amount: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Invalid amount format').refine(
+    (val) => parseFloat(val) >= 0.001, 
+    'Minimum deposit amount is 0.001'
+  ),
   currency: z.enum(['UNI', 'TON'], { errorMap: () => ({ message: 'Currency must be UNI or TON' }) }),
   type: z.string().min(1, 'Deposit type is required'),
   wallet_address: z.string().optional()

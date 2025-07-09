@@ -367,7 +367,7 @@ export class UserController extends BaseController {
         return this.sendError(res, 'User not found', 404);
       }
 
-      const userInfo = await userRepository.findUserById(user.id);
+      const userInfo = await userRepository.getUserById(user.id);
       
       if (!userInfo) {
         return this.sendError(res, 'User not found', 404);
@@ -459,7 +459,7 @@ export class UserController extends BaseController {
         return this.sendError(res, 'User not found', 404);
       }
 
-      const userInfo = await userRepository.findUserById(user.id);
+      const userInfo = await userRepository.getUserById(user.id);
       if (!userInfo) {
         return this.sendError(res, 'User not found', 404);
       }
