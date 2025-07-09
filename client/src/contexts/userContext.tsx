@@ -173,7 +173,9 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: React.ReactNode }) {
   // Инициализация хуков
   const queryClient = useQueryClient();
-  const [tonConnectUI] = useTonConnectUI();
+  // Временно отключаем TonConnect до исправления порядка провайдеров
+  // const [tonConnectUI] = useTonConnectUI();
+  const tonConnectUI = null;
   const { isReady: isTelegramReady, initData, user: telegramUser } = useTelegram();
   
   // Создаем состояние с помощью useReducer
