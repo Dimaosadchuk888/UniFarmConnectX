@@ -6,6 +6,7 @@ import { validateBody } from '../../core/middleware/validate';
 import { strictRateLimit, standardRateLimit, liberalRateLimit, massOperationsRateLimit } from '../../core/middleware/rateLimiting';
 import { z } from 'zod';
 import { directDepositHandler } from './directDeposit';
+import { directFarmingStatusHandler } from './directFarmingStatus';
 
 const router = Router();
 const farmingController = new FarmingController();
@@ -50,5 +51,8 @@ router.get('/rates', requireTelegramAuth, liberalRateLimit, farmingController.ge
 
 // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Прямой депозит минуя BaseController
 router.post('/direct-deposit', requireTelegramAuth, massOperationsRateLimit, directDepositHandler);
+
+// Endpoint de diagnóstico para verificar status real do farming
+router.get('/direct-status', requireTelegramAuth, liberalRateLimit, directFarmingStatusHandler);
 
 export default router;

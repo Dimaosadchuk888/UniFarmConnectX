@@ -66,10 +66,35 @@ export class FarmingController extends BaseController {
         return this.sendSuccess(res, defaultFarmingData);
       }
 
-      const farmingData = await farmingService.getFarmingDataByTelegramId(userId);
+      // FIXED: Получаем пользователя по user_id, а не telegram_id
+      const user = await userRepository.getUserById(Number(userId));
+      
+      if (!user) {
+        logger.warn('[Farming] Пользователь не найден', { user_id: userId });
+        return this.sendSuccess(res, {
+          isActive: false,
+          depositAmount: '0',
+          ratePerSecond: '0',
+          totalRatePerSecond: '0',
+          dailyIncomeUni: '0',
+          depositCount: 0,
+          totalDepositAmount: '0',
+          startDate: null,
+          uni_farming_start_timestamp: null,
+          rate: '0.000000',
+          accumulated: '0.000000',
+          last_claim: null,
+          can_claim: false,
+          next_claim_available: null
+        });
+      }
+
+      // Используем telegram_id из найденного пользователя
+      const farmingData = await farmingService.getFarmingDataByTelegramId(user.telegram_id.toString());
 
       logger.info('[Farming] Информация о фарминге для пользователя', {
         user_id: userId,
+        telegram_id: user.telegram_id,
         farming_info: farmingData
       });
 
