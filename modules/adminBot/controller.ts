@@ -181,13 +181,32 @@ export class AdminBotController {
         break;
         
       case 'approve_withdrawal':
+        // Показываем диалог подтверждения вместо прямого выполнения
+        await this.showApprovalConfirmation(chatId, params[0]);
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
+        break;
+        
+      case 'reject_withdrawal':
+        // Показываем диалог подтверждения вместо прямого выполнения
+        await this.showRejectionConfirmation(chatId, params[0]);
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
+        break;
+        
+      case 'confirm_approve_withdrawal':
+        // Теперь выполняем реальное одобрение после подтверждения
         await this.handleApproveCommand(chatId, [params[0]], username);
         await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Выплата одобрена');
         break;
         
-      case 'reject_withdrawal':
+      case 'confirm_reject_withdrawal':
+        // Теперь выполняем реальное отклонение после подтверждения
         await this.handleRejectCommand(chatId, [params[0]], username);
         await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Выплата отклонена');
+        break;
+        
+      case 'cancel_withdrawal_action':
+        await this.adminBotService.sendMessage(chatId, '❌ Действие отменено');
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Отменено');
         break;
         
       default:
@@ -518,6 +537,81 @@ export class AdminBotController {
       );
     } catch (error) {
       await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения заявок на вывод');
+    }
+  }
+
+  /**
+   * Show approval confirmation dialog
+   */
+  private async showApprovalConfirmation(chatId: number, requestId: string): Promise<void> {
+    try {
+      // Получаем информацию о заявке
+      const withdrawal = await this.adminBotService.getWithdrawalById(requestId);
+      
+      if (!withdrawal) {
+        await this.adminBotService.sendMessage(chatId, '❌ Заявка не найдена');
+        return;
+      }
+      
+      const message = 
+        '⚠️ <b>Подтверждение одобрения</b>\n\n' +
+        `🆔 ID заявки: ${withdrawal.id}\n` +
+        `👤 Пользователь: ${withdrawal.user_id}\n` +
+        `💰 Сумма: <b>${withdrawal.amount_ton} TON</b>\n` +
+        `📅 Создана: ${new Date(withdrawal.created_at).toLocaleString('ru-RU')}\n` +
+        `🏦 Кошелек: <code>${withdrawal.ton_wallet}</code>\n\n` +
+        '❗ <b>Вы уверены, что хотите ОДОБРИТЬ эту выплату?</b>';
+      
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '✅ Да, одобрить', callback_data: `confirm_approve_withdrawal:${requestId}` },
+            { text: '❌ Отмена', callback_data: 'cancel_withdrawal_action' }
+          ]
+        ]
+      };
+      
+      await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
+    } catch (error) {
+      await this.adminBotService.sendMessage(chatId, '❌ Ошибка при получении информации о заявке');
+    }
+  }
+
+  /**
+   * Show rejection confirmation dialog
+   */
+  private async showRejectionConfirmation(chatId: number, requestId: string): Promise<void> {
+    try {
+      // Получаем информацию о заявке
+      const withdrawal = await this.adminBotService.getWithdrawalById(requestId);
+      
+      if (!withdrawal) {
+        await this.adminBotService.sendMessage(chatId, '❌ Заявка не найдена');
+        return;
+      }
+      
+      const message = 
+        '⚠️ <b>Подтверждение отклонения</b>\n\n' +
+        `🆔 ID заявки: ${withdrawal.id}\n` +
+        `👤 Пользователь: ${withdrawal.user_id}\n` +
+        `💰 Сумма: <b>${withdrawal.amount_ton} TON</b>\n` +
+        `📅 Создана: ${new Date(withdrawal.created_at).toLocaleString('ru-RU')}\n` +
+        `🏦 Кошелек: <code>${withdrawal.ton_wallet}</code>\n\n` +
+        '❗ <b>Вы уверены, что хотите ОТКЛОНИТЬ эту выплату?</b>\n' +
+        '💡 <i>Средства будут возвращены на баланс пользователя</i>';
+      
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '❌ Да, отклонить', callback_data: `confirm_reject_withdrawal:${requestId}` },
+            { text: '↩️ Отмена', callback_data: 'cancel_withdrawal_action' }
+          ]
+        ]
+      };
+      
+      await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
+    } catch (error) {
+      await this.adminBotService.sendMessage(chatId, '❌ Ошибка при получении информации о заявке');
     }
   }
 

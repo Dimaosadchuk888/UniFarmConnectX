@@ -271,6 +271,29 @@ export class AdminBotService {
   }
 
   /**
+   * Get withdrawal by ID
+   */
+  async getWithdrawalById(requestId: string): Promise<any | null> {
+    try {
+      const { data, error } = await supabase
+        .from('withdraw_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+        
+      if (error) {
+        logger.error('[AdminBot] Error getting withdrawal by id', { error });
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      logger.error('[AdminBot] Error in getWithdrawalById', { error: error instanceof Error ? error.message : String(error) });
+      return null;
+    }
+  }
+
+  /**
    * Get withdrawal requests
    */
   async getWithdrawalRequests(status?: string): Promise<any[]> {
