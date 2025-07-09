@@ -99,7 +99,9 @@ export class FarmingService {
         .from(FARMING_TABLES.USERS)
         .update({
           uni_farming_start_timestamp: new Date().toISOString(),
-          uni_farming_last_update: new Date().toISOString()
+          uni_farming_last_update: new Date().toISOString(),
+          uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE,  // ИСПРАВЛЕНО: Устанавливаем ставку
+          uni_farming_active: true  // ИСПРАВЛЕНО: Активируем фарминг
         })
         .eq('id', user.id);
 
@@ -248,7 +250,8 @@ export class FarmingService {
           uni_deposit_amount: newDepositAmount,
           uni_farming_start_timestamp: new Date().toISOString(),
           uni_farming_last_update: new Date().toISOString(),
-          uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE
+          uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE,
+          uni_farming_active: true  // ИСПРАВЛЕНО: Активируем фарминг
         })
         .eq('id', user.id)
         .select();

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Активация фарминга для пользователя 62</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .status-box {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .button {
+            background: #FF6600;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .button:hover {
+            background: #CC5200;
+        }
+        .button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Активация фарминга для пользователя 62</h1>
+        
+        <div id="current-status" class="status-box">
+            Загрузка текущего статуса...
+        </div>
+        
+        <button id="activate-btn" class="button" onclick="activateFarming()">Активировать фарминг</button>
+        
+        <div id="result" class="status-box" style="display: none;">
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://mipmnzjgbgrnwizyjtwm.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pcG1uempnYmdybndpenlqdHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU3OTM2MTIsImV4cCI6MjA1MTM2OTYxMn0.U9c-c0hh55IaFRxR-s5iH5Vc4yOK0-lLkSoD1F90bD8';
+        
+        async function checkCurrentStatus() {
+            const statusDiv = document.getElementById('current-status');
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.62`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                
+                const data = await response.json();
+                const user = data[0];
+                
+                let html = '<h3>Текущий статус:</h3>';
+                html += `<p>User ID: ${user.id}</p>`;
+                html += `<p>Username: ${user.username || 'N/A'}</p>`;
+                html += `<p>Баланс UNI: <strong>${user.balance_uni}</strong></p>`;
+                html += `<p>Депозит: <strong>${user.uni_deposit_amount} UNI</strong></p>`;
+                html += `<p>Ставка (uni_farming_rate): <span class="success"><strong>${user.uni_farming_rate}</strong></span></p>`;
+                html += `<p>Фарминг активен: <span class="${user.uni_farming_active ? 'success' : 'error'}"><strong>${user.uni_farming_active ? 'ДА' : 'НЕТ'}</strong></span></p>`;
+                html += `<p>Дата начала: ${user.uni_farming_start_timestamp || 'НЕТ'}</p>`;
+                
+                statusDiv.innerHTML = html;
+                
+                if (user.uni_farming_active) {
+                    document.getElementById('activate-btn').disabled = true;
+                    document.getElementById('activate-btn').textContent = 'Фарминг уже активен';
+                }
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">Ошибка загрузки: ${error.message}</span>`;
+            }
+        }
+        
+        async function activateFarming() {
+            const button = document.getElementById('activate-btn');
+            const resultDiv = document.getElementById('result');
+            
+            button.disabled = true;
+            button.textContent = 'Обновление...';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.62`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        uni_farming_active: true
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <h3 class="success">✅ Фарминг успешно активирован!</h3>
+                    <p>uni_farming_active установлен в <strong>true</strong></p>
+                    <p>Теперь пользователь 62 будет получать награды от планировщика.</p>
+                    <p><strong>Проверьте страницу через 5 минут</strong> для подтверждения начислений.</p>
+                `;
+                
+                // Перезагружаем статус
+                await checkCurrentStatus();
+                
+            } catch (error) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `<span class="error">Ошибка: ${error.message}</span>`;
+                button.disabled = false;
+                button.textContent = 'Активировать фарминг';
+            }
+        }
+        
+        // Проверяем статус при загрузке
+        window.onload = checkCurrentStatus;
+    </script>
+</body>
+</html>
