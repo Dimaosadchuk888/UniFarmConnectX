@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mission Complete API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .card {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .success {
+            color: #4ade80;
+        }
+        .error {
+            color: #f87171;
+        }
+        .warning {
+            color: #fbbf24;
+        }
+        button {
+            background: #7c3aed;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #6d28d9;
+        }
+        #logs {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 10px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Test Mission Complete API</h1>
+        
+        <div class="card">
+            <h3>Current Status (User 62)</h3>
+            <div>Balance UNI: <span id="balance" class="warning">Loading...</span></div>
+            <div>Completed Missions: <span id="completedMissions" class="warning">Loading...</span></div>
+        </div>
+
+        <div class="card">
+            <h3>Test Mission Complete</h3>
+            <button onclick="testMissionComplete(1)">Complete Mission 1 (Telegram Chat)</button>
+            <button onclick="testMissionComplete(2)">Complete Mission 2 (Telegram Channel)</button>
+            <button onclick="testMissionComplete(3)">Complete Mission 3 (YouTube)</button>
+            <button onclick="testMissionComplete(4)">Complete Mission 4 (TikTok)</button>
+            <button onclick="testMissionComplete(5)">Complete Mission 5 (Twitter)</button>
+        </div>
+
+        <div class="card">
+            <h3>Test Logs</h3>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        const JWT_TOKEN = localStorage.getItem('unifarm_jwt_token');
+        const USER_ID = 62;
+
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = type;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logsDiv.appendChild(entry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        async function loadStatus() {
+            try {
+                // Get user profile
+                const profileResponse = await fetch(`/api/v2/users/profile?user_id=${USER_ID}`, {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`
+                    }
+                });
+                const profileData = await profileResponse.json();
+                
+                if (profileData.success && profileData.data) {
+                    document.getElementById('balance').textContent = `${profileData.data.balance_uni} UNI`;
+                    document.getElementById('balance').className = 'success';
+                }
+
+                // Get completed missions
+                const missionsResponse = await fetch(`/api/v2/missions/user/${USER_ID}`, {
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`
+                    }
+                });
+                const missionsData = await missionsResponse.json();
+                
+                if (missionsData.success && missionsData.data) {
+                    const completedIds = missionsData.data.map(m => m.mission_id).join(', ') || 'None';
+                    document.getElementById('completedMissions').textContent = completedIds;
+                    document.getElementById('completedMissions').className = 'success';
+                }
+            } catch (error) {
+                log(`Error loading status: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMissionComplete(missionId) {
+            log(`\n=== Testing Mission ${missionId} Complete ===`, 'warning');
+            
+            try {
+                // Get balance before
+                const beforeResponse = await fetch(`/api/v2/users/profile?user_id=${USER_ID}`, {
+                    headers: { 'Authorization': `Bearer ${JWT_TOKEN}` }
+                });
+                const beforeData = await beforeResponse.json();
+                const balanceBefore = beforeData.data?.balance_uni || 0;
+                log(`Balance before: ${balanceBefore} UNI`, 'info');
+
+                // Complete mission
+                log('Calling /api/v2/missions/complete...', 'info');
+                const completeResponse = await fetch('/api/v2/missions/complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${JWT_TOKEN}`
+                    },
+                    body: JSON.stringify({
+                        missionId: missionId
+                    })
+                });
+
+                const completeData = await completeResponse.json();
+                log(`Response: ${JSON.stringify(completeData)}`, completeResponse.ok ? 'success' : 'error');
+
+                if (completeResponse.ok && completeData.success) {
+                    // Wait for balance update
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    // Check balance after
+                    const afterResponse = await fetch(`/api/v2/users/profile?user_id=${USER_ID}`, {
+                        headers: { 'Authorization': `Bearer ${JWT_TOKEN}` }
+                    });
+                    const afterData = await afterResponse.json();
+                    const balanceAfter = afterData.data?.balance_uni || 0;
+                    
+                    const difference = balanceAfter - balanceBefore;
+                    log(`Balance after: ${balanceAfter} UNI`, 'info');
+                    log(`Change: ${difference} UNI`, difference === 500 ? 'success' : 'error');
+                    
+                    if (difference === 0) {
+                        log(`❌ CRITICAL: Balance NOT updated! This is the bug.`, 'error');
+                    } else if (difference === 500) {
+                        log(`✅ SUCCESS: Balance updated correctly!`, 'success');
+                    }
+
+                    // Check transaction
+                    const txResponse = await fetch('/api/v2/transactions/history?limit=5', {
+                        headers: { 'Authorization': `Bearer ${JWT_TOKEN}` }
+                    });
+                    const txData = await txResponse.json();
+                    
+                    if (txData.success && txData.data) {
+                        const missionTx = txData.data.transactions.find(tx => 
+                            tx.type === 'MISSION_REWARD' && 
+                            tx.description.includes(`Mission ${missionId}`)
+                        );
+                        
+                        if (missionTx) {
+                            log(`Transaction found: ${missionTx.amount_uni} UNI at ${new Date(missionTx.created_at).toLocaleTimeString()}`, 'success');
+                        } else {
+                            log(`No MISSION_REWARD transaction found`, 'warning');
+                        }
+                    }
+                }
+
+                await loadStatus();
+            } catch (error) {
+                log(`Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (JWT_TOKEN) {
+                log('JWT Token found', 'success');
+                loadStatus();
+            } else {
+                log('JWT Token not found!', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
