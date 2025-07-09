@@ -406,6 +406,57 @@ POST   /webhook         - Webhook для админ-бота ✅
 - NFT интеграция (планируется в будущем)
 - Мультиязычность (базовая поддержка есть)
 
+## 📁 Недокументированные файлы системы
+
+### Backend модули и файлы
+- **modules/scheduler/** - Модуль планировщиков
+  - `index.ts` - инициализация планировщиков
+  - `tonBoostIncomeScheduler.ts` - TON Boost автоматические начисления
+- **modules/debug/** - Отладочный модуль
+  - `debugRoutes.ts` - endpoints для разработки
+- **modules/farming/directDeposit.ts** - прямые депозиты в фарминг
+- **modules/wallet/directBalanceHandler.ts** - прямое управление балансами
+- **modules/wallet/logic/withdrawals.ts** - логика обработки выводов
+
+### Core система
+- **core/alerting.ts** - система уведомлений и алертов
+- **core/metrics.ts** - сбор метрик производительности
+- **core/BaseController.ts** - базовый класс для контроллеров
+- **core/performanceMonitor.ts** - мониторинг производительности
+- **core/envValidator.ts** - валидация переменных окружения
+- **core/config.ts** - общая конфигурация системы
+- **core/middleware/emergencyBypass.ts** - обход авторизации (dev)
+- **core/middleware/errorHandler.ts** - обработка ошибок
+- **core/repositories/UserRepository.ts** - работа с таблицей users
+- **core/config/security.ts** - настройки безопасности
+- **core/scheduler/index.ts** - инициализация планировщиков
+- **core/balanceNotificationService.ts** - уведомления об изменении баланса
+
+### Frontend компоненты
+- **components/dashboard/WelcomeSection.tsx** - приветственная секция
+- **components/ton-boost/ExternalPaymentStatus.tsx** - статус внешних платежей
+- **components/wallet/StyledTransactionItem.tsx** - стилизованные транзакции
+- **components/referral/SimpleReferralCard.tsx** - упрощенная карточка реферала
+- **components/missions/SimpleMissionsList.tsx** - упрощенный список миссий
+- **components/missions/MissionStats.tsx** - статистика по миссиям
+- **components/telegram/TelegramCloseButton.tsx** - кнопка закрытия Mini App
+- **components/telegram/ForceRefreshButton.tsx** - принудительное обновление
+
+### Конфигурационные файлы
+- **config/app.ts** - основная конфигурация приложения
+- **config/tonBoost.ts** - TON Boost конфигурация
+- **config/tonBoostPayment.ts** - адреса для TON платежей
+- **config/apiConfig.ts** - API клиент конфигурация
+- **config/adminBot.ts** - админ-бот конфигурация
+
+### Утилиты и сервисы
+- **utils/formatters.ts** - форматирование чисел и дат
+- **utils/logger.ts** - логирование на уровне utils
+- **utils/referralUtils.ts** - генерация реферальных кодов
+- **client/src/services/balanceService.ts** - работа с балансами
+- **client/src/services/notificationService.ts** - push уведомления
+- **client/src/services/userService.ts** - пользовательские данные
+
 ## 📈 Roadmap развития (Future Plans)
 
 ### Phase 1: Launch Optimization
