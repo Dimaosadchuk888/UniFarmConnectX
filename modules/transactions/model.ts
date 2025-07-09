@@ -20,6 +20,7 @@ export const TRANSACTIONS_FIELDS = [
 
 export const TRANSACTION_TYPES = {
   FARMING_INCOME: 'farming_income',
+  FARMING_DEPOSIT: 'farming_deposit',  // Добавлен тип для депозита в фарминг
   REFERRAL_BONUS: 'referral_bonus',
   MISSION_REWARD: 'mission_reward',
   DAILY_BONUS: 'daily_bonus',
