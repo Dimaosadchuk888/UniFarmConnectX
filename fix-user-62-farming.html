@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Исправление uni_farming_rate для пользователя 62</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .status {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button:hover {
+            background: #45a049;
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ff9800;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Исправление UNI фарминга для пользователя 62</h1>
+        
+        <div class="status">
+            <h3>Текущая проблема:</h3>
+            <p>У пользователя 62 есть депозит 100 UNI, но отсутствует значение <code>uni_farming_rate</code>, 
+            из-за чего планировщик не начисляет награды.</p>
+        </div>
+
+        <button id="fixButton" class="button" onclick="fixFarmingRate()">
+            Установить uni_farming_rate = 0.01
+        </button>
+
+        <div id="log" class="log" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_URL = '/api/v2';
+        const USER_ID = 62;
+        const FARMING_RATE = '0.01';
+        
+        function log(message, type = '') {
+            const logDiv = document.getElementById('log');
+            logDiv.style.display = 'block';
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type ? ` class="${type}"` : '';
+            logDiv.innerHTML += `[${timestamp}]${className ? `<span${className}>` : ''} ${message}${className ? '</span>' : ''}\n`;
+        }
+        
+        async function fixFarmingRate() {
+            const button = document.getElementById('fixButton');
+            button.disabled = true;
+            
+            log('🚀 Начинаем процесс исправления...', 'warning');
+            
+            // Получаем JWT токен из localStorage
+            const jwtToken = localStorage.getItem('unifarm_jwt_token');
+            if (!jwtToken) {
+                log('❌ JWT токен не найден в localStorage!', 'error');
+                log('Пожалуйста, войдите в систему и повторите попытку.', 'error');
+                button.disabled = false;
+                return;
+            }
+            
+            log('✅ JWT токен найден, длина: ' + jwtToken.length);
+            
+            try {
+                // 1. Проверяем текущий статус
+                log('\n📊 Проверка текущего статуса...');
+                const statusResponse = await fetch(`${API_URL}/farming/status?user_id=${USER_ID}`, {
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`
+                    }
+                });
+                
+                if (statusResponse.ok) {
+                    const statusData = await statusResponse.json();
+                    const data = statusData.data || {};
+                    log(`Фарминг активен: ${data.uni_farming_active || false}`);
+                    log(`Депозит: ${data.uni_deposit_amount || 0} UNI`);
+                    log(`Текущая ставка: ${data.uni_farming_rate || 'НЕ УСТАНОВЛЕНА'}`);
+                }
+                
+                // 2. Обновляем uni_farming_rate
+                log('\n🔧 Обновление uni_farming_rate...');
+                const updateResponse = await fetch(`${API_URL}/users/${USER_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        uni_farming_rate: FARMING_RATE
+                    })
+                });
+                
+                if (!updateResponse.ok) {
+                    const errorText = await updateResponse.text();
+                    throw new Error(`HTTP ${updateResponse.status}: ${errorText}`);
+                }
+                
+                const result = await updateResponse.json();
+                log('✅ Успешно обновлено!', 'success');
+                
+                // 3. Проверяем обновленный статус
+                log('\n📊 Проверка обновленного статуса...');
+                const newStatusResponse = await fetch(`${API_URL}/farming/status?user_id=${USER_ID}`, {
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`
+                    }
+                });
+                
+                if (newStatusResponse.ok) {
+                    const newStatusData = await newStatusResponse.json();
+                    const newData = newStatusData.data || {};
+                    log(`Фарминг активен: ${newData.uni_farming_active || false}`, 
+                        newData.uni_farming_active ? 'success' : 'warning');
+                    log(`Депозит: ${newData.uni_deposit_amount || 0} UNI`);
+                    log(`Новая ставка: ${newData.uni_farming_rate || 'НЕ УСТАНОВЛЕНА'}`, 
+                        newData.uni_farming_rate === FARMING_RATE ? 'success' : 'error');
+                    
+                    if (newData.uni_farming_rate === FARMING_RATE) {
+                        log('\n🎉 Ставка успешно установлена!', 'success');
+                        log('Планировщик начнет начислять награды в следующем цикле (каждые 5 минут).', 'success');
+                        log('Баланс будет увеличиваться с текущих 448.22702 UNI.', 'success');
+                    }
+                }
+                
+            } catch (error) {
+                log(`\n❌ Ошибка: ${error.message}`, 'error');
+                log('Возможные решения:', 'warning');
+                log('1. Обновите страницу и повторите попытку');
+                log('2. Убедитесь, что вы авторизованы как пользователь с правами администратора');
+                log('3. Используйте SQL скрипт напрямую в базе данных (scripts/fix-farming-rate.sql)');
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        // Проверяем наличие JWT токена при загрузке
+        window.onload = function() {
+            const hasToken = !!localStorage.getItem('unifarm_jwt_token');
+            if (!hasToken) {
+                log('⚠️ JWT токен не найден. Пожалуйста, войдите в систему.', 'warning');
+            } else {
+                log('✅ JWT токен обнаружен. Нажмите кнопку для исправления.', 'success');
+            }
+        };
+    </script>
+</body>
+</html>
