@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { BaseController } from '../../core/base/BaseController';
+import { BaseController } from '../../core/BaseController';
 import { telegramService } from './service';
 import { logger } from '../../core/logger';
 

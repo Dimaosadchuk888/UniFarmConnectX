@@ -687,10 +687,10 @@ async function startServer() {
     // Removed test handler that was intercepting /api/v2/users/profile requests
     
     // Import centralized routes (after critical endpoints)
-    console.log('[ROUTES] Attempting to import ./routes_minimal_test...');
+    console.log('[ROUTES] Attempting to import ./routes...');
     try {
-      const { default: apiRoutes } = await import('./routes_minimal_test');
-      console.log('[ROUTES] Successfully imported routes_minimal_test, registering...');
+      const { default: apiRoutes } = await import('./routes');
+      console.log('[ROUTES] Successfully imported routes, registering...');
       
       // Debug middleware to log all API requests
       app.use((req, res, next) => {

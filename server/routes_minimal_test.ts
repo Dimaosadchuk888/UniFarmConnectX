@@ -29,8 +29,16 @@ import userRoutes from '../modules/user/routes';
 import walletRoutes from '../modules/wallet/routes';
 import boostRoutes from '../modules/boost/routes';
 import missionRoutes from '../modules/missions/routes';
-// Adding referral module
 import referralRoutes from '../modules/referral/routes';
+import dailyBonusRoutes from '../modules/dailyBonus/routes';
+// Testing all modules
+import tonFarmingRoutes from '../modules/tonFarming/routes';
+import airdropRoutes from '../modules/airdrop/routes';
+import telegramRoutes from '../modules/telegram/routes';
+import transactionsRoutes from '../modules/transactions/routes';
+import adminRoutes from '../modules/admin/routes';
+import { adminBotRoutes } from '../modules/adminBot/routes';
+import debugRoutes from '../modules/debug/debugRoutes';
 
 router.use('/auth', authRoutes);
 router.use('/monitor', monitorRoutes);
@@ -40,5 +48,13 @@ router.use('/wallet', walletRoutes);
 router.use('/boost', boostRoutes);
 router.use('/missions', missionRoutes);
 router.use('/referral', referralRoutes);
+router.use('/daily-bonus', dailyBonusRoutes);
+router.use('/ton-farming', tonFarmingRoutes);
+router.use('/airdrop', airdropRoutes);
+router.use('/telegram', telegramRoutes);
+router.use('/transactions', transactionsRoutes);
+router.use('/admin', adminRoutes);
+router.use('/admin-bot', adminBotRoutes);
+router.use('/debug', debugRoutes);
 
 export default router;
