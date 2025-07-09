@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка обновления фарминга</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .status-box {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .button {
+            background: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .button:hover {
+            background: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Проверка статуса фарминга пользователя 62</h1>
+        
+        <div id="status" class="status-box">
+            Загрузка...
+        </div>
+        
+        <button class="button" onclick="checkStatus()">Обновить статус</button>
+    </div>
+
+    <script>
+        const API_URL = '/api/v2';
+        const USER_ID = 62;
+        
+        async function checkStatus() {
+            const statusDiv = document.getElementById('status');
+            const jwtToken = localStorage.getItem('unifarm_jwt_token');
+            
+            if (!jwtToken) {
+                statusDiv.innerHTML = '<span class="error">❌ JWT токен не найден!</span>';
+                return;
+            }
+            
+            try {
+                // Получаем статус фарминга
+                const response = await fetch(`${API_URL}/farming/status?user_id=${USER_ID}`, {
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const farmingData = data.data || {};
+                
+                let html = '<h3>Статус фарминга:</h3>';
+                html += `<p>User ID: ${farmingData.user_id || USER_ID}</p>`;
+                html += `<p>Баланс UNI: <strong>${farmingData.balance_uni || 0}</strong></p>`;
+                html += `<p>Депозит: <strong>${farmingData.uni_deposit_amount || 0} UNI</strong></p>`;
+                html += `<p>Ставка (uni_farming_rate): <span class="${farmingData.uni_farming_rate ? 'success' : 'error'}"><strong>${farmingData.uni_farming_rate || 'НЕ УСТАНОВЛЕНА'}</strong></span></p>`;
+                html += `<p>Фарминг активен: <span class="${farmingData.uni_farming_active ? 'success' : 'error'}"><strong>${farmingData.uni_farming_active ? 'ДА' : 'НЕТ'}</strong></span></p>`;
+                html += `<p>Дата начала: ${farmingData.uni_farming_start_timestamp || 'НЕТ'}</p>`;
+                
+                if (farmingData.uni_farming_rate && farmingData.uni_farming_rate === 0.01) {
+                    html += '<hr>';
+                    html += '<p class="success">✅ uni_farming_rate успешно установлен!</p>';
+                    
+                    if (!farmingData.uni_farming_active) {
+                        html += '<p class="warning">⚠️ Фарминг все еще неактивен. Возможные причины:</p>';
+                        html += '<ul>';
+                        html += '<li>Требуется обновление uni_farming_active = true</li>';
+                        html += '<li>Планировщик еще не обработал изменения (ждите 5 минут)</li>';
+                        html += '<li>Проверьте логи сервера для деталей</li>';
+                        html += '</ul>';
+                    } else {
+                        html += '<p class="success">🎉 Фарминг активен! Награды будут начисляться автоматически.</p>';
+                    }
+                } else {
+                    html += '<hr>';
+                    html += '<p class="error">❌ uni_farming_rate не установлен или имеет неверное значение.</p>';
+                }
+                
+                statusDiv.innerHTML = html;
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">❌ Ошибка: ${error.message}</span>`;
+            }
+        }
+        
+        // Проверяем при загрузке
+        window.onload = checkStatus;
+    </script>
+</body>
+</html>
