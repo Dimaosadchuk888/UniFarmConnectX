@@ -1,7 +1,18 @@
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-const JWT_SECRET = 'unifarm_jwt_secret_key_2025_production';
+dotenv.config();
 
+// ВАЖНО: Используйте переменную окружения для JWT_SECRET
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  console.error('❌ ОШИБКА: JWT_SECRET не установлен в переменных окружения');
+  console.error('Установите JWT_SECRET в файле .env');
+  process.exit(1);
+}
+
+// Тестовые данные - изменяйте по необходимости
 const payload = {
   userId: 48,
   telegram_id: 88888888,

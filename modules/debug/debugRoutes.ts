@@ -4,8 +4,19 @@ import jwt from 'jsonwebtoken';
 
 const router = Router();
 
+// Защита debug endpoints только для development окружения
+const debugMiddleware = (req: any, res: any, next: any) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ 
+      success: false, 
+      error: 'Debug endpoints are disabled in production' 
+    });
+  }
+  next();
+};
+
 // Debug endpoint to check user existence
-router.get('/check-user/:id', async (req, res) => {
+router.get('/check-user/:id', debugMiddleware, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     console.log('[DEBUG] Checking user with ID:', userId);
@@ -51,7 +62,7 @@ router.get('/check-user/:id', async (req, res) => {
 });
 
 // Debug JWT decode endpoint
-router.post('/decode-jwt', async (req, res) => {
+router.post('/decode-jwt', debugMiddleware, async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
