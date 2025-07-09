@@ -273,4 +273,18 @@ export class FarmingController extends BaseController {
       next(error);
     }
   }
+
+  async getRates(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const rates = await farmingService.getRates();
+        
+        logger.info('[Farming] Получение текущих ставок фарминга', rates);
+        
+        this.sendSuccess(res, rates);
+      }, 'получения ставок фарминга');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

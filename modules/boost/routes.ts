@@ -41,8 +41,8 @@ router.get('/', requireTelegramAuth, liberalRateLimit, boostController.getAvaila
 // GET /api/boosts/user/:userId - Получить активные бусты пользователя
 router.get('/user/:userId', requireTelegramAuth, liberalRateLimit, validateParams(userIdParamSchema), boostController.getUserBoosts.bind(boostController));
 
-// POST /api/boosts/activate - Активировать буст
-router.post('/activate', requireTelegramAuth, standardRateLimit, validateBody(boostActivationSchema), boostController.activateBoost.bind(boostController));
+// POST /api/boosts/activate - Активировать TON Boost пакет
+router.post('/activate', requireTelegramAuth, standardRateLimit, boostController.activatePackage.bind(boostController));
 
 // DELETE /api/boosts/deactivate/:boostId - Деактивировать буст
 router.delete('/deactivate/:boostId', requireTelegramAuth, standardRateLimit, validateParams(boostIdParamSchema), boostController.deactivateBoost.bind(boostController));

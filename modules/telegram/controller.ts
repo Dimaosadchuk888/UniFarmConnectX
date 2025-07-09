@@ -1,372 +1,90 @@
-import type { Request, Response, NextFunction } from 'express';
-import { BaseController } from '../../core/BaseController';
-import { logger } from '../../core/logger.js';
-import { TelegramService } from './service';
+import { Request, Response, NextFunction } from 'express';
+import { BaseController } from '../../core/base/BaseController';
+import { telegramService } from './service';
+import { logger } from '../../core/logger';
 
 export class TelegramController extends BaseController {
-  private telegramService: TelegramService;
-
-  constructor() {
-    super();
-    this.telegramService = new TelegramService();
-  }
-
-  async debugMiddleware(req: Request, res: Response, next: NextFunction) {
+  /**
+   * Получить данные Telegram WebApp
+   */
+  async getWebAppData(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {
-      const telegramData = (req as any).telegram;
-      const headers = {
-        'x-telegram-init-data': req.headers['x-telegram-init-data'],
-        'x-telegram-user-id': req.headers['x-telegram-user-id'],
-        'telegram-init-data': req.headers['telegram-init-data']
-      };
-      
-      logger.info('[TelegramDebug] Состояние middleware', {
-        has_telegram: !!telegramData,
-        validated: telegramData?.validated,
-        has_user: !!telegramData?.user,
-        user_id: telegramData?.user?.id,
-        telegram_id: telegramData?.user?.telegram_id
-      });
-      
-      this.sendSuccess(res, {
-        middleware_active: !!telegramData,
-        validated: telegramData?.validated || false,
-        user_present: !!telegramData?.user,
-        user_data: telegramData?.user ? {
-          id: telegramData.user.id,
-          telegram_id: telegramData.user.telegram_id,
-          username: telegramData.user.username,
-          ref_code: telegramData.user.ref_code
-        } : null,
-        headers_received: headers,
-        timestamp: new Date().toISOString()
-      });
-    }, 'отладки Telegram middleware');
+        const { init_data } = req.query;
+        
+        if (!init_data || typeof init_data !== 'string') {
+          return this.sendError(res, 'Отсутствует параметр init_data', 400);
+        }
+
+        const result = await telegramService.getWebAppData(init_data);
+        
+        if (result.success) {
+          this.sendSuccess(res, result.data);
+        } else {
+          this.sendError(res, result.error || 'Ошибка получения WebApp данных', 400);
+        }
+      }, 'получения данных Telegram WebApp');
     } catch (error) {
       next(error);
     }
   }
 
-  async handleWebhook(req: Request, res: Response, next: NextFunction) {
+  /**
+   * Установить команды бота
+   */
+  async setCommands(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {
-      const update = req.body;
-      
-      logger.info('[TelegramWebhook] Получено обновление от Telegram', {
-        update_id: update.update_id,
-        message: update.message ? {
-          message_id: update.message.message_id,
-          from: update.message.from,
-          chat: update.message.chat,
-          text: update.message.text
-        } : null,
-        callback_query: update.callback_query ? {
-          id: update.callback_query.id,
-          from: update.callback_query.from,
-          data: update.callback_query.data
-        } : null
-      });
-
-      // Обработка текстовых команд
-      if (update.message && update.message.text) {
-        const chatId = update.message.chat.id;
-        const userId = update.message.from.id;
-        const username = update.message.from.username;
-        const text = update.message.text.trim();
+        const { commands } = req.body;
         
-        // Проверяем, является ли пользователь администратором
-        const isAdmin = await this.telegramService.checkAdminStatus(userId, username);
-        
-        if (text.startsWith('/start')) {
-          await this.handleStartCommand(chatId, userId, username);
-        } else if (text.startsWith('/admin') || text.startsWith('/stats') || text.startsWith('/users') || text.startsWith('/user ') || text.startsWith('/missions') || text.startsWith('/ban') || text.startsWith('/mission_')) {
-          // Admin commands moved to @unifarm_admin_bot
-          await this.telegramService.sendMessage(chatId, 
-            '🔐 Административные команды перенесены в отдельный бот\n\n' +
-            'Используйте @unifarm_admin_bot для:\n' +
-            '• Просмотра статистики\n' +
-            '• Управления пользователями\n' +
-            '• Обработки заявок на вывод\n' +
-            '• Управления миссиями\n\n' +
-            'Доступ только для авторизованных администраторов.'
-          );
+        if (!commands || !Array.isArray(commands)) {
+          return this.sendError(res, 'Отсутствует массив команд', 400);
         }
-      }
 
-      // Обработка callback query (нажатия на кнопки)
-      if (update.callback_query) {
-        const chatId = update.callback_query.message.chat.id;
-        const userId = update.callback_query.from.id;
-        const username = update.callback_query.from.username;
-        const data = update.callback_query.data;
-        
-        const isAdmin = await this.telegramService.checkAdminStatus(userId, username);
-        
-        if (isAdmin && data) {
-          await this.handleAdminCallback(chatId, userId, data);
+        // Валидация команд
+        for (const cmd of commands) {
+          if (!cmd.command || !cmd.description) {
+            return this.sendError(res, 'Каждая команда должна иметь command и description', 400);
+          }
         }
-        
-        await this.telegramService.answerCallbackQuery(update.callback_query.id);
-      }
 
-      this.sendSuccess(res, { 
-        status: 'webhook_processed',
-        update_id: update.update_id 
-      });
-    }, 'обработки Telegram webhook');
+        const result = await telegramService.setCommands(commands);
+        
+        if (result.success) {
+          this.sendSuccess(res, { message: result.message });
+        } else {
+          this.sendError(res, result.message, 400);
+        }
+      }, 'установки команд бота');
     } catch (error) {
       next(error);
     }
   }
 
-  private async handleStartCommand(chatId: number, userId: number, username: string) {
-    logger.info('[TelegramWebhook] Обработка команды /start', {
-      chat_id: chatId,
-      user_id: userId,
-      username: username
-    });
-
-    await this.telegramService.sendMessage(chatId, 
-      '🌾 Добро пожаловать в UniFarm Connect!\n\n' +
-      'Начните фармить UNI и TON токены прямо сейчас!', 
-      {
-        reply_markup: {
-          inline_keyboard: [[{
-            text: '🚀 Запустить UniFarm',
-            web_app: { url: 'https://uni-farm-connect-x-alinabndrnk99.replit.app' }
-          }]]
-        }
-      }
-    );
-  }
-
-  private async handleAdminCommand(chatId: number, userId: number) {
-    const keyboard = {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '📊 Статистика', callback_data: 'admin_stats' }],
-          [{ text: '👥 Пользователи', callback_data: 'admin_users' }],
-          [{ text: '🎯 Миссии', callback_data: 'admin_missions' }],
-          [{ text: '🔧 Управление', callback_data: 'admin_manage' }]
-        ]
-      }
-    };
-
-    await this.telegramService.sendMessage(chatId, 
-      '🔧 Панель администратора UniFarm\n\n' +
-      'Выберите раздел для управления:', 
-      keyboard
-    );
-  }
-
-  private async handleStatsCommand(chatId: number, userId: number) {
+  /**
+   * Отправить сообщение пользователю
+   */
+  async sendMessage(req: Request, res: Response, next: NextFunction) {
     try {
-      const stats = await this.telegramService.getSystemStats();
-      
-      await this.telegramService.sendMessage(chatId, 
-        `📊 Статистика системы UniFarm\n\n` +
-        `👥 Пользователи: ${stats.totalUsers}\n` +
-        `💰 Транзакции: ${stats.totalTransactions}\n` +
-        `🌾 Фарминг-награды: ${stats.totalFarmingRewards}\n` +
-        `⚡ Статус: ${stats.systemStatus}\n` +
-        `🕐 Обновлено: ${new Date(stats.lastUpdated).toLocaleString('ru-RU')}`
-      );
-    } catch (error) {
-      await this.telegramService.sendMessage(chatId, '❌ Ошибка получения статистики');
-    }
-  }
-
-  private async handleUsersCommand(chatId: number, userId: number, text: string) {
-    try {
-      const page = parseInt(text.split(' ')[1]) || 1;
-      const users = await this.telegramService.getUsersList(page, 10);
-      
-      let message = `👥 Пользователи (страница ${page}/${Math.ceil(users.total / 10)})\n\n`;
-      
-      users.users.forEach((user: any, index: number) => {
-        message += `${(page - 1) * 10 + index + 1}. ${user.username || 'Неизвестно'}\n`;
-        message += `   ID: ${user.telegram_id}\n`;
-        message += `   UNI: ${user.balance_uni || '0'}\n`;
-        message += `   TON: ${user.balance_ton || '0'}\n\n`;
-      });
-      
-      const keyboard: any = { reply_markup: { inline_keyboard: [] } };
-      
-      if (page > 1) {
-        keyboard.reply_markup.inline_keyboard.push([
-          { text: '⬅️ Предыдущая', callback_data: `users_page_${page - 1}` }
-        ]);
-      }
-      
-      if (users.hasMore) {
-        keyboard.reply_markup.inline_keyboard.push([
-          { text: 'Следующая ➡️', callback_data: `users_page_${page + 1}` }
-        ]);
-      }
-      
-      await this.telegramService.sendMessage(chatId, message, keyboard);
-    } catch (error) {
-      await this.telegramService.sendMessage(chatId, '❌ Ошибка получения списка пользователей');
-    }
-  }
-
-  private async handleUserCommand(chatId: number, userId: number, targetUserId: string) {
-    try {
-      const userInfo = await this.telegramService.getUserInfo(targetUserId);
-      
-      await this.telegramService.sendMessage(chatId, 
-        `👤 Информация о пользователе\n\n` +
-        `ID: ${userInfo.telegram_id}\n` +
-        `Username: ${userInfo.username || 'Не указан'}\n` +
-        `UNI баланс: ${userInfo.balance_uni || '0'}\n` +
-        `TON баланс: ${userInfo.balance_ton || '0'}\n` +
-        `Статус: ${userInfo.is_active ? 'Активен' : 'Неактивен'}\n` +
-        `Регистрация: ${new Date(userInfo.created_at).toLocaleString('ru-RU')}`
-      );
-    } catch (error) {
-      await this.telegramService.sendMessage(chatId, '❌ Пользователь не найден');
-    }
-  }
-
-  private async handleMissionsCommand(chatId: number, userId: number) {
-    try {
-      const missionsData = await this.telegramService.getMissionsData();
-      const { activeMissions, stats } = missionsData;
-      
-      let message = '🎯 Система миссий\n\n';
-      message += '📊 Общая статистика:\n';
-      message += `✅ Выполнено миссий: ${stats.totalCompletedMissions}\n`;
-      message += `🎁 Получено наград: ${stats.totalRewardsClaimed}\n`;
-      message += `💰 Общая сумма UNI: ${stats.totalRewardsUni}\n\n`;
-      
-      message += '🎯 Активные миссии:\n\n';
-      
-      activeMissions.forEach((mission: any, index: number) => {
-        message += `${index + 1}. ${mission.title}\n`;
-        message += `📝 ${mission.description}\n`;
-        message += `💎 Награда: ${mission.reward_uni} UNI\n`;
+      await this.handleRequest(req, res, async () => {
+        const { chat_id, text, options } = req.body;
         
-        // Определяем тип миссии
-        let missionType = 'Неизвестный';
-        switch (mission.type) {
-          case 'telegram_group':
-            missionType = 'Telegram чат';
-            break;
-          case 'telegram_channel':
-            missionType = 'Telegram канал';
-            break;
-          case 'youtube':
-            missionType = 'YouTube подписка';
-            break;
-          case 'tiktok':
-            missionType = 'TikTok подписка';
-            break;
-          default:
-            missionType = 'Социальная сеть';
+        if (!chat_id || !text) {
+          return this.sendError(res, 'Отсутствуют обязательные параметры: chat_id, text', 400);
         }
+
+        const result = await telegramService.sendMessage(chat_id, text, options);
         
-        message += `📅 Тип: ${missionType}\n`;
-        if (mission.url) {
-          message += `🔗 Ссылка: ${mission.url}\n`;
+        if (result.success) {
+          this.sendSuccess(res, { messageId: result.messageId });
+        } else {
+          this.sendError(res, result.error || 'Ошибка отправки сообщения', 400);
         }
-        message += `🟢 Статус: ${mission.status === 'ACTIVE' ? 'Активна' : 'Неактивна'}\n\n`;
-      });
-      
-      message += '💡 Для управления миссиями используйте команды:\n';
-      message += '/mission_complete <id> - отметить миссию как выполненную\n';
-      message += '/mission_reward <id> - выдать награду за миссию';
-      
-      await this.telegramService.sendMessage(chatId, message);
+      }, 'отправки сообщения через Telegram');
     } catch (error) {
-      logger.error('[TelegramController] Ошибка в handleMissionsCommand:', error);
-      await this.telegramService.sendMessage(chatId, 
-        '❌ Ошибка получения данных о миссиях. Попробуйте позже.'
-      );
-    }
-  }
-
-  private async handleBanCommand(chatId: number, userId: number, targetUserId: string) {
-    try {
-      const result = await this.telegramService.banUser(targetUserId);
-      
-      if (result) {
-        await this.telegramService.sendMessage(chatId, 
-          `✅ Пользователь ${targetUserId} заблокирован`
-        );
-      } else {
-        await this.telegramService.sendMessage(chatId, 
-          `❌ Ошибка блокировки пользователя ${targetUserId}`
-        );
-      }
-    } catch (error) {
-      await this.telegramService.sendMessage(chatId, '❌ Ошибка выполнения команды');
-    }
-  }
-
-  private async handleAdminCallback(chatId: number, userId: number, data: string) {
-    // All admin functionality moved to @unifarm_admin_bot
-    await this.telegramService.sendMessage(chatId, 
-      '🔐 Административные функции перенесены в @unifarm_admin_bot\n\n' +
-      'Пожалуйста, используйте отдельный админ-бот для всех административных задач.'
-    );
-  }
-
-  private async handleMissionCompleteCommand(chatId: number, userId: number, missionId: string) {
-    try {
-      if (!missionId || isNaN(Number(missionId))) {
-        await this.telegramService.sendMessage(chatId, '❌ Неверный ID миссии. Используйте: /mission_complete <id>');
-        return;
-      }
-
-      const { MissionsService } = await import('../missions/service.ts');
-      const missionsService = new MissionsService();
-      
-      // Для админской команды используем системный telegram_id
-      const result = await missionsService.completeMission('admin', Number(missionId));
-      
-      if (result.success) {
-        await this.telegramService.sendMessage(chatId, 
-          `✅ ${result.message}\n` +
-          `🎯 Миссия ${missionId} отмечена как выполненная`
-        );
-      } else {
-        await this.telegramService.sendMessage(chatId, `❌ ${result.message}`);
-      }
-    } catch (error) {
-      logger.error('[TelegramController] Ошибка в handleMissionCompleteCommand:', error);
-      await this.telegramService.sendMessage(chatId, '❌ Ошибка выполнения команды');
-    }
-  }
-
-  private async handleMissionRewardCommand(chatId: number, userId: number, missionId: string) {
-    try {
-      if (!missionId || isNaN(Number(missionId))) {
-        await this.telegramService.sendMessage(chatId, '❌ Неверный ID миссии. Используйте: /mission_reward <id>');
-        return;
-      }
-
-      const { MissionsService } = await import('../missions/service.ts');
-      const missionsService = new MissionsService();
-      
-      // Для админской команды используем системный telegram_id
-      const result = await missionsService.claimMissionReward('admin', Number(missionId));
-      
-      if (result.success) {
-        let message = `✅ ${result.message}\n`;
-        message += `🎯 Награда за миссию ${missionId} выдана`;
-        
-        if (result.reward) {
-          message += `\n💰 Получено: ${result.reward.uni} UNI`;
-        }
-        
-        await this.telegramService.sendMessage(chatId, message);
-      } else {
-        await this.telegramService.sendMessage(chatId, `❌ ${result.message}`);
-      }
-    } catch (error) {
-      logger.error('[TelegramController] Ошибка в handleMissionRewardCommand:', error);
-      await this.telegramService.sendMessage(chatId, '❌ Ошибка выполнения команды');
+      next(error);
     }
   }
 }
+
+export const telegramController = new TelegramController();

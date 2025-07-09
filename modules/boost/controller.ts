@@ -284,4 +284,34 @@ export class BoostController extends BaseController {
       }
     }, 'проверки TON платежа');
   }
+
+  /**
+   * Активация TON Boost пакета
+   */
+  async activatePackage(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      const { user_id, package_id } = req.body;
+
+      logger.info('[BoostController] Активация TON Boost пакета', {
+        user_id,
+        package_id
+      });
+
+      // Валидация входных параметров
+      if (!user_id || !package_id) {
+        return this.sendError(res, 'Отсутствуют обязательные параметры: user_id, package_id', 400);
+      }
+
+      const result = await this.boostService.activatePackage(user_id, package_id);
+
+      if (result.success) {
+        this.sendSuccess(res, {
+          message: result.message,
+          activated: result.activated
+        });
+      } else {
+        this.sendError(res, result.message, 400);
+      }
+    }, 'активации TON Boost пакета');
+  }
 }

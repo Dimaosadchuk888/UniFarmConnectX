@@ -977,4 +977,85 @@ export class BoostService {
       };
     }
   }
+
+  async activatePackage(userId: string, packageId: string): Promise<{
+    success: boolean;
+    message: string;
+    activated?: boolean;
+  }> {
+    try {
+      logger.info('[BoostService] Активация TON Boost пакета', { userId, packageId });
+      
+      // Проверяем, существует ли пакет
+      const boostPackage = this.tonBoostPackages.find(pkg => pkg.id.toString() === packageId);
+      if (!boostPackage) {
+        return {
+          success: false,
+          message: 'Пакет не найден'
+        };
+      }
+
+      // Проверяем, есть ли у пользователя купленный пакет
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('id, ton_boost_package')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !user) {
+        logger.error('[BoostService] Ошибка получения пользователя:', userError);
+        return {
+          success: false,
+          message: 'Пользователь не найден'
+        };
+      }
+
+      // Проверяем, не активирован ли уже пакет
+      if (user.ton_boost_package === parseInt(packageId)) {
+        return {
+          success: true,
+          message: 'Пакет уже активирован',
+          activated: false
+        };
+      }
+
+      // Активируем пакет
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          ton_boost_package: boostPackage.id,
+          ton_boost_rate: boostPackage.daily_rate
+        })
+        .eq('id', userId);
+
+      if (updateError) {
+        logger.error('[BoostService] Ошибка активации пакета:', updateError);
+        return {
+          success: false,
+          message: 'Ошибка активации пакета'
+        };
+      }
+
+      logger.info('[BoostService] Пакет успешно активирован', {
+        userId,
+        packageId,
+        packageName: boostPackage.name,
+        dailyRate: boostPackage.daily_rate
+      });
+
+      return {
+        success: true,
+        message: `Пакет "${boostPackage.name}" успешно активирован`,
+        activated: true
+      };
+    } catch (error) {
+      logger.error('[BoostService] Ошибка активации пакета:', error);
+      return {
+        success: false,
+        message: 'Внутренняя ошибка сервера'
+      };
+    }
+  }
 }
+
+export const boostService = new BoostService();

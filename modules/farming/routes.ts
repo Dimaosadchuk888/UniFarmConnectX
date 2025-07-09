@@ -45,6 +45,9 @@ router.post('/harvest', requireTelegramAuth, massOperationsRateLimit, farmingCon
 // Farming history route
 router.get('/history', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingHistory.bind(farmingController));
 
+// Farming rates route
+router.get('/rates', requireTelegramAuth, liberalRateLimit, farmingController.getRates.bind(farmingController));
+
 // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Прямой депозит минуя BaseController
 router.post('/direct-deposit', requireTelegramAuth, massOperationsRateLimit, directDepositHandler);
 

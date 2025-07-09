@@ -130,6 +130,33 @@ export class FarmingService {
     }
   }
 
+  async getRates(): Promise<{
+    base_rate: number;
+    daily_rate: number;
+    hourly_rate: number;
+    per_second_rate: number;
+    minimum_deposit: number;
+    maximum_deposit: number;
+  }> {
+    try {
+      const baseHourlyRate = FARMING_CONFIG.BASE_HOURLY_RATE || 0.01;
+      const dailyRate = baseHourlyRate * 24;
+      const ratePerSecond = baseHourlyRate / 3600;
+      
+      return {
+        base_rate: baseHourlyRate,
+        daily_rate: dailyRate,
+        hourly_rate: baseHourlyRate,
+        per_second_rate: ratePerSecond,
+        minimum_deposit: FARMING_CONFIG.MIN_DEPOSIT || 1,
+        maximum_deposit: FARMING_CONFIG.MAX_DEPOSIT || 1000000
+      };
+    } catch (error) {
+      logger.error('[FarmingService] Ошибка получения ставок фарминга', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
   async depositUniForFarming(telegramId: string, amount: string): Promise<{ success: boolean; message: string }> {
     try {
       logger.info('[FarmingService] CRITICAL FIX: Прямой депозит минуя BalanceManager', { 
