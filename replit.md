@@ -108,9 +108,9 @@ Each business domain is organized as a self-contained module:
 ### Database Strategy
 - **Primary**: Supabase API with @supabase/supabase-js SDK for production scalability
 - **Connection**: Unified Supabase client connection via core/supabase.ts
-- **Schema**: Complete 5-table structure (users, user_sessions, transactions, referrals, farming_sessions)
+- **Schema**: Complete 11-table structure (users, user_sessions, transactions, referrals, farming_sessions, boost_purchases, missions, user_missions, airdrops, daily_bonus_logs, withdraw_requests)
 - **API**: All database operations converted from drizzle-orm to Supabase API methods
-- **Migration Status**: 100% complete - PostgreSQL fully replaced with Supabase API
+- **Migration Status**: 64% complete - 7 таблиц существуют, 4 требуют создания
 
 ### Performance Optimizations
 - **Frontend**: Code splitting with React.lazy for reduced bundle size
