@@ -33,7 +33,7 @@ const farmingStartSchema = z.object({
 router.get('/', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingData.bind(farmingController));
 router.get('/data', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingInfo.bind(farmingController)); // Main data endpoint с авторизацией
 router.get('/info', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingInfo.bind(farmingController));
-router.get('/status', requireTelegramAuth, massOperationsRateLimit, farmingController.getFarmingInfo.bind(farmingController)); // Используем massOperationsRateLimit для частых обновлений статуса
+router.get('/status', requireTelegramAuth, massOperationsRateLimit, farmingController.getFarmingInfoByUserId.bind(farmingController)); // Используем massOperationsRateLimit для частых обновлений статуса
 router.post('/start', requireTelegramAuth, massOperationsRateLimit, validateBody(farmingStartSchema), farmingController.startFarming.bind(farmingController));
 router.get('/start', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingInfo.bind(farmingController)); // GET endpoint for start status
 router.post('/stop', requireTelegramAuth, massOperationsRateLimit, farmingController.stopFarming.bind(farmingController));

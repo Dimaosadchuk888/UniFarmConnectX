@@ -105,6 +105,55 @@ export class FarmingController extends BaseController {
     }
   }
 
+  async getFarmingInfoByUserId(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const userId = req.query.user_id as string;
+        
+        if (!userId) {
+          return this.sendError(res, 'user_id is required', 400);
+        }
+
+        logger.info('[Farming] getFarmingInfoByUserId вызван', { user_id: userId });
+
+        // Получаем пользователя по user_id
+        const user = await userRepository.getUserById(Number(userId));
+        
+        if (!user) {
+          logger.warn('[Farming] Пользователь не найден по user_id', { user_id: userId });
+          return this.sendError(res, 'User not found', 404);
+        }
+
+        logger.info('[Farming] Пользователь найден', { 
+          user_id: userId, 
+          telegram_id: user.telegram_id,
+          uni_deposit_amount: user.uni_deposit_amount,
+          uni_farming_start_timestamp: user.uni_farming_start_timestamp
+        });
+
+        // Проверяем статус фарминга напрямую из данных пользователя
+        const isActive = !!(user.uni_farming_start_timestamp && user.uni_deposit_amount && parseFloat(user.uni_deposit_amount) > 0);
+        
+        const farmingData = {
+          user_id: Number(userId),
+          balance_uni: parseFloat(user.balance_uni || '0'),
+          uni_farming_active: isActive,
+          uni_deposit_amount: parseFloat(user.uni_deposit_amount || '0'),
+          uni_farming_balance: 0, // Здесь можно добавить расчёт накопленных токенов
+          uni_farming_rate: 0.01, // 0.01% в час
+          uni_farming_start_timestamp: user.uni_farming_start_timestamp || null,
+          timestamp: new Date().toISOString()
+        };
+
+        logger.info('[Farming] Данные фарминга подготовлены', farmingData);
+
+        this.sendSuccess(res, farmingData);
+      }, 'получения информации о фарминге по user_id');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async startFarming(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {
