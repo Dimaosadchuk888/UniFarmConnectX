@@ -554,4 +554,117 @@ export class WalletService {
       };
     }
   }
+
+  async transferFunds(params: {
+    from_user_id: number;
+    to_user_id: number;
+    amount: number;
+    currency: 'UNI' | 'TON';
+  }): Promise<{ success: boolean; error?: string; transaction_id?: string; from_balance?: number; to_balance?: number }> {
+    try {
+      const { from_user_id, to_user_id, amount, currency } = params;
+
+      // Проверяем баланс отправителя
+      const fromBalance = await this.getBalance(from_user_id.toString());
+      const currentBalance = currency === 'UNI' ? fromBalance.uni : fromBalance.ton;
+
+      if (currentBalance < amount) {
+        return {
+          success: false,
+          error: `Недостаточно средств. Доступно: ${currentBalance} ${currency}`
+        };
+      }
+
+      // Используем BalanceManager для атомарного перевода
+      const { balanceManager } = await import('../../core/BalanceManager');
+      
+      // Списываем с отправителя
+      const withdrawResult = await balanceManager.subtractBalance(
+        from_user_id,
+        currency === 'UNI' ? amount : 0,
+        currency === 'TON' ? amount : 0,
+        'Internal transfer'
+      );
+
+      if (!withdrawResult.success) {
+        return {
+          success: false,
+          error: withdrawResult.error || 'Ошибка списания средств'
+        };
+      }
+
+      // Начисляем получателю
+      const depositResult = await balanceManager.addBalance(
+        to_user_id,
+        currency === 'UNI' ? amount : 0,
+        currency === 'TON' ? amount : 0,
+        'Internal transfer'
+      );
+
+      if (!depositResult.success) {
+        // Откатываем транзакцию - возвращаем средства отправителю
+        await balanceManager.addBalance(
+          from_user_id,
+          currency === 'UNI' ? amount : 0,
+          currency === 'TON' ? amount : 0,
+          'Transfer rollback'
+        );
+        
+        return {
+          success: false,
+          error: depositResult.error || 'Ошибка зачисления средств'
+        };
+      }
+
+      // Создаем записи транзакций
+      const transactionId = `TRANSFER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Транзакция списания
+      await supabase.from(WALLET_TABLES.TRANSACTIONS).insert({
+        user_id: from_user_id,
+        type: 'TRANSFER_OUT',
+        amount_uni: currency === 'UNI' ? amount.toString() : '0',
+        amount_ton: currency === 'TON' ? amount.toString() : '0',
+        description: `Перевод ${amount} ${currency} пользователю ID ${to_user_id}`,
+        created_at: new Date().toISOString()
+      });
+
+      // Транзакция зачисления
+      await supabase.from(WALLET_TABLES.TRANSACTIONS).insert({
+        user_id: to_user_id,
+        type: 'TRANSFER_IN',
+        amount_uni: currency === 'UNI' ? amount.toString() : '0',
+        amount_ton: currency === 'TON' ? amount.toString() : '0',
+        description: `Получен перевод ${amount} ${currency} от пользователя ID ${from_user_id}`,
+        created_at: new Date().toISOString()
+      });
+
+      logger.info('[WalletService] Перевод выполнен успешно', {
+        transaction_id: transactionId,
+        from_user_id,
+        to_user_id,
+        amount,
+        currency
+      });
+
+      return {
+        success: true,
+        transaction_id: transactionId,
+        from_balance: withdrawResult.newBalance ? 
+          (currency === 'UNI' ? withdrawResult.newBalance.balance_uni : withdrawResult.newBalance.balance_ton) : 0,
+        to_balance: depositResult.newBalance ? 
+          (currency === 'UNI' ? depositResult.newBalance.balance_uni : depositResult.newBalance.balance_ton) : 0
+      };
+
+    } catch (error) {
+      logger.error('[WalletService] Ошибка перевода средств', {
+        params,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return {
+        success: false,
+        error: 'Внутренняя ошибка при переводе'
+      };
+    }
+  }
 }

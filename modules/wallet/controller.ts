@@ -216,4 +216,70 @@ export class WalletController extends BaseController {
       next(error);
     }
   }
+
+  async getTransactionsList(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        if (!user) {
+          return this.sendError(res, 'Пользователь не найден', 404);
+        }
+
+        const { page = 1, limit = 20 } = req.query;
+        const transactions = await walletService.getTransactionHistory(
+          user.id.toString(),
+          parseInt(page as string),
+          parseInt(limit as string)
+        );
+
+        this.sendSuccess(res, transactions);
+      }, 'получения истории транзакций');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async transfer(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const { to_user_id, amount, currency } = req.body;
+
+        const fromUser = await userRepository.getUserByTelegramId(telegram.user.id);
+        if (!fromUser) {
+          return this.sendError(res, 'Пользователь-отправитель не найден', 404);
+        }
+
+        const toUser = await userRepository.getUserById(parseInt(to_user_id));
+        if (!toUser) {
+          return this.sendError(res, 'Пользователь-получатель не найден', 404);
+        }
+
+        const result = await walletService.transferFunds({
+          from_user_id: fromUser.id,
+          to_user_id: parseInt(to_user_id),
+          amount: parseFloat(amount),
+          currency: currency as 'UNI' | 'TON'
+        });
+
+        if (!result.success) {
+          return this.sendError(res, result.error || 'Ошибка перевода', 400);
+        }
+
+        this.sendSuccess(res, {
+          message: `Перевод ${amount} ${currency} успешно выполнен`,
+          transaction_id: result.transaction_id,
+          from_balance: result.from_balance,
+          to_balance: result.to_balance
+        });
+      }, 'перевода средств');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

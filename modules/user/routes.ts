@@ -17,6 +17,10 @@ router.use((req, res, next) => {
 router.post('/', requireTelegramAuth, userController.createUser.bind(userController));
 router.post('/create', requireTelegramAuth, userController.createUser.bind(userController));
 router.get('/profile', requireTelegramAuth, userController.getCurrentUser.bind(userController));
+router.put('/profile', requireTelegramAuth, userController.updateProfile.bind(userController)); // Обновление профиля
+router.get('/stats', requireTelegramAuth, userController.getUserStats.bind(userController)); // Статистика пользователя
+router.get('/search/:query', requireTelegramAuth, userController.searchUsers.bind(userController)); // Поиск пользователей
+router.post('/update-settings', requireTelegramAuth, userController.updateSettings.bind(userController)); // Обновление настроек
 router.put('/:id', requireTelegramAuth, userController.updateUser.bind(userController));
 router.post('/ref-code', requireTelegramAuth, userController.generateRefCode.bind(userController));
 router.post('/recover-ref-code', requireTelegramAuth, userController.recoverRefCode.bind(userController));

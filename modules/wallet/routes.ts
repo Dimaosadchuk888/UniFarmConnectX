@@ -43,14 +43,25 @@ const depositSchema = z.object({
   wallet_address: z.string().optional()
 });
 
+const transferSchema = z.object({
+  to_user_id: z.string().regex(/^\d+$/, 'User ID must be numeric'),
+  amount: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Invalid amount format').refine(
+    (val) => parseFloat(val) > 0,
+    'Amount must be greater than 0'
+  ),
+  currency: z.enum(['UNI', 'TON'], { errorMap: () => ({ message: 'Currency must be UNI or TON' }) })
+});
+
 // Простой обработчик для получения баланса по user_id - используем massOperationsRateLimit для частых обновлений
 router.get('/balance', massOperationsRateLimit, getDirectBalance);
 
 // Маршруты кошелька с обязательной авторизацией, валидацией и оптимизированным rate limiting
 router.get('/', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController));
 router.get('/data', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController)); // Alias для Telegram авторизации
+router.get('/transactions', requireTelegramAuth, liberalRateLimit, walletController.getTransactionsList.bind(walletController)); // История транзакций текущего пользователя
 router.get('/:userId/transactions', requireTelegramAuth, massOperationsRateLimit, validateParams(userIdSchema), walletController.getTransactions.bind(walletController));
 router.post('/deposit', requireTelegramAuth, massOperationsRateLimit, validateBody(depositSchema), walletController.createDeposit.bind(walletController));
 router.post('/withdraw', requireTelegramAuth, strictRateLimit, validateBody(withdrawSchema), walletController.withdraw.bind(walletController)); // Оставляем строгий лимит для выводов
+router.post('/transfer', requireTelegramAuth, strictRateLimit, validateBody(transferSchema), walletController.transfer.bind(walletController)); // Внутренние переводы
 
 export default router;

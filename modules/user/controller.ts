@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { SupabaseUserRepository } from './service';
 import { logger } from '../../core/logger';
+import { supabase } from '../../core/supabaseClient';
 
 const userRepository = new SupabaseUserRepository();
 
@@ -420,5 +421,146 @@ export class UserController extends BaseController {
         cleared_at: new Date().toISOString()
       });
     }, 'очистки сессий пользователя');
+  }
+
+  /**
+   * Обновление профиля пользователя
+   */
+  async updateProfile(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const user = (req as any).user;
+      if (!user) {
+        return this.sendError(res, 'User not found', 404);
+      }
+
+      const updates = req.body;
+      const allowedFields = ['username', 'first_name', 'last_name', 'language_code'];
+      
+      // Фильтруем только разрешенные поля
+      const filteredUpdates: any = {};
+      for (const field of allowedFields) {
+        if (updates[field] !== undefined) {
+          filteredUpdates[field] = updates[field];
+        }
+      }
+
+      const result = await userRepository.updateUser(user.id, filteredUpdates);
+      this.sendSuccess(res, result || {});
+    }, 'обновления профиля');
+  }
+
+  /**
+   * Получение статистики пользователя
+   */
+  async getUserStats(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const user = (req as any).user;
+      if (!user) {
+        return this.sendError(res, 'User not found', 404);
+      }
+
+      const userInfo = await userRepository.findUserById(user.id);
+      if (!userInfo) {
+        return this.sendError(res, 'User not found', 404);
+      }
+
+      // Получаем статистику транзакций
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id);
+
+      const totalEarnedUni = transactions?.filter(t => t.amount_uni > 0)
+        .reduce((sum, t) => sum + parseFloat(t.amount_uni), 0) || 0;
+      
+      const totalEarnedTon = transactions?.filter(t => t.amount_ton > 0)
+        .reduce((sum, t) => sum + parseFloat(t.amount_ton), 0) || 0;
+
+      // Получаем информацию о рефералах
+      const { data: referrals } = await supabase
+        .from('users')
+        .select('id')
+        .eq('referrer_id', user.id);
+
+      const stats = {
+        user_id: user.id,
+        total_earned_uni: totalEarnedUni.toFixed(6),
+        total_earned_ton: totalEarnedTon.toFixed(6),
+        total_referrals: referrals?.length || 0,
+        farming_active: userInfo.uni_farming_active || false,
+        boost_active: !!userInfo.ton_boost_package,
+        account_created: userInfo.created_at,
+        last_active: userInfo.last_active || userInfo.created_at
+      };
+
+      this.sendSuccess(res, stats);
+    }, 'получения статистики пользователя');
+  }
+
+  /**
+   * Поиск пользователей
+   */
+  async searchUsers(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const { query } = req.params;
+      
+      if (!query || query.length < 3) {
+        return this.sendError(res, 'Query must be at least 3 characters long', 400);
+      }
+
+      // Ищем по username или ref_code
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('id, telegram_id, username, first_name, ref_code')
+        .or(`username.ilike.%${query}%,ref_code.ilike.%${query}%`)
+        .limit(20);
+
+      if (error) {
+        throw error;
+      }
+
+      const results = users?.map(u => ({
+        id: u.id,
+        telegram_id: u.telegram_id,
+        username: u.username || 'Unknown',
+        first_name: u.first_name,
+        ref_code: u.ref_code
+      })) || [];
+
+      this.sendSuccess(res, { results, query });
+    }, 'поиска пользователей');
+  }
+
+  /**
+   * Обновление настроек пользователя
+   */
+  async updateSettings(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const user = (req as any).user;
+      if (!user) {
+        return this.sendError(res, 'User not found', 404);
+      }
+
+      const settings = req.body;
+      const allowedSettings = ['notifications', 'language', 'theme', 'auto_compound'];
+      
+      // Фильтруем только разрешенные настройки
+      const filteredSettings: any = {};
+      for (const setting of allowedSettings) {
+        if (settings[setting] !== undefined) {
+          filteredSettings[setting] = settings[setting];
+        }
+      }
+
+      // Сохраняем настройки в JSON поле user_settings
+      const result = await userRepository.updateUser(user.id, {
+        user_settings: filteredSettings
+      });
+
+      this.sendSuccess(res, {
+        message: 'Настройки обновлены',
+        settings: filteredSettings
+      });
+    }, 'обновления настроек');
   }
 }
