@@ -74,11 +74,11 @@ CREATE TABLE IF NOT EXISTS airdrops (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 5. Заполнить таблицу missions базовыми данными
+-- 5. Заполнить таблицу missions оригинальными данными из приложения
 INSERT INTO missions (id, title, description, reward_uni, reward_ton, type, status) VALUES
-(1, 'Первый депозит', 'Сделайте первый депозит UNI в фарминг', 10, 0, 'one_time', 'active'),
-(2, 'Пригласи друга', 'Пригласите минимум 1 друга в UniFarm', 5, 0, 'one_time', 'active'),
-(3, 'Активный фармер', 'Фармите 7 дней подряд без перерыва', 20, 0, 'streak', 'active'),
-(4, 'TON Boost активация', 'Активируйте любой TON Boost пакет', 0, 0.1, 'one_time', 'active'),
-(5, 'Социальная активность', 'Подпишитесь на наш Telegram канал', 2, 0, 'social', 'active')
+(1, 'Подписаться на Telegram канал', 'Подпишись на Telegram-канал Universe Games https://t.me/UniverseGamesChannel', 500, 0, 'social', 'active'),
+(2, 'Вступить в Telegram чат', 'Вступи в Telegram-чат Universe Games https://t.me/UniverseGamesChat', 500, 0, 'social', 'active'),
+(3, 'Подписка на YouTube', 'Подпишись на YouTube-канал https://youtube.com/@universegamesyoutube?si=XHebHkmEcGpADUAE', 500, 0, 'social', 'active'),
+(4, 'Check-in дня', 'Ежедневное посещение приложения', 200, 0, 'daily', 'active'),
+(5, 'Подписаться на TikTok', 'Подпишись на TikTok Universe Games https://www.tiktok.com/@universegames.io', 500, 0, 'social', 'active')
 ON CONFLICT (id) DO NOTHING;
