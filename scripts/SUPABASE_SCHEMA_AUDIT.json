@@ -1,0 +1,423 @@
+{
+  "tables": [
+    {
+      "name": "users",
+      "columns": [
+        {
+          "name": "id",
+          "type": "number",
+          "sampleValue": 49,
+          "isNullable": false
+        },
+        {
+          "name": "telegram_id",
+          "type": "number",
+          "sampleValue": 48,
+          "isNullable": false
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "sampleValue": "dev_user",
+          "isNullable": false
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sampleValue": "Dev User",
+          "isNullable": false
+        },
+        {
+          "name": "wallet",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "ref_code",
+          "type": "string",
+          "sampleValue": "REF_1751400282393_5su2uc",
+          "isNullable": false
+        },
+        {
+          "name": "referred_by",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "balance_uni",
+          "type": "number",
+          "sampleValue": 110,
+          "isNullable": false
+        },
+        {
+          "name": "balance_ton",
+          "type": "number",
+          "sampleValue": 0,
+          "isNullable": false
+        },
+        {
+          "name": "uni_deposit_amount",
+          "type": "number",
+          "sampleValue": 0,
+          "isNullable": false
+        },
+        {
+          "name": "uni_farming_start_timestamp",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "uni_farming_balance",
+          "type": "number",
+          "sampleValue": 0,
+          "isNullable": false
+        },
+        {
+          "name": "uni_farming_rate",
+          "type": "number",
+          "sampleValue": 0,
+          "isNullable": false
+        },
+        {
+          "name": "uni_farming_last_update",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "uni_farming_deposit",
+          "type": "number",
+          "sampleValue": 0,
+          "isNullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "string",
+          "sampleValue": "2025-07-01T20:04:42.393",
+          "isNullable": false
+        },
+        {
+          "name": "checkin_last_date",
+          "type": "string",
+          "sampleValue": "2025-07-01T20:12:41.434",
+          "isNullable": false
+        },
+        {
+          "name": "checkin_streak",
+          "type": "number",
+          "sampleValue": 1,
+          "isNullable": false
+        },
+        {
+          "name": "is_admin",
+          "type": "boolean",
+          "sampleValue": false,
+          "isNullable": false
+        },
+        {
+          "name": "ton_boost_package",
+          "type": "number",
+          "sampleValue": 0,
+          "isNullable": false
+        },
+        {
+          "name": "ton_farming_balance",
+          "type": "number",
+          "sampleValue": 0,
+          "isNullable": false
+        },
+        {
+          "name": "ton_farming_rate",
+          "type": "number",
+          "sampleValue": 0.001,
+          "isNullable": false
+        },
+        {
+          "name": "ton_farming_start_timestamp",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "ton_farming_last_update",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "ton_farming_accumulated",
+          "type": "number",
+          "sampleValue": 0,
+          "isNullable": false
+        },
+        {
+          "name": "ton_farming_last_claim",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "ton_boost_active",
+          "type": "boolean",
+          "sampleValue": false,
+          "isNullable": false
+        },
+        {
+          "name": "ton_boost_package_id",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "ton_boost_rate",
+          "type": "number",
+          "sampleValue": 0,
+          "isNullable": false
+        },
+        {
+          "name": "ton_boost_expires_at",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "uni_farming_active",
+          "type": "boolean",
+          "sampleValue": false,
+          "isNullable": false
+        },
+        {
+          "name": "last_active",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 60
+    },
+    {
+      "name": "user_sessions",
+      "columns": [],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 0
+    },
+    {
+      "name": "transactions",
+      "columns": [
+        {
+          "name": "id",
+          "type": "number",
+          "sampleValue": 89729,
+          "isNullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "number",
+          "sampleValue": 17,
+          "isNullable": false
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "sampleValue": "REFERRAL_REWARD",
+          "isNullable": false
+        },
+        {
+          "name": "amount_uni",
+          "type": "number",
+          "sampleValue": 0.000065,
+          "isNullable": false
+        },
+        {
+          "name": "amount_ton",
+          "type": "number",
+          "sampleValue": 0,
+          "isNullable": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "sampleValue": "Referral L1 from User 18: 0.00006500 UNI (100%)",
+          "isNullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "string",
+          "sampleValue": "2025-06-21T07:30:02.185",
+          "isNullable": false
+        },
+        {
+          "name": "metadata",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "sampleValue": "completed",
+          "isNullable": false
+        },
+        {
+          "name": "source",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "tx_hash",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "source_user_id",
+          "type": "number",
+          "sampleValue": 18,
+          "isNullable": false
+        },
+        {
+          "name": "action",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        },
+        {
+          "name": "currency",
+          "type": "object",
+          "sampleValue": null,
+          "isNullable": true
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 534179
+    },
+    {
+      "name": "referrals",
+      "columns": [],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 0
+    },
+    {
+      "name": "farming_sessions",
+      "columns": [],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 0
+    },
+    {
+      "name": "boost_purchases",
+      "columns": [],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 0
+    },
+    {
+      "name": "missions",
+      "columns": [],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 0
+    },
+    {
+      "name": "user_missions",
+      "columns": [],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 0
+    },
+    {
+      "name": "airdrops",
+      "columns": [],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 0
+    },
+    {
+      "name": "daily_bonus_logs",
+      "columns": [],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 0
+    },
+    {
+      "name": "withdraw_requests",
+      "columns": [
+        {
+          "name": "id",
+          "type": "string",
+          "sampleValue": "2e886aae-80fd-45ec-821b-a831d3972d49",
+          "isNullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "number",
+          "sampleValue": 48,
+          "isNullable": false
+        },
+        {
+          "name": "telegram_id",
+          "type": "string",
+          "sampleValue": "88888888",
+          "isNullable": false
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "sampleValue": "demo_user",
+          "isNullable": false
+        },
+        {
+          "name": "amount_ton",
+          "type": "number",
+          "sampleValue": 25.5,
+          "isNullable": false
+        },
+        {
+          "name": "ton_wallet",
+          "type": "string",
+          "sampleValue": "UQC7VNTwqVDNzRYvEcxw3Ls5_BLuKaUE_jPZ_mXvzP3obxvP",
+          "isNullable": false
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "sampleValue": "approved",
+          "isNullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "string",
+          "sampleValue": "2025-07-05T10:40:43.322937+00:00",
+          "isNullable": false
+        },
+        {
+          "name": "processed_at",
+          "type": "string",
+          "sampleValue": "2025-07-05T11:08:54.377+00:00",
+          "isNullable": false
+        },
+        {
+          "name": "processed_by",
+          "type": "string",
+          "sampleValue": "DimaOsadchuk",
+          "isNullable": false
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": [],
+      "rowCount": 3
+    }
+  ],
+  "totalTables": 11,
+  "totalColumns": 56,
+  "timestamp": "2025-07-09T07:40:06.444Z"
+}
