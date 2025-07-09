@@ -273,7 +273,7 @@ function App() {
                   >
                     {renderPage()}
                   </MainLayout>
-                  <NetworkStatusIndicator />
+                  {/* <NetworkStatusIndicator /> */}
                   <Toaster />
                 </TelegramWebAppCheck>
               </WebSocketProvider>
