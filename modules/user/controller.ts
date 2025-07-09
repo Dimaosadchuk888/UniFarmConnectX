@@ -490,7 +490,7 @@ export class UserController extends BaseController {
         farming_active: userInfo.uni_farming_active || false,
         boost_active: !!userInfo.ton_boost_package,
         account_created: userInfo.created_at,
-        last_active: userInfo.last_active || userInfo.created_at
+        last_active: userInfo.created_at  // Remove reference to non-existent field
       };
 
       this.sendSuccess(res, stats);
