@@ -349,7 +349,51 @@ export class FarmingService {
         throw transactionError;
       }
 
-      logger.info('[FarmingService] ЭТАП 10: УСПЕШНОЕ ЗАВЕРШЕНИЕ', {
+      // Создаём запись в farming_sessions после успешного депозита
+      logger.info('[FarmingService] ЭТАП 10: Создание записи в farming_sessions', {
+        userId: user.id,
+        depositAmount
+      });
+
+      try {
+        const farmingSessionPayload = {
+          user_id: user.id,
+          session_type: 'UNI_FARMING',
+          deposit_amount: depositAmount,
+          farming_rate: parseFloat(FARMING_CONFIG.DEFAULT_RATE.toString()),
+          session_start: new Date().toISOString(),
+          currency: 'UNI',
+          status: 'active',
+          created_at: new Date().toISOString()
+        };
+
+        const { data: sessionData, error: sessionError } = await supabase
+          .from('farming_sessions')
+          .insert([farmingSessionPayload])
+          .select()
+          .single();
+
+        if (sessionError) {
+          logger.error('[FarmingService] Ошибка создания farming_sessions', {
+            error: sessionError.message,
+            details: sessionError.details,
+            payload: farmingSessionPayload
+          });
+        } else {
+          logger.info('[FarmingService] Запись farming_sessions успешно создана', {
+            sessionId: sessionData?.id,
+            userId: sessionData?.user_id,
+            depositAmount: sessionData?.deposit_amount
+          });
+        }
+      } catch (sessionError) {
+        logger.error('[FarmingService] Исключение при создании farming_sessions', {
+          error: sessionError instanceof Error ? sessionError.message : String(sessionError),
+          userId: user.id
+        });
+      }
+
+      logger.info('[FarmingService] ЭТАП 11: УСПЕШНОЕ ЗАВЕРШЕНИЕ', {
         userId: user.id,
         amount: depositAmount,
         telegramId,

@@ -39,10 +39,11 @@ export class FarmingScheduler {
     try {
       logger.info('[UNI Farming] Начинаем обработку автоматического начисления дохода');
 
-      // Находим всех активных UNI фармеров
+      // Находим всех активных UNI фармеров (с проверкой флага активности)
       const { data: activeFarmers, error } = await supabase
         .from('users')
         .select('*')
+        .eq('uni_farming_active', true)  // Проверяем флаг активности
         .not('uni_farming_start_timestamp', 'is', null)
         .not('uni_farming_rate', 'is', null);
 
@@ -51,7 +52,20 @@ export class FarmingScheduler {
         return;
       }
 
-      logger.info(`[UNI Farming] Найдено ${activeFarmers?.length || 0} активных фармеров`);
+      logger.info(`[UNI Farming] Найдено ${activeFarmers?.length || 0} активных фармеров (с uni_farming_active=true)`);
+      
+      // Дополнительное логирование для отладки
+      if (activeFarmers && activeFarmers.length > 0) {
+        logger.info('[UNI Farming] Список активных фармеров:', {
+          farmers: activeFarmers.map(f => ({
+            id: f.id,
+            telegram_id: f.telegram_id,
+            uni_farming_active: f.uni_farming_active,
+            deposit_amount: f.uni_deposit_amount,
+            rate: f.uni_farming_rate
+          }))
+        });
+      }
 
       for (const farmer of activeFarmers || []) {
         try {
