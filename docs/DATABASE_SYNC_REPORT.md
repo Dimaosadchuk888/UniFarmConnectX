@@ -268,7 +268,6 @@ CREATE TABLE withdraw_requests (
 ### 1. Добавить недостающие поля в `users`:
 ```sql
 ALTER TABLE users ADD COLUMN ton_boost_package INTEGER;
-ALTER TABLE users ADD COLUMN last_active TIMESTAMP;
 ALTER TABLE users ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
 ```
 
@@ -342,8 +341,7 @@ CREATE INDEX idx_user_missions_user_id ON user_missions(user_id);
 
 ### Этап 2: Добавление недостающих полей
 1. `users.ton_boost_package`
-2. `users.last_active`
-3. `users.updated_at`
+2. `users.updated_at`
 
 ### Этап 3: Создание вспомогательных таблиц
 1. `airdrops` - для системы airdrop
