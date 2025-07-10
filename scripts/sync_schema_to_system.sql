@@ -93,14 +93,38 @@ ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 -- ============================================
--- Таблица withdraw_requests - добавление полей
+-- Таблица withdraw_requests - проверка структуры
 -- ============================================
 
--- Поля для работы с выводами
-ALTER TABLE withdraw_requests
-ADD COLUMN IF NOT EXISTS type VARCHAR(50) DEFAULT 'withdrawal',
-ADD COLUMN IF NOT EXISTS amount_uni NUMERIC(18,6),
-ADD COLUMN IF NOT EXISTS description TEXT;
+-- Согласно документации, таблица уже имеет правильную структуру:
+-- id (UUID), user_id, telegram_id, username, amount_ton, ton_wallet, 
+-- status, created_at, processed_at, processed_by
+
+-- Проверяем, что все необходимые поля существуют
+DO $$
+BEGIN
+    -- Если таблица не существует, создаем её
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables 
+                   WHERE table_name = 'withdraw_requests') THEN
+        CREATE TABLE withdraw_requests (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id BIGINT NOT NULL,
+            telegram_id TEXT,
+            username TEXT,
+            amount_ton NUMERIC(20, 9) NOT NULL CHECK (amount_ton > 0),
+            ton_wallet TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            processed_at TIMESTAMP WITH TIME ZONE,
+            processed_by TEXT
+        );
+        
+        -- Создаем индексы
+        CREATE INDEX idx_withdraw_requests_user_id ON withdraw_requests(user_id);
+        CREATE INDEX idx_withdraw_requests_status ON withdraw_requests(status);
+        CREATE INDEX idx_withdraw_requests_created_at ON withdraw_requests(created_at DESC);
+    END IF;
+END $$;
 
 -- ============================================
 -- РАЗДЕЛ 2: УДАЛЕНИЕ НЕИСПОЛЬЗУЕМЫХ ПОЛЕЙ
