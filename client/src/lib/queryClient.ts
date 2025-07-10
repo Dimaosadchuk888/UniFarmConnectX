@@ -195,18 +195,33 @@ export const getQueryFn: <T>(options: {
       if (queryKey.length > 1 && queryKey[1]) {
         userId = queryKey[1];
       } 
-      // Если ID не передан в queryKey, пытаемся получить из localStorage
+      // Если ID не передан в queryKey, пытаемся получить из JWT токена
       else {
         try {
-          const userData = localStorage.getItem('unifarm_user_data');
-          if (userData) {
-            const userInfo = JSON.parse(userData);
-            if (userInfo && userInfo.id) {
-              userId = userInfo.id;
+          const jwtToken = localStorage.getItem('unifarm_jwt_token');
+          if (jwtToken) {
+            // Декодируем JWT токен
+            const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+            if (payload && payload.userId) {
+              userId = payload.userId;
+              console.log('[queryClient] Получен userId из JWT токена:', userId);
             }
           }
         } catch (err) {
-          console.warn('[queryClient] Не удалось получить ID пользователя из localStorage:', err);
+          console.warn('[queryClient] Не удалось получить ID пользователя из JWT токена:', err);
+          
+          // Fallback на старый механизм для совместимости
+          try {
+            const userData = localStorage.getItem('unifarm_user_data');
+            if (userData) {
+              const userInfo = JSON.parse(userData);
+              if (userInfo && userInfo.id) {
+                userId = userInfo.id;
+              }
+            }
+          } catch (fallbackErr) {
+            console.warn('[queryClient] Fallback также не сработал:', fallbackErr);
+          }
         }
       }
 

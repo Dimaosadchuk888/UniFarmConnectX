@@ -194,6 +194,12 @@ class TelegramService {
       headers['X-Telegram-User-Id'] = user.id.toString();
     }
 
+    // Добавляем JWT токен, если он есть
+    const jwtToken = localStorage.getItem('unifarm_jwt_token');
+    if (jwtToken) {
+      headers['Authorization'] = `Bearer ${jwtToken}`;
+    }
+
     return headers;
   }
 

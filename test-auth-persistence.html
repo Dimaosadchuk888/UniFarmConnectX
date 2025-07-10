@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Auth Persistence</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Тест персистентности авторизации</h1>
+        
+        <h2>Шаг 1: Проверка текущего состояния</h2>
+        <div id="currentStatus"></div>
+        
+        <h2>Шаг 2: Тест API запроса</h2>
+        <button onclick="testApi()">Тестировать API</button>
+        <div id="apiResult"></div>
+        
+        <h2>Шаг 3: Перезагрузка страницы</h2>
+        <button onclick="window.location.reload()">Перезагрузить страницу</button>
+        
+        <h2>Логи</h2>
+        <pre id="logs"></pre>
+    </div>
+
+    <script>
+        const log = (message, type = 'info') => {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logsDiv.innerHTML += `[${timestamp}] [${type.toUpperCase()}] ${message}\n`;
+        };
+
+        const checkCurrentStatus = () => {
+            const statusDiv = document.getElementById('currentStatus');
+            
+            // Проверяем JWT токен
+            const jwtToken = localStorage.getItem('unifarm_jwt_token');
+            
+            if (jwtToken) {
+                try {
+                    // Декодируем JWT
+                    const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+                    statusDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ JWT токен найден
+                            <br>User ID: ${payload.userId}
+                            <br>Username: ${payload.username}
+                            <br>Telegram ID: ${payload.telegram_id}
+                        </div>
+                    `;
+                    log(`JWT токен найден. User ID: ${payload.userId}`, 'success');
+                } catch (e) {
+                    statusDiv.innerHTML = `
+                        <div class="status error">
+                            ❌ Ошибка декодирования JWT токена
+                        </div>
+                    `;
+                    log('Ошибка декодирования JWT токена: ' + e.message, 'error');
+                }
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ JWT токен не найден в localStorage
+                    </div>
+                `;
+                log('JWT токен не найден', 'error');
+            }
+        };
+
+        const testApi = async () => {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '<div class="status info">⏳ Выполняется запрос...</div>';
+            
+            try {
+                // Получаем JWT токен
+                const jwtToken = localStorage.getItem('unifarm_jwt_token');
+                
+                if (!jwtToken) {
+                    throw new Error('JWT токен не найден');
+                }
+                
+                // Делаем запрос к API
+                const response = await fetch('/api/v2/users/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ API запрос успешен
+                            <br>User ID: ${data.data.user?.id}
+                            <br>Username: ${data.data.user?.username}
+                            <br>Balance UNI: ${data.data.user?.balance_uni}
+                            <br>Balance TON: ${data.data.user?.balance_ton}
+                        </div>
+                    `;
+                    log(`API запрос успешен. User ID: ${data.data.user?.id}`, 'success');
+                } else {
+                    throw new Error(data.error || 'API вернул ошибку');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Ошибка API запроса: ${error.message}
+                    </div>
+                `;
+                log('Ошибка API запроса: ' + error.message, 'error');
+            }
+        };
+
+        // Проверяем состояние при загрузке
+        window.addEventListener('load', () => {
+            log('Страница загружена');
+            
+            // Проверяем, была ли перезагрузка
+            if (performance.navigation.type === 1) {
+                log('Это перезагрузка страницы', 'info');
+            }
+            
+            checkCurrentStatus();
+        });
+    </script>
+</body>
+</html>
