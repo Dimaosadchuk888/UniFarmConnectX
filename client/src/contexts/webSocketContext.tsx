@@ -112,13 +112,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   };
 
   useEffect(() => {
+    // Временно отключаем автоматическое подключение для диагностики
+    console.log('[WebSocket] Автоподключение временно отключено для диагностики');
+    
     // Откладываем подключение чтобы дать время React полностью инициализироваться
-    const timer = setTimeout(() => {
-      connect();
-    }, 100);
+    // const timer = setTimeout(() => {
+    //   connect();
+    // }, 100);
 
     return () => {
-      clearTimeout(timer);
+      // clearTimeout(timer);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
