@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test User 74 - UniFarm Login</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #0f0f0f;
+            color: #fff;
+        }
+        .container {
+            background: #1a1a1a;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            color: #8b5cf6;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 32px;
+        }
+        .card {
+            background: #262626;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+        }
+        .card h3 {
+            color: #a78bfa;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .label {
+            color: #9ca3af;
+        }
+        .value {
+            color: #fff;
+            font-weight: 500;
+            font-family: monospace;
+        }
+        .token-display {
+            background: #0f0f0f;
+            padding: 15px;
+            border-radius: 8px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 13px;
+            color: #10b981;
+            margin-top: 10px;
+            border: 1px solid #1f2937;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 200px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .success {
+            background: #10b981;
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+            font-weight: 500;
+        }
+        .balance-highlight {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .balance-item {
+            flex: 1;
+            background: #1f2937;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid #374151;
+        }
+        .balance-amount {
+            font-size: 32px;
+            font-weight: 700;
+            color: #10b981;
+            margin: 10px 0;
+        }
+        .balance-currency {
+            color: #9ca3af;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test User Login - UniFarm</h1>
+        
+        <div class="card">
+            <h3>👤 Информация о пользователе</h3>
+            <div class="info-row">
+                <span class="label">User ID:</span>
+                <span class="value">74</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Telegram ID:</span>
+                <span class="value">999489</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Username:</span>
+                <span class="value">@test_user_1752129840905</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Ref Code:</span>
+                <span class="value">TEST_1752129840905_dokxv0</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>💰 Начальный баланс</h3>
+            <div class="balance-highlight">
+                <div class="balance-item">
+                    <div class="balance-currency">UNI</div>
+                    <div class="balance-amount">1000</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-currency">TON</div>
+                    <div class="balance-amount">1000</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🔐 JWT Token</h3>
+            <div class="token-display">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTI5ODQxLCJleHAiOjE3NTI3MzQ2NDF9.zImxV8ATpEV_ZumGaRKflQ7niNA--PSgKvhXhlPtpsU</div>
+        </div>
+
+        <div class="button-group">
+            <button onclick="loginAndRedirect()">🚀 Войти и перейти в UniFarm</button>
+            <button onclick="loginOnly()">💾 Сохранить токен</button>
+            <button onclick="copyToken()">📋 Скопировать токен</button>
+        </div>
+        
+        <div id="success" class="success"></div>
+    </div>
+
+    <script>
+        const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTI5ODQxLCJleHAiOjE3NTI3MzQ2NDF9.zImxV8ATpEV_ZumGaRKflQ7niNA--PSgKvhXhlPtpsU';
+        
+        function showSuccess(message) {
+            const successEl = document.getElementById('success');
+            successEl.style.display = 'block';
+            successEl.innerHTML = message;
+            setTimeout(() => {
+                successEl.style.display = 'none';
+            }, 3000);
+        }
+        
+        function loginAndRedirect() {
+            localStorage.setItem('unifarm_jwt_token', token);
+            showSuccess('✅ Авторизация успешна! Перенаправление...');
+            
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        }
+        
+        function loginOnly() {
+            localStorage.setItem('unifarm_jwt_token', token);
+            showSuccess('💾 Токен сохранен в localStorage!');
+        }
+        
+        function copyToken() {
+            navigator.clipboard.writeText(token).then(() => {
+                showSuccess('📋 Токен скопирован в буфер обмена!');
+            }).catch(() => {
+                showSuccess('❌ Не удалось скопировать токен');
+            });
+        }
+        
+        // Проверяем текущий токен при загрузке
+        window.onload = function() {
+            const currentToken = localStorage.getItem('unifarm_jwt_token');
+            if (currentToken === token) {
+                showSuccess('✅ Вы уже авторизованы с этим токеном');
+            }
+        };
+    </script>
+</body>
+</html>
