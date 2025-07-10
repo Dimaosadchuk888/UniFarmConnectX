@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test WebSocket Balance Update</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .section {
+      border: 1px solid #ddd;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .log {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: blue; }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+    }
+    .balance-display {
+      font-size: 20px;
+      margin: 10px 0;
+      padding: 10px;
+      background: #e8f4f8;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test WebSocket Balance Update - User 74</h1>
+  
+  <div class="container">
+    <div class="section">
+      <h2>Balance & WebSocket Status</h2>
+      <div class="balance-display">
+        <div>UNI Balance: <span id="uniBalance">Loading...</span></div>
+        <div>TON Balance: <span id="tonBalance">Loading...</span></div>
+        <div>WebSocket: <span id="wsStatus">Disconnected</span></div>
+      </div>
+      
+      <h3>Actions</h3>
+      <button onclick="connectWebSocket()">Connect WebSocket</button>
+      <button onclick="refreshBalance()">Refresh Balance</button>
+      <button onclick="depositUni(10)">Deposit 10 UNI</button>
+      <button onclick="depositUni(50)">Deposit 50 UNI</button>
+      <button onclick="clearLogs()">Clear Logs</button>
+      
+      <h3>WebSocket Messages</h3>
+      <div id="wsLog" class="log"></div>
+    </div>
+    
+    <div class="section">
+      <h2>API Calls Log</h2>
+      <div id="apiLog" class="log"></div>
+    </div>
+  </div>
+
+  <script>
+    const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTQ1NzQxLCJleHAiOjE3NTI3NTA1NDF9.8irPO2E9yP22G_7AQejHT8c1EM-2cbaPQFP2yrK29eg';
+    const USER_ID = 74;
+    
+    let ws = null;
+    let messageCounter = 0;
+    
+    function log(message, type = 'info', target = 'apiLog') {
+      const timestamp = new Date().toISOString();
+      const logDiv = document.getElementById(target);
+      const entry = document.createElement('div');
+      entry.className = type;
+      entry.textContent = `[${timestamp}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function clearLogs() {
+      document.getElementById('wsLog').innerHTML = '';
+      document.getElementById('apiLog').innerHTML = '';
+      log('Logs cleared', 'info', 'apiLog');
+    }
+    
+    async function refreshBalance() {
+      try {
+        log('Fetching balance...', 'info');
+        
+        const response = await fetch('/api/v2/users/profile', {
+          headers: {
+            'Authorization': `Bearer ${JWT_TOKEN}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          document.getElementById('uniBalance').textContent = result.data.balance_uni;
+          document.getElementById('tonBalance').textContent = result.data.balance_ton;
+          log(`Balance updated: UNI=${result.data.balance_uni}, TON=${result.data.balance_ton}`, 'success');
+        } else {
+          log(`Failed to fetch balance: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        log(`Error fetching balance: ${error.message}`, 'error');
+      }
+    }
+    
+    function connectWebSocket() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        log('WebSocket already connected', 'info', 'wsLog');
+        return;
+      }
+      
+      const wsUrl = `ws://localhost:3000/ws?token=${JWT_TOKEN}`;
+      log(`Connecting to WebSocket: ${wsUrl}`, 'info', 'wsLog');
+      
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        document.getElementById('wsStatus').textContent = 'Connected';
+        document.getElementById('wsStatus').style.color = 'green';
+        log('WebSocket connected successfully', 'success', 'wsLog');
+        
+        // Subscribe to user updates
+        const subscribeMsg = {
+          type: 'subscribe_user',
+          userId: USER_ID
+        };
+        ws.send(JSON.stringify(subscribeMsg));
+        log(`Sent subscription for user ${USER_ID}`, 'info', 'wsLog');
+      };
+      
+      ws.onmessage = (event) => {
+        messageCounter++;
+        const data = JSON.parse(event.data);
+        log(`Message #${messageCounter}: ${JSON.stringify(data, null, 2)}`, 'info', 'wsLog');
+        
+        // Handle balance update
+        if (data.type === 'balance_update' && data.userId === USER_ID) {
+          log('🎉 BALANCE UPDATE RECEIVED!', 'success', 'wsLog');
+          log(`Changes: UNI ${data.balanceData.changes.uni}, TON ${data.balanceData.changes.ton}`, 'success', 'wsLog');
+          
+          // Update UI
+          document.getElementById('uniBalance').textContent = data.balanceData.balances.uni;
+          document.getElementById('tonBalance').textContent = data.balanceData.balances.ton;
+          
+          // Highlight the update
+          document.querySelector('.balance-display').style.background = '#d4f8d4';
+          setTimeout(() => {
+            document.querySelector('.balance-display').style.background = '#e8f4f8';
+          }, 2000);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        log(`WebSocket error: ${error}`, 'error', 'wsLog');
+      };
+      
+      ws.onclose = () => {
+        document.getElementById('wsStatus').textContent = 'Disconnected';
+        document.getElementById('wsStatus').style.color = 'red';
+        log('WebSocket disconnected', 'error', 'wsLog');
+      };
+    }
+    
+    async function depositUni(amount) {
+      try {
+        log(`Starting UNI farming deposit: ${amount} UNI`, 'info');
+        
+        const response = await fetch('/api/v2/farming/deposit', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${JWT_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            amount: amount.toString()
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          log(`✅ Deposit successful: ${result.message}`, 'success');
+          log('Waiting for WebSocket balance update...', 'info', 'wsLog');
+        } else {
+          log(`❌ Deposit failed: ${result.error || result.message}`, 'error');
+        }
+      } catch (error) {
+        log(`Error during deposit: ${error.message}`, 'error');
+      }
+    }
+    
+    // Initialize on load
+    window.onload = () => {
+      log('Page loaded, initializing...', 'info');
+      refreshBalance();
+      setTimeout(connectWebSocket, 1000);
+    };
+  </script>
+</body>
+</html>

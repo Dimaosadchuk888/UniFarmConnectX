@@ -12,6 +12,7 @@
 
 import { supabase } from './supabaseClient';
 import { logger } from './logger';
+import { BalanceNotificationService } from './balanceNotificationService';
 
 export interface BalanceUpdateData {
   user_id: number;
@@ -154,6 +155,28 @@ export class BalanceManager {
         old_ton: current.balance_ton,
         new_ton: newBalance.balance_ton,
         operation,
+        source
+      });
+
+      // Отправляем WebSocket уведомление об обновлении баланса
+      const notificationService = BalanceNotificationService.getInstance();
+      const changeAmountUni = operation === 'add' ? amount_uni : (operation === 'subtract' ? -amount_uni : 0);
+      const changeAmountTon = operation === 'add' ? amount_ton : (operation === 'subtract' ? -amount_ton : 0);
+      
+      notificationService.notifyBalanceUpdate({
+        userId: user_id,
+        balanceUni: newBalance.balance_uni,
+        balanceTon: newBalance.balance_ton,
+        changeAmount: amount_uni > 0 ? changeAmountUni : changeAmountTon,
+        currency: amount_uni > 0 ? 'UNI' : 'TON',
+        source: source || 'manual',
+        timestamp: new Date().toISOString()
+      });
+
+      logger.info('[BalanceManager] WebSocket уведомление отправлено', {
+        user_id,
+        changeAmountUni,
+        changeAmountTon,
         source
       });
 

@@ -249,8 +249,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       console.log('[UniFarmingCard] Текущий баланс UNI:', uniBalance);
       console.log('[UniFarmingCard] userId из контекста:', userId);
 
-      // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
-      return correctApiRequest('/api/v2/uni-farming/deposit', 'POST', requestBody);
+      // Используем direct-deposit endpoint для обхода проблем с BaseController
+      return correctApiRequest('/api/v2/uni-farming/direct-deposit', 'POST', requestBody);
     },
     onSuccess: async (response) => {
       try {

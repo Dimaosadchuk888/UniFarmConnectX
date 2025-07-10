@@ -163,7 +163,9 @@ export class FarmingService {
     try {
       logger.info('[FarmingService] Депозит для фарминга', { 
         userId, 
-        amount
+        amount,
+        userIdType: typeof userId,
+        amountType: typeof amount
       });
 
       const numericUserId = Number(userId);
@@ -173,7 +175,11 @@ export class FarmingService {
         numericUserId,
         userFound: !!user,
         userId: user?.id,
-        userName: user?.username
+        userName: user?.username,
+        balance_uni: user?.balance_uni,
+        balance_uni_type: typeof user?.balance_uni,
+        uni_deposit_amount: user?.uni_deposit_amount,
+        uni_deposit_amount_type: typeof user?.uni_deposit_amount
       });
       
       if (!user) {
@@ -187,12 +193,26 @@ export class FarmingService {
         return { success: false, message: 'Некорректная сумма депозита' };
       }
 
-      const currentBalance = parseFloat(user.balance_uni || '0');
+      // balance_uni уже является числом в Supabase, не нужно parseFloat
+      const currentBalance = typeof user.balance_uni === 'number' ? user.balance_uni : parseFloat(user.balance_uni || '0');
+      
+      logger.info('[FarmingService] ЭТАП 2.5: Детальная проверка баланса', {
+        rawBalance: user.balance_uni,
+        balanceType: typeof user.balance_uni,
+        currentBalance,
+        depositAmount,
+        comparisonResult: currentBalance < depositAmount,
+        difference: currentBalance - depositAmount,
+        stringComparison: String(currentBalance) + ' < ' + String(depositAmount) + ' = ' + (currentBalance < depositAmount)
+      });
+      
       if (currentBalance < depositAmount) {
         logger.error('[FarmingService] ЭТАП 3: Недостаточно средств', { 
           currentBalance, 
           depositAmount, 
-          userId: user.id 
+          userId: user.id,
+          balanceType: typeof user.balance_uni,
+          rawBalance: user.balance_uni
         });
         return { success: false, message: 'Недостаточно средств' };
       }
@@ -206,7 +226,8 @@ export class FarmingService {
 
       // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Минуем BalanceManager и обновляем баланс напрямую
       const newBalance = (currentBalance - depositAmount).toFixed(8);
-      const currentDeposit = parseFloat(user.uni_deposit_amount || '0');
+      // uni_deposit_amount тоже может быть числом
+      const currentDeposit = typeof user.uni_deposit_amount === 'number' ? user.uni_deposit_amount : parseFloat(user.uni_deposit_amount || '0');
       const newDepositAmount = (currentDeposit + depositAmount).toFixed(8);
 
       logger.info('[FarmingService] ЭТАП 5: Подготовка прямого обновления баланса', { 

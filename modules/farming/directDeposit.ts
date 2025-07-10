@@ -17,31 +17,23 @@ export async function directDepositHandler(req: Request, res: Response) {
       telegramUser: req.telegramUser
     });
 
-    // Извлекаем user_id из JWT
-    const userId = req.user?.id;
-    const telegramId = req.telegramUser?.telegram_id;
-
-    if (!userId || !telegramId) {
-      console.log('[DirectDeposit] CRITICAL: Отсутствует авторизация', {
-        userId,
-        telegramId,
-        user: req.user,
-        telegramUser: req.telegramUser
-      });
-      
+    // Получаем user_id из тела запроса (frontend отправляет его там)
+    const { amount, user_id } = req.body;
+    
+    // Проверяем авторизацию через JWT
+    const jwtUserId = req.user?.id;
+    
+    if (!jwtUserId) {
+      console.log('[DirectDeposit] CRITICAL: Отсутствует JWT авторизация');
       return res.status(401).json({
         success: false,
-        error: 'Authentication required',
-        debug: {
-          userId,
-          telegramId,
-          hasUser: !!req.user,
-          hasTelegramUser: !!req.telegramUser
-        }
+        error: 'Authentication required'
       });
     }
+    
+    // Используем user_id из тела запроса или из JWT
+    const userId = user_id || jwtUserId;
 
-    const { amount } = req.body;
     if (!amount) {
       console.log('[DirectDeposit] CRITICAL: Отсутствует amount в body');
       return res.status(400).json({
@@ -51,13 +43,15 @@ export async function directDepositHandler(req: Request, res: Response) {
     }
 
     console.log('[DirectDeposit] CRITICAL: Вызов farmingService.depositUniForFarming', {
-      telegramId,
+      userId,
       amount,
-      userId
+      requestBodyUserId: user_id,
+      jwtUserId
     });
 
+    // Передаем userId напрямую в farmingService
     const result = await farmingService.depositUniForFarming(
-      telegramId.toString(),
+      userId.toString(),
       amount
     );
 
