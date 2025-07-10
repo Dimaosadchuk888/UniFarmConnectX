@@ -1,0 +1,2247 @@
+{
+  "timestamp": "2025-07-10T05:11:00.006Z",
+  "database": {
+    "tables": {
+      "users": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {
+          "id": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              49,
+              51,
+              11
+            ]
+          },
+          "telegram_id": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              48,
+              999999998,
+              999999999
+            ]
+          },
+          "username": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "dev_user",
+              "test_e2e_referral",
+              "final_test"
+            ]
+          },
+          "first_name": {
+            "exists": true,
+            "nullable": true,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "Dev User",
+              "TestE2E",
+              "Dima Osadchuk"
+            ]
+          },
+          "wallet": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "ref_code": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "REF_1751400282393_5su2uc",
+              "REF_1751560103920_7pnq4i",
+              "9YPL6X7U"
+            ]
+          },
+          "referred_by": {
+            "exists": true,
+            "nullable": true,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              21
+            ]
+          },
+          "balance_uni": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              110,
+              0,
+              0
+            ]
+          },
+          "balance_ton": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "uni_deposit_amount": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "uni_farming_start_timestamp": {
+            "exists": true,
+            "nullable": true,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-06-16T12:56:05.312"
+            ]
+          },
+          "uni_farming_balance": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "uni_farming_rate": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "uni_farming_last_update": {
+            "exists": true,
+            "nullable": true,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-07-09T18:05:15.213"
+            ]
+          },
+          "uni_farming_deposit": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "created_at": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-07-01T20:04:42.393",
+              "2025-07-03T16:28:23.92",
+              "2025-06-15T16:01:49.285728"
+            ]
+          },
+          "checkin_last_date": {
+            "exists": true,
+            "nullable": true,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-07-01T20:12:41.434",
+              "2025-07-07T19:30:17.573"
+            ]
+          },
+          "checkin_streak": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              1,
+              0,
+              0
+            ]
+          },
+          "is_admin": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "boolean"
+            ],
+            "samples": [
+              false,
+              false,
+              false
+            ]
+          },
+          "ton_boost_package": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "ton_farming_balance": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "ton_farming_rate": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0.001,
+              0.001,
+              0.001
+            ]
+          },
+          "ton_farming_start_timestamp": {
+            "exists": true,
+            "nullable": true,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-06-28T17:57:32.191663"
+            ]
+          },
+          "ton_farming_last_update": {
+            "exists": true,
+            "nullable": true,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-06-28T17:57:32.191663"
+            ]
+          },
+          "ton_farming_accumulated": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "ton_farming_last_claim": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "ton_boost_active": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "boolean"
+            ],
+            "samples": [
+              false,
+              false,
+              false
+            ]
+          },
+          "ton_boost_package_id": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "ton_boost_rate": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "ton_boost_expires_at": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "uni_farming_active": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "boolean"
+            ],
+            "samples": [
+              false,
+              false,
+              false
+            ]
+          },
+          "last_active": {
+            "exists": true,
+            "nullable": true,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-07-07T19:30:17.725",
+              "2025-07-08T16:56:18.491"
+            ]
+          },
+          "referrer_id": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "ton_wallet_address": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "ton_wallet_verified": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "boolean"
+            ],
+            "samples": [
+              false,
+              false,
+              false
+            ]
+          },
+          "ton_wallet_linked_at": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          }
+        }
+      },
+      "transactions": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {
+          "id": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              93869,
+              112393,
+              112395
+            ]
+          },
+          "user_id": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              15,
+              16,
+              14
+            ]
+          },
+          "type": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "FARMING_REWARD",
+              "REFERRAL_REWARD",
+              "REFERRAL_REWARD"
+            ]
+          },
+          "amount_uni": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0.000149,
+              0.000004,
+              0.000006
+            ]
+          },
+          "amount_ton": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "description": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "UNI farming income: 0.000149 UNI (rate: 0.001)",
+              "Referral L5 from User 21: 0.00000425 UNI (5%)",
+              "Referral L7 from User 21: 0.00000595 UNI (7.000000000000001%)"
+            ]
+          },
+          "created_at": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-06-21T11:04:22.722",
+              "2025-06-22T04:26:35.874",
+              "2025-06-22T04:26:36.999"
+            ]
+          },
+          "metadata": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "status": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "completed",
+              "completed",
+              "completed"
+            ]
+          },
+          "source": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "tx_hash": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "source_user_id": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              15,
+              21,
+              21
+            ]
+          },
+          "action": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "currency": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          }
+        }
+      },
+      "referrals": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {}
+      },
+      "farming_sessions": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {}
+      },
+      "user_sessions": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {}
+      },
+      "boost_purchases": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {}
+      },
+      "missions": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {
+          "id": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              1,
+              2,
+              3
+            ]
+          },
+          "title": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "Подписаться на Telegram канал",
+              "Вступить в Telegram чат",
+              "Подписка на YouTube"
+            ]
+          },
+          "description": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "Подпишись на Telegram-канал Universe Games https://t.me/UniverseGamesChannel",
+              "Вступи в Telegram-чат Universe Games https://t.me/UniverseGamesChat",
+              "Подпишись на YouTube-канал https://youtube.com/@universegamesyoutube?si=XHebHkmEcGpADUAE"
+            ]
+          },
+          "mission_type": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "one_time",
+              "one_time",
+              "one_time"
+            ]
+          },
+          "target_value": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "reward_amount": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "500",
+              "500",
+              "500"
+            ]
+          },
+          "reward_type": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "UNI",
+              "UNI",
+              "UNI"
+            ]
+          },
+          "requirements": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "start_date": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "end_date": {
+            "exists": true,
+            "nullable": true,
+            "types": [],
+            "samples": []
+          },
+          "is_active": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "boolean"
+            ],
+            "samples": [
+              true,
+              true,
+              true
+            ]
+          },
+          "is_repeatable": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "boolean"
+            ],
+            "samples": [
+              false,
+              false,
+              false
+            ]
+          },
+          "sort_order": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "created_at": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-07-09T08:31:02.797846+00:00",
+              "2025-07-09T08:31:02.797846+00:00",
+              "2025-07-09T08:31:02.797846+00:00"
+            ]
+          },
+          "updated_at": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-07-09T08:31:02.797846+00:00",
+              "2025-07-09T08:31:02.797846+00:00",
+              "2025-07-09T08:31:02.797846+00:00"
+            ]
+          },
+          "reward_uni": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              500,
+              500,
+              500
+            ]
+          },
+          "reward_ton": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              0,
+              0,
+              0
+            ]
+          },
+          "status": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "active",
+              "active",
+              "active"
+            ]
+          }
+        }
+      },
+      "user_missions": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {}
+      },
+      "airdrops": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {}
+      },
+      "daily_bonus_logs": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {}
+      },
+      "withdraw_requests": {
+        "exists": true,
+        "recordCount": 0,
+        "fields": {
+          "id": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2e886aae-80fd-45ec-821b-a831d3972d49",
+              "3d403626-d3bc-4535-954d-5f610c7b44c2",
+              "c3a34b89-8292-40e5-a593-3ccd5695bf8d"
+            ]
+          },
+          "user_id": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              48,
+              2,
+              1
+            ]
+          },
+          "telegram_id": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "88888888",
+              "987654321",
+              "123456789"
+            ]
+          },
+          "username": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "demo_user",
+              "test_user_2",
+              "test_user_1"
+            ]
+          },
+          "amount_ton": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "number"
+            ],
+            "samples": [
+              25.5,
+              125.75,
+              50.5
+            ]
+          },
+          "ton_wallet": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "UQC7VNTwqVDNzRYvEcxw3Ls5_BLuKaUE_jPZ_mXvzP3obxvP",
+              "UQDQoc5M3Bh8eWFephi9bClhevbDGJmPVHwrUFaPz5it7SAb",
+              "UQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XA5bz"
+            ]
+          },
+          "status": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "approved",
+              "pending",
+              "approved"
+            ]
+          },
+          "created_at": {
+            "exists": true,
+            "nullable": false,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-07-05T10:40:43.322937+00:00",
+              "2025-07-05T11:14:24.985471+00:00",
+              "2025-07-05T11:14:24.733933+00:00"
+            ]
+          },
+          "processed_at": {
+            "exists": true,
+            "nullable": true,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "2025-07-05T11:08:54.377+00:00",
+              "2025-07-05T11:15:50.575+00:00"
+            ]
+          },
+          "processed_by": {
+            "exists": true,
+            "nullable": true,
+            "types": [
+              "string"
+            ],
+            "samples": [
+              "DimaOsadchuk",
+              "DimaOsadchuk"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "codeAnalysis": {
+    "modules": {},
+    "fieldUsage": {
+      "users": {
+        "modules": {
+          "adminBot": {
+            "module": "adminBot",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('is_admin')\n        .eq('username', username.replace('@', ''))\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('telegram_id', telegramId)\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .update({ is_active: false })\n        .eq('telegram_id', telegramId);"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('is_admin')\n        .eq('username', username.replace('@', ''))\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('telegram_id', telegramId)\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .update({ is_active: false })\n        .eq('telegram_id', telegramId);"
+              }
+            ]
+          },
+          "boost": {
+            "module": "boost",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('id', parseInt(userId))\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('id, ton_boost_package')\n        .eq('id', userId)\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .update({\n          ton_boost_package: boostPackage.id,\n          ton_boost_rate: boostPackage.daily_rate\n        })\n        .eq('id', userId);"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "updateResult, error: userUpdateError } = await supabase\n        .from(BOOST_TABLES.USERS)\n        .update({ \n          ton_boost_package: parseInt(boostId),\n          ton_boost_rate: boostPackage.dail"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "updateError } = await supabase\n        .from('users')\n        .update({\n          ton_boost_package: boostPackage.id,\n          ton_boost_rate: boostPackage.daily_rate\n        })\n        .eq('id', use"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('id', parseInt(userId))\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('id, ton_boost_package')\n        .eq('id', userId)\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .update({\n          ton_boost_package: boostPackage.id,\n          ton_boost_rate: boostPackage.daily_rate\n        })\n        .eq('id', userId);"
+              },
+              {
+                "type": "sql_query",
+                "context": "updateResult, error: userUpdateError } = await supabase\n        .from(BOOST_TABLES.USERS)\n        .update({ \n          ton_boost_package: parseInt(boostId),\n          ton_boost_rate: boostPackage.dail"
+              },
+              {
+                "type": "sql_query",
+                "context": "updateError } = await supabase\n        .from('users')\n        .update({\n          ton_boost_package: boostPackage.id,\n          ton_boost_rate: boostPackage.daily_rate\n        })\n        .eq('id', use"
+              }
+            ]
+          },
+          "dailyBonus": {
+            "module": "dailyBonus",
+            "files": {
+              "controller.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n          .from('users')\n          .select('id')\n          .eq('telegram_id', userIdNumber)\n          .limit(1);"
+                  }
+                ],
+                "context": []
+              },
+              "routes.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n      .from('users')\n      .select('*')\n      .eq('id', parseInt(userId as string))\n      .limit(1);"
+                  }
+                ],
+                "context": []
+              },
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "sql_query",
+                    "context": "Update streak and last claim date separately\n      const { error: updateError } = await supabase\n        .from(DAILY_BONUS_TABLES.USERS)\n        .update({\n          checkin_last_date: now.toISOString("
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n          .from('users')\n          .select('id')\n          .eq('telegram_id', userIdNumber)\n          .limit(1);"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n      .from('users')\n      .select('*')\n      .eq('id', parseInt(userId as string))\n      .limit(1);"
+              },
+              {
+                "type": "sql_query",
+                "context": "Update streak and last claim date separately\n      const { error: updateError } = await supabase\n        .from(DAILY_BONUS_TABLES.USERS)\n        .update({\n          checkin_last_date: now.toISOString("
+              }
+            ]
+          },
+          "debug": {
+            "module": "debug",
+            "files": {
+              "debugRoutes.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n      .from('users')\n      .select('*')\n      .eq('id', userId)\n      .single();"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n      .from('users')\n      .select('*')\n      .eq('id', userId)\n      .single();"
+              }
+            ]
+          },
+          "farming": {
+            "module": "farming",
+            "files": {
+              "directFarmingStatus.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n      .from('users')\n      .select('id, telegram_id, balance_uni, balance_ton, uni_deposit_amount, uni_farming_start_timestamp, uni_farming_rate, uni_farming_last_update')\n      .eq('id', use"
+                  }
+                ],
+                "context": []
+              },
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "sql_query",
+                    "context": "updateData, error: updateError } = await supabase\n        .from(FARMING_TABLES.USERS)\n        .update({\n          uni_deposit_amount: newDepositAmount,\n          uni_farming_start_timestamp: new Date("
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n      .from('users')\n      .select('id, telegram_id, balance_uni, balance_ton, uni_deposit_amount, uni_farming_start_timestamp, uni_farming_rate, uni_farming_last_update')\n      .eq('id', use"
+              },
+              {
+                "type": "sql_query",
+                "context": "updateData, error: updateError } = await supabase\n        .from(FARMING_TABLES.USERS)\n        .update({\n          uni_deposit_amount: newDepositAmount,\n          uni_farming_start_timestamp: new Date("
+              }
+            ]
+          },
+          "referral": {
+            "module": "referral",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase.from(\"users\").select(\"id, username, ref_code\").eq(\"id\", ' + userId + ').single()');"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('id, username, ref_code')\n        .eq('id', userId)\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('id, username, first_name, referred_by, balance_uni, balance_ton, uni_farming_start_timestamp, ton_boost_package')\n        .order('id', { ascending: tru"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "updateError } = await supabase\n        .from(REFERRAL_TABLES.USERS)\n        .update({ ref_code: newRefCode })\n        .eq('id', userId);"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "updateError } = await supabase\n        .from(REFERRAL_TABLES.USERS)\n        .update({ referred_by: inviter.id })\n        .eq('id', newUserId);"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase.from(\"users\").select(\"id, username, ref_code\").eq(\"id\", ' + userId + ').single()');"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('id, username, ref_code')\n        .eq('id', userId)\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('id, username, first_name, referred_by, balance_uni, balance_ton, uni_farming_start_timestamp, ton_boost_package')\n        .order('id', { ascending: tru"
+              },
+              {
+                "type": "sql_query",
+                "context": "updateError } = await supabase\n        .from(REFERRAL_TABLES.USERS)\n        .update({ ref_code: newRefCode })\n        .eq('id', userId);"
+              },
+              {
+                "type": "sql_query",
+                "context": "updateError } = await supabase\n        .from(REFERRAL_TABLES.USERS)\n        .update({ referred_by: inviter.id })\n        .eq('id', newUserId);"
+              }
+            ]
+          },
+          "scheduler": {
+            "module": "scheduler",
+            "files": {
+              "tonBoostIncomeScheduler.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('*')\n        .not('ton_boost_package', 'is', null)\n        .gte('balance_ton', 10);"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n            .from('users')\n            .update({\n              balance_ton: userNewBalance.toFixed(8)\n            })\n            .eq('id', user.id);"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "updateError } = await supabase\n            .from('users')\n            .update({\n              balance_ton: userNewBalance.toFixed(8)\n            })\n            .eq('id', user.id);"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('*')\n        .not('ton_boost_package', 'is', null)\n        .gte('balance_ton', 10);"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n            .from('users')\n            .update({\n              balance_ton: userNewBalance.toFixed(8)\n            })\n            .eq('id', user.id);"
+              },
+              {
+                "type": "sql_query",
+                "context": "updateError } = await supabase\n            .from('users')\n            .update({\n              balance_ton: userNewBalance.toFixed(8)\n            })\n            .eq('id', user.id);"
+              }
+            ]
+          },
+          "tonFarming": {
+            "module": "tonFarming",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('balance_ton, ton_farming_rate, ton_farming_start_timestamp, ton_farming_last_update, ton_boost_package')\n        .eq('telegram_id', telegramId)\n       "
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('balance_ton')\n        .eq('telegram_id', telegramId)\n        .single();"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('balance_ton, ton_farming_rate, ton_farming_start_timestamp, ton_farming_last_update, ton_boost_package')\n        .eq('telegram_id', telegramId)\n       "
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('balance_ton')\n        .eq('telegram_id', telegramId)\n        .single();"
+              }
+            ]
+          },
+          "user": {
+            "module": "user",
+            "files": {
+              "controller.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('id')\n        .eq('referrer_id', user.id);"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('id, telegram_id, username, first_name, ref_code')\n        .or(`username.ilike.%${query}%,ref_code.ilike.%${query}%`)\n        .limit(20);"
+                  }
+                ],
+                "context": []
+              },
+              "model.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "sql_query",
+                    "context": "InsertUser, 'id'>): Promise<User | null> {\n    try {\n      const { data: newUsersData, error } = await supabase\n        .from(USER_TABLES.USERS)\n        .insert(userData)\n        .select()\n        .si"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "update(id: number, userData: Partial<InsertUser>): Promise<User | null> {\n    try {\n      const { data: updatedUsersData, error } = await supabase\n        .from(USER_TABLES.USERS)\n        .update(user"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "updatedUsersData, error } = await supabase\n        .from(USER_TABLES.USERS)\n        .select()\n        .eq('id', id)\n        .single();"
+                  }
+                ],
+                "context": []
+              },
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .insert({\n          telegram_id: userData.telegram_id,\n          username: userData.username || userData.first_name || `user_${userData.telegram_id}`,\n         "
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('telegram_id', telegramId)\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('id', userId)\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('ref_code', refCode)\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .update(updateData)\n        .eq('id', userId)\n        .select()\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('guest_id', guestId)\n        .single();"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "updateUser(userId: number, updateData: UpdateUserData): Promise<User | null> {\n    try {\n      const { data, error } = await supabase\n        .from('users')\n        .update(updateData)\n        .eq('id"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('id')\n        .eq('referrer_id', user.id);"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('id, telegram_id, username, first_name, ref_code')\n        .or(`username.ilike.%${query}%,ref_code.ilike.%${query}%`)\n        .limit(20);"
+              },
+              {
+                "type": "sql_query",
+                "context": "InsertUser, 'id'>): Promise<User | null> {\n    try {\n      const { data: newUsersData, error } = await supabase\n        .from(USER_TABLES.USERS)\n        .insert(userData)\n        .select()\n        .si"
+              },
+              {
+                "type": "sql_query",
+                "context": "update(id: number, userData: Partial<InsertUser>): Promise<User | null> {\n    try {\n      const { data: updatedUsersData, error } = await supabase\n        .from(USER_TABLES.USERS)\n        .update(user"
+              },
+              {
+                "type": "sql_query",
+                "context": "updatedUsersData, error } = await supabase\n        .from(USER_TABLES.USERS)\n        .select()\n        .eq('id', id)\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .insert({\n          telegram_id: userData.telegram_id,\n          username: userData.username || userData.first_name || `user_${userData.telegram_id}`,\n         "
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('telegram_id', telegramId)\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('id', userId)\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('ref_code', refCode)\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .update(updateData)\n        .eq('id', userId)\n        .select()\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('users')\n        .select('*')\n        .eq('guest_id', guestId)\n        .single();"
+              },
+              {
+                "type": "sql_query",
+                "context": "updateUser(userId: number, updateData: UpdateUserData): Promise<User | null> {\n    try {\n      const { data, error } = await supabase\n        .from('users')\n        .update(updateData)\n        .eq('id"
+              }
+            ]
+          }
+        },
+        "allFields": {},
+        "totalOperations": 36
+      },
+      "transactions": {
+        "modules": {
+          "adminBot": {
+            "module": "adminBot",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('transactions')\n        .select('*')\n        .in('type', ['MISSION_COMPLETE', 'MISSION_REWARD']);"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('transactions')\n        .select('*')\n        .in('type', ['MISSION_COMPLETE', 'MISSION_REWARD']);"
+              }
+            ]
+          },
+          "boost": {
+            "module": "boost",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n          .from('transactions')\n          .insert({\n            user_id: parseInt(userId),\n            type: 'FARMING_REWARD', // Используем существующий тип из схемы базы данных\n            "
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('transactions')\n        .insert({\n          user_id: parseInt(userId),\n          type: 'boost_purchase',\n          amount_uni: '0',\n          amount_ton: boostPackage.min_amount"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('transactions')\n        .insert({\n          user_id: parseInt(userId),\n          type: 'boost_purchase',\n          amount_uni: '0',\n          amount_ton: amount || '0',\n        "
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n          .from('transactions')\n          .insert({\n            user_id: parseInt(userId),\n            type: 'FARMING_REWARD', // Используем существующий тип из схемы базы данных\n            "
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('transactions')\n        .insert({\n          user_id: parseInt(userId),\n          type: 'boost_purchase',\n          amount_uni: '0',\n          amount_ton: boostPackage.min_amount"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('transactions')\n        .insert({\n          user_id: parseInt(userId),\n          type: 'boost_purchase',\n          amount_uni: '0',\n          amount_ton: amount || '0',\n        "
+              }
+            ]
+          },
+          "missions": {
+            "module": "missions",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('transactions')\n        .select('*')\n        .eq('user_id', user.id)\n        .eq('type', 'MISSION_REWARD')\n        .like('description', `Mission ${missionId} reward%`);"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('transactions')\n        .insert({\n          user_id: user.id,\n          type: 'MISSION_REWARD',\n          amount_uni: rewardAmount.toString(),\n          amount_ton: '0',\n       "
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('transactions')\n        .select('*')\n        .eq('user_id', user.id)\n        .eq('type', 'MISSION_REWARD')\n        .order('created_at', { ascending: false });"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('transactions')\n        .select('*')\n        .eq('user_id', user.id)\n        .eq('type', 'MISSION_REWARD');"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('transactions')\n        .select('*')\n        .eq('user_id', user.id)\n        .in('type', ['MISSION_COMPLETE', 'MISSION_REWARD'])\n        .order('created_at', { ascending: false "
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('transactions')\n        .select('*')\n        .eq('user_id', user.id)\n        .eq('type', 'MISSION_REWARD')\n        .like('description', `Mission ${missionId} reward%`);"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('transactions')\n        .insert({\n          user_id: user.id,\n          type: 'MISSION_REWARD',\n          amount_uni: rewardAmount.toString(),\n          amount_ton: '0',\n       "
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('transactions')\n        .select('*')\n        .eq('user_id', user.id)\n        .eq('type', 'MISSION_REWARD')\n        .order('created_at', { ascending: false });"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('transactions')\n        .select('*')\n        .eq('user_id', user.id)\n        .eq('type', 'MISSION_REWARD');"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('transactions')\n        .select('*')\n        .eq('user_id', user.id)\n        .in('type', ['MISSION_COMPLETE', 'MISSION_REWARD'])\n        .order('created_at', { ascending: false "
+              }
+            ]
+          },
+          "referral": {
+            "module": "referral",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('transactions')\n        .select('id, user_id, type, amount_uni, amount_ton, currency, description, created_at')\n        .eq('user_id', userId)\n        .eq('type', 'REFERRAL_REWA"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('transactions')\n        .select('id, user_id, type, amount_uni, amount_ton, currency, description, created_at')\n        .eq('user_id', userId)\n        .eq('type', 'REFERRAL_REWA"
+              }
+            ]
+          },
+          "scheduler": {
+            "module": "scheduler",
+            "files": {
+              "tonBoostIncomeScheduler.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n            .from('transactions')\n            .insert({\n              user_id: user.id,\n              type: 'FARMING_REWARD',  // Используем поддерживаемый тип\n              amount_uni: '0',\n"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n            .from('transactions')\n            .insert({\n              user_id: user.id,\n              type: 'FARMING_REWARD',  // Используем поддерживаемый тип\n              amount_uni: '0',\n"
+              }
+            ]
+          },
+          "user": {
+            "module": "user",
+            "files": {
+              "controller.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('transactions')\n        .select('*')\n        .eq('user_id', user.id);"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('transactions')\n        .select('*')\n        .eq('user_id', user.id);"
+              }
+            ]
+          }
+        },
+        "allFields": {},
+        "totalOperations": 12
+      },
+      "referrals": {
+        "modules": {},
+        "allFields": {},
+        "totalOperations": 0
+      },
+      "farming_sessions": {
+        "modules": {},
+        "allFields": {},
+        "totalOperations": 0
+      },
+      "user_sessions": {
+        "modules": {},
+        "allFields": {},
+        "totalOperations": 0
+      },
+      "boost_purchases": {
+        "modules": {
+          "boost": {
+            "module": "boost",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('boost_purchases')\n        .select('*')\n        .eq('tx_hash', txHash)\n        .eq('status', 'confirmed')\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('boost_purchases')\n        .select('*')\n        .eq('user_id', userId)\n        .eq('boost_id', boostId)\n        .eq('tx_hash', txHash)\n        .eq('status', 'pending')\n        ."
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('boost_purchases')\n        .update({\n          status: 'confirmed',\n          updated_at: new Date().toISOString()\n        })\n        .eq('id', purchase.id);"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "updateError } = await supabase\n        .from('boost_purchases')\n        .update({\n          status: 'confirmed',\n          updated_at: new Date().toISOString()\n        })\n        .eq('id', purchase.id"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('boost_purchases')\n        .select('*')\n        .eq('tx_hash', txHash)\n        .eq('status', 'confirmed')\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('boost_purchases')\n        .select('*')\n        .eq('user_id', userId)\n        .eq('boost_id', boostId)\n        .eq('tx_hash', txHash)\n        .eq('status', 'pending')\n        ."
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('boost_purchases')\n        .update({\n          status: 'confirmed',\n          updated_at: new Date().toISOString()\n        })\n        .eq('id', purchase.id);"
+              },
+              {
+                "type": "sql_query",
+                "context": "updateError } = await supabase\n        .from('boost_purchases')\n        .update({\n          status: 'confirmed',\n          updated_at: new Date().toISOString()\n        })\n        .eq('id', purchase.id"
+              }
+            ]
+          }
+        },
+        "allFields": {},
+        "totalOperations": 4
+      },
+      "missions": {
+        "modules": {},
+        "allFields": {},
+        "totalOperations": 0
+      },
+      "user_missions": {
+        "modules": {},
+        "allFields": {},
+        "totalOperations": 0
+      },
+      "airdrops": {
+        "modules": {},
+        "allFields": {},
+        "totalOperations": 0
+      },
+      "daily_bonus_logs": {
+        "modules": {},
+        "allFields": {},
+        "totalOperations": 0
+      },
+      "withdraw_requests": {
+        "modules": {
+          "adminBot": {
+            "module": "adminBot",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('withdraw_requests')\n        .select('*')\n        .eq('id', requestId)\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('withdraw_requests')\n        .select('*')\n        .order('created_at', { ascending: false });"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('withdraw_requests')\n        .select('*')\n        .eq('id', requestId)\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('withdraw_requests')\n        .update({ \n          status: 'approved',\n          processed_at: new Date().toISOString(),\n          processed_by: adminUsername || 'admin'\n        "
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('withdraw_requests')\n        .select('*')\n        .eq('id', requestId)\n        .single();"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n        .from('withdraw_requests')\n        .update({ \n          status: 'rejected',\n          processed_at: new Date().toISOString(),\n          processed_by: adminUsername || 'admin'\n        "
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "Update request status\n      const { data: request, error: fetchError } = await supabase\n        .from('withdraw_requests')\n        .select('*')\n        .eq('id', requestId)\n        .single();"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "Update status to approved\n      const { error: updateError } = await supabase\n        .from('withdraw_requests')\n        .update({ \n          status: 'approved',\n          processed_at: new Date().toI"
+                  },
+                  {
+                    "type": "sql_query",
+                    "context": "updateError } = await supabase\n        .from('withdraw_requests')\n        .update({ \n          status: 'rejected',\n          processed_at: new Date().toISOString(),\n          processed_by: adminUserna"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('withdraw_requests')\n        .select('*')\n        .eq('id', requestId)\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('withdraw_requests')\n        .select('*')\n        .order('created_at', { ascending: false });"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('withdraw_requests')\n        .select('*')\n        .eq('id', requestId)\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('withdraw_requests')\n        .update({ \n          status: 'approved',\n          processed_at: new Date().toISOString(),\n          processed_by: adminUsername || 'admin'\n        "
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('withdraw_requests')\n        .select('*')\n        .eq('id', requestId)\n        .single();"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n        .from('withdraw_requests')\n        .update({ \n          status: 'rejected',\n          processed_at: new Date().toISOString(),\n          processed_by: adminUsername || 'admin'\n        "
+              },
+              {
+                "type": "sql_query",
+                "context": "Update request status\n      const { data: request, error: fetchError } = await supabase\n        .from('withdraw_requests')\n        .select('*')\n        .eq('id', requestId)\n        .single();"
+              },
+              {
+                "type": "sql_query",
+                "context": "Update status to approved\n      const { error: updateError } = await supabase\n        .from('withdraw_requests')\n        .update({ \n          status: 'approved',\n          processed_at: new Date().toI"
+              },
+              {
+                "type": "sql_query",
+                "context": "updateError } = await supabase\n        .from('withdraw_requests')\n        .update({ \n          status: 'rejected',\n          processed_at: new Date().toISOString(),\n          processed_by: adminUserna"
+              }
+            ]
+          },
+          "wallet": {
+            "module": "wallet",
+            "files": {
+              "service.ts": {
+                "fields": {},
+                "operations": [
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n          .from('withdraw_requests')\n          .insert({\n            user_id: parseInt(userId),\n            telegram_id: user.telegram_id?.toString() || '',\n            username: user.usernam"
+                  },
+                  {
+                    "type": "supabase_query",
+                    "context": "supabase\n            .from('withdraw_requests')\n            .update({ status: 'rejected' })\n            .eq('user_id', parseInt(userId))\n            .eq('status', 'pending')\n            .order('create"
+                  }
+                ],
+                "context": []
+              }
+            },
+            "totalFields": {},
+            "operations": [
+              {
+                "type": "supabase_query",
+                "context": "supabase\n          .from('withdraw_requests')\n          .insert({\n            user_id: parseInt(userId),\n            telegram_id: user.telegram_id?.toString() || '',\n            username: user.usernam"
+              },
+              {
+                "type": "supabase_query",
+                "context": "supabase\n            .from('withdraw_requests')\n            .update({ status: 'rejected' })\n            .eq('user_id', parseInt(userId))\n            .eq('status', 'pending')\n            .order('create"
+              }
+            ]
+          }
+        },
+        "allFields": {},
+        "totalOperations": 11
+      }
+    }
+  },
+  "comparison": {
+    "users": {
+      "table": "users",
+      "status": "mismatch",
+      "dbFields": [
+        "id",
+        "telegram_id",
+        "username",
+        "first_name",
+        "wallet",
+        "ref_code",
+        "referred_by",
+        "balance_uni",
+        "balance_ton",
+        "uni_deposit_amount",
+        "uni_farming_start_timestamp",
+        "uni_farming_balance",
+        "uni_farming_rate",
+        "uni_farming_last_update",
+        "uni_farming_deposit",
+        "created_at",
+        "checkin_last_date",
+        "checkin_streak",
+        "is_admin",
+        "ton_boost_package",
+        "ton_farming_balance",
+        "ton_farming_rate",
+        "ton_farming_start_timestamp",
+        "ton_farming_last_update",
+        "ton_farming_accumulated",
+        "ton_farming_last_claim",
+        "ton_boost_active",
+        "ton_boost_package_id",
+        "ton_boost_rate",
+        "ton_boost_expires_at",
+        "uni_farming_active",
+        "last_active",
+        "referrer_id",
+        "ton_wallet_address",
+        "ton_wallet_verified",
+        "ton_wallet_linked_at"
+      ],
+      "codeFields": [
+        "is_admin",
+        "username",
+        "telegram_id",
+        "is_active",
+        "id",
+        "ton_boost_package",
+        "ton_boost_rate",
+        "balance_uni",
+        "balance_ton",
+        "uni_deposit_amount",
+        "uni_farming_start_timestamp",
+        "uni_farming_rate",
+        "uni_farming_last_update",
+        "ref_code",
+        "first_name",
+        "referred_by",
+        "ton_farming_rate",
+        "ton_farming_start_timestamp",
+        "ton_farming_last_update",
+        "referrer_id",
+        "guest_id"
+      ],
+      "analysis": {
+        "inDbOnly": [
+          "wallet",
+          "uni_farming_balance",
+          "uni_farming_deposit",
+          "checkin_last_date",
+          "checkin_streak",
+          "ton_farming_balance",
+          "ton_farming_accumulated",
+          "ton_farming_last_claim",
+          "ton_boost_active",
+          "ton_boost_package_id",
+          "ton_boost_expires_at",
+          "uni_farming_active",
+          "last_active",
+          "ton_wallet_address",
+          "ton_wallet_verified",
+          "ton_wallet_linked_at"
+        ],
+        "inCodeOnly": [
+          "is_active",
+          "guest_id"
+        ],
+        "inBoth": [
+          "id",
+          "telegram_id",
+          "username",
+          "first_name",
+          "ref_code",
+          "referred_by",
+          "balance_uni",
+          "balance_ton",
+          "uni_deposit_amount",
+          "uni_farming_start_timestamp",
+          "uni_farming_rate",
+          "uni_farming_last_update",
+          "is_admin",
+          "ton_boost_package",
+          "ton_farming_rate",
+          "ton_farming_start_timestamp",
+          "ton_farming_last_update",
+          "ton_boost_rate",
+          "referrer_id"
+        ],
+        "issues": [
+          {
+            "severity": "HIGH",
+            "message": "2 полей используются в коде, но отсутствуют в БД",
+            "fields": [
+              "is_active",
+              "guest_id"
+            ]
+          }
+        ],
+        "warnings": []
+      }
+    },
+    "transactions": {
+      "table": "transactions",
+      "status": "mismatch",
+      "dbFields": [
+        "id",
+        "user_id",
+        "type",
+        "amount_uni",
+        "amount_ton",
+        "description",
+        "created_at",
+        "metadata",
+        "status",
+        "source",
+        "tx_hash",
+        "source_user_id",
+        "action",
+        "currency"
+      ],
+      "codeFields": [
+        "type",
+        "user_id",
+        "amount",
+        "currency",
+        "status",
+        "description",
+        "amount_uni",
+        "amount_ton",
+        "tx_hash",
+        "created_at",
+        "id"
+      ],
+      "analysis": {
+        "inDbOnly": [
+          "metadata",
+          "source",
+          "source_user_id",
+          "action"
+        ],
+        "inCodeOnly": [
+          "amount"
+        ],
+        "inBoth": [
+          "id",
+          "user_id",
+          "type",
+          "amount_uni",
+          "amount_ton",
+          "description",
+          "created_at",
+          "status",
+          "tx_hash",
+          "currency"
+        ],
+        "issues": [
+          {
+            "severity": "HIGH",
+            "message": "1 полей используются в коде, но отсутствуют в БД",
+            "fields": [
+              "amount"
+            ]
+          }
+        ],
+        "warnings": []
+      }
+    },
+    "referrals": {
+      "table": "referrals",
+      "status": "unused",
+      "dbFields": [],
+      "codeFields": [],
+      "analysis": {
+        "inDbOnly": [],
+        "inCodeOnly": [],
+        "inBoth": [],
+        "issues": [],
+        "warnings": [
+          {
+            "severity": "LOW",
+            "message": "Таблица referrals существует в БД, но не используется в коде"
+          }
+        ]
+      }
+    },
+    "farming_sessions": {
+      "table": "farming_sessions",
+      "status": "unused",
+      "dbFields": [],
+      "codeFields": [],
+      "analysis": {
+        "inDbOnly": [],
+        "inCodeOnly": [],
+        "inBoth": [],
+        "issues": [],
+        "warnings": [
+          {
+            "severity": "LOW",
+            "message": "Таблица farming_sessions существует в БД, но не используется в коде"
+          }
+        ]
+      }
+    },
+    "user_sessions": {
+      "table": "user_sessions",
+      "status": "unused",
+      "dbFields": [],
+      "codeFields": [],
+      "analysis": {
+        "inDbOnly": [],
+        "inCodeOnly": [],
+        "inBoth": [],
+        "issues": [],
+        "warnings": [
+          {
+            "severity": "LOW",
+            "message": "Таблица user_sessions существует в БД, но не используется в коде"
+          }
+        ]
+      }
+    },
+    "boost_purchases": {
+      "table": "boost_purchases",
+      "status": "mismatch",
+      "dbFields": [],
+      "codeFields": [
+        "tx_hash",
+        "status",
+        "user_id",
+        "boost_id",
+        "updated_at",
+        "id"
+      ],
+      "analysis": {
+        "inDbOnly": [],
+        "inCodeOnly": [
+          "tx_hash",
+          "status",
+          "user_id",
+          "boost_id",
+          "updated_at",
+          "id"
+        ],
+        "inBoth": [],
+        "issues": [
+          {
+            "severity": "HIGH",
+            "message": "6 полей используются в коде, но отсутствуют в БД",
+            "fields": [
+              "tx_hash",
+              "status",
+              "user_id",
+              "boost_id",
+              "updated_at",
+              "id"
+            ]
+          }
+        ],
+        "warnings": []
+      }
+    },
+    "missions": {
+      "table": "missions",
+      "status": "unused",
+      "dbFields": [
+        "id",
+        "title",
+        "description",
+        "mission_type",
+        "target_value",
+        "reward_amount",
+        "reward_type",
+        "requirements",
+        "start_date",
+        "end_date",
+        "is_active",
+        "is_repeatable",
+        "sort_order",
+        "created_at",
+        "updated_at",
+        "reward_uni",
+        "reward_ton",
+        "status"
+      ],
+      "codeFields": [],
+      "analysis": {
+        "inDbOnly": [],
+        "inCodeOnly": [],
+        "inBoth": [],
+        "issues": [],
+        "warnings": [
+          {
+            "severity": "LOW",
+            "message": "Таблица missions существует в БД, но не используется в коде"
+          }
+        ]
+      }
+    },
+    "user_missions": {
+      "table": "user_missions",
+      "status": "unused",
+      "dbFields": [],
+      "codeFields": [],
+      "analysis": {
+        "inDbOnly": [],
+        "inCodeOnly": [],
+        "inBoth": [],
+        "issues": [],
+        "warnings": [
+          {
+            "severity": "LOW",
+            "message": "Таблица user_missions существует в БД, но не используется в коде"
+          }
+        ]
+      }
+    },
+    "airdrops": {
+      "table": "airdrops",
+      "status": "unused",
+      "dbFields": [],
+      "codeFields": [],
+      "analysis": {
+        "inDbOnly": [],
+        "inCodeOnly": [],
+        "inBoth": [],
+        "issues": [],
+        "warnings": [
+          {
+            "severity": "LOW",
+            "message": "Таблица airdrops существует в БД, но не используется в коде"
+          }
+        ]
+      }
+    },
+    "daily_bonus_logs": {
+      "table": "daily_bonus_logs",
+      "status": "unused",
+      "dbFields": [],
+      "codeFields": [],
+      "analysis": {
+        "inDbOnly": [],
+        "inCodeOnly": [],
+        "inBoth": [],
+        "issues": [],
+        "warnings": [
+          {
+            "severity": "LOW",
+            "message": "Таблица daily_bonus_logs существует в БД, но не используется в коде"
+          }
+        ]
+      }
+    },
+    "withdraw_requests": {
+      "table": "withdraw_requests",
+      "status": "perfect_match",
+      "dbFields": [
+        "id",
+        "user_id",
+        "telegram_id",
+        "username",
+        "amount_ton",
+        "ton_wallet",
+        "status",
+        "created_at",
+        "processed_at",
+        "processed_by"
+      ],
+      "codeFields": [
+        "id",
+        "status",
+        "processed_at",
+        "processed_by",
+        "user_id",
+        "telegram_id",
+        "username",
+        "amount_ton",
+        "ton_wallet",
+        "created_at"
+      ],
+      "analysis": {
+        "inDbOnly": [],
+        "inCodeOnly": [],
+        "inBoth": [
+          "id",
+          "user_id",
+          "telegram_id",
+          "username",
+          "amount_ton",
+          "ton_wallet",
+          "status",
+          "created_at",
+          "processed_at",
+          "processed_by"
+        ],
+        "issues": [],
+        "warnings": []
+      }
+    }
+  },
+  "summary": {
+    "perfectMatches": [
+      "withdraw_requests"
+    ],
+    "partialMatches": [],
+    "criticalIssues": [
+      {
+        "table": "users",
+        "issues": [
+          {
+            "severity": "HIGH",
+            "message": "2 полей используются в коде, но отсутствуют в БД",
+            "fields": [
+              "is_active",
+              "guest_id"
+            ]
+          }
+        ]
+      },
+      {
+        "table": "transactions",
+        "issues": [
+          {
+            "severity": "HIGH",
+            "message": "1 полей используются в коде, но отсутствуют в БД",
+            "fields": [
+              "amount"
+            ]
+          }
+        ]
+      },
+      {
+        "table": "boost_purchases",
+        "issues": [
+          {
+            "severity": "HIGH",
+            "message": "6 полей используются в коде, но отсутствуют в БД",
+            "fields": [
+              "tx_hash",
+              "status",
+              "user_id",
+              "boost_id",
+              "updated_at",
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "priority": "HIGH",
+        "table": "users",
+        "action": "ADD_MISSING_FIELDS",
+        "fields": [
+          "is_active",
+          "guest_id"
+        ],
+        "sql": "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE;\nALTER TABLE users ADD COLUMN IF NOT EXISTS guest_id INTEGER;"
+      },
+      {
+        "priority": "HIGH",
+        "table": "transactions",
+        "action": "ADD_MISSING_FIELDS",
+        "fields": [
+          "amount"
+        ],
+        "sql": "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS amount DECIMAL(20,9);"
+      },
+      {
+        "priority": "HIGH",
+        "table": "boost_purchases",
+        "action": "ADD_MISSING_FIELDS",
+        "fields": [
+          "tx_hash",
+          "status",
+          "user_id",
+          "boost_id",
+          "updated_at",
+          "id"
+        ],
+        "sql": "ALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS tx_hash TEXT;\nALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS status TEXT;\nALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS user_id INTEGER;\nALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS boost_id INTEGER;\nALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;\nALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS id INTEGER;"
+      }
+    ]
+  }
+}
