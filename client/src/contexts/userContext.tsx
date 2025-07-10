@@ -520,6 +520,52 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [/* Пустой массив зависимостей, чтобы эффект выполнился только при первом рендере */]);
   
+  // Отслеживаем изменения токена в localStorage
+  useEffect(() => {
+    let lastToken = localStorage.getItem('unifarm_jwt_token');
+    
+    const checkTokenChanges = () => {
+      const currentToken = localStorage.getItem('unifarm_jwt_token');
+      
+      // Если токен изменился (появился новый или изменился существующий)
+      if (currentToken !== lastToken) {
+        console.log('[UserContext] Токен изменился:', {
+          was: lastToken ? 'existed' : 'null',
+          now: currentToken ? 'exists' : 'null'
+        });
+        
+        lastToken = currentToken;
+        
+        // Если появился новый токен и у нас нет userId
+        if (currentToken && !state.userId) {
+          console.log('[UserContext] Новый токен обнаружен, обновляем данные пользователя...');
+          refreshUserData();
+        }
+      }
+    };
+    
+    // Проверяем изменения каждую секунду
+    const interval = setInterval(checkTokenChanges, 1000);
+    
+    // Также слушаем события storage (для изменений из других вкладок)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'unifarm_jwt_token') {
+        console.log('[UserContext] Токен изменен через storage event');
+        lastToken = e.newValue;
+        if (e.newValue && !state.userId) {
+          refreshUserData();
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [state.userId, refreshUserData]);
+  
   // Загружаем баланс после установки userId
   useEffect(() => {
     if (state.userId) {

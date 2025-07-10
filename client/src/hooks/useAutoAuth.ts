@@ -78,10 +78,10 @@ export function useAutoAuth() {
           if (response.ok && data.success && data.data?.token) {
             console.log('[useAutoAuth] Auto auth successful, saving token');
             localStorage.setItem('unifarm_jwt_token', data.data.token);
+            setTokenValidated(true);
             
-            // Перезагружаем страницу для применения токена
-            console.log('[useAutoAuth] Reloading page...');
-            window.location.reload();
+            // Не перезагружаем страницу - UserContext сам обновится
+            console.log('[useAutoAuth] Token saved, context will update automatically');
           } else {
             const error = data.error || 'Auto auth failed';
             console.error('[useAutoAuth] Auth failed:', error);
