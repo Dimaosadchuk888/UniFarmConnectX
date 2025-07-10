@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric, json, jsonb, varchar, index, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import crypto from "crypto";
 
 // Enum для типов транзакций
 export const TransactionType = pgEnum('transaction_type', [
@@ -10,7 +11,10 @@ export const TransactionType = pgEnum('transaction_type', [
   'DAILY_BONUS',
   'REFERRAL_REWARD',
   'WITHDRAWAL',
-  'DEPOSIT'
+  'DEPOSIT',
+  'FARMING_DEPOSIT',
+  'BOOST_PURCHASE',
+  'AIRDROP_CLAIM'
 ]);
 
 // Enum для типов фарминга
@@ -43,15 +47,34 @@ export const users = pgTable(
     referred_by: integer("referred_by"), // Прямая связь с пригласившим пользователем
     balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default("0"),
     balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default("0"),
+    
     // Поля для основного UNI фарминга
     uni_deposit_amount: numeric("uni_deposit_amount", { precision: 18, scale: 6 }).default("0"),
     uni_farming_start_timestamp: timestamp("uni_farming_start_timestamp"),
     uni_farming_balance: numeric("uni_farming_balance", { precision: 18, scale: 6 }).default("0"),
     uni_farming_rate: numeric("uni_farming_rate", { precision: 18, scale: 6 }).default("0"),
     uni_farming_last_update: timestamp("uni_farming_last_update"),
-    // Поля для совместимости со старой системой фарминга (используются в миграции)
-    uni_farming_deposit: numeric("uni_farming_deposit", { precision: 18, scale: 6 }).default("0"),
+    uni_farming_active: boolean("uni_farming_active").default(false),
     uni_farming_activated_at: timestamp("uni_farming_activated_at"),
+    // Поля для совместимости со старой системой фарминга
+    uni_farming_deposit: numeric("uni_farming_deposit", { precision: 18, scale: 6 }).default("0"),
+    
+    // Поля для TON фарминга и boost
+    ton_boost_package: integer("ton_boost_package").default(0),
+    ton_farming_balance: numeric("ton_farming_balance", { precision: 18, scale: 6 }).default("0"),
+    ton_farming_rate: numeric("ton_farming_rate", { precision: 18, scale: 6 }).default("0.001"),
+    ton_farming_start_timestamp: timestamp("ton_farming_start_timestamp"),
+    ton_farming_last_update: timestamp("ton_farming_last_update"),
+    ton_farming_accumulated: numeric("ton_farming_accumulated", { precision: 18, scale: 6 }).default("0"),
+    ton_farming_last_claim: timestamp("ton_farming_last_claim"),
+    ton_boost_active: boolean("ton_boost_active").default(false),
+    ton_boost_package_id: integer("ton_boost_package_id"),
+    ton_boost_rate: numeric("ton_boost_rate", { precision: 18, scale: 6 }).default("0"),
+    
+    // Поля для TON кошелька
+    ton_wallet_verified: boolean("ton_wallet_verified").default(false),
+    ton_wallet_linked_at: timestamp("ton_wallet_linked_at"),
+    
     created_at: timestamp("created_at").defaultNow(),
     checkin_last_date: timestamp("checkin_last_date"),
     checkin_streak: integer("checkin_streak").default(0),
@@ -64,6 +87,11 @@ export const users = pgTable(
       refCodeIdx: index("idx_users_ref_code").on(table.ref_code),
       // Индекс для referred_by
       referredByIdx: index("idx_users_referred_by").on(table.referred_by),
+      // Индексы для TON кошелька
+      tonWalletAddressIdx: index("idx_users_ton_wallet_address").on(table.ton_wallet_address),
+      // Индексы для farming статусов
+      uniFarmingActiveIdx: index("idx_users_uni_farming_active").on(table.uni_farming_active),
+      tonBoostActiveIdx: index("idx_users_ton_boost_active").on(table.ton_boost_active),
     })
 );
 
@@ -668,11 +696,48 @@ export const userBoostsRelations = relations(userBoosts, ({ one }) => ({
   })
 }));
 
+// Таблица airdrops для airdrop кампаний
+export const airdrops = pgTable("airdrops", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  total_amount: numeric("total_amount", { precision: 18, scale: 6 }).notNull(),
+  currency: text("currency").notNull(), // 'UNI' или 'TON'
+  amount_per_user: numeric("amount_per_user", { precision: 18, scale: 6 }),
+  start_date: timestamp("start_date").notNull(),
+  end_date: timestamp("end_date").notNull(),
+  conditions: jsonb("conditions"), // Условия участия в JSON формате
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow()
+});
+
+// Схемы для таблицы airdrops
+export const insertAirdropSchema = createInsertSchema(airdrops).pick({
+  title: true,
+  description: true,
+  total_amount: true,
+  currency: true,
+  amount_per_user: true,
+  start_date: true,
+  end_date: true,
+  conditions: true,
+  is_active: true
+});
+
+export type InsertAirdrop = z.infer<typeof insertAirdropSchema>;
+export type Airdrop = typeof airdrops.$inferSelect;
+
 // Таблица airdrop_participants для регистрации в airdrop-программе
 export const airdropParticipants = pgTable("airdrop_participants", {
   id: serial("id").primaryKey(),
   telegram_id: bigint("telegram_id", { mode: "number" }).notNull().unique(),
   user_id: integer("user_id").references(() => users.id),
+  airdrop_id: integer("airdrop_id").references(() => airdrops.id),
+  amount: numeric("amount", { precision: 18, scale: 6 }),
+  currency: text("currency"),
+  claimed_at: timestamp("claimed_at"),
+  tx_hash: text("tx_hash"),
   registered_at: timestamp("registered_at").defaultNow().notNull(),
   status: text("status").default("active") // active, cancelled, completed
 });
@@ -681,14 +746,68 @@ export const airdropParticipants = pgTable("airdrop_participants", {
 export const insertAirdropParticipantSchema = createInsertSchema(airdropParticipants).pick({
   telegram_id: true,
   user_id: true,
+  airdrop_id: true,
   status: true
 });
 
 export type InsertAirdropParticipant = z.infer<typeof insertAirdropParticipantSchema>;
 export type AirdropParticipant = typeof airdropParticipants.$inferSelect;
 
+// Таблица daily_bonus_logs для логов ежедневных бонусов
+export const dailyBonusLogs = pgTable("daily_bonus_logs", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  bonus_amount: numeric("bonus_amount", { precision: 18, scale: 6 }).notNull(),
+  streak_day: integer("streak_day").notNull(),
+  claimed_at: timestamp("claimed_at").defaultNow(),
+  currency: text("currency").default("UNI"),
+  bonus_type: text("bonus_type").default("daily_checkin")
+});
+
+// Схемы для таблицы daily_bonus_logs
+export const insertDailyBonusLogSchema = createInsertSchema(dailyBonusLogs).pick({
+  user_id: true,
+  bonus_amount: true,
+  streak_day: true,
+  currency: true,
+  bonus_type: true
+});
+
+export type InsertDailyBonusLog = z.infer<typeof insertDailyBonusLogSchema>;
+export type DailyBonusLog = typeof dailyBonusLogs.$inferSelect;
+
+// Таблица withdraw_requests для заявок на вывод средств
+export const withdrawRequests = pgTable("withdraw_requests", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  amount_uni: numeric("amount_uni", { precision: 18, scale: 6 }).default("0"),
+  amount_ton: numeric("amount_ton", { precision: 18, scale: 6 }).default("0"),
+  wallet_address: text("wallet_address").notNull(),
+  status: text("status").default("pending"), // pending, approved, rejected, completed, cancelled
+  admin_id: integer("admin_id").references(() => users.id), // Админ, обработавший заявку
+  admin_comment: text("admin_comment"),
+  tx_hash: text("tx_hash"), // Хеш транзакции для completed
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+  processed_at: timestamp("processed_at")
+});
+
+// Схемы для таблицы withdraw_requests
+export const insertWithdrawRequestSchema = createInsertSchema(withdrawRequests).pick({
+  user_id: true,
+  amount_uni: true,
+  amount_ton: true,
+  wallet_address: true,
+  status: true
+});
+
+export type InsertWithdrawRequest = z.infer<typeof insertWithdrawRequestSchema>;
+export type WithdrawRequest = typeof withdrawRequests.$inferSelect;
+
 // Создаем алиасы для корректной работы relations после объявления всех таблиц
 export const user_missions = userMissions;
 export const farming_deposits = farmingDeposits;
 export const user_boosts = userBoosts;
 export const airdrop_participants = airdropParticipants;
+export const daily_bonus_logs = dailyBonusLogs;
+export const withdraw_requests = withdrawRequests;
