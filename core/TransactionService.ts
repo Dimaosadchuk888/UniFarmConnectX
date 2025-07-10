@@ -88,14 +88,20 @@ export class UnifiedTransactionService {
       // Создаем улучшенное описание с информацией об оригинальном типе
       const enhancedDescription = description || this.generateDescription(type, amount_uni, amount_ton);
 
+      // Определяем общую сумму и валюту транзакции
+      const amount = amount_uni > 0 ? amount_uni : amount_ton;
+      const transactionCurrency = amount_uni > 0 ? 'UNI' : 'TON';
+
       // Создание записи транзакции
       const { data: transaction, error: txError } = await supabase
         .from('transactions')
         .insert({
           user_id,
           type: dbTransactionType,  // Используем преобразованный тип
+          amount: amount.toString(),  // Используем новое поле amount
           amount_uni: amount_uni.toString(),
           amount_ton: amount_ton.toString(),
+          currency: currency || transactionCurrency,  // Используем переданную валюту или определяем автоматически
           status,
           description: enhancedDescription,
           metadata: { ...metadata, original_type: type },  // Сохраняем оригинальный тип в metadata
@@ -222,12 +228,30 @@ export class UnifiedTransactionService {
    * Форматирование транзакции в унифицированный формат для frontend
    */
   private formatTransactionResponse(tx: any): TransactionResponse {
-    const amount_uni = parseFloat(tx.amount_uni || '0');
-    const amount_ton = parseFloat(tx.amount_ton || '0');
+    // Используем новое поле amount, если оно есть
+    const amount = tx.amount ? parseFloat(tx.amount) : 0;
     
-    // Определяем основную валюту и сумму
-    const currency = amount_uni > 0 ? 'UNI' : 'TON';
-    const amount = currency === 'UNI' ? amount_uni : amount_ton;
+    // Определяем валюту из поля currency или на основе amount_uni/amount_ton
+    let currency = tx.currency || 'UNI';
+    
+    // Fallback для старых транзакций без поля amount
+    if (!tx.amount || amount === 0) {
+      const amount_uni = parseFloat(tx.amount_uni || '0');
+      const amount_ton = parseFloat(tx.amount_ton || '0');
+      currency = amount_uni > 0 ? 'UNI' : 'TON';
+      const fallbackAmount = currency === 'UNI' ? amount_uni : amount_ton;
+      
+      return {
+        id: tx.id,
+        type: tx.type,
+        amount: fallbackAmount,
+        currency,
+        status: tx.status,
+        description: tx.description || '',
+        createdAt: tx.created_at,
+        timestamp: new Date(tx.created_at).getTime()
+      };
+    }
 
     return {
       id: tx.id,

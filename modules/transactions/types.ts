@@ -23,10 +23,10 @@ export interface Transaction {
   id: number;
   user_id: number;
   type: TransactionsTransactionType;
-  amount?: string;  // Делаем опциональным для обратной совместимости
-  amount_uni?: string;  // Добавляем поле для UNI
-  amount_ton?: string;  // Добавляем поле для TON
-  currency?: 'UNI' | 'TON' | null;  // Делаем опциональным
+  amount: string;  // Теперь обязательное поле
+  amount_uni?: string;  // Оставляем для совместимости
+  amount_ton?: string;  // Оставляем для совместимости
+  currency: 'UNI' | 'TON';  // Теперь обязательное поле
   status: TransactionsTransactionStatus;
   description?: string;
   metadata?: Record<string, any>;
