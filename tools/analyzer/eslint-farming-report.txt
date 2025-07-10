@@ -1,0 +1,35 @@
+
+/home/runner/workspace/modules/farming/controller.ts
+   15:22  error  Expected { after 'if' condition                                                  curly
+   18:13  error  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  161:22  error  Expected { after 'if' condition                                                  curly
+  164:13  error  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  189:22  error  Expected { after 'if' condition                                                  curly
+  192:13  error  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  272:22  error  Expected { after 'if' condition                                                  curly
+  275:13  error  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  297:24  error  Expected { after 'if' condition                                                  curly
+  300:15  error  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  327:22  error  Expected { after 'if' condition                                                  curly
+  330:13  error  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/workspace/modules/farming/logic/rewardCalculation.ts
+  5:23  error  'RewardType' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/workspace/modules/farming/routes.ts
+  4:10  error  'requireAuth' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  6:10  error  'strictRateLimit' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  6:27  error  'standardRateLimit' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/workspace/modules/farming/service.ts
+    3:10  error    'RewardCalculationLogic' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   96:18  error    Expected { after 'if' condition                                                           curly
+  118:18  error    Expected { after 'if' condition                                                           curly
+  429:9   error    'telegramId' is not defined                                                               no-undef
+  431:17  error    'user' is not defined                                                                     no-undef
+  437:9   error    'telegramId' is not defined                                                               no-undef
+  511:76  warning  Unexpected any. Specify a different type                                                  @typescript-eslint/no-explicit-any
+
+✖ 23 problems (22 errors, 1 warning)
+  8 errors and 0 warnings potentially fixable with the `--fix` option.
+

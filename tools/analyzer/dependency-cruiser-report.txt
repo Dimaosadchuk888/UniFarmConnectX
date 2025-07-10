@@ -1,0 +1,6 @@
+
+ERROR: Your node version (18.16.0) is not supported. dependency-cruiser
+       follows the node.js release cycle and runs on these node versions:
+       ^18.17||>=20
+       See https://nodejs.org/en/about/releases/ for details.
+
