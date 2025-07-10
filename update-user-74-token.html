@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Обновление токена для пользователя ID 74</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Обновление JWT токена для пользователя ID 74</h1>
+    <div id="status"></div>
+    
+    <script>
+        const newToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTQyMzE3LCJleHAiOjE3NTI3NDcxMTd9.3_sqiWRB4HCA1imgyw8I9Sx5mYsExf0xk2OuWaqSX9E';
+        
+        const statusDiv = document.getElementById('status');
+        
+        // Сохраняем новый токен
+        localStorage.setItem('unifarm_jwt_token', newToken);
+        
+        statusDiv.innerHTML = '<p class="success">✅ Токен успешно обновлен!</p>';
+        
+        // Проверяем через API
+        fetch('/api/v2/users/profile', {
+            headers: {
+                'Authorization': `Bearer ${newToken}`
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                statusDiv.innerHTML += `
+                    <p class="success">✅ Авторизация успешна!</p>
+                    <p class="info">Пользователь: ${data.data.user.username} (ID: ${data.data.user.id})</p>
+                    <p class="info">Баланс UNI: ${data.data.user.balance_uni}</p>
+                    <p class="info">Баланс TON: ${data.data.user.balance_ton}</p>
+                    <p class="success">Страница будет перезагружена через 3 секунды...</p>
+                `;
+                
+                // Перезагружаем страницу через 3 секунды
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+            } else {
+                statusDiv.innerHTML += `<p class="error">❌ Ошибка авторизации: ${data.error}</p>`;
+            }
+        })
+        .catch(err => {
+            statusDiv.innerHTML += `<p class="error">❌ Ошибка запроса: ${err.message}</p>`;
+        });
+    </script>
+</body>
+</html>
