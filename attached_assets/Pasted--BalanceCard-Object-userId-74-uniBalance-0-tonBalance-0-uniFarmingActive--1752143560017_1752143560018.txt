@@ -1,0 +1,75 @@
+[BalanceCard] Текущие балансы: 
+Object {userId: 74, uniBalance: 0, tonBalance: 0, uniFarmingActive: false, uniDepositAmount: 0, …}
+[WebSocket] Подписка на обновления пользователя: 74
+[BalanceCard] Текущие балансы: 
+Object {userId: 74, uniBalance: 0, tonBalance: 0, uniFarmingActive: false, uniDepositAmount: 0, …}
+[WebSocket] Подписка на обновления пользователя: 74
+[BalanceCard] Текущие балансы: 
+Object {userId: 74, uniBalance: 0, tonBalance: 0, uniFarmingActive: false, uniDepositAmount: 0, …}
+[WebSocket] Подписка на обновления пользователя: 74
+[BalanceCard] Текущие балансы: 
+Object {userId: 74, uniBalance: 0, tonBalance: 0, uniFarmingActive: false, uniDepositAmount: 0, …}
+[WebSocket] Подписка на обновления пользователя: 74
+[BalanceCard] Текущие балансы: 
+Object {userId: 74, uniBalance: 0, tonBalance: 0, uniFarmingActive: false, uniDepositAmount: 0, …}
+[WebSocket] Подписка на обновления пользователя: 74
+[BalanceCard] Текущие балансы: 
+Object {userId: 74, uniBalance: 0, tonBalance: 0, uniFarmingActive: false, uniDepositAmount: 0, …}
+[WebSocket] Подписка на обновления пользователя: 74
+[BalanceCard] Текущие балансы: 
+Object {userId: 74, uniBalance: 0, tonBalance: 0, uniFarmingActive: false, uniDepositAmount: 0, …}
+[WebSocket] Подписка на обновления пользователя: 74
+[BalanceCard] Текущие балансы: 
+Object {userId: 74, uniBalance: 0, tonBalance: 0, uniFarmingActive: false, uniDepositAmount: 0, …}
+[WebSocket] Подписка на обновления пользователя: 74
+[BalanceCard] Текущие балансы: 
+Object {userId: 74, uniBalance: 0, tonBalance: 0, uniFarmingActive: false, uniDepositAmount: 0, …}
+[WebSocket] Подписка на обновления пользователя: 74
+
+ 
+Connect Wallet
+Кошелек
+Управление балансом и транзакциями
+Ваш баланс
+
+
+
+UNI Token
+внутренний токен
+0
+UNI
+$0.00
++0.00000
+UNI / сек
+TON Balance
+блокчейн токен
+0.00
+TON
+$0.00
+Доступно для вывода
+Вывод средств
+
+Выберите валюту для вывода:
+UNI
+TON
+Адрес кошелька TON:
+
+Сумма для вывода:
+TON
+Доступно: 0.000000 TON
+
+Создать заявку
+История транзакций
+
+Все
+UNI
+TON
+Всего транзакций: 0
+Пока нет транзакций
+Ваши транзакции будут отображаться здесь
+
+Главная
+
+Фарминг
+
+Задания
