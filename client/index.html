@@ -21,17 +21,10 @@
     
     <!-- JWT Auth Fix removed - system now uses real authentication -->
     
-    <!-- Preview Mode JWT Setup for User ID 74 -->
+    <!-- Preview Mode JWT Setup DISABLED for diagnostics -->
     <script>
-      // Set JWT token for Replit Preview mode before React loads
-      if (window.location.hostname.includes('replit')) {
-        const existingToken = localStorage.getItem('unifarm_jwt_token');
-        if (!existingToken) {
-          const previewToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTQ0MjkxLCJleHAiOjE3NTI3NDkwOTF9.2A18-Rx0enn8v30ANK6RVBl7SoR_TV2fUJN2hOox-C4';
-          localStorage.setItem('unifarm_jwt_token', previewToken);
-          console.log('[Preview] JWT token set for user ID 74');
-        }
-      }
+      // ВРЕМЕННО ОТКЛЮЧЕНО для диагностики useState error
+      console.log('[Preview] JWT auto-setup disabled for diagnostics');
     </script>
     
     <title>UniFarm Connect</title>

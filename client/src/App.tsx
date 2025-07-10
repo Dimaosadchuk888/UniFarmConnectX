@@ -268,24 +268,26 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <NotificationProvider>
-          <UserProvider>
-            <WebSocketProvider>
-              <TelegramWebAppCheck>
-                <MainLayout 
-                  activeTab={state.activeTab} 
-                  onTabChange={handleTabChange}
-                >
-                  {renderPage()}
-                </MainLayout>
-                {/* <NetworkStatusIndicator /> */}
-                <Toaster />
-              </TelegramWebAppCheck>
-            </WebSocketProvider>
-          </UserProvider>
-        </NotificationProvider>
-      </ErrorBoundary>
+      <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
+        <ErrorBoundary>
+          <NotificationProvider>
+            <UserProvider>
+              <WebSocketProvider>
+                <TelegramWebAppCheck>
+                  <MainLayout 
+                    activeTab={state.activeTab} 
+                    onTabChange={handleTabChange}
+                  >
+                    {renderPage()}
+                  </MainLayout>
+                  {/* <NetworkStatusIndicator /> */}
+                  <Toaster />
+                </TelegramWebAppCheck>
+              </WebSocketProvider>
+            </UserProvider>
+          </NotificationProvider>
+        </ErrorBoundary>
+      </TonConnectUIProvider>
     </QueryClientProvider>
   );
 }

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-// ВРЕМЕННО ОТКЛЮЧЕНО для диагностики useState error
-// import { useTonConnectUI } from '@tonconnect/ui-react';
+import { useTonConnectUI } from '@tonconnect/ui-react';
 import { getTelegramUserDisplayName, isTelegramWebApp } from '@/services/telegramService';
 import { 
   isWalletConnected, 
@@ -12,9 +11,7 @@ const WelcomeSection: React.FC = () => {
   const [userName, setUserName] = useState<string>('Пользователь');
   const [walletConnected, setWalletConnected] = useState<boolean>(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  // ВРЕМЕННО ОТКЛЮЧЕНО для диагностики useState error
-  // const [tonConnectUI] = useTonConnectUI();
-  const tonConnectUI = null; // временный fallback
+  const [tonConnectUI] = useTonConnectUI();
   
   // Запрос данных о пользователе через API
   const { data: userData } = useQuery<{

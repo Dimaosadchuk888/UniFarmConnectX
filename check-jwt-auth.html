@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>UniFarm JWT & API Диагностика</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a1a; color: #fff; }
+        .section { margin: 20px 0; padding: 15px; background: #2a2a2a; border-radius: 8px; }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+        pre { background: #333; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { background: #4CAF50; color: white; border: none; padding: 10px 20px; 
+                border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>🔍 UniFarm JWT & API Диагностика</h1>
+    
+    <div class="section">
+        <h2>📦 LocalStorage Данные</h2>
+        <div id="localStorage-info"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🔐 JWT Токен Анализ</h2>
+        <div id="jwt-info"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🌐 API Тесты</h2>
+        <button onclick="testAPI('/api/v2/users/profile')">Тест /api/v2/users/profile</button>
+        <button onclick="testAPI('/api/v2/wallet/balance')">Тест /api/v2/wallet/balance</button>
+        <button onclick="testAPI('/api/v2/auth/refresh')">Тест /api/v2/auth/refresh</button>
+        <div id="api-results"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🔧 Действия</h2>
+        <button onclick="generateNewJWT()">Сгенерировать новый JWT для user ID 74</button>
+        <button onclick="clearAuth()">Очистить авторизацию</button>
+    </div>
+
+    <script>
+        // Проверка localStorage
+        function checkLocalStorage() {
+            const div = document.getElementById('localStorage-info');
+            const jwtToken = localStorage.getItem('unifarm_jwt_token');
+            const userId = localStorage.getItem('unifarm_user_id');
+            const guestId = localStorage.getItem('unifarm_guest_id');
+            
+            let html = '<pre>';
+            html += `JWT Token: ${jwtToken ? '✅ Есть' : '❌ Отсутствует'}\n`;
+            html += `User ID: ${userId || 'Не установлен'}\n`;
+            html += `Guest ID: ${guestId || 'Не установлен'}\n`;
+            html += '</pre>';
+            
+            div.innerHTML = html;
+            
+            // Анализ JWT
+            if (jwtToken) {
+                analyzeJWT(jwtToken);
+            }
+        }
+        
+        // Анализ JWT токена
+        function analyzeJWT(token) {
+            const div = document.getElementById('jwt-info');
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    div.innerHTML = '<p class="error">❌ Неверный формат JWT токена</p>';
+                    return;
+                }
+                
+                const payload = JSON.parse(atob(parts[1]));
+                const exp = new Date(payload.exp * 1000);
+                const now = new Date();
+                const isExpired = exp < now;
+                
+                let html = '<pre>';
+                html += `User ID: ${payload.userId}\n`;
+                html += `Telegram ID: ${payload.telegram_id}\n`;
+                html += `Username: ${payload.username || 'Не указан'}\n`;
+                html += `Ref Code: ${payload.ref_code || 'Не указан'}\n`;
+                html += `Истекает: ${exp.toLocaleString('ru-RU')}\n`;
+                html += `Статус: ${isExpired ? '❌ Истёк' : '✅ Активен'}\n`;
+                html += '</pre>';
+                
+                if (isExpired) {
+                    html += '<p class="error">⚠️ Токен истёк! Требуется обновление.</p>';
+                }
+                
+                div.innerHTML = html;
+            } catch (e) {
+                div.innerHTML = '<p class="error">❌ Ошибка парсинга JWT: ' + e.message + '</p>';
+            }
+        }
+        
+        // Тест API
+        async function testAPI(endpoint) {
+            const resultsDiv = document.getElementById('api-results');
+            const token = localStorage.getItem('unifarm_jwt_token');
+            
+            resultsDiv.innerHTML += `<h3>Тест ${endpoint}</h3>`;
+            
+            try {
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : '',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    data = text;
+                }
+                
+                let statusClass = response.ok ? 'success' : 'error';
+                resultsDiv.innerHTML += `
+                    <div class="${statusClass}">
+                        Статус: ${response.status} ${response.statusText}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML += `
+                    <div class="error">
+                        Ошибка: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Генерация нового JWT
+        function generateNewJWT() {
+            // JWT для user ID 74 (telegram_id: 999489)
+            const newToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl83NCIsInJlZl9jb2RlIjoiUkVGXzE3NTIxNTY3MDAwMDBfdGVzdCIsImlhdCI6MTc1MjE1NjcwMCwiZXhwIjoxNzUyNzYxNTAwfQ.GENERATED_SIGNATURE';
+            
+            localStorage.setItem('unifarm_jwt_token', newToken);
+            localStorage.setItem('unifarm_user_id', '74');
+            
+            alert('✅ Новый JWT установлен для user ID 74. Обновите страницу Preview.');
+            checkLocalStorage();
+        }
+        
+        // Очистка авторизации
+        function clearAuth() {
+            localStorage.removeItem('unifarm_jwt_token');
+            localStorage.removeItem('unifarm_user_id');
+            alert('✅ Авторизация очищена');
+            checkLocalStorage();
+        }
+        
+        // Запуск при загрузке
+        checkLocalStorage();
+    </script>
+</body>
+</html>
