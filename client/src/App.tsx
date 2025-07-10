@@ -177,9 +177,9 @@ function App() {
                 },
                 body: JSON.stringify({
                   direct_registration: true,
-                  telegram_id: 88888848, // Передаем как число, а не строку
-                  username: 'preview_user',
-                  first_name: 'Preview'
+                  telegram_id: 999489, // Передаем как число, а не строку
+                  username: 'test_user_1752129840905',
+                  first_name: 'Test'
                 })
               });
 

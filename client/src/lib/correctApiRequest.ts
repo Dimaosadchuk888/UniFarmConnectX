@@ -22,7 +22,7 @@ const RATE_LIMIT_TOAST_COOLDOWN = 10000; // 10 секунд между увед�
 const MAX_AUTH_RETRIES = 2;
 
 // Fallback токен на случай критической ошибки (истекает 14 июля 2025)
-const FALLBACK_JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYyLCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4NDgsInVzZXJuYW1lIjoicHJldmlld190ZXN0IiwiZmlyc3RfbmFtZSI6IlByZXZpZXciLCJyZWZfY29kZSI6IlJFRl8xNzUxNzgwNTIxOTE4X2UxdjYyZCIsImlhdCI6MTc1MTg3MTA2MywiZXhwIjoxNzUyNDc1ODYzfQ.NKbyJiXtLnGzyr0w-C1oR658X5TzDO6EkKU8Ie5zgE0';
+const FALLBACK_JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTI5ODQxLCJleHAiOjE3NTI3MzQ2NDF9.zImxV8ATpEV_ZumGaRKflQ7niNA--PSgKvhXhlPtpsU';
 
 async function makeRequestWithAuth(url: string, config: RequestConfig): Promise<Response> {
   const requestHeaders: Record<string, string> = {

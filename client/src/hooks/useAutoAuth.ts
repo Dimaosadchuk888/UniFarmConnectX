@@ -66,9 +66,9 @@ export function useAutoAuth() {
             },
             body: JSON.stringify({
               direct_registration: true,
-              telegram_id: 88888848,
-              username: 'preview_user',
-              first_name: 'Preview'
+              telegram_id: 999489,
+              username: 'test_user_1752129840905',
+              first_name: 'Test'
             })
           });
 

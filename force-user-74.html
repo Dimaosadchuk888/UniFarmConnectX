@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Force User 74 - UniFarm</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            text-align: center;
+        }
+        h1 {
+            color: #8b5cf6;
+        }
+        .status {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .success {
+            color: #10b981;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 Принудительная установка User 74</h1>
+    
+    <div id="status" class="status">
+        <p>Очистка localStorage и установка токена...</p>
+    </div>
+
+    <script>
+        // Очищаем весь localStorage
+        localStorage.clear();
+        console.log('✅ localStorage очищен');
+        
+        // Устанавливаем токен пользователя 74
+        const token74 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIMTI5ODQwOTA1X2Rva3h2MCIsImlhdCI6MTc1MjEyOTg0MSwiZXhwIjoxNzUyNzM0NjQxfQ.zImxV8ATpEV_ZumGaRKflQ7niNA--PSgKvhXhlPtpsU';
+        localStorage.setItem('unifarm_jwt_token', token74);
+        console.log('✅ Токен User 74 установлен');
+        
+        // Обновляем статус
+        document.getElementById('status').innerHTML = `
+            <p class="success">✅ Успешно!</p>
+            <p>User 74 установлен как активный пользователь</p>
+            <p>Перенаправление через 2 секунды...</p>
+        `;
+        
+        // Перенаправляем на главную
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 2000);
+    </script>
+</body>
+</html>
