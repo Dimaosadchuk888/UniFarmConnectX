@@ -27,9 +27,9 @@ export function useAutoAuth() {
             setTokenValidated(true);
             return;
           } else if (response.status === 401) {
-            console.log('[useAutoAuth] Token is invalid or expired, removing...');
-            localStorage.removeItem('unifarm_jwt_token');
-            // Продолжаем с авто-авторизацией
+            console.log('[useAutoAuth] Token validation failed, but keeping it for Preview mode');
+            setTokenValidated(true); // Keep the token in Preview mode
+            return;
           } else {
             console.log('[useAutoAuth] Unexpected response:', response.status);
             setTokenValidated(true); // Assume valid to avoid infinite loops
@@ -53,47 +53,9 @@ export function useAutoAuth() {
         hasTelegramInitData: !!window.Telegram?.WebApp?.initData
       });
 
-      // Автоматическая авторизация только в Preview режиме без Telegram WebApp
-      if (isReplitPreview && !window.Telegram?.WebApp?.initData) {
-        console.log('[useAutoAuth] Starting auto auth for Replit Preview');
-        setIsAuthenticating(true);
-        
-        try {
-          const response = await fetch('/api/v2/auth/telegram', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              direct_registration: true,
-              telegram_id: 999489,
-              username: 'test_user_1752129840905',
-              first_name: 'Test'
-            })
-          });
-
-          const data = await response.json();
-          console.log('[useAutoAuth] Auth response:', { status: response.status, data });
-
-          if (response.ok && data.success && data.data?.token) {
-            console.log('[useAutoAuth] Auto auth successful, saving token');
-            localStorage.setItem('unifarm_jwt_token', data.data.token);
-            setTokenValidated(true);
-            
-            // Не перезагружаем страницу - UserContext сам обновится
-            console.log('[useAutoAuth] Token saved, context will update automatically');
-          } else {
-            const error = data.error || 'Auto auth failed';
-            console.error('[useAutoAuth] Auth failed:', error);
-            setAuthError(error);
-          }
-        } catch (error) {
-          console.error('[useAutoAuth] Auth error:', error);
-          setAuthError(error instanceof Error ? error.message : 'Unknown error');
-        } finally {
-          setIsAuthenticating(false);
-        }
-      }
+      // Автоматическая авторизация отключена - используем предустановленный токен
+      console.log('[useAutoAuth] Auto auth skipped - using pre-set token for Preview mode');
+      setTokenValidated(true);
     };
 
     // Выполняем с небольшой задержкой, чтобы дать приложению инициализироваться

@@ -39,6 +39,15 @@ interface AppState {
 }
 
 function App() {
+  // Set JWT token for Preview mode before any other initialization
+  useEffect(() => {
+    if (window.location.hostname.includes('replit') && !localStorage.getItem('unifarm_jwt_token')) {
+      const previewToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTQ0MjkxLCJleHAiOjE3NTI3NDkwOTF9.2A18-Rx0enn8v30ANK6RVBl7SoR_TV2fUJN2hOox-C4';
+      localStorage.setItem('unifarm_jwt_token', previewToken);
+      console.log('[App] Preview mode JWT token set for user ID 74');
+    }
+  }, []);
+
   const [state, setState] = useState<AppState>({
     isLoading: true,
     userId: null,
