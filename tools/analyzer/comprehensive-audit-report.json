@@ -1,0 +1,1268 @@
+{
+  "timestamp": "2025-07-10T13:03:25.376Z",
+  "system": {
+    "nodeVersion": "v18.16.0",
+    "platform": "linux",
+    "architecture": "x64"
+  },
+  "structure": {
+    "totalFiles": 362,
+    "totalLines": 57324,
+    "fileTypes": {
+      ".html": 3,
+      "": 1,
+      ".ts": 195,
+      ".js": 28,
+      ".mts": 1,
+      ".mjs": 1,
+      ".json": 3,
+      ".cjs": 1,
+      ".tsx": 123,
+      ".svg": 3,
+      ".css": 1,
+      ".bak": 1,
+      ".md": 1
+    },
+    "modules": {
+      "admin": {
+        "files": 0,
+        "lines": 0
+      },
+      "adminBot": {
+        "files": 0,
+        "lines": 0
+      },
+      "airdrop": {
+        "files": 0,
+        "lines": 0
+      },
+      "auth": {
+        "files": 0,
+        "lines": 0
+      },
+      "boost": {
+        "files": 0,
+        "lines": 0
+      },
+      "dailyBonus": {
+        "files": 0,
+        "lines": 0
+      },
+      "debug": {
+        "files": 0,
+        "lines": 0
+      },
+      "farming": {
+        "files": 0,
+        "lines": 0
+      },
+      "missions": {
+        "files": 0,
+        "lines": 0
+      },
+      "monitor": {
+        "files": 0,
+        "lines": 0
+      },
+      "referral": {
+        "files": 0,
+        "lines": 0
+      },
+      "scheduler": {
+        "files": 0,
+        "lines": 0
+      },
+      "telegram": {
+        "files": 0,
+        "lines": 0
+      },
+      "tonFarming": {
+        "files": 0,
+        "lines": 0
+      },
+      "transactions": {
+        "files": 0,
+        "lines": 0
+      },
+      "user": {
+        "files": 0,
+        "lines": 0
+      },
+      "wallet": {
+        "files": 0,
+        "lines": 0
+      }
+    },
+    "components": {}
+  },
+  "security": {
+    "hardcodedSecrets": [
+      {
+        "file": "src/App.tsx",
+        "type": "API Key/Secret",
+        "count": 1
+      },
+      {
+        "file": "src/App.tsx",
+        "type": "JWT Token",
+        "count": 1
+      },
+      {
+        "file": "src/hooks/useAutoAuth.ts",
+        "type": "API Key/Secret",
+        "count": 2
+      }
+    ],
+    "exposedEndpoints": [
+      {
+        "file": "routes.ts",
+        "endpoint": "/health",
+        "method": "get"
+      },
+      {
+        "file": "routes.ts",
+        "endpoint": "/jwt-debug",
+        "method": "get"
+      },
+      {
+        "file": "routes.ts",
+        "endpoint": "/ref-debug-test",
+        "method": "get"
+      },
+      {
+        "file": "routes.ts",
+        "endpoint": "/debug/user48",
+        "method": "get"
+      },
+      {
+        "file": "routes.ts",
+        "endpoint": "/wallet/balance-direct",
+        "method": "get"
+      },
+      {
+        "file": "routes.ts",
+        "endpoint": "/routes/debug",
+        "method": "get"
+      },
+      {
+        "file": "routes.ts",
+        "endpoint": "/me",
+        "method": "get"
+      },
+      {
+        "file": "routes.ts",
+        "endpoint": "/test-basic-routes",
+        "method": "get"
+      },
+      {
+        "file": "routes.ts",
+        "endpoint": "/test-routes",
+        "method": "get"
+      },
+      {
+        "file": "routes.ts",
+        "endpoint": "/debug/profile-test",
+        "method": "get"
+      },
+      {
+        "file": "routes.ts",
+        "endpoint": "/test-import",
+        "method": "get"
+      },
+      {
+        "file": "admin/routes.ts",
+        "endpoint": "/test",
+        "method": "get"
+      },
+      {
+        "file": "admin/routes.ts",
+        "endpoint": "/stats",
+        "method": "get"
+      },
+      {
+        "file": "admin/routes.ts",
+        "endpoint": "/users",
+        "method": "get"
+      },
+      {
+        "file": "admin/routes.ts",
+        "endpoint": "/users/:userId/moderate",
+        "method": "post"
+      },
+      {
+        "file": "admin/routes.ts",
+        "endpoint": "/missions/manage",
+        "method": "post"
+      },
+      {
+        "file": "adminBot/routes.ts",
+        "endpoint": "/webhook",
+        "method": "post"
+      },
+      {
+        "file": "airdrop/routes.ts",
+        "endpoint": "/register",
+        "method": "post"
+      },
+      {
+        "file": "airdrop/routes.ts",
+        "endpoint": "/active",
+        "method": "get"
+      },
+      {
+        "file": "airdrop/routes.ts",
+        "endpoint": "/claim",
+        "method": "post"
+      },
+      {
+        "file": "airdrop/routes.ts",
+        "endpoint": "/history",
+        "method": "get"
+      },
+      {
+        "file": "airdrop/routes.ts",
+        "endpoint": "/eligibility",
+        "method": "get"
+      },
+      {
+        "file": "auth/routes.ts",
+        "endpoint": "/telegram",
+        "method": "post"
+      },
+      {
+        "file": "auth/routes.ts",
+        "endpoint": "/register/telegram",
+        "method": "post"
+      },
+      {
+        "file": "auth/routes.ts",
+        "endpoint": "/check",
+        "method": "get"
+      },
+      {
+        "file": "auth/routes.ts",
+        "endpoint": "/validate",
+        "method": "post"
+      },
+      {
+        "file": "auth/routes.ts",
+        "endpoint": "/refresh",
+        "method": "post"
+      },
+      {
+        "file": "auth/routes.ts",
+        "endpoint": "/logout",
+        "method": "post"
+      },
+      {
+        "file": "auth/routes.ts",
+        "endpoint": "/session",
+        "method": "get"
+      },
+      {
+        "file": "boost/routes.ts",
+        "endpoint": "/",
+        "method": "get"
+      },
+      {
+        "file": "boost/routes.ts",
+        "endpoint": "/user/:userId",
+        "method": "get"
+      },
+      {
+        "file": "boost/routes.ts",
+        "endpoint": "/activate",
+        "method": "post"
+      },
+      {
+        "file": "boost/routes.ts",
+        "endpoint": "/deactivate/:boostId",
+        "method": "delete"
+      },
+      {
+        "file": "boost/routes.ts",
+        "endpoint": "/stats/:userId",
+        "method": "get"
+      },
+      {
+        "file": "boost/routes.ts",
+        "endpoint": "/packages",
+        "method": "get"
+      },
+      {
+        "file": "boost/routes.ts",
+        "endpoint": "/purchase",
+        "method": "post"
+      },
+      {
+        "file": "boost/routes.ts",
+        "endpoint": "/verify-ton-payment",
+        "method": "post"
+      },
+      {
+        "file": "boost/routes.ts",
+        "endpoint": "/farming-status",
+        "method": "get"
+      },
+      {
+        "file": "dailyBonus/routes.ts",
+        "endpoint": "/status",
+        "method": "get"
+      },
+      {
+        "file": "dailyBonus/routes.ts",
+        "endpoint": "/demo",
+        "method": "get"
+      },
+      {
+        "file": "dailyBonus/routes.ts",
+        "endpoint": "/:userId",
+        "method": "get"
+      },
+      {
+        "file": "dailyBonus/routes.ts",
+        "endpoint": "/claim",
+        "method": "post"
+      },
+      {
+        "file": "dailyBonus/routes.ts",
+        "endpoint": "/:userId/calendar",
+        "method": "get"
+      },
+      {
+        "file": "dailyBonus/routes.ts",
+        "endpoint": "/:userId/stats",
+        "method": "get"
+      },
+      {
+        "file": "dailyBonus/routes.ts",
+        "endpoint": "/:userId/check",
+        "method": "get"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/",
+        "method": "get"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/data",
+        "method": "get"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/info",
+        "method": "get"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/status",
+        "method": "get"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/start",
+        "method": "post"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/start",
+        "method": "get"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/stop",
+        "method": "post"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/claim",
+        "method": "post"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/deposit",
+        "method": "post"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/harvest",
+        "method": "post"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/history",
+        "method": "get"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/rates",
+        "method": "get"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/direct-deposit",
+        "method": "post"
+      },
+      {
+        "file": "farming/routes.ts",
+        "endpoint": "/direct-status",
+        "method": "get"
+      },
+      {
+        "file": "missions/routes.ts",
+        "endpoint": "/",
+        "method": "get"
+      },
+      {
+        "file": "missions/routes.ts",
+        "endpoint": "/list",
+        "method": "get"
+      },
+      {
+        "file": "missions/routes.ts",
+        "endpoint": "/active",
+        "method": "get"
+      },
+      {
+        "file": "missions/routes.ts",
+        "endpoint": "/complete",
+        "method": "post"
+      },
+      {
+        "file": "missions/routes.ts",
+        "endpoint": "/:missionId/complete",
+        "method": "post"
+      },
+      {
+        "file": "missions/routes.ts",
+        "endpoint": "/:missionId/claim",
+        "method": "post"
+      },
+      {
+        "file": "missions/routes.ts",
+        "endpoint": "/stats",
+        "method": "get"
+      },
+      {
+        "file": "missions/routes.ts",
+        "endpoint": "/user/:userId",
+        "method": "get"
+      },
+      {
+        "file": "monitor/routes.ts",
+        "endpoint": "/health",
+        "method": "get"
+      },
+      {
+        "file": "monitor/routes.ts",
+        "endpoint": "/stats",
+        "method": "get"
+      },
+      {
+        "file": "monitor/routes.ts",
+        "endpoint": "/status",
+        "method": "get"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/process",
+        "method": "post"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/stats",
+        "method": "get"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/my-referrals",
+        "method": "get"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/levels",
+        "method": "get"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/validate/:refCode",
+        "method": "get"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/generate-code",
+        "method": "post"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/history",
+        "method": "get"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/chain",
+        "method": "get"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/:userId",
+        "method": "get"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/:userId/list",
+        "method": "get"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/:userId/earnings",
+        "method": "get"
+      },
+      {
+        "file": "referral/routes.ts",
+        "endpoint": "/:userId/code",
+        "method": "get"
+      },
+      {
+        "file": "telegram/routes.ts",
+        "endpoint": "/webapp-data",
+        "method": "get"
+      },
+      {
+        "file": "telegram/routes.ts",
+        "endpoint": "/set-commands",
+        "method": "post"
+      },
+      {
+        "file": "telegram/routes.ts",
+        "endpoint": "/send-message",
+        "method": "post"
+      },
+      {
+        "file": "tonFarming/routes.ts",
+        "endpoint": "/",
+        "method": "get"
+      },
+      {
+        "file": "tonFarming/routes.ts",
+        "endpoint": "/data",
+        "method": "get"
+      },
+      {
+        "file": "tonFarming/routes.ts",
+        "endpoint": "/info",
+        "method": "get"
+      },
+      {
+        "file": "tonFarming/routes.ts",
+        "endpoint": "/status",
+        "method": "get"
+      },
+      {
+        "file": "tonFarming/routes.ts",
+        "endpoint": "/start",
+        "method": "post"
+      },
+      {
+        "file": "tonFarming/routes.ts",
+        "endpoint": "/claim",
+        "method": "post"
+      },
+      {
+        "file": "tonFarming/routes.ts",
+        "endpoint": "/balance",
+        "method": "get"
+      },
+      {
+        "file": "transactions/routes.ts",
+        "endpoint": "/health",
+        "method": "get"
+      },
+      {
+        "file": "transactions/routes.ts",
+        "endpoint": "/",
+        "method": "get"
+      },
+      {
+        "file": "transactions/routes.ts",
+        "endpoint": "/history",
+        "method": "get"
+      },
+      {
+        "file": "transactions/routes.ts",
+        "endpoint": "/balance",
+        "method": "get"
+      },
+      {
+        "file": "transactions/routes.ts",
+        "endpoint": "/recalculate-balance",
+        "method": "post"
+      },
+      {
+        "file": "transactions/routes.ts",
+        "endpoint": "/create",
+        "method": "post"
+      },
+      {
+        "file": "transactions/routes.ts",
+        "endpoint": "/stats",
+        "method": "get"
+      },
+      {
+        "file": "transactions/routes.ts",
+        "endpoint": "/create-test",
+        "method": "post"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/",
+        "method": "post"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/create",
+        "method": "post"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/profile",
+        "method": "get"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/profile",
+        "method": "put"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/stats",
+        "method": "get"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/search/:query",
+        "method": "get"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/update-settings",
+        "method": "post"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/:id",
+        "method": "put"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/ref-code",
+        "method": "post"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/recover-ref-code",
+        "method": "post"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/balance",
+        "method": "get"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/sessions",
+        "method": "get"
+      },
+      {
+        "file": "user/routes.ts",
+        "endpoint": "/sessions/clear",
+        "method": "post"
+      },
+      {
+        "file": "wallet/routes.ts",
+        "endpoint": "/balance",
+        "method": "get"
+      },
+      {
+        "file": "wallet/routes.ts",
+        "endpoint": "/",
+        "method": "get"
+      },
+      {
+        "file": "wallet/routes.ts",
+        "endpoint": "/data",
+        "method": "get"
+      },
+      {
+        "file": "wallet/routes.ts",
+        "endpoint": "/transactions",
+        "method": "get"
+      },
+      {
+        "file": "wallet/routes.ts",
+        "endpoint": "/:userId/transactions",
+        "method": "get"
+      },
+      {
+        "file": "wallet/routes.ts",
+        "endpoint": "/deposit",
+        "method": "post"
+      },
+      {
+        "file": "wallet/routes.ts",
+        "endpoint": "/withdraw",
+        "method": "post"
+      },
+      {
+        "file": "wallet/routes.ts",
+        "endpoint": "/transfer",
+        "method": "post"
+      },
+      {
+        "file": "wallet/routes.ts",
+        "endpoint": "/deposit-internal",
+        "method": "post"
+      },
+      {
+        "file": "wallet/routes.ts",
+        "endpoint": "/withdraw-internal",
+        "method": "post"
+      }
+    ],
+    "authIssues": []
+  },
+  "functionality": {
+    "farming": {
+      "src/components/farming/BoostOptions.tsx": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "src/components/farming/BoostPackagesCardWithErrorBoundary.tsx": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "src/components/farming/FarmingHistory.tsx": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "src/components/farming/FarmingStatusCard.tsx": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "src/components/farming/UniFarmingCard.tsx": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "src/components/farming/UniFarmingCardWithErrorBoundary.tsx": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "farming/controller.ts": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "farming/directDeposit.ts": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": true
+      },
+      "farming/directFarmingStatus.ts": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "farming/logic/rewardCalculation.ts": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "farming/model.ts": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "farming/routes.ts": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": true
+      },
+      "farming/service.ts": {
+        "hasBalanceManager": true,
+        "hasTransactions": true,
+        "hasDirectDeposit": true
+      },
+      "farming/types.ts": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      },
+      "scheduler/farmingScheduler.ts": {
+        "hasBalanceManager": false,
+        "hasTransactions": false,
+        "hasDirectDeposit": false
+      }
+    },
+    "jwt": {
+      "src/App.tsx": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/components/missions/MissionsList.tsx": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/components/missions/SimpleMissionsList.tsx": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/components/ton-boost/BoostPackagesCard.tsx": {
+        "hasVerify": true,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/contexts/userContext.tsx": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/hooks/use-mission-data.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/hooks/useAutoAuth.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/lib/correctApiRequest.ts": {
+        "hasVerify": false,
+        "hasSign": true,
+        "hasFallback": false
+      },
+      "src/lib/queryClient.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/lib/tokenRefreshHandler.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/main.tsx": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/services/balanceService.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "src/services/telegramService.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "index.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "routes.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "auth/controller.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "auth/model.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "auth/routes.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "auth/service.ts": {
+        "hasVerify": true,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "debug/debugRoutes.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "farming/directDeposit.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "user/controller.ts": {
+        "hasVerify": true,
+        "hasSign": false,
+        "hasFallback": true
+      },
+      "wallet/controller.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "config/security.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "envValidator.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "middleware/auth.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "middleware/telegramAuth.ts": {
+        "hasVerify": true,
+        "hasSign": false,
+        "hasFallback": false
+      },
+      "telegram.ts": {
+        "hasVerify": true,
+        "hasSign": true,
+        "hasFallback": false
+      },
+      "app.ts": {
+        "hasVerify": false,
+        "hasSign": false,
+        "hasFallback": false
+      }
+    },
+    "transactions": {},
+    "balance": {}
+  },
+  "dependencies": {
+    "production": 77,
+    "development": 8
+  },
+  "quality": {
+    "largeFiles": [
+      {
+        "path": "postcss/lib/container.d.ts",
+        "size": "14KB",
+        "lines": 481
+      },
+      {
+        "path": "postcss/lib/container.js",
+        "size": "10KB",
+        "lines": 448
+      },
+      {
+        "path": "postcss/lib/lazy-result.js",
+        "size": "13KB",
+        "lines": 551
+      },
+      {
+        "path": "postcss/lib/node.d.ts",
+        "size": "14KB",
+        "lines": 557
+      },
+      {
+        "path": "postcss/lib/node.js",
+        "size": "10KB",
+        "lines": 450
+      },
+      {
+        "path": "postcss/lib/parser.js",
+        "size": "15KB",
+        "lines": 612
+      },
+      {
+        "path": "postcss/lib/postcss.d.ts",
+        "size": "11KB",
+        "lines": 459
+      },
+      {
+        "path": "src/App.tsx",
+        "size": "11KB",
+        "lines": 297
+      },
+      {
+        "path": "src/components/dashboard/ChartCard.tsx",
+        "size": "19KB",
+        "lines": 506
+      },
+      {
+        "path": "src/components/dashboard/DailyBonusCard.tsx",
+        "size": "21KB",
+        "lines": 500
+      },
+      {
+        "path": "src/components/farming/BoostOptions.tsx",
+        "size": "12KB",
+        "lines": 302
+      },
+      {
+        "path": "src/components/farming/FarmingHistory.tsx",
+        "size": "84KB",
+        "lines": 1680
+      },
+      {
+        "path": "src/components/farming/UniFarmingCard.tsx",
+        "size": "51KB",
+        "lines": 1048
+      },
+      {
+        "path": "src/components/friends/ReferralLevelsTable.tsx",
+        "size": "24KB",
+        "lines": 534
+      },
+      {
+        "path": "src/components/friends/UniFarmReferralLink.tsx",
+        "size": "29KB",
+        "lines": 641
+      },
+      {
+        "path": "src/components/missions/MissionsList.tsx",
+        "size": "34KB",
+        "lines": 792
+      },
+      {
+        "path": "src/components/referral/ReferralStats.tsx",
+        "size": "15KB",
+        "lines": 387
+      },
+      {
+        "path": "src/components/shared/UnifiedBalanceDisplay.tsx",
+        "size": "10KB",
+        "lines": 295
+      },
+      {
+        "path": "src/components/shared/UnifiedTransactionHistory.tsx",
+        "size": "13KB",
+        "lines": 369
+      },
+      {
+        "path": "src/components/ton-boost/BoostPackagesCard.tsx",
+        "size": "22KB",
+        "lines": 503
+      },
+      {
+        "path": "src/components/ton-boost/TonFarmingStatusCard.tsx",
+        "size": "15KB",
+        "lines": 331
+      },
+      {
+        "path": "src/components/ui/chart.tsx",
+        "size": "10KB",
+        "lines": 364
+      },
+      {
+        "path": "src/components/ui/sidebar.tsx",
+        "size": "23KB",
+        "lines": 763
+      },
+      {
+        "path": "src/components/wallet/BalanceCard.tsx",
+        "size": "15KB",
+        "lines": 373
+      },
+      {
+        "path": "src/components/wallet/StyledTransactionItem.tsx",
+        "size": "12KB",
+        "lines": 374
+      },
+      {
+        "path": "src/components/wallet/WithdrawalForm.tsx",
+        "size": "13KB",
+        "lines": 338
+      },
+      {
+        "path": "src/contexts/userContext.tsx",
+        "size": "24KB",
+        "lines": 626
+      },
+      {
+        "path": "src/hooks/use-mission-data.ts",
+        "size": "10KB",
+        "lines": 268
+      },
+      {
+        "path": "src/index.css",
+        "size": "18KB",
+        "lines": 892
+      },
+      {
+        "path": "src/lib/queryClient.ts",
+        "size": "17KB",
+        "lines": 422
+      },
+      {
+        "path": "src/lib/utils.ts",
+        "size": "11KB",
+        "lines": 253
+      },
+      {
+        "path": "src/pages/Friends.tsx",
+        "size": "11KB",
+        "lines": 198
+      },
+      {
+        "path": "src/pages/Friends.tsx.bak",
+        "size": "15KB",
+        "lines": 301
+      },
+      {
+        "path": "src/services/telegramService.ts",
+        "size": "13KB",
+        "lines": 436
+      },
+      {
+        "path": "src/services/tonConnectService.ts",
+        "size": "19KB",
+        "lines": 450
+      },
+      {
+        "path": "src/services/transactionService.ts",
+        "size": "17KB",
+        "lines": 427
+      },
+      {
+        "path": "src/services/userService.ts",
+        "size": "30KB",
+        "lines": 673
+      },
+      {
+        "path": "src/services/withdrawalService.ts",
+        "size": "10KB",
+        "lines": 223
+      },
+      {
+        "path": "index.ts",
+        "size": "40KB",
+        "lines": 1032
+      },
+      {
+        "path": "adminBot/controller.ts",
+        "size": "25KB",
+        "lines": 661
+      },
+      {
+        "path": "adminBot/service.ts",
+        "size": "13KB",
+        "lines": 442
+      },
+      {
+        "path": "auth/service.ts",
+        "size": "15KB",
+        "lines": 460
+      },
+      {
+        "path": "boost/controller.ts",
+        "size": "10KB",
+        "lines": 317
+      },
+      {
+        "path": "boost/service.ts",
+        "size": "39KB",
+        "lines": 1061
+      },
+      {
+        "path": "dailyBonus/service.ts",
+        "size": "10KB",
+        "lines": 311
+      },
+      {
+        "path": "farming/controller.ts",
+        "size": "13KB",
+        "lines": 366
+      },
+      {
+        "path": "farming/service.ts",
+        "size": "21KB",
+        "lines": 536
+      },
+      {
+        "path": "missions/service.ts",
+        "size": "12KB",
+        "lines": 323
+      },
+      {
+        "path": "monitor/service.ts",
+        "size": "10KB",
+        "lines": 312
+      },
+      {
+        "path": "referral/controller.ts",
+        "size": "12KB",
+        "lines": 297
+      },
+      {
+        "path": "referral/service.ts",
+        "size": "31KB",
+        "lines": 830
+      },
+      {
+        "path": "user/controller.ts",
+        "size": "21KB",
+        "lines": 565
+      },
+      {
+        "path": "wallet/controller.ts",
+        "size": "15KB",
+        "lines": 403
+      },
+      {
+        "path": "wallet/logic/withdrawals.ts",
+        "size": "11KB",
+        "lines": 240
+      },
+      {
+        "path": "wallet/service.ts",
+        "size": "29KB",
+        "lines": 835
+      },
+      {
+        "path": "BalanceManager.ts",
+        "size": "18KB",
+        "lines": 481
+      },
+      {
+        "path": "TransactionService.ts",
+        "size": "13KB",
+        "lines": 371
+      },
+      {
+        "path": "scheduler/farmingScheduler.ts",
+        "size": "11KB",
+        "lines": 261
+      },
+      {
+        "path": "formatters.ts",
+        "size": "15KB",
+        "lines": 332
+      }
+    ],
+    "complexFiles": [],
+    "duplicates": []
+  }
+}

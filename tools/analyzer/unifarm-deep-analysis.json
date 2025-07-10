@@ -1,0 +1,1289 @@
+{
+  "timestamp": "2025-07-10T13:04:49.722Z",
+  "modules": {
+    "admin": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/test"
+        },
+        {
+          "method": "GET",
+          "path": "/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/users"
+        },
+        {
+          "method": "POST",
+          "path": "/users/:userId/moderate"
+        },
+        {
+          "method": "POST",
+          "path": "/missions/manage"
+        }
+      ],
+      "functionality": [
+        "getDashboardStats",
+        "getUsersList",
+        "getUserDetails",
+        "moderateUser",
+        "getSystemLogs",
+        "updateUserBalance",
+        "performSystemMaintenance"
+      ]
+    },
+    "adminBot": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/webhook"
+        }
+      ],
+      "functionality": [
+        "isAuthorizedAdmin",
+        "sendMessage",
+        "answerCallbackQuery",
+        "setupWebhook",
+        "startPolling",
+        "getSystemStats",
+        "getUsersList",
+        "getUserInfo",
+        "banUser",
+        "getMissionsData",
+        "getWithdrawalById",
+        "getWithdrawalRequests",
+        "approveWithdrawal",
+        "rejectWithdrawal"
+      ]
+    },
+    "airdrop": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/register"
+        },
+        {
+          "method": "GET",
+          "path": "/active"
+        },
+        {
+          "method": "POST",
+          "path": "/claim"
+        },
+        {
+          "method": "GET",
+          "path": "/history"
+        },
+        {
+          "method": "GET",
+          "path": "/eligibility"
+        }
+      ],
+      "functionality": [
+        "registerForAirdrop",
+        "getActiveAirdrops",
+        "claimAirdrop",
+        "getAirdropHistory",
+        "checkEligibility"
+      ]
+    },
+    "auth": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/telegram"
+        },
+        {
+          "method": "POST",
+          "path": "/register/telegram"
+        },
+        {
+          "method": "GET",
+          "path": "/check"
+        },
+        {
+          "method": "POST",
+          "path": "/validate"
+        },
+        {
+          "method": "POST",
+          "path": "/refresh"
+        },
+        {
+          "method": "POST",
+          "path": "/logout"
+        },
+        {
+          "method": "GET",
+          "path": "/session"
+        }
+      ],
+      "functionality": [
+        "findByTelegramId",
+        "createUser",
+        "findOrCreateFromTelegram",
+        "authenticateFromTelegram",
+        "registerDirectFromTelegramUser",
+        "validateToken",
+        "registerWithTelegram",
+        "checkToken",
+        "refreshToken",
+        "logout",
+        "getSessionInfo"
+      ]
+    },
+    "boost": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/"
+        },
+        {
+          "method": "GET",
+          "path": "/user/:userId"
+        },
+        {
+          "method": "POST",
+          "path": "/activate"
+        },
+        {
+          "method": "DELETE",
+          "path": "/deactivate/:boostId"
+        },
+        {
+          "method": "GET",
+          "path": "/stats/:userId"
+        },
+        {
+          "method": "GET",
+          "path": "/packages"
+        },
+        {
+          "method": "POST",
+          "path": "/purchase"
+        },
+        {
+          "method": "POST",
+          "path": "/verify-ton-payment"
+        },
+        {
+          "method": "GET",
+          "path": "/farming-status"
+        }
+      ],
+      "functionality": [
+        "getAvailableBoosts",
+        "getBoostPackages",
+        "getUserActiveBoosts",
+        "purchaseBoost",
+        "awardUniBonus",
+        "getBoostPackageById",
+        "purchaseWithInternalWallet",
+        "purchaseWithExternalTon",
+        "createBoostPurchase",
+        "createPendingTransaction",
+        "verifyTonPayment",
+        "createConfirmedTransaction",
+        "activateBoost",
+        "getTonBoostFarmingStatus",
+        "activatePackage"
+      ]
+    },
+    "dailyBonus": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/status"
+        },
+        {
+          "method": "GET",
+          "path": "/status-auth"
+        },
+        {
+          "method": "GET",
+          "path": "/demo"
+        },
+        {
+          "method": "GET",
+          "path": "/:userId"
+        },
+        {
+          "method": "POST",
+          "path": "/claim"
+        },
+        {
+          "method": "GET",
+          "path": "/:userId/calendar"
+        },
+        {
+          "method": "GET",
+          "path": "/:userId/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/:userId/check"
+        }
+      ],
+      "functionality": [
+        "getDailyBonusInfo",
+        "claimDailyBonus",
+        "getDailyBonusHistory",
+        "getDailyBonusStats"
+      ]
+    },
+    "debug": {
+      "files": [
+        "debugRoutes.ts"
+      ],
+      "hasController": false,
+      "hasService": false,
+      "hasRoutes": false,
+      "hasTypes": false,
+      "hasModel": false,
+      "endpoints": [],
+      "functionality": []
+    },
+    "farming": {
+      "files": [
+        "controller.ts",
+        "directDeposit.ts",
+        "directFarmingStatus.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/"
+        },
+        {
+          "method": "GET",
+          "path": "/data"
+        },
+        {
+          "method": "GET",
+          "path": "/info"
+        },
+        {
+          "method": "GET",
+          "path": "/status"
+        },
+        {
+          "method": "POST",
+          "path": "/start"
+        },
+        {
+          "method": "GET",
+          "path": "/start"
+        },
+        {
+          "method": "POST",
+          "path": "/stop"
+        },
+        {
+          "method": "POST",
+          "path": "/claim"
+        },
+        {
+          "method": "POST",
+          "path": "/deposit"
+        },
+        {
+          "method": "POST",
+          "path": "/harvest"
+        },
+        {
+          "method": "GET",
+          "path": "/history"
+        },
+        {
+          "method": "GET",
+          "path": "/rates"
+        },
+        {
+          "method": "POST",
+          "path": "/direct-deposit"
+        },
+        {
+          "method": "GET",
+          "path": "/direct-status"
+        }
+      ],
+      "functionality": [
+        "getFarmingDataByTelegramId",
+        "startFarming",
+        "stopFarming",
+        "getRates",
+        "depositUniForFarming",
+        "claimRewards",
+        "harvestUniFarming",
+        "getFarmingHistory"
+      ]
+    },
+    "missions": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/"
+        },
+        {
+          "method": "GET",
+          "path": "/list"
+        },
+        {
+          "method": "GET",
+          "path": "/active"
+        },
+        {
+          "method": "POST",
+          "path": "/complete"
+        },
+        {
+          "method": "POST",
+          "path": "/:missionId/complete"
+        },
+        {
+          "method": "POST",
+          "path": "/:missionId/claim"
+        },
+        {
+          "method": "GET",
+          "path": "/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/user/:userId"
+        }
+      ],
+      "functionality": [
+        "getActiveMissionsByTelegramId",
+        "completeMission",
+        "claimMissionReward",
+        "getUserCompletedMissions",
+        "getMissionStatsByTelegramId",
+        "getUserMissionsByTelegramId"
+      ]
+    },
+    "monitor": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/health"
+        },
+        {
+          "method": "GET",
+          "path": "/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/status"
+        }
+      ],
+      "functionality": [
+        "getSystemStats",
+        "getUserStats",
+        "getFarmingStats",
+        "getSystemHealth",
+        "checkCriticalEndpoints"
+      ]
+    },
+    "referral": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/process"
+        },
+        {
+          "method": "GET",
+          "path": "/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/my-referrals"
+        },
+        {
+          "method": "GET",
+          "path": "/levels"
+        },
+        {
+          "method": "GET",
+          "path": "/validate/:refCode"
+        },
+        {
+          "method": "POST",
+          "path": "/generate-code"
+        },
+        {
+          "method": "GET",
+          "path": "/history"
+        },
+        {
+          "method": "GET",
+          "path": "/chain"
+        },
+        {
+          "method": "GET",
+          "path": "/:userId"
+        },
+        {
+          "method": "GET",
+          "path": "/:userId/list"
+        },
+        {
+          "method": "GET",
+          "path": "/:userId/earnings"
+        },
+        {
+          "method": "GET",
+          "path": "/:userId/code"
+        }
+      ],
+      "functionality": [
+        "generateReferralCode",
+        "processReferral",
+        "buildReferrerChain",
+        "distributeReferralRewards",
+        "getReferralStats",
+        "getUserReferrals",
+        "getRealReferralStats",
+        "getReferralHistory",
+        "getReferralChain"
+      ]
+    },
+    "scheduler": {
+      "files": [
+        "index.ts",
+        "tonBoostIncomeScheduler.ts"
+      ],
+      "hasController": false,
+      "hasService": false,
+      "hasRoutes": false,
+      "hasTypes": false,
+      "hasModel": false,
+      "endpoints": [],
+      "functionality": []
+    },
+    "telegram": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/webapp-data"
+        },
+        {
+          "method": "POST",
+          "path": "/set-commands"
+        },
+        {
+          "method": "POST",
+          "path": "/send-message"
+        }
+      ],
+      "functionality": [
+        "getWebAppData",
+        "setCommands",
+        "sendMessage"
+      ]
+    },
+    "tonFarming": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/"
+        },
+        {
+          "method": "GET",
+          "path": "/data"
+        },
+        {
+          "method": "GET",
+          "path": "/info"
+        },
+        {
+          "method": "GET",
+          "path": "/status"
+        },
+        {
+          "method": "POST",
+          "path": "/start"
+        },
+        {
+          "method": "POST",
+          "path": "/claim"
+        },
+        {
+          "method": "GET",
+          "path": "/balance"
+        }
+      ],
+      "functionality": [
+        "getTonFarmingDataByTelegramId",
+        "startTonFarming",
+        "claimTonRewards",
+        "getTonFarmingStatus",
+        "getTonFarmingBalance"
+      ]
+    },
+    "transactions": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/health"
+        },
+        {
+          "method": "GET",
+          "path": "/"
+        },
+        {
+          "method": "GET",
+          "path": "/history"
+        },
+        {
+          "method": "GET",
+          "path": "/balance"
+        },
+        {
+          "method": "POST",
+          "path": "/recalculate-balance"
+        },
+        {
+          "method": "POST",
+          "path": "/create"
+        },
+        {
+          "method": "GET",
+          "path": "/stats"
+        },
+        {
+          "method": "POST",
+          "path": "/create-test"
+        }
+      ],
+      "functionality": [
+        "getTransactionHistory",
+        "createTransaction",
+        "getTransactionById",
+        "getTransactionStats",
+        "recalculateUserBalance"
+      ]
+    },
+    "user": {
+      "files": [
+        "controller.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/"
+        },
+        {
+          "method": "POST",
+          "path": "/create"
+        },
+        {
+          "method": "GET",
+          "path": "/profile"
+        },
+        {
+          "method": "PUT",
+          "path": "/profile"
+        },
+        {
+          "method": "GET",
+          "path": "/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/search/:query"
+        },
+        {
+          "method": "POST",
+          "path": "/update-settings"
+        },
+        {
+          "method": "PUT",
+          "path": "/:id"
+        },
+        {
+          "method": "POST",
+          "path": "/ref-code"
+        },
+        {
+          "method": "POST",
+          "path": "/recover-ref-code"
+        },
+        {
+          "method": "GET",
+          "path": "/balance"
+        },
+        {
+          "method": "GET",
+          "path": "/sessions"
+        },
+        {
+          "method": "POST",
+          "path": "/sessions/clear"
+        }
+      ],
+      "functionality": [
+        "createUser",
+        "getUserByTelegramId",
+        "getUserById",
+        "findUserByRefCode",
+        "getOrCreateUserFromTelegram",
+        "updateUser",
+        "updateUserRefCode",
+        "findUserByTelegramId",
+        "getUserByGuestId"
+      ]
+    },
+    "wallet": {
+      "files": [
+        "controller.ts",
+        "directBalanceHandler.ts",
+        "model.ts",
+        "routes.ts",
+        "service.ts",
+        "types.ts"
+      ],
+      "hasController": true,
+      "hasService": true,
+      "hasRoutes": true,
+      "hasTypes": true,
+      "hasModel": true,
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/balance"
+        },
+        {
+          "method": "GET",
+          "path": "/"
+        },
+        {
+          "method": "GET",
+          "path": "/data"
+        },
+        {
+          "method": "GET",
+          "path": "/transactions"
+        },
+        {
+          "method": "GET",
+          "path": "/:userId/transactions"
+        },
+        {
+          "method": "POST",
+          "path": "/deposit"
+        },
+        {
+          "method": "POST",
+          "path": "/withdraw"
+        },
+        {
+          "method": "POST",
+          "path": "/transfer"
+        },
+        {
+          "method": "POST",
+          "path": "/deposit-internal"
+        },
+        {
+          "method": "POST",
+          "path": "/withdraw-internal"
+        }
+      ],
+      "functionality": [
+        "getWalletDataByTelegramId",
+        "getWalletDataByUserId",
+        "addUniFarmIncome",
+        "addTonFarmIncome",
+        "getBalance",
+        "getTransactionHistory",
+        "processWithdrawal",
+        "createDeposit",
+        "withdrawFunds",
+        "transferFunds",
+        "createInternalDeposit",
+        "createInternalWithdrawal"
+      ]
+    }
+  },
+  "authentication": {
+    "jwtImplementation": [
+      {
+        "file": "core/middleware/telegramAuth.ts",
+        "hasVerify": true,
+        "hasSign": false,
+        "hasSecret": true
+      },
+      {
+        "file": "utils/telegram.ts",
+        "hasVerify": true,
+        "hasSign": true,
+        "hasSecret": true
+      }
+    ],
+    "authMiddleware": [],
+    "authEndpoints": [],
+    "securityIssues": []
+  },
+  "farming": {
+    "depositFlow": [
+      {
+        "file": "modules/farming/service.ts",
+        "hasDepositFunction": true,
+        "usesBalanceManager": true,
+        "createsTransactions": true,
+        "hasDirectDeposit": false
+      },
+      {
+        "file": "modules/farming/directDeposit.ts",
+        "hasDepositFunction": true,
+        "usesBalanceManager": false,
+        "createsTransactions": false,
+        "hasDirectDeposit": false
+      },
+      {
+        "file": "modules/farming/controller.ts",
+        "hasDepositFunction": true,
+        "usesBalanceManager": false,
+        "createsTransactions": false,
+        "hasDirectDeposit": false
+      },
+      {
+        "file": "client/src/components/farming/UniFarmingCard.tsx",
+        "hasDepositFunction": false,
+        "usesBalanceManager": false,
+        "createsTransactions": false,
+        "hasDirectDeposit": true
+      }
+    ],
+    "balanceManagement": {
+      "file": "core/BalanceManager.ts",
+      "methods": [
+        "updateUserBalance",
+        "getUserBalance",
+        "addBalance",
+        "subtractBalance",
+        "setBalance",
+        "hasSufficientBalance",
+        "batchUpdateBalances",
+        "validateAndRecalculateBalance"
+      ],
+      "usesSupabase": true,
+      "hasValidation": false
+    },
+    "transactionSystem": [],
+    "farmingEndpoints": []
+  },
+  "database": {
+    "supabaseUsage": [],
+    "tables": [
+      "users",
+      "transactions",
+      "withdraw_requests",
+      "airdrop_claims",
+      "boost_purchases",
+      "daily_bonus_history",
+      "farming_sessions",
+      "mission_progress",
+      "referral_earnings",
+      "system_alerts"
+    ],
+    "queries": [
+      {
+        "file": "modules/admin/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/adminBot/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/adminBot/service.ts",
+        "operation": "update"
+      },
+      {
+        "file": "modules/airdrop/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/airdrop/service.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/auth/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/auth/service.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/boost/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/boost/service.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/boost/service.ts",
+        "operation": "update"
+      },
+      {
+        "file": "modules/dailyBonus/controller.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/dailyBonus/routes.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/dailyBonus/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/dailyBonus/service.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/dailyBonus/service.ts",
+        "operation": "update"
+      },
+      {
+        "file": "modules/debug/debugRoutes.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/farming/directFarmingStatus.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/farming/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/farming/service.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/farming/service.ts",
+        "operation": "update"
+      },
+      {
+        "file": "modules/missions/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/missions/service.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/monitor/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/referral/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/referral/service.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/referral/service.ts",
+        "operation": "update"
+      },
+      {
+        "file": "modules/scheduler/tonBoostIncomeScheduler.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/scheduler/tonBoostIncomeScheduler.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/scheduler/tonBoostIncomeScheduler.ts",
+        "operation": "update"
+      },
+      {
+        "file": "modules/tonFarming/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/user/controller.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/user/model.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/user/model.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/user/model.ts",
+        "operation": "update"
+      },
+      {
+        "file": "modules/user/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/user/service.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/user/service.ts",
+        "operation": "update"
+      },
+      {
+        "file": "modules/wallet/service.ts",
+        "operation": "select"
+      },
+      {
+        "file": "modules/wallet/service.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "modules/wallet/service.ts",
+        "operation": "update"
+      },
+      {
+        "file": "core/BalanceManager.ts",
+        "operation": "select"
+      },
+      {
+        "file": "core/BalanceManager.ts",
+        "operation": "update"
+      },
+      {
+        "file": "core/TransactionService.ts",
+        "operation": "select"
+      },
+      {
+        "file": "core/TransactionService.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "core/alerting.ts",
+        "operation": "select"
+      },
+      {
+        "file": "core/alerting.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "core/middleware/adminAuth.ts",
+        "operation": "select"
+      },
+      {
+        "file": "core/monitoring.ts",
+        "operation": "select"
+      },
+      {
+        "file": "core/repositories/UserRepository.ts",
+        "operation": "select"
+      },
+      {
+        "file": "core/repositories/UserRepository.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "core/repositories/UserRepository.ts",
+        "operation": "update"
+      },
+      {
+        "file": "core/scheduler/farmingScheduler.ts",
+        "operation": "select"
+      },
+      {
+        "file": "core/scheduler/farmingScheduler.ts",
+        "operation": "insert"
+      },
+      {
+        "file": "core/scheduler/farmingScheduler.ts",
+        "operation": "update"
+      },
+      {
+        "file": "core/supabaseClient.ts",
+        "operation": "select"
+      },
+      {
+        "file": "server/index.ts",
+        "operation": "select"
+      },
+      {
+        "file": "server/index.ts",
+        "operation": "delete"
+      },
+      {
+        "file": "server/routes.ts",
+        "operation": "select"
+      }
+    ]
+  },
+  "frontend": {
+    "components": {
+      "common": {
+        "files": 2
+      },
+      "dashboard": {
+        "files": 6
+      },
+      "farming": {
+        "files": 6
+      },
+      "friends": {
+        "files": 2
+      },
+      "layout": {
+        "files": 2
+      },
+      "missions": {
+        "files": 4
+      },
+      "referral": {
+        "files": 2
+      },
+      "shared": {
+        "files": 2
+      },
+      "telegram": {
+        "files": 4
+      },
+      "ton-boost": {
+        "files": 8
+      },
+      "ui": {
+        "files": 57
+      },
+      "wallet": {
+        "files": 8
+      }
+    },
+    "hooks": [
+      "use-mission-data.ts",
+      "use-mobile.tsx",
+      "use-toast.ts",
+      "useAutoAuth.ts",
+      "useBalance.ts",
+      "useErrorBoundary.ts",
+      "useTelegram.ts",
+      "useTelegramButtons.ts",
+      "useWebSocket.ts"
+    ],
+    "contexts": [
+      "NotificationContext.tsx",
+      "userContext.simple.tsx",
+      "userContext.tsx",
+      "webSocketContext.tsx"
+    ],
+    "pages": [
+      "Dashboard.tsx",
+      "Farming.tsx",
+      "Friends.tsx",
+      "Home.tsx",
+      "Missions.tsx",
+      "MissionsNavMenu.tsx",
+      "Wallet.tsx",
+      "not-found.tsx"
+    ]
+  },
+  "api": {
+    "endpoints": {},
+    "middleware": [
+      "adminAuth",
+      "auth",
+      "cors",
+      "errorHandler",
+      "rateLimiting",
+      "telegramAuth",
+      "telegramMiddleware",
+      "validate"
+    ],
+    "routes": [
+      "auth",
+      "monitor",
+      "farming",
+      "user",
+      "wallet",
+      "boost",
+      "missions",
+      "referral",
+      "dailyBonus",
+      "telegram",
+      "tonFarming",
+      "transactions",
+      "airdrop",
+      "admin",
+      "adminBot"
+    ]
+  },
+  "criticalIssues": [],
+  "recommendations": []
+}
