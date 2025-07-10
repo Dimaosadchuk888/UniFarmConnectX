@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Current Auth</title>
+</head>
+<body>
+    <h1>Проверка текущей авторизации</h1>
+    <div id="result"></div>
+    
+    <script>
+        // Получаем токен из localStorage
+        const token = localStorage.getItem('unifarm_jwt_token');
+        const resultDiv = document.getElementById('result');
+        
+        if (token) {
+            try {
+                // Декодируем JWT токен
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                
+                resultDiv.innerHTML = `
+                    <h2>Токен найден:</h2>
+                    <p><strong>userId:</strong> ${payload.userId || payload.user_id}</p>
+                    <p><strong>telegram_id:</strong> ${payload.telegram_id}</p>
+                    <p><strong>username:</strong> ${payload.username}</p>
+                    <p><strong>ref_code:</strong> ${payload.ref_code}</p>
+                    <p><strong>Выдан:</strong> ${new Date(payload.iat * 1000).toLocaleString()}</p>
+                    <p><strong>Истекает:</strong> ${new Date(payload.exp * 1000).toLocaleString()}</p>
+                `;
+                
+                // Проверяем через API
+                fetch('/api/v2/users/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    resultDiv.innerHTML += `
+                        <h2>Ответ API:</h2>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                })
+                .catch(err => {
+                    resultDiv.innerHTML += `<p style="color: red;">Ошибка API: ${err.message}</p>`;
+                });
+                
+            } catch (err) {
+                resultDiv.innerHTML = `<p style="color: red;">Ошибка декодирования токена: ${err.message}</p>`;
+            }
+        } else {
+            resultDiv.innerHTML = '<p style="color: red;">Токен не найден в localStorage</p>';
+        }
+        
+        // Проверяем консоль на ошибки
+        const originalError = console.error;
+        const errors = [];
+        console.error = function(...args) {
+            errors.push(args.join(' '));
+            originalError.apply(console, args);
+        };
+        
+        setTimeout(() => {
+            if (errors.length > 0) {
+                resultDiv.innerHTML += `
+                    <h2>Ошибки в консоли:</h2>
+                    <ul>${errors.map(e => `<li style="color: red;">${e}</li>`).join('')}</ul>
+                `;
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
