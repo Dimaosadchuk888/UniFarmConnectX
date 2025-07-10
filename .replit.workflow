@@ -1,5 +1,5 @@
-name: start-unifarm-server
-description: Start UniFarm development server
-run: |
-  cd /home/user/uni-farm-connect-x-ab245275
-  npm run dev
+version: 1
+workflows:
+  - name: "Start UniFarm Server"
+    run: "npm run dev"
+    description: "Starts the UniFarm development server"
