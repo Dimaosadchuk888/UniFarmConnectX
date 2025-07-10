@@ -16,5 +16,8 @@ router.get('/stats', (req, res) => monitorController.getSystemStats(req, res));
 // Critical endpoints monitoring
 router.get('/status', (req, res) => monitorController.getEndpointsStatus(req, res));
 
+// Scheduler status endpoint
+router.get('/scheduler-status', (req, res) => monitorController.getSchedulerStatus(req, res));
+
 export const monitorRoutes = router;
 export default router;

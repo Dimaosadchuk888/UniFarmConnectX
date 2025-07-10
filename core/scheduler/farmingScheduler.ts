@@ -24,12 +24,28 @@ export class FarmingScheduler {
     
     // Каждые 5 минут начисляем доход активным фармерам
     cron.schedule('*/5 * * * *', async () => {
-      await this.processUniFarmingIncome();
-      await this.processTonFarmingIncome();
+      logger.info('⏰ [CRON] Запуск scheduler задачи для начисления доходов');
+      try {
+        await this.processUniFarmingIncome();
+        await this.processTonFarmingIncome();
+        logger.info('✅ [CRON] Scheduler задача выполнена успешно');
+      } catch (error) {
+        logger.error('❌ [CRON] Ошибка выполнения scheduler задачи:', error);
+      }
     });
 
     this.isRunning = true;
     logger.info('✅ Планировщик фарминг дохода активен (каждые 5 минут)');
+    
+    // Запускаем первое начисление сразу при старте (для тестирования)
+    logger.info('🔄 Запуск первого начисления сразу при старте scheduler\'а');
+    this.processUniFarmingIncome()
+      .then(() => logger.info('✅ Первое начисление UNI farming выполнено'))
+      .catch(error => logger.error('❌ Ошибка первого начисления UNI farming:', error));
+      
+    this.processTonFarmingIncome()
+      .then(() => logger.info('✅ Первое начисление TON farming выполнено'))
+      .catch(error => logger.error('❌ Ошибка первого начисления TON farming:', error));
   }
 
   /**
@@ -225,8 +241,23 @@ export class FarmingScheduler {
     const lastUpdate = farmer.uni_farming_last_update ? new Date(farmer.uni_farming_last_update) : new Date(farmer.uni_farming_start_timestamp);
     const hoursSinceLastUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
     
+    // rate - это процент в день (например, 0.01 для 1% в день)
     const rate = parseFloat(farmer.uni_farming_rate || '0');
-    const income = rate * hoursSinceLastUpdate;
+    const depositAmount = parseFloat(farmer.uni_deposit_amount || '0');
+    
+    // Рассчитываем доход: депозит * ставка * время_в_днях
+    const daysElapsed = hoursSinceLastUpdate / 24;
+    const income = depositAmount * rate * daysElapsed;
+    
+    logger.info(`[calculateUniFarmingIncome] Расчет дохода для пользователя ${farmer.id}:`, {
+      depositAmount,
+      rate,
+      hoursSinceLastUpdate,
+      daysElapsed,
+      income,
+      lastUpdate: lastUpdate.toISOString(),
+      now: now.toISOString()
+    });
     
     return income.toFixed(6);
   }
@@ -254,6 +285,26 @@ export class FarmingScheduler {
       this.isRunning = false;
       logger.info('🛑 Планировщик фарминг дохода остановлен');
     }
+  }
+
+  /**
+   * Получает статус планировщика
+   */
+  getStatus(): { active: boolean; nextRun: Date | null } {
+    if (!this.isRunning) {
+      return { active: false, nextRun: null };
+    }
+
+    // Рассчитываем следующий запуск (каждые 5 минут)
+    const nextRun = new Date();
+    nextRun.setMinutes(Math.ceil(nextRun.getMinutes() / 5) * 5);
+    nextRun.setSeconds(0);
+    nextRun.setMilliseconds(0);
+
+    return {
+      active: this.isRunning,
+      nextRun: nextRun
+    };
   }
 }
 

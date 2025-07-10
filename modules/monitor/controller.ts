@@ -63,4 +63,19 @@ export class MonitorController extends BaseController {
       this.handleControllerError(error, res, 'проверки критических endpoints');
     }
   }
+
+  /**
+   * GET /api/v2/monitor/scheduler-status
+   * Возвращает состояние scheduler'ов
+   */
+  async getSchedulerStatus(req: Request, res: Response): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const status = await this.monitorService.getSchedulerStatus();
+        this.sendSuccess(res, status);
+      }, 'получения состояния scheduler\'ов');
+    } catch (error) {
+      this.handleControllerError(error, res, 'получения состояния scheduler\'ов');
+    }
+  }
 }

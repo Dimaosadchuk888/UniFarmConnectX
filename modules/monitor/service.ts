@@ -308,4 +308,102 @@ export class MonitorService {
 
     return results;
   }
+
+  /**
+   * Получить состояние scheduler'ов
+   */
+  async getSchedulerStatus(): Promise<{
+    uniFarmingScheduler: {
+      active: boolean;
+      lastRun?: string;
+      nextRun?: string;
+      activeSessions?: number;
+      lastProcessed?: number;
+    };
+    tonBoostScheduler: {
+      active: boolean;
+      lastRun?: string;
+      nextRun?: string;
+      activeUsers?: number;
+      lastProcessed?: number;
+    };
+    timestamp: string;
+  }> {
+    try {
+      // Импортируем scheduler'ы
+      const { farmingScheduler } = await import('../../core/scheduler/farmingScheduler');
+      const { tonBoostIncomeScheduler } = await import('../scheduler/tonBoostIncomeScheduler');
+
+      // Получаем статус каждого scheduler'а
+      const uniFarmingStatus = farmingScheduler.getStatus();
+      const tonBoostStatus = tonBoostIncomeScheduler.getStatus();
+
+      // Получаем дополнительную информацию из базы данных
+      const { data: activeFarmingSessions } = await supabase
+        .from('farming_sessions')
+        .select('id')
+        .eq('is_active', true);
+
+      const { data: activeTonBoostUsers } = await supabase
+        .from('users')
+        .select('id')
+        .not('ton_boost_package', 'is', null)
+        .gte('balance_ton', 10);
+
+      // Получаем последние транзакции для определения времени последнего запуска
+      const { data: lastFarmingTransaction } = await supabase
+        .from('transactions')
+        .select('created_at')
+        .eq('type', 'FARMING_REWARD')
+        .eq('amount_ton', '0')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const { data: lastTonBoostTransaction } = await supabase
+        .from('transactions')
+        .select('created_at')
+        .eq('type', 'FARMING_REWARD')
+        .neq('amount_ton', '0')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      return {
+        uniFarmingScheduler: {
+          active: uniFarmingStatus.active,
+          lastRun: lastFarmingTransaction?.[0]?.created_at || 'Нет данных',
+          nextRun: uniFarmingStatus.nextRun?.toISOString() || 'Не запланировано',
+          activeSessions: activeFarmingSessions?.length || 0,
+          lastProcessed: 0 // TODO: добавить счетчик в scheduler
+        },
+        tonBoostScheduler: {
+          active: tonBoostStatus.active,
+          lastRun: lastTonBoostTransaction?.[0]?.created_at || 'Нет данных',
+          nextRun: tonBoostStatus.nextRun?.toISOString() || 'Не запланировано',
+          activeUsers: activeTonBoostUsers?.length || 0,
+          lastProcessed: 0 // TODO: добавить счетчик в scheduler
+        },
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      logger.error('[MonitorService] Ошибка получения состояния scheduler\'ов:', error);
+      
+      return {
+        uniFarmingScheduler: {
+          active: false,
+          lastRun: 'Ошибка',
+          nextRun: 'Ошибка',
+          activeSessions: 0,
+          lastProcessed: 0
+        },
+        tonBoostScheduler: {
+          active: false,
+          lastRun: 'Ошибка',
+          nextRun: 'Ошибка',
+          activeUsers: 0,
+          lastProcessed: 0
+        },
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
 }

@@ -25,14 +25,20 @@ export class TONBoostIncomeScheduler {
       return;
     }
 
-    logger.info('[TON_BOOST_SCHEDULER] Начало обработки доходов от TON Boost пакетов');
+    logger.info('[TON_BOOST_SCHEDULER] 🚀 Запуск планировщика доходов от TON Boost пакетов');
 
     // Первый запуск сразу
-    this.processTonBoostIncome();
+    logger.info('[TON_BOOST_SCHEDULER] 🔄 Запуск первого начисления TON Boost сразу при старте');
+    this.processTonBoostIncome()
+      .then(() => logger.info('[TON_BOOST_SCHEDULER] ✅ Первое начисление TON Boost выполнено'))
+      .catch(error => logger.error('[TON_BOOST_SCHEDULER] ❌ Ошибка первого начисления:', error));
 
     // Затем каждые 5 минут
     this.intervalId = setInterval(() => {
-      this.processTonBoostIncome();
+      logger.info('[TON_BOOST_SCHEDULER] ⏰ Запуск периодического начисления TON Boost');
+      this.processTonBoostIncome()
+        .then(() => logger.info('[TON_BOOST_SCHEDULER] ✅ Периодическое начисление выполнено'))
+        .catch(error => logger.error('[TON_BOOST_SCHEDULER] ❌ Ошибка периодического начисления:', error));
     }, 5 * 60 * 1000); // 5 минут
 
     logger.info('[TON_BOOST_SCHEDULER] ✅ Планировщик TON Boost доходов активен (каждые 5 минут)');
