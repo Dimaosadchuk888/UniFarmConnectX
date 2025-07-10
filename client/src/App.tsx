@@ -52,20 +52,6 @@ function App() {
   // Initialize app
   useEffect(() => {
     console.log('[App] Component mounted, auto auth status:', { isAuthenticating, autoAuthError });
-    
-    // Временная логика для Preview режима
-    if (window.location.hostname.includes('replit.dev')) {
-      const currentToken = localStorage.getItem('unifarm_jwt_token');
-      const validToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTQzMjE3LCJleHAiOjE3NTI3NDgwMTd9.0SHPKWAt_BazW4o8HX7r6hsXGUynqEoRiMbI9uNG5aI';
-      
-      if (currentToken !== validToken) {
-        console.log('[App] Setting valid JWT token for Preview mode');
-        localStorage.setItem('unifarm_jwt_token', validToken);
-        window.location.reload();
-        return;
-      }
-    }
-    
     initializeApp();
   }, []);
   
