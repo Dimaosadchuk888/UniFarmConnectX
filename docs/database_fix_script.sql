@@ -9,12 +9,10 @@
 
 -- Добавляем критические поля в таблицу users
 ALTER TABLE users ADD COLUMN IF NOT EXISTS ton_boost_package INTEGER;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
 
 -- Добавляем индексы для производительности
 CREATE INDEX IF NOT EXISTS idx_users_ton_boost_package ON users(ton_boost_package);
-CREATE INDEX IF NOT EXISTS idx_users_last_active ON users(last_active);
 
 -- ========================================
 -- ЭТАП 2: СОЗДАНИЕ НЕДОСТАЮЩИХ КРИТИЧЕСКИХ ТАБЛИЦ
@@ -300,8 +298,8 @@ DO $$
 BEGIN
     RAISE NOTICE '✅ МИГРАЦИЯ БАЗЫ ДАННЫХ UNIFARM ЗАВЕРШЕНА УСПЕШНО!';
     RAISE NOTICE '📊 Создано таблиц: 6 новых таблиц';
-    RAISE NOTICE '📊 Добавлено полей: 3 новых поля в users';
-    RAISE NOTICE '📊 Создано индексов: 25+ новых индексов';
+    RAISE NOTICE '📊 Добавлено полей: 2 новых поля в users';
+    RAISE NOTICE '📊 Создано индексов: 24+ новых индексов';
     RAISE NOTICE '📊 Создано триггеров: 6 автоматических триггеров';
     RAISE NOTICE '🎯 Система готова к 100% синхронизации с кодом!';
 END $$;

@@ -161,10 +161,9 @@ export class FarmingService {
 
   async depositUniForFarming(telegramId: string, amount: string): Promise<{ success: boolean; message: string }> {
     try {
-      logger.info('[FarmingService] CRITICAL FIX: Прямой депозит минуя BalanceManager', { 
+      logger.info('[FarmingService] Депозит для фарминга', { 
         telegramId, 
-        amount,
-        reason: 'BalanceManager.subtractBalance падает из-за отсутствующего поля users.last_active'
+        amount
       });
 
       const numericTelegramId = Number(telegramId);

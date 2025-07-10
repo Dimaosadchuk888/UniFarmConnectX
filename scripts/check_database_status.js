@@ -81,7 +81,7 @@ async function checkDatabaseStatus() {
     console.log('🔬 Детальная проверка полей таблицы users...');
     
     const requiredFields = [
-      'ton_boost_package', 'last_active', 'updated_at'
+      'ton_boost_package', 'updated_at'
     ];
 
     const userFields = report.table_analysis.users?.fields || [];

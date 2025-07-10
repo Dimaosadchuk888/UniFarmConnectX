@@ -489,8 +489,7 @@ export class UserController extends BaseController {
         total_referrals: referrals?.length || 0,
         farming_active: userInfo.uni_farming_active || false,
         boost_active: !!userInfo.ton_boost_package,
-        account_created: userInfo.created_at,
-        last_active: userInfo.created_at  // Remove reference to non-existent field
+        account_created: userInfo.created_at
       };
 
       this.sendSuccess(res, stats);
