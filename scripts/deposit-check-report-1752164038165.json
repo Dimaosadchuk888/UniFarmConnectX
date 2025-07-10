@@ -1,0 +1,703 @@
+{
+  "timestamp": "2025-07-10T16:13:49.601Z",
+  "totalUsers": 36,
+  "activeUniDeposits": 36,
+  "activeTonBoosts": 9,
+  "workingDeposits": 0,
+  "brokenDeposits": 36,
+  "users": [
+    {
+      "userId": 4,
+      "username": "final_test_user",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:41:56.966",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.14714267361111
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 14,
+      "username": "test_user_1",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:55:57.68",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.137416608796297
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 15,
+      "username": "test_user_2",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:55:59.19",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.13740334490741
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 16,
+      "username": "test_user_3",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:56:00.831",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.13738653935185
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 17,
+      "username": "test_user_4",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:56:02.003",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.137374837962962
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 18,
+      "username": "test_user_5",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:56:02.676",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.13737128472222
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 19,
+      "username": "test_user_6",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:56:03.337",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.137368055555555
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 20,
+      "username": "test_user_7",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:56:03.988",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.13736221064815
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 21,
+      "username": "test_user_8",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:56:04.654",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.137356469907406
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 22,
+      "username": "test_user_9",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:56:05.312",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.137350659722223
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 23,
+      "username": "test_user_10",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:56:06.455",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.137339247685187
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 24,
+      "username": "test_user_11",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T12:56:07.112",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 24.137336145833334
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 26,
+      "username": "chain_user_1",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T17:41:47.036",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 11.969479681712963
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 27,
+      "username": "chain_user_2",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T17:41:48.068",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 11.96947458912037
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 28,
+      "username": "chain_user_3",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T17:41:48.902",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 11.96947078125
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 29,
+      "username": "chain_user_4",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T17:41:49.706",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 11.969467065972223
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 30,
+      "username": "chain_user_5",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T17:41:50.259",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 11.969464722222222
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 31,
+      "username": "chain_user_6",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T17:41:50.804",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 11.969462436342592
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 32,
+      "username": "chain_user_7",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T17:41:51.822",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 11.96945865162037
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 33,
+      "username": "chain_user_8",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T17:41:52.358",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 11.969457766203703
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 34,
+      "username": "chain_user_9",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T17:41:52.897",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 11.969455497685185
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 35,
+      "username": "chain_user_10",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-06-16T17:41:53.439",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 11.969454618055556
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 48,
+      "username": "demo_user",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-05T07:09:44.717",
+          "amount": 146974,
+          "rate": 0.01,
+          "expectedIncome": 7904.119679155093
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 50,
+      "username": "demo_user",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-02T13:32:12.379",
+          "amount": 9453,
+          "rate": 0.01,
+          "expectedIncome": 766.856427975
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 52,
+      "username": "partner_level_1",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-04T07:42:15.141",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 3.177666377314815
+        },
+        {
+          "type": "TON_BOOST",
+          "packageId": 1,
+          "rate": 0.01
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 53,
+      "username": "partner_level_2",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-04T07:42:16.368",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 3.177661394675926
+        },
+        {
+          "type": "TON_BOOST",
+          "packageId": 1,
+          "rate": 0.01
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 54,
+      "username": "partner_level_3",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-04T07:42:17.269",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 3.177657054398148
+        },
+        {
+          "type": "TON_BOOST",
+          "packageId": 1,
+          "rate": 0.01
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 55,
+      "username": "partner_level_4",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-04T07:42:18.141",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 3.1776528993055555
+        },
+        {
+          "type": "TON_BOOST",
+          "packageId": 1,
+          "rate": 0.01
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 56,
+      "username": "partner_level_5",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-04T07:42:19.355",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 3.177646851851852
+        },
+        {
+          "type": "TON_BOOST",
+          "packageId": 1,
+          "rate": 0.01
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 57,
+      "username": "partner_level_6",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-04T07:42:20.904",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 3.177638732638889
+        },
+        {
+          "type": "TON_BOOST",
+          "packageId": 1,
+          "rate": 0.01
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 58,
+      "username": "partner_level_7",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-04T07:42:21.794",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 3.1776344155092593
+        },
+        {
+          "type": "TON_BOOST",
+          "packageId": 1,
+          "rate": 0.01
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 59,
+      "username": "partner_level_8",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-04T07:42:22.977",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 3.1776285127314816
+        },
+        {
+          "type": "TON_BOOST",
+          "packageId": 1,
+          "rate": 0.01
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 60,
+      "username": "partner_level_9",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-04T07:42:23.858",
+          "amount": 50,
+          "rate": 0.01,
+          "expectedIncome": 3.1776243055555558
+        },
+        {
+          "type": "TON_BOOST",
+          "packageId": 1,
+          "rate": 0.01
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 62,
+      "username": "preview_test",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-08T17:08:07.205",
+          "amount": 100,
+          "rate": 0.01,
+          "expectedIncome": 1.9623877083333334
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 64,
+      "username": "preview_user",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-09T17:55:57.494",
+          "amount": "NaN",
+          "rate": 0.01,
+          "expectedIncome": null
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    },
+    {
+      "userId": 74,
+      "username": "test_user_1752129840905",
+      "deposits": [
+        {
+          "type": "UNI_FARMING",
+          "startDate": "2025-07-10T14:25:03.415",
+          "amount": 207133,
+          "rate": 0.01,
+          "expectedIncome": 156.6546879
+        }
+      ],
+      "balanceGrowth": "NO_HISTORY",
+      "syncStatus": null,
+      "issues": [
+        "Отсутствует история начислений"
+      ]
+    }
+  ]
+}
