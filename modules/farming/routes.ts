@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { FarmingController } from './controller';
 import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
-import { requireAuth } from '../../core/middleware/auth';
 import { validateBody } from '../../core/middleware/validate';
-import { strictRateLimit, standardRateLimit, liberalRateLimit, massOperationsRateLimit } from '../../core/middleware/rateLimiting';
+import { liberalRateLimit, massOperationsRateLimit } from '../../core/middleware/rateLimiting';
 import { z } from 'zod';
 import { directDepositHandler } from './directDeposit';
 import { directFarmingStatusHandler } from './directFarmingStatus';

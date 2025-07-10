@@ -426,16 +426,15 @@ export class FarmingService {
         stack: error instanceof Error ? error.stack : undefined,
         errorType: typeof error,
         errorName: error instanceof Error ? error.name : 'Unknown',
-        telegramId,
-        amount,
-        userId: user?.id || 'unknown'
+        userId: userId || 'unknown',
+        amount: amount || 'unknown'
       });
       
       console.error('[CRITICAL FARMING ERROR]', {
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
-        telegramId,
-        amount
+        userId: userId || 'unknown',
+        amount: amount || 'unknown'
       });
       
       return { success: false, message: 'Ошибка при обработке депозита' };
