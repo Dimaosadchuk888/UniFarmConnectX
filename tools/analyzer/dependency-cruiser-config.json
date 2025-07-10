@@ -1,0 +1,31 @@
+{
+  "forbidden": [],
+  "options": {
+    "doNotFollow": {
+      "path": "node_modules"
+    },
+    "exclude": "node_modules",
+    "tsPreCompilationDeps": true,
+    "combinedDependencies": true,
+    "reporterOptions": {
+      "dot": {
+        "theme": {
+          "modules": [
+            {
+              "criteria": { "source": "^modules/" },
+              "attributes": { "fillcolor": "#ffcccc" }
+            },
+            {
+              "criteria": { "source": "^core/" },
+              "attributes": { "fillcolor": "#ccffcc" }
+            },
+            {
+              "criteria": { "source": "^client/" },
+              "attributes": { "fillcolor": "#ccccff" }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

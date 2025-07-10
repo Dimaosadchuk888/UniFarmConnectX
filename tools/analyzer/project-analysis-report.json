@@ -1,0 +1,426 @@
+{
+  "timestamp": "2025-07-10T12:39:31.273Z",
+  "structure": {
+    "modules": {
+      "dashboard": {
+        "files": 2,
+        "lines": 103,
+        "imports": {}
+      }
+    },
+    "core": {
+      "api": {
+        "files": 1,
+        "lines": 107,
+        "imports": {}
+      },
+      "config": {
+        "files": 1,
+        "lines": 26,
+        "imports": {}
+      },
+      "providers": {
+        "files": 2,
+        "lines": 214,
+        "imports": {}
+      },
+      "types": {
+        "files": 1,
+        "lines": 76,
+        "imports": {}
+      }
+    },
+    "duplicates": [],
+    "circularDeps": [
+      {
+        "file": "admin/routes.ts",
+        "imports": "../../core/middleware/adminAuth"
+      },
+      {
+        "file": "adminBot/service.ts",
+        "imports": "../../config/adminBot"
+      },
+      {
+        "file": "telegram/routes.ts",
+        "imports": "../../core/middleware/telegramAuth"
+      },
+      {
+        "file": "telegram/service.ts",
+        "imports": "../../config/telegram"
+      },
+      {
+        "file": "TransactionService.ts",
+        "imports": "../modules/transactions/types"
+      },
+      {
+        "file": "config/index.ts",
+        "imports": "../../config/app"
+      },
+      {
+        "file": "config/index.ts",
+        "imports": "../../config/database"
+      },
+      {
+        "file": "config/index.ts",
+        "imports": "../../config/telegram"
+      },
+      {
+        "file": "config.ts",
+        "imports": "../config/app"
+      },
+      {
+        "file": "config.ts",
+        "imports": "../config/database"
+      },
+      {
+        "file": "config.ts",
+        "imports": "../config/telegram"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../core"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../core/supabase"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../core/middleware/telegramMiddleware"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../core/scheduler/farmingScheduler"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../modules/scheduler/tonBoostIncomeScheduler"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../core/alerting"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../core/balanceNotificationService"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../core/middleware/telegramAuth"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../modules/adminBot/service"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../config/adminBot"
+      },
+      {
+        "file": "index.ts",
+        "imports": "../core/metrics"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/auth/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/monitor/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/farming/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/user/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/wallet/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/boost/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/missions/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/referral/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/dailyBonus/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/telegram/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/tonFarming/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/transactions/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/airdrop/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/admin/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/adminBot/routes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../modules/debug/debugRoutes"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../core/supabase"
+      },
+      {
+        "file": "routes.ts",
+        "imports": "../core/middleware/telegramAuth"
+      },
+      {
+        "file": "setupViteIntegration.ts",
+        "imports": "../core"
+      },
+      {
+        "file": "checkTonTransaction.ts",
+        "imports": "../core/logger"
+      },
+      {
+        "file": "checkTonTransaction.ts",
+        "imports": "../config/tonBoost"
+      },
+      {
+        "file": "formatters.ts",
+        "imports": "../core/logger"
+      }
+    ],
+    "largeFiles": [
+      {
+        "path": "adminBot/controller.ts",
+        "size": "25KB"
+      },
+      {
+        "path": "adminBot/service.ts",
+        "size": "13KB"
+      },
+      {
+        "path": "auth/service.ts",
+        "size": "15KB"
+      },
+      {
+        "path": "boost/controller.ts",
+        "size": "10KB"
+      },
+      {
+        "path": "boost/service.ts",
+        "size": "39KB"
+      },
+      {
+        "path": "dailyBonus/service.ts",
+        "size": "10KB"
+      },
+      {
+        "path": "farming/controller.ts",
+        "size": "13KB"
+      },
+      {
+        "path": "farming/service.ts",
+        "size": "21KB"
+      },
+      {
+        "path": "missions/service.ts",
+        "size": "12KB"
+      },
+      {
+        "path": "monitor/service.ts",
+        "size": "10KB"
+      },
+      {
+        "path": "referral/controller.ts",
+        "size": "12KB"
+      },
+      {
+        "path": "referral/service.ts",
+        "size": "31KB"
+      },
+      {
+        "path": "user/controller.ts",
+        "size": "21KB"
+      },
+      {
+        "path": "wallet/controller.ts",
+        "size": "15KB"
+      },
+      {
+        "path": "wallet/logic/withdrawals.ts",
+        "size": "11KB"
+      },
+      {
+        "path": "wallet/service.ts",
+        "size": "29KB"
+      },
+      {
+        "path": "BalanceManager.ts",
+        "size": "18KB"
+      },
+      {
+        "path": "TransactionService.ts",
+        "size": "13KB"
+      },
+      {
+        "path": "scheduler/farmingScheduler.ts",
+        "size": "11KB"
+      },
+      {
+        "path": "App.tsx",
+        "size": "11KB"
+      },
+      {
+        "path": "components/dashboard/ChartCard.tsx",
+        "size": "19KB"
+      },
+      {
+        "path": "components/dashboard/DailyBonusCard.tsx",
+        "size": "21KB"
+      },
+      {
+        "path": "components/farming/BoostOptions.tsx",
+        "size": "12KB"
+      },
+      {
+        "path": "components/farming/FarmingHistory.tsx",
+        "size": "84KB"
+      },
+      {
+        "path": "components/farming/UniFarmingCard.tsx",
+        "size": "51KB"
+      },
+      {
+        "path": "components/friends/ReferralLevelsTable.tsx",
+        "size": "24KB"
+      },
+      {
+        "path": "components/friends/UniFarmReferralLink.tsx",
+        "size": "29KB"
+      },
+      {
+        "path": "components/missions/MissionsList.tsx",
+        "size": "34KB"
+      },
+      {
+        "path": "components/referral/ReferralStats.tsx",
+        "size": "15KB"
+      },
+      {
+        "path": "components/shared/UnifiedBalanceDisplay.tsx",
+        "size": "10KB"
+      },
+      {
+        "path": "components/shared/UnifiedTransactionHistory.tsx",
+        "size": "13KB"
+      },
+      {
+        "path": "components/ton-boost/BoostPackagesCard.tsx",
+        "size": "22KB"
+      },
+      {
+        "path": "components/ton-boost/TonFarmingStatusCard.tsx",
+        "size": "15KB"
+      },
+      {
+        "path": "components/ui/chart.tsx",
+        "size": "10KB"
+      },
+      {
+        "path": "components/ui/sidebar.tsx",
+        "size": "23KB"
+      },
+      {
+        "path": "components/wallet/BalanceCard.tsx",
+        "size": "15KB"
+      },
+      {
+        "path": "components/wallet/StyledTransactionItem.tsx",
+        "size": "12KB"
+      },
+      {
+        "path": "components/wallet/WalletConnectionCard.tsx",
+        "size": "10KB"
+      },
+      {
+        "path": "components/wallet/WithdrawalForm.tsx",
+        "size": "13KB"
+      },
+      {
+        "path": "contexts/userContext.tsx",
+        "size": "24KB"
+      },
+      {
+        "path": "hooks/use-mission-data.ts",
+        "size": "10KB"
+      },
+      {
+        "path": "lib/queryClient.ts",
+        "size": "17KB"
+      },
+      {
+        "path": "lib/utils.ts",
+        "size": "11KB"
+      },
+      {
+        "path": "pages/Friends.tsx",
+        "size": "11KB"
+      },
+      {
+        "path": "services/telegramService.ts",
+        "size": "13KB"
+      },
+      {
+        "path": "services/tonConnectService.ts",
+        "size": "19KB"
+      },
+      {
+        "path": "services/transactionService.ts",
+        "size": "17KB"
+      },
+      {
+        "path": "services/userService.ts",
+        "size": "30KB"
+      },
+      {
+        "path": "services/withdrawalService.ts",
+        "size": "10KB"
+      },
+      {
+        "path": "index.ts",
+        "size": "40KB"
+      },
+      {
+        "path": "formatters.ts",
+        "size": "15KB"
+      }
+    ],
+    "issues": []
+  },
+  "summary": {
+    "totalModules": 1,
+    "totalCoreComponents": 4,
+    "largeFiles": 51,
+    "potentialIssues": 44
+  }
+}

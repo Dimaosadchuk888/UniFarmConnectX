@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "noImplicitAny": true,
+    "target": "ES2021",
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "noEmit": true,
+    "baseUrl": "../../",
+    "paths": {
+      "@/*": ["client/src/*"],
+      "@assets/*": ["attached_assets/*"]
+    }
+  },
+  "include": [
+    "../../client/src/**/*",
+    "../../server/**/*",
+    "../../modules/**/*",
+    "../../core/**/*",
+    "../../shared/**/*",
+    "../../utils/**/*",
+    "../../types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
+}

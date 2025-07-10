@@ -1,0 +1,72 @@
+{
+  "timestamp": "2025-07-10T12:40:26.133Z",
+  "findings": {
+    "jwt": {
+      "hardcoded": [
+        {
+          "file": "client/src/App.tsx",
+          "line": 45,
+          "content": "const previewToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTQ0MjkxLCJleHAiOjE3NTI3NDkwOTF9.2A18-Rx0enn8v30ANK6RVBl7SoR_TV2fUJN2hOox-C4';",
+          "match": [
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTQ0MjkxLCJleHAiOjE3NTI3NDkwOTF9.2A18-Rx0enn8v30ANK6RVBl7SoR_TV2fUJN2hOox-C4"
+          ]
+        }
+      ],
+      "fallbacks": [
+        {
+          "file": "client/src/components/referral/SimpleReferralCard.tsx",
+          "line": 26,
+          "content": "const response = await fetch('/api/v2/referrals/stats?user_id=48');",
+          "match": [
+            "user_id=48",
+            "48"
+          ]
+        },
+        {
+          "file": "client/src/contexts/userContext.simple.tsx",
+          "line": 35,
+          "content": "const response = await fetch('/api/v2/users/profile?user_id=48');",
+          "match": [
+            "user_id=48",
+            "48"
+          ]
+        },
+        {
+          "file": "modules/user/controller.ts",
+          "line": 59,
+          "content": "// Используем middleware данные, но без принудительного user_id=48",
+          "match": [
+            "user_id=48",
+            "48"
+          ]
+        },
+        {
+          "file": "modules/user/controller.ts",
+          "line": 203,
+          "content": "// Убрано: принудительное получение user_id=48",
+          "match": [
+            "user_id=48",
+            "48"
+          ]
+        }
+      ],
+      "issues": []
+    },
+    "farming": {
+      "transactions": [],
+      "balanceOperations": [],
+      "issues": []
+    },
+    "critical": [
+      "❗ Hardcoded JWT token: client/src/App.tsx:45",
+      "❌ Транзакции FARMING_DEPOSIT не создаются"
+    ]
+  },
+  "summary": {
+    "hardcodedTokens": 1,
+    "fallbackUserIds": 4,
+    "farmingBalanceOps": 0,
+    "farmingTransactions": 0,
+    "criticalIssues": 2
+  }
+}

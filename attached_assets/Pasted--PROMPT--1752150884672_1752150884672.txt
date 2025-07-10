@@ -1,0 +1,140 @@
+✅ PROMPT ДЛЯ АГЕНТА: УСТАНОВКА И ЗАПУСК АНАЛИЗА СИСТЕМЫ
+
+⸻
+
+📦 Название задачи:
+
+Глубокий код-аудит проекта в Replit через инструменты анализа
+
+⸻
+
+🗂️ Структура:
+ • Основной код проекта лежит в папке src/
+ • Все служебные конфиги и анализаторы разместить в папке:
+tools/analyzer/
+(название можно не менять, если есть лучше — согласовать)
+
+⸻
+
+✅ Необходимо установить:
+
+npm install --save-dev eslint typescript madge dependency-cruiser
+
+
+⸻
+
+🧠 Шаг 1: ESLint
+ 1. Инициализировать конфигурацию ESLint:
+
+npx eslint --init
+
+ 2. Выбрать:
+ • TypeScript → ✅
+ • CommonJS или ESM → как в проекте
+ • Framework → ❌ Нет
+ • Формат конфигурации → .eslintrc.json
+ 3. После инициализации:
+ • Переместить .eslintrc.json в tools/analyzer/.eslintrc.json
+ • Обновить package.json, чтобы ESLint знал путь:
+
+"scripts": {
+  "lint": "eslint src --ext .ts,.js --config tools/analyzer/.eslintrc.json"
+}
+
+ 4. Запустить проверку:
+
+npm run lint > tools/analyzer/eslint-report.txt
+
+
+⸻
+
+🧠 Шаг 2: TypeScript
+ 1. Инициализировать конфигурацию:
+
+npx tsc --init
+
+ 2. Переместить tsconfig.json в tools/analyzer/tsconfig.json
+ 3. Изменить настройки:
+
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "noImplicitAny": true,
+    "target": "ES2021",
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"]
+}
+
+ 4. Добавить в package.json:
+
+"scripts": {
+  "typecheck": "tsc --noEmit -p tools/analyzer/tsconfig.json"
+}
+
+ 5. Запустить:
+
+npm run typecheck > tools/analyzer/tsc-output.txt
+
+
+⸻
+
+📊 Шаг 3: Madge (граф связей файлов)
+ 1. Запустить:
+
+npx madge --image tools/analyzer/graph.svg src
+
+📌 Сохранить graph.svg в tools/analyzer/
+
+⸻
+
+📡 Шаг 4: Dependency Cruiser (архитектура импортов)
+ 1. Создать файл tools/analyzer/dependency-cruiser-config.json:
+
+{
+  "forbidden": [],
+  "options": {
+    "doNotFollow": {
+      "path": "node_modules"
+    },
+    "exclude": "node_modules"
+  }
+}
+
+ 2. Запустить анализ:
+
+npx depcruise src --config tools/analyzer/dependency-cruiser-config.json --output-type dot | dot -T svg > tools/analyzer/depgraph.svg
+
+
+⸻
+
+📁 Итоговая структура:
+
+tools/
+└── analyzer/
+    ├── .eslintrc.json
+    ├── tsconfig.json
+    ├── dependency-cruiser-config.json
+    ├── eslint-report.txt
+    ├── tsc-output.txt
+    ├── graph.svg
+    └── depgraph.svg
+
+
+⸻
+
+✅ Что вернуть после выполнения:
+ • eslint-report.txt — результат проверки кода
+ • tsc-output.txt — ошибки типизации
+ • graph.svg — визуализация связей файлов
+ • depgraph.svg — карта импортов
+ • Комментарий, если были серьёзные ошибки или циклические зависимости
+
+⸻
+
+⏱️ Время выполнения: 15–30 минут
+
+⸻
