@@ -9,12 +9,7 @@ interface WebSocketContextType {
   subscribeToUserUpdates: (userId: number) => void;
 }
 
-const WebSocketContext = createContext<WebSocketContextType>({
-  connectionStatus: 'disconnected',
-  sendMessage: () => {},
-  lastMessage: null,
-  subscribeToUserUpdates: () => {},
-});
+const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 interface WebSocketProviderProps {
   children: ReactNode;
@@ -117,10 +112,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   };
 
   useEffect(() => {
-    // Откладываем подключение на следующий тик для избежания race condition
+    // Откладываем подключение чтобы дать время React полностью инициализироваться
     const timer = setTimeout(() => {
       connect();
-    }, 0);
+    }, 100);
 
     return () => {
       clearTimeout(timer);
@@ -163,7 +158,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 export const useWebSocket = () => {
   const context = useContext(WebSocketContext);
   if (!context) {
-    throw new Error('useWebSocket must be used within a WebSocketProvider');
+    console.error('useWebSocket called outside of WebSocketProvider');
+    // Возвращаем безопасный объект по умолчанию вместо ошибки
+    return {
+      connectionStatus: 'disconnected' as const,
+      sendMessage: () => {},
+      lastMessage: null,
+      subscribeToUserUpdates: () => {},
+    };
   }
   return context;
 };
