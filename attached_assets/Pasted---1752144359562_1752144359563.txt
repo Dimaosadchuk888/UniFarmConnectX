@@ -1,0 +1,14 @@
+// Instructions to update JWT token in browser console:
+
+// 1. Open browser DevTools (F12)
+// 2. Go to Console tab  
+// 3. Paste this code:
+
+// Clear old token and set new one
+localStorage.removeItem('unifarm_jwt_token');
+localStorage.setItem('unifarm_jwt_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTQ0MjkxLCJleHAiOjE3NTI3NDkwOTF9.2A18-Rx0enn8v30ANK6RVBl7SoR_TV2fUJN2hOox-C4');
+
+// Reload the page
+window.location.reload();
+
+// This will set the correct JWT token for user ID 74 with proper database fields

@@ -55,6 +55,7 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
             
             // Ищем пользователя по userId из JWT токена (primary key)
             console.log('[TelegramAuth] Searching for user with userId:', userId);
+            console.log('[TelegramAuth] Type of userId:', typeof userId);
             const fullUser = await userRepository.getUserById(userId);
             
             if (fullUser) {

@@ -37,40 +37,44 @@ export interface UpdateUserData {
   balance_ton?: string;
 }
 
-// Список полей для безопасных select запросов (без last_active)
+// Список полей для безопасных select запросов (только существующие поля)
 const USER_FIELDS = `
   id,
   telegram_id,
   username,
   first_name,
+  wallet,
   ref_code,
   referred_by,
-  guest_id,
   balance_uni,
   balance_ton,
-  created_at,
-  updated_at,
-  uni_farming_start_timestamp,
-  uni_farming_last_update,
   uni_deposit_amount,
-  uni_farming_rate,
+  uni_farming_start_timestamp,
   uni_farming_balance,
+  uni_farming_rate,
+  uni_farming_last_update,
+  uni_farming_deposit,
   uni_farming_active,
+  created_at,
+  checkin_last_date,
+  checkin_streak,
+  is_admin,
   ton_boost_package,
-  ton_balance,
-  ton_farming_active,
-  ton_deposit_amount,
   ton_farming_balance,
   ton_farming_rate,
   ton_farming_start_timestamp,
   ton_farming_last_update,
-  is_admin,
-  user_settings,
-  language_code,
+  ton_farming_accumulated,
+  ton_farming_last_claim,
+  ton_boost_active,
+  ton_boost_package_id,
+  ton_boost_rate,
+  ton_boost_expires_at,
   referrer_id,
   ton_wallet_address,
   ton_wallet_verified,
-  ton_wallet_linked_at
+  ton_wallet_linked_at,
+  last_active
 `;
 
 export class SupabaseUserRepository {
@@ -244,34 +248,11 @@ export class SupabaseUserRepository {
   }
 
   /**
-   * Находит пользователя по guest_id
+   * Находит пользователя по guest_id (DEPRECATED - поле guest_id не существует в БД)
    */
   async getUserByGuestId(guestId: string): Promise<User | null> {
-    try {
-      logger.info('[getUserByGuestId] Поиск пользователя по guest_id:', guestId);
-      
-      const { data, error } = await supabase
-        .from('users')
-        .select(USER_FIELDS)
-        .eq('guest_id', guestId)
-        .single();
-
-      if (error) {
-        logger.warn('[getUserByGuestId] Пользователь не найден:', error.message);
-        return null;
-      }
-
-      logger.info('[getUserByGuestId] Пользователь найден:', {
-        id: data.id,
-        telegram_id: data.telegram_id,
-        guest_id: data.guest_id
-      });
-
-      return data;
-    } catch (error) {
-      logger.error('[getUserByGuestId] Ошибка поиска пользователя:', error);
-      return null;
-    }
+    logger.warn('[getUserByGuestId] DEPRECATED: поле guest_id не существует в таблице users');
+    return null;
   }
 }
 
