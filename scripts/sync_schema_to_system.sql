@@ -1,253 +1,216 @@
--- =====================================================
--- UniFarm Database Schema Synchronization Script
--- Generated: 2025-07-10
--- Purpose: Bring database structure to 100% alignment with system code
--- =====================================================
+-- ============================================
+-- SQL СКРИПТ СИНХРОНИЗАЦИИ СХЕМЫ БД UNIFARM
+-- ============================================
+-- Дата создания: 2025-01-10
+-- Цель: Привести структуру БД в соответствие с бизнес-логикой
+-- ============================================
 
--- ВАЖНО: Перед выполнением сделайте резервную копию БД!
--- Этот скрипт приведет структуру БД в полное соответствие с кодом системы
+-- ============================================
+-- РАЗДЕЛ 1: ДОБАВЛЕНИЕ НЕДОСТАЮЩИХ ПОЛЕЙ
+-- ============================================
 
-BEGIN;
+-- Таблица users - добавляем поля для совместимости
+-- Эти поля используются в коде, но отсутствуют в БД
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active',
+ADD COLUMN IF NOT EXISTS processed_at TIMESTAMP,
+ADD COLUMN IF NOT EXISTS processed_by INTEGER,
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
--- =====================================================
--- ЭТАП 1: ДОБАВЛЕНИЕ КРИТИЧЕСКИ ВАЖНЫХ ПОЛЕЙ
--- =====================================================
+-- Создаем индексы для новых полей
+CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
 
--- 1.1. Таблица users - добавляем недостающие поля
--- Поле is_active используется в 9 модулях для проверки активности пользователя
-ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
-COMMENT ON COLUMN users.is_active IS 'Флаг активности пользователя';
+-- ============================================
+-- Таблица transactions - добавляем недостающие поля
+-- ============================================
 
--- Поле guest_id используется для гостевых пользователей
-ALTER TABLE users ADD COLUMN IF NOT EXISTS guest_id INTEGER;
-COMMENT ON COLUMN users.guest_id IS 'ID гостевого пользователя';
+-- Поля, которые нужны согласно коду
+ALTER TABLE transactions 
+ADD COLUMN IF NOT EXISTS transaction_type VARCHAR(50),
+ADD COLUMN IF NOT EXISTS amount NUMERIC(18,6),
+ADD COLUMN IF NOT EXISTS currency VARCHAR(10),
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
--- 1.2. Таблица transactions - критическое поле amount
--- Без этого поля транзакции не могут работать!
-ALTER TABLE transactions ADD COLUMN IF NOT EXISTS amount DECIMAL(20,9) NOT NULL DEFAULT 0;
-COMMENT ON COLUMN transactions.amount IS 'Сумма транзакции в базовой валюте';
+-- Миграция данных из старых полей в новые
+UPDATE transactions 
+SET transaction_type = type,
+    amount = COALESCE(amount_uni, 0) + COALESCE(amount_ton, 0),
+    currency = CASE 
+        WHEN amount_ton > 0 THEN 'TON'
+        ELSE 'UNI'
+    END
+WHERE transaction_type IS NULL;
 
--- 1.3. Таблица boost_purchases - добавляем структуру
--- Таблица используется в модуле boost для хранения покупок
-ALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS id SERIAL PRIMARY KEY;
-ALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS user_id INTEGER NOT NULL REFERENCES users(id);
-ALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS boost_id INTEGER NOT NULL;
-ALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS tx_hash TEXT;
-ALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending';
-ALTER TABLE boost_purchases ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+-- ============================================
+-- Таблица referrals - структурные изменения
+-- ============================================
 
--- Добавляем индексы для boost_purchases
-CREATE INDEX IF NOT EXISTS idx_boost_purchases_user ON boost_purchases(user_id);
-CREATE INDEX IF NOT EXISTS idx_boost_purchases_status ON boost_purchases(status);
+-- Добавляем недостающие поля для статистики
+ALTER TABLE referrals
+ADD COLUMN IF NOT EXISTS total_referrals INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS active_referrals INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS total_earnings NUMERIC(18,6) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS referral_levels JSONB DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS referral_count INTEGER DEFAULT 0;
 
--- =====================================================
--- ЭТАП 2: УДАЛЕНИЕ НЕИСПОЛЬЗУЕМЫХ ПОЛЕЙ
--- =====================================================
+-- ============================================
+-- Таблица farming_sessions - добавление полей
+-- ============================================
 
--- 2.1. Очистка таблицы users от неиспользуемых полей
--- Эти поля не используются ни в одном модуле системы
+-- Эта таблица пустая, но нужны поля для работы кода
+ALTER TABLE farming_sessions
+ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id),
+ADD COLUMN IF NOT EXISTS uni_farming_start_timestamp TIMESTAMP,
+ADD COLUMN IF NOT EXISTS uni_farming_last_update TIMESTAMP,
+ADD COLUMN IF NOT EXISTS uni_farming_rate NUMERIC(18,6) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS uni_deposit_amount NUMERIC(18,6) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS uni_farming_active BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
--- Старые поля фарминга (логика перенесена в отдельные таблицы)
-ALTER TABLE users DROP COLUMN IF EXISTS uni_deposit_amount;
-ALTER TABLE users DROP COLUMN IF EXISTS uni_farming_balance;
-ALTER TABLE users DROP COLUMN IF EXISTS uni_farming_rate;
-ALTER TABLE users DROP COLUMN IF EXISTS uni_farming_last_update;
-ALTER TABLE users DROP COLUMN IF EXISTS uni_farming_deposit;
-ALTER TABLE users DROP COLUMN IF EXISTS uni_farming_active;
+-- Создаем индекс для user_id
+CREATE INDEX IF NOT EXISTS idx_farming_sessions_user_id ON farming_sessions(user_id);
 
--- Старые поля TON фарминга
-ALTER TABLE users DROP COLUMN IF EXISTS ton_farming_balance;
-ALTER TABLE users DROP COLUMN IF EXISTS ton_farming_accumulated;
-ALTER TABLE users DROP COLUMN IF EXISTS ton_farming_last_claim;
-ALTER TABLE users DROP COLUMN IF EXISTS ton_boost_active;
-ALTER TABLE users DROP COLUMN IF EXISTS ton_boost_package_id;
-ALTER TABLE users DROP COLUMN IF EXISTS ton_boost_expires_at;
+-- ============================================
+-- Таблица boost_purchases - структура
+-- ============================================
 
--- Старые поля чекинов (перенесены в daily_bonus_logs)
-ALTER TABLE users DROP COLUMN IF EXISTS checkin_last_date;
-ALTER TABLE users DROP COLUMN IF EXISTS checkin_streak;
+-- Добавляем все необходимые поля
+ALTER TABLE boost_purchases
+ADD COLUMN IF NOT EXISTS id SERIAL PRIMARY KEY,
+ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id),
+ADD COLUMN IF NOT EXISTS ton_boost_package INTEGER,
+ADD COLUMN IF NOT EXISTS ton_boost_rate NUMERIC(5,2),
+ADD COLUMN IF NOT EXISTS type VARCHAR(50),
+ADD COLUMN IF NOT EXISTS amount_uni NUMERIC(18,6),
+ADD COLUMN IF NOT EXISTS amount_ton NUMERIC(18,6),
+ADD COLUMN IF NOT EXISTS currency VARCHAR(10),
+ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'completed',
+ADD COLUMN IF NOT EXISTS tx_hash VARCHAR(100),
+ADD COLUMN IF NOT EXISTS description TEXT,
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
--- Неиспользуемые поля
-ALTER TABLE users DROP COLUMN IF EXISTS wallet;
-ALTER TABLE users DROP COLUMN IF EXISTS last_active;
-ALTER TABLE users DROP COLUMN IF EXISTS referrer_id; -- Дублирует функционал таблицы referrals
+-- ============================================
+-- Таблица withdraw_requests - добавление полей
+-- ============================================
 
--- TON wallet поля (не используются в текущей версии)
-ALTER TABLE users DROP COLUMN IF EXISTS ton_wallet_address;
-ALTER TABLE users DROP COLUMN IF EXISTS ton_wallet_verified;
-ALTER TABLE users DROP COLUMN IF EXISTS ton_wallet_linked_at;
+-- Поля для работы с выводами
+ALTER TABLE withdraw_requests
+ADD COLUMN IF NOT EXISTS type VARCHAR(50) DEFAULT 'withdrawal',
+ADD COLUMN IF NOT EXISTS amount_uni NUMERIC(18,6),
+ADD COLUMN IF NOT EXISTS description TEXT;
 
--- 2.2. Очистка таблицы transactions от неиспользуемых полей
-ALTER TABLE transactions DROP COLUMN IF EXISTS metadata;
-ALTER TABLE transactions DROP COLUMN IF EXISTS source;
-ALTER TABLE transactions DROP COLUMN IF EXISTS source_user_id;
-ALTER TABLE transactions DROP COLUMN IF EXISTS action;
+-- ============================================
+-- РАЗДЕЛ 2: УДАЛЕНИЕ НЕИСПОЛЬЗУЕМЫХ ПОЛЕЙ
+-- ============================================
 
--- =====================================================
--- ЭТАП 3: ОБРАБОТКА НЕИСПОЛЬЗУЕМЫХ ТАБЛИЦ
--- =====================================================
+-- Таблица transactions - удаляем дублирующие поля
+-- metadata, source, source_user_id, action не используются в коде
+ALTER TABLE transactions 
+DROP COLUMN IF EXISTS metadata,
+DROP COLUMN IF EXISTS action;
 
--- Эти таблицы существуют в БД, но не используются в коде
--- Решение: переименовываем в архивные для сохранения данных
+-- Сохраняем source и source_user_id, так как они могут быть нужны для реферальной системы
 
--- 3.1. Архивируем неиспользуемые таблицы
-ALTER TABLE IF EXISTS referrals RENAME TO _archive_referrals;
-ALTER TABLE IF EXISTS farming_sessions RENAME TO _archive_farming_sessions;
-ALTER TABLE IF EXISTS user_sessions RENAME TO _archive_user_sessions;
-ALTER TABLE IF EXISTS missions RENAME TO _archive_missions;
-ALTER TABLE IF EXISTS user_missions RENAME TO _archive_user_missions;
-ALTER TABLE IF EXISTS airdrops RENAME TO _archive_airdrops;
-ALTER TABLE IF EXISTS daily_bonus_logs RENAME TO _archive_daily_bonus_logs;
+-- ============================================
+-- РАЗДЕЛ 3: СОЗДАНИЕ НЕДОСТАЮЩИХ ТАБЛИЦ
+-- ============================================
 
--- Добавляем комментарии к архивным таблицам
-COMMENT ON TABLE _archive_referrals IS 'АРХИВ: Не используется в текущей версии системы';
-COMMENT ON TABLE _archive_farming_sessions IS 'АРХИВ: Не используется в текущей версии системы';
-COMMENT ON TABLE _archive_user_sessions IS 'АРХИВ: Не используется в текущей версии системы';
-COMMENT ON TABLE _archive_missions IS 'АРХИВ: Не используется в текущей версии системы';
-COMMENT ON TABLE _archive_user_missions IS 'АРХИВ: Не используется в текущей версии системы';
-COMMENT ON TABLE _archive_airdrops IS 'АРХИВ: Не используется в текущей версии системы';
-COMMENT ON TABLE _archive_daily_bonus_logs IS 'АРХИВ: Не используется в текущей версии системы';
-
--- =====================================================
--- ЭТАП 4: СОЗДАНИЕ АКТИВНО ИСПОЛЬЗУЕМЫХ ТАБЛИЦ
--- =====================================================
-
--- Создаем таблицы, которые активно используются в коде
--- но могли быть удалены или не созданы
-
--- 4.1. Таблица для хранения активных сессий (используется в коде)
-CREATE TABLE IF NOT EXISTS active_sessions (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token TEXT NOT NULL UNIQUE,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    last_activity TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_active_sessions_user ON active_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_active_sessions_token ON active_sessions(token);
-CREATE INDEX IF NOT EXISTS idx_active_sessions_expires ON active_sessions(expires_at);
-
--- 4.2. Таблица для логирования операций (используется в scheduler)
-CREATE TABLE IF NOT EXISTS operation_logs (
+-- Создаем таблицу для хранения реферальных комиссий
+CREATE TABLE IF NOT EXISTS referral_commissions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
-    operation_type VARCHAR(100) NOT NULL,
-    details JSONB,
-    status VARCHAR(50) DEFAULT 'success',
-    created_at TIMESTAMP DEFAULT NOW()
+    source_user_id INTEGER REFERENCES users(id),
+    level INTEGER NOT NULL,
+    percentage NUMERIC(5,2) NOT NULL,
+    amount NUMERIC(18,6) NOT NULL,
+    currency VARCHAR(10) NOT NULL,
+    source_type VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_operation_logs_user ON operation_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_operation_logs_type ON operation_logs(operation_type);
-CREATE INDEX IF NOT EXISTS idx_operation_logs_created ON operation_logs(created_at);
+-- Индексы для referral_commissions
+CREATE INDEX IF NOT EXISTS idx_referral_commissions_user_id ON referral_commissions(user_id);
+CREATE INDEX IF NOT EXISTS idx_referral_commissions_source_user_id ON referral_commissions(source_user_id);
 
--- =====================================================
--- ЭТАП 5: КОРРЕКТИРОВКА ТИПОВ И ОГРАНИЧЕНИЙ
--- =====================================================
+-- ============================================
+-- РАЗДЕЛ 4: ОЧИСТКА НЕИСПОЛЬЗУЕМЫХ ТАБЛИЦ
+-- ============================================
 
--- 5.1. Убеждаемся что все decimal поля имеют правильную точность
--- Стандарт для криптовалют: DECIMAL(20,9)
+-- Эти таблицы существуют, но не используются в коде
+-- Оставляем их для возможного будущего использования, но добавляем комментарий
 
--- Проверяем и корректируем поля балансов
-ALTER TABLE users ALTER COLUMN balance_uni TYPE DECIMAL(20,9);
-ALTER TABLE users ALTER COLUMN balance_ton TYPE DECIMAL(20,9);
+COMMENT ON TABLE user_missions IS 'DEPRECATED - таблица не используется в текущей версии системы';
+COMMENT ON TABLE airdrops IS 'DEPRECATED - таблица не используется в текущей версии системы';
+COMMENT ON TABLE daily_bonus_logs IS 'DEPRECATED - таблица не используется в текущей версии системы';
 
--- Проверяем поля в transactions
-ALTER TABLE transactions ALTER COLUMN amount TYPE DECIMAL(20,9);
-ALTER TABLE transactions ALTER COLUMN amount_uni TYPE DECIMAL(20,9);
-ALTER TABLE transactions ALTER COLUMN amount_ton TYPE DECIMAL(20,9);
+-- ============================================
+-- РАЗДЕЛ 5: ТРИГГЕРЫ И ФУНКЦИИ
+-- ============================================
 
--- 5.2. Добавляем необходимые ограничения
--- Баланс не может быть отрицательным
-ALTER TABLE users ADD CONSTRAINT check_balance_uni_positive CHECK (balance_uni >= 0);
-ALTER TABLE users ADD CONSTRAINT check_balance_ton_positive CHECK (balance_ton >= 0);
-
--- Сумма транзакции должна быть положительной (кроме списаний)
-ALTER TABLE transactions ADD CONSTRAINT check_amount_not_zero CHECK (amount != 0);
-
--- =====================================================
--- ЭТАП 6: ФИНАЛЬНАЯ ОПТИМИЗАЦИЯ
--- =====================================================
-
--- 6.1. Добавляем индексы для часто используемых запросов
-CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id);
-CREATE INDEX IF NOT EXISTS idx_users_ref_code ON users(ref_code);
-CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
-
-CREATE INDEX IF NOT EXISTS idx_transactions_user_created ON transactions(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
-CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
-
--- 6.2. Обновляем статистику для оптимизатора
-ANALYZE users;
-ANALYZE transactions;
-ANALYZE withdraw_requests;
-ANALYZE boost_purchases;
-
--- =====================================================
--- ЭТАП 7: ПРОВЕРКА ЦЕЛОСТНОСТИ
--- =====================================================
-
--- Добавляем отсутствующие внешние ключи
-ALTER TABLE transactions 
-    ADD CONSTRAINT fk_transactions_user 
-    FOREIGN KEY (user_id) 
-    REFERENCES users(id) 
-    ON DELETE CASCADE;
-
-ALTER TABLE withdraw_requests 
-    ADD CONSTRAINT fk_withdraw_requests_user 
-    FOREIGN KEY (user_id) 
-    REFERENCES users(id) 
-    ON DELETE CASCADE;
-
--- =====================================================
--- ЗАВЕРШЕНИЕ
--- =====================================================
-
--- Добавляем метаинформацию о синхронизации
-CREATE TABLE IF NOT EXISTS schema_sync_log (
-    id SERIAL PRIMARY KEY,
-    sync_version VARCHAR(50) NOT NULL,
-    executed_at TIMESTAMP DEFAULT NOW(),
-    description TEXT
-);
-
-INSERT INTO schema_sync_log (sync_version, description) 
-VALUES ('2025.07.10.001', 'Полная синхронизация структуры БД с кодом системы UniFarm');
-
-COMMIT;
-
--- =====================================================
--- ПОСТМИГРАЦИОННЫЕ ПРОВЕРКИ
--- =====================================================
-
--- Проверка успешности миграции:
-DO $$
-DECLARE
-    missing_columns INTEGER;
-    archived_tables INTEGER;
+-- Функция для автоматического обновления updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
 BEGIN
-    -- Проверяем критические поля
-    SELECT COUNT(*) INTO missing_columns
-    FROM information_schema.columns 
-    WHERE table_name = 'users' 
-    AND column_name IN ('is_active', 'guest_id')
-    AND table_schema = 'public';
-    
-    IF missing_columns < 2 THEN
-        RAISE EXCEPTION 'Не все критические поля были добавлены в таблицу users';
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Триггеры для автообновления updated_at
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_boost_purchases_updated_at BEFORE UPDATE ON boost_purchases
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- РАЗДЕЛ 6: МИГРАЦИЯ ДАННЫХ
+-- ============================================
+
+-- Обновляем статистику рефералов на основе существующих данных
+UPDATE referrals r
+SET total_referrals = (
+    SELECT COUNT(*) 
+    FROM users u 
+    WHERE u.referred_by = r.user_id
+),
+active_referrals = (
+    SELECT COUNT(*) 
+    FROM users u 
+    WHERE u.referred_by = r.user_id 
+    AND u.is_active = true
+)
+WHERE r.total_referrals = 0;
+
+-- ============================================
+-- РАЗДЕЛ 7: ВАЛИДАЦИЯ И ПРОВЕРКИ
+-- ============================================
+
+-- Проверяем, что все критически важные поля существуют
+DO $$
+BEGIN
+    -- Проверка таблицы users
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'users' AND column_name = 'is_active') THEN
+        RAISE EXCEPTION 'Критическое поле users.is_active не было создано';
     END IF;
     
-    -- Проверяем архивацию таблиц
-    SELECT COUNT(*) INTO archived_tables
-    FROM information_schema.tables 
-    WHERE table_name LIKE '_archive_%'
-    AND table_schema = 'public';
+    -- Проверка таблицы transactions
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'transactions' AND column_name = 'transaction_type') THEN
+        RAISE EXCEPTION 'Критическое поле transactions.transaction_type не было создано';
+    END IF;
     
-    RAISE NOTICE 'Миграция завершена. Архивировано таблиц: %', archived_tables;
+    RAISE NOTICE 'Все критические поля успешно добавлены';
 END $$;
 
--- Конец скрипта синхронизации
+-- ============================================
+-- КОНЕЦ СКРИПТА
+-- ============================================
+-- Примечание: Перед выполнением обязательно сделайте резервную копию БД!
