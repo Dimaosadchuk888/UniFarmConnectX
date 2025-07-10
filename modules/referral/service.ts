@@ -125,6 +125,25 @@ export class ReferralService {
         refCode
       });
 
+      // Создаем запись в таблице referrals для отслеживания реферальной связи
+      const { error: referralError } = await supabase
+        .from(REFERRAL_TABLES.REFERRALS)
+        .insert({
+          referrer_id: inviter.id,
+          referred_id: parseInt(newUserId),
+          level: 1,
+          created_at: new Date().toISOString()
+        });
+
+      if (referralError) {
+        logger.warn('[ReferralService] Ошибка создания записи в таблице referrals', {
+          error: referralError.message,
+          referrerId: inviter.id,
+          referredId: newUserId
+        });
+        // Не возвращаем ошибку, так как основная связь уже установлена через referred_by
+      }
+
       return { success: true };
 
     } catch (error) {

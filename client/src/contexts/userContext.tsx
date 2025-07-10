@@ -427,6 +427,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           payload: { connected: true, address }
         });
         console.log('[UserContext] Кошелек успешно подключен:', address);
+        
+        // Сохраняем адрес в базе данных
+        if (address) {
+          try {
+            const response = await correctApiRequest('/api/v2/wallet/save-ton-address', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ address })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              console.log('[UserContext] TON адрес успешно сохранен в БД');
+            } else {
+              console.error('[UserContext] Ошибка сохранения TON адреса:', data.error);
+            }
+          } catch (error) {
+            console.error('[UserContext] Ошибка при сохранении TON адреса:', error);
+          }
+        }
+        
         return true;
       }
       return false;

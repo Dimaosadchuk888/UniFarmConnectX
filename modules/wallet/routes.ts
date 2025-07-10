@@ -66,6 +66,7 @@ router.get('/:userId/transactions', requireTelegramAuth, massOperationsRateLimit
 router.post('/deposit', requireTelegramAuth, massOperationsRateLimit, validateBody(depositSchema), walletController.createDeposit.bind(walletController));
 router.post('/withdraw', requireTelegramAuth, strictRateLimit, validateBody(withdrawSchema), walletController.withdraw.bind(walletController)); // Оставляем строгий лимит для выводов
 router.post('/transfer', requireTelegramAuth, strictRateLimit, validateBody(transferSchema), walletController.transfer.bind(walletController)); // Внутренние переводы
+router.post('/save-ton-address', requireTelegramAuth, strictRateLimit, walletController.saveTonAddress.bind(walletController)); // Сохранение TON адреса
 
 // Внутренние системные endpoints (для использования другими модулями)
 // Эти endpoints предназначены для внутренних операций системы и требуют специальной авторизации

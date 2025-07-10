@@ -242,6 +242,56 @@ export class WalletController extends BaseController {
     }
   }
 
+  async saveTonAddress(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const { address } = req.body;
+
+        if (!address || typeof address !== 'string') {
+          return this.sendError(res, 'Некорректный адрес кошелька', 400);
+        }
+
+        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        if (!user) {
+          return this.sendError(res, 'Пользователь не найден', 404);
+        }
+
+        // Обновляем адрес в базе данных
+        const { error } = await supabase
+          .from('users')
+          .update({
+            ton_wallet_address: address,
+            ton_wallet_verified: true,
+            ton_wallet_linked_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+
+        if (error) {
+          logger.error('[WalletController] Ошибка сохранения TON адреса', {
+            userId: user.id,
+            error: error.message
+          });
+          return this.sendError(res, 'Ошибка сохранения адреса', 500);
+        }
+
+        logger.info('[WalletController] TON адрес успешно сохранен', {
+          userId: user.id,
+          address: address.slice(0, 10) + '...' + address.slice(-10)
+        });
+
+        this.sendSuccess(res, {
+          message: 'TON адрес успешно сохранен',
+          address: address
+        });
+      }, 'сохранения TON адреса');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async transfer(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {
