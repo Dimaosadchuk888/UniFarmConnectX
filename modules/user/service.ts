@@ -37,6 +37,42 @@ export interface UpdateUserData {
   balance_ton?: string;
 }
 
+// Список полей для безопасных select запросов (без last_active)
+const USER_FIELDS = `
+  id,
+  telegram_id,
+  username,
+  first_name,
+  ref_code,
+  referred_by,
+  guest_id,
+  balance_uni,
+  balance_ton,
+  created_at,
+  updated_at,
+  uni_farming_start_timestamp,
+  uni_farming_last_update,
+  uni_deposit_amount,
+  uni_farming_rate,
+  uni_farming_balance,
+  uni_farming_active,
+  ton_boost_package,
+  ton_balance,
+  ton_farming_active,
+  ton_deposit_amount,
+  ton_farming_balance,
+  ton_farming_rate,
+  ton_farming_start_timestamp,
+  ton_farming_last_update,
+  is_admin,
+  user_settings,
+  language_code,
+  referrer_id,
+  ton_wallet_address,
+  ton_wallet_verified,
+  ton_wallet_linked_at
+`;
+
 export class SupabaseUserRepository {
   constructor() {
     logger.info('[SupabaseUserRepository] Initialized with Supabase API');
@@ -92,7 +128,7 @@ export class SupabaseUserRepository {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select(USER_FIELDS)
         .eq('telegram_id', telegramId)
         .single();
 
@@ -115,7 +151,7 @@ export class SupabaseUserRepository {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select(USER_FIELDS)
         .eq('id', userId)
         .single();
 
@@ -138,7 +174,7 @@ export class SupabaseUserRepository {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select(USER_FIELDS)
         .eq('ref_code', refCode)
         .single();
 
@@ -216,7 +252,7 @@ export class SupabaseUserRepository {
       
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select(USER_FIELDS)
         .eq('guest_id', guestId)
         .single();
 

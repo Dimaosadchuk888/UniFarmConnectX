@@ -245,11 +245,13 @@ export class FarmingController extends BaseController {
 
       console.log('[FarmingController] CRITICAL DEBUG: calling depositUniForFarming', {
         telegram_id: telegram.user.id,
+        user_id: user.id,
         amount
       });
 
+      // ВАЖНО: Используем user.id из базы данных, а не telegram.user.id
       const result = await farmingService.depositUniForFarming(
-        telegram.user.id.toString(),
+        user.id.toString(),
         amount
       );
 

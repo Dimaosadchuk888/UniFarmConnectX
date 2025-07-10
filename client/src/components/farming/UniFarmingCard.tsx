@@ -245,28 +245,35 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         user_id: Number(userId || 1) // Гарантированно число
       };
 
-      console.log('Отправляем депозит:', requestBody);
+      console.log('[UniFarmingCard] Отправляем депозит:', requestBody);
+      console.log('[UniFarmingCard] Текущий баланс UNI:', uniBalance);
+      console.log('[UniFarmingCard] userId из контекста:', userId);
 
       // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
       return correctApiRequest('/api/v2/uni-farming/deposit', 'POST', requestBody);
     },
     onSuccess: async (response) => {
       try {
+        console.log('[UniFarmingCard] Ответ от сервера после депозита:', response);
+        
         // Очищаем форму и сообщение об ошибке
         setDepositAmount('');
         setError(null);
 
         // Логируем успешный депозит
-        if (response?.data?.newBalance) {
-          console.log('[INFO] Депозит успешно обработан:', {
-            amount: response.data.depositAmount || 'N/A',
-            newBalance: response.data.newBalance,
-            transactionId: response.data.transactionId || 'N/A'
+        if (response?.data) {
+          console.log('[UniFarmingCard] Детали успешного депозита:', {
+            success: response.success,
+            message: response.message,
+            data: response.data,
+            newBalance: response.data?.newBalance,
+            depositAmount: response.data?.depositAmount,
+            transactionId: response.data?.transactionId
           });
         }
 
         // Обновляем данные в правильном порядке
-        console.log('[INFO] Начинаем обновление данных после депозита');
+        console.log('[UniFarmingCard] Начинаем обновление данных после депозита');
         
         // 1. Принудительно обновляем все кэши запросов
         await queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile'] });
@@ -281,7 +288,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         // 3. Обновляем UserContext с принудительным обновлением 
         if (refreshBalance) {
-          console.log('[INFO] Принудительно обновляем UserContext');
+          console.log('[UniFarmingCard] Принудительно обновляем UserContext');
           await refreshBalance(true);
         }
         
@@ -973,6 +980,24 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             <p className="text-sm text-foreground opacity-70 mt-1">
               Доступно: <span className="text-primary">{formatNumber(userData?.balance_uni || '0')}</span> UNI
             </p>
+          </div>
+
+          {/* Кнопки быстрого выбора суммы */}
+          <div className="mb-4 grid grid-cols-4 gap-2">
+            {[5, 10, 25, 50].map((amount) => (
+              <button
+                key={amount}
+                type="button"
+                onClick={() => {
+                  console.log(`[DEBUG] Quick amount button clicked: ${amount} UNI`);
+                  setDepositAmount(amount.toString());
+                  setError(null);
+                }}
+                className="py-2 px-3 rounded-lg font-medium text-sm bg-gradient-to-r from-purple-500/20 to-indigo-600/20 text-primary border border-primary/20 hover:from-purple-500/30 hover:to-indigo-600/30 hover:border-primary/30 transition-all duration-200"
+              >
+                {amount} UNI
+              </button>
+            ))}
           </div>
 
           {error && (

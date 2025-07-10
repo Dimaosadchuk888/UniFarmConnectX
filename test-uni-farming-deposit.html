@@ -1,165 +1,60 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teste de Depósito UNI Farming</title>
+    <title>Test UNI Farming Deposit</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #e0e0e0;
             padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
+            background: #1a1a1a;
+            color: #fff;
         }
         .container {
-            background-color: #1e1e1e;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-        }
-        h1 {
-            color: #bb86fc;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .input-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #bb86fc;
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            background-color: #2e2e2e;
-            border: 1px solid #444;
-            border-radius: 5px;
-            color: #e0e0e0;
-            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto;
         }
         button {
-            background-color: #bb86fc;
-            color: #121212;
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
             border: none;
-            padding: 12px 30px;
             border-radius: 5px;
-            font-size: 16px;
-            font-weight: bold;
             cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #9965f4;
-        }
-        button:disabled {
-            background-color: #555;
-            cursor: not-allowed;
+            margin: 5px;
         }
         .result {
             margin-top: 20px;
-            padding: 15px;
+            padding: 10px;
+            background: #333;
             border-radius: 5px;
-            background-color: #2e2e2e;
-            border: 1px solid #444;
+            font-family: monospace;
             white-space: pre-wrap;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-        }
-        .success {
-            background-color: #1b5e20;
-            border-color: #4caf50;
-        }
-        .error {
-            background-color: #b71c1c;
-            border-color: #f44336;
-        }
-        .info {
-            background-color: #0d47a1;
-            border-color: #2196f3;
-        }
-        .log-entry {
-            margin: 5px 0;
-            padding: 5px;
-            border-left: 3px solid #bb86fc;
-            padding-left: 10px;
-        }
-        .status-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .status-card {
-            background-color: #2e2e2e;
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid #444;
-        }
-        .status-label {
-            color: #888;
-            font-size: 14px;
-        }
-        .status-value {
-            color: #bb86fc;
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 Teste de Depósito UNI Farming</h1>
-        
-        <div class="status-grid">
-            <div class="status-card">
-                <div class="status-label">Balanço UNI</div>
-                <div class="status-value" id="uni-balance">Carregando...</div>
-            </div>
-            <div class="status-card">
-                <div class="status-label">Depósito Atual</div>
-                <div class="status-value" id="current-deposit">Carregando...</div>
-            </div>
-            <div class="status-card">
-                <div class="status-label">Status Farming</div>
-                <div class="status-value" id="farming-status">Carregando...</div>
-            </div>
-            <div class="status-card">
-                <div class="status-label">User ID</div>
-                <div class="status-value" id="user-id">62</div>
-            </div>
-        </div>
-
-        <div class="input-group">
-            <label for="amount">Valor do Depósito (UNI):</label>
-            <input type="number" id="amount" value="10" min="1" max="1000" step="0.1">
-        </div>
-        
-        <button onclick="testDeposit()" id="depositBtn">Testar Depósito UNI</button>
-        <button onclick="checkStatus()" style="margin-left: 10px;">Atualizar Status</button>
-        <button onclick="checkDirectStatus()" style="margin-left: 10px;">Diagnóstico Direto</button>
-        
-        <div class="result" id="result"></div>
+        <h1>Test UNI Farming Deposit</h1>
+        <button onclick="testDeposit(5)">Deposit 5 UNI</button>
+        <button onclick="testDeposit(10)">Deposit 10 UNI</button>
+        <button onclick="testDeposit(25)">Deposit 25 UNI</button>
+        <button onclick="checkBalance()">Check Balance</button>
+        <button onclick="checkFarmingStatus()">Check Farming Status</button>
+        <div id="result" class="result"></div>
     </div>
 
     <script>
-        const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYyLCJ0ZWxlZ3JhbV9pZCI6ODgyMTAwNDIsInVzZXJuYW1lIjoiRGVyQW5keSIsInJlZl9jb2RlIjoiUkVGXzE3NTEzNzI5NTM5MzZfYTM0aWpwIiwiaWF0IjoxNzUxMzcyOTU0LCJleHAiOjE3NTE5Nzc3NTR9.sGJzxg6fRmyH9cxCOQQcF7oBXDEsH1vlbJxAm-fN0L0';
+        const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJSRUZfMTc1MjEyOTg0MDkwNl9hNGRha3ciLCJpYXQiOjE3NTIxMjk4NDIsImV4cCI6MTc1MjczNDY0Mn0.wbXSPiEkUrXgvGJqFcJEaGeFMD3zM0sQzl_-tYg_lro';
         
-        function log(message, type = 'info') {
+        function log(message) {
             const result = document.getElementById('result');
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = document.createElement('div');
-            logEntry.className = `log-entry ${type}`;
-            logEntry.textContent = `[${timestamp}] ${message}`;
-            result.appendChild(logEntry);
-            result.scrollTop = result.scrollHeight;
+            result.textContent += `[${new Date().toISOString()}] ${message}\n`;
+            console.log(message);
         }
 
-        async function makeApiRequest(url, method = 'GET', body = null) {
+        async function makeRequest(url, method = 'GET', body = null) {
             const options = {
                 method,
                 headers: {
@@ -171,132 +66,71 @@
             if (body) {
                 options.body = JSON.stringify(body);
             }
-            
-            const response = await fetch(url, options);
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || `HTTP ${response.status}`);
-            }
-            
-            return data;
-        }
 
-        async function checkStatus() {
+            log(`Making ${method} request to ${url}`);
+            if (body) log(`Request body: ${JSON.stringify(body)}`);
+
             try {
-                log('📊 Verificando status do farming...', 'info');
-                
-                // Buscar status do farming
-                const farmingData = await makeApiRequest('/api/v2/uni-farming/status?user_id=62');
-                
-                if (farmingData.success && farmingData.data) {
-                    const data = farmingData.data;
-                    document.getElementById('uni-balance').textContent = `${parseFloat(data.balance_uni || 0).toFixed(3)} UNI`;
-                    document.getElementById('current-deposit').textContent = `${parseFloat(data.uni_deposit_amount || 0).toFixed(3)} UNI`;
-                    document.getElementById('farming-status').textContent = data.uni_farming_active ? '✅ Ativo' : '❌ Inativo';
-                    
-                    log(`✅ Status atualizado:
-- Balanço: ${data.balance_uni} UNI
-- Depósito: ${data.uni_deposit_amount} UNI
-- Ativo: ${data.uni_farming_active}
-- Taxa: ${data.uni_farming_rate || 0.01}% por hora`, 'success');
-                } else {
-                    log('❌ Erro ao obter status do farming', 'error');
-                }
+                const response = await fetch(url, options);
+                const data = await response.json();
+                log(`Response: ${JSON.stringify(data, null, 2)}`);
+                return data;
             } catch (error) {
-                log(`❌ Erro: ${error.message}`, 'error');
+                log(`Error: ${error.message}`);
+                throw error;
             }
         }
 
-        async function checkDirectStatus() {
-            try {
-                log('🔍 Executando diagnóstico direto do banco de dados...', 'info');
-                
-                // Buscar status direto
-                const diagnosticData = await makeApiRequest('/api/v2/uni-farming/direct-status?user_id=62');
-                
-                if (diagnosticData.success && diagnosticData.data) {
-                    const data = diagnosticData.data;
-                    log(`📊 Diagnóstico Completo:
-                    
-Dados Brutos:
-- uni_deposit_amount: ${data.raw_data.uni_deposit_amount}
-- uni_farming_start_timestamp: ${data.raw_data.uni_farming_start_timestamp}
-- uni_farming_rate: ${data.raw_data.uni_farming_rate}
-- uni_farming_last_update: ${data.raw_data.uni_farming_last_update}
-
-Análise:
-- Tem timestamp: ${data.analysis.has_timestamp ? '✓' : '✗'}
-- Tem depósito: ${data.analysis.has_deposit ? '✓' : '✗'} (${data.analysis.deposit_value})
-- Tem taxa: ${data.analysis.has_rate ? '✓' : '✗'} (${data.analysis.rate_value})
-- Deveria estar ativo: ${data.analysis.should_be_active ? '✓' : '✗'}
-
-Status Final:
-- uni_farming_active: ${data.uni_farming_active}`, data.analysis.should_be_active ? 'success' : 'error');
-                } else {
-                    log('❌ Erro ao obter diagnóstico direto', 'error');
-                }
-            } catch (error) {
-                log(`❌ Erro no diagnóstico: ${error.message}`, 'error');
-            }
+        async function checkBalance() {
+            log('=== Checking Balance ===');
+            await makeRequest('/api/v2/wallet/balance?user_id=74');
         }
 
-        async function testDeposit() {
-            const amount = document.getElementById('amount').value;
-            const depositBtn = document.getElementById('depositBtn');
-            
-            if (!amount || parseFloat(amount) <= 0) {
-                log('❌ Por favor, insira um valor válido', 'error');
-                return;
-            }
-            
-            depositBtn.disabled = true;
-            depositBtn.textContent = 'Processando...';
-            
-            try {
-                // Limpar logs anteriores
-                document.getElementById('result').innerHTML = '';
-                
-                log(`🚀 Iniciando teste de depósito de ${amount} UNI`, 'info');
-                
-                // 1. Verificar status inicial
-                await checkStatus();
-                
-                // 2. Fazer o depósito
-                log(`💰 Enviando depósito para /api/v2/uni-farming/deposit`, 'info');
-                const depositResult = await makeApiRequest('/api/v2/uni-farming/deposit', 'POST', {
-                    amount: amount.toString(),
-                    user_id: 62
-                });
-                
-                if (depositResult.success) {
-                    log(`✅ Depósito realizado com sucesso!`, 'success');
-                    log(`Resposta: ${JSON.stringify(depositResult, null, 2)}`, 'success');
-                    
-                    // 3. Aguardar um pouco para a propagação
-                    log('⏳ Aguardando 2 segundos para propagação...', 'info');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    
-                    // 4. Verificar status após depósito
-                    log('📊 Verificando status após depósito...', 'info');
-                    await checkStatus();
-                    
-                } else {
-                    log(`❌ Falha no depósito: ${depositResult.error || 'Erro desconhecido'}`, 'error');
-                }
-                
-            } catch (error) {
-                log(`❌ Erro durante o teste: ${error.message}`, 'error');
-                console.error('Erro completo:', error);
-            } finally {
-                depositBtn.disabled = false;
-                depositBtn.textContent = 'Testar Depósito UNI';
-            }
+        async function checkFarmingStatus() {
+            log('=== Checking Farming Status ===');
+            await makeRequest('/api/v2/uni-farming/status?user_id=74');
         }
 
-        // Verificar status inicial ao carregar
-        window.onload = () => {
-            checkStatus();
+        async function testDeposit(amount) {
+            log(`\n=== Testing Deposit of ${amount} UNI ===`);
+            
+            // Check balance before
+            log('Step 1: Balance before deposit');
+            const balanceBefore = await makeRequest('/api/v2/wallet/balance?user_id=74');
+            
+            // Make deposit
+            log(`Step 2: Making deposit of ${amount} UNI`);
+            const depositResponse = await makeRequest(
+                '/api/v2/uni-farming/deposit',
+                'POST',
+                { amount: amount.toString(), user_id: 74 }
+            );
+            
+            // Wait a bit
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Check balance after
+            log('Step 3: Balance after deposit');
+            const balanceAfter = await makeRequest('/api/v2/wallet/balance?user_id=74');
+            
+            // Check farming status
+            log('Step 4: Farming status after deposit');
+            const farmingStatus = await makeRequest('/api/v2/uni-farming/status?user_id=74');
+            
+            // Summary
+            log('\n=== Summary ===');
+            log(`Balance before: ${balanceBefore.data?.balance_uni || 'N/A'} UNI`);
+            log(`Balance after: ${balanceAfter.data?.balance_uni || 'N/A'} UNI`);
+            log(`Difference: ${(parseFloat(balanceBefore.data?.balance_uni || 0) - parseFloat(balanceAfter.data?.balance_uni || 0)).toFixed(3)} UNI`);
+            log(`Farming active: ${farmingStatus.data?.uni_farming_active ? 'Yes' : 'No'}`);
+            log(`Deposit amount: ${farmingStatus.data?.uni_deposit_amount || 0} UNI`);
+        }
+
+        // Initial check
+        window.onload = async () => {
+            log('Page loaded, checking initial state...');
+            await checkBalance();
+            await checkFarmingStatus();
         };
     </script>
 </body>

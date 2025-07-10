@@ -159,25 +159,25 @@ export class FarmingService {
     }
   }
 
-  async depositUniForFarming(telegramId: string, amount: string): Promise<{ success: boolean; message: string }> {
+  async depositUniForFarming(userId: string, amount: string): Promise<{ success: boolean; message: string }> {
     try {
       logger.info('[FarmingService] Депозит для фарминга', { 
-        telegramId, 
+        userId, 
         amount
       });
 
-      const numericTelegramId = Number(telegramId);
-      const user = await this.userRepository.getUserByTelegramId(numericTelegramId);
+      const numericUserId = Number(userId);
+      const user = await this.userRepository.getUserById(numericUserId);
       
       logger.info('[FarmingService] ЭТАП 1: Пользователь найден', { 
-        numericTelegramId,
+        numericUserId,
         userFound: !!user,
         userId: user?.id,
         userName: user?.username
       });
       
       if (!user) {
-        logger.error('[FarmingService] ЭТАП 1: Пользователь не найден', { telegramId, numericTelegramId });
+        logger.error('[FarmingService] ЭТАП 1: Пользователь не найден', { userId, numericUserId });
         return { success: false, message: 'Пользователь не найден' };
       }
 
@@ -395,7 +395,6 @@ export class FarmingService {
       logger.info('[FarmingService] ЭТАП 11: УСПЕШНОЕ ЗАВЕРШЕНИЕ', {
         userId: user.id,
         amount: depositAmount,
-        telegramId,
         success: true
       });
 
