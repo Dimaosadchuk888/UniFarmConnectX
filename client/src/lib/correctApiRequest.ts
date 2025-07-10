@@ -21,9 +21,6 @@ const RATE_LIMIT_TOAST_COOLDOWN = 10000; // 10 секунд между увед�
 // Максимальное количество попыток при ошибке авторизации
 const MAX_AUTH_RETRIES = 2;
 
-// Fallback токен на случай критической ошибки (истекает 14 июля 2025)
-const FALLBACK_JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzE3NTIxMjk4NDA5MDVfZG9reHYwIiwiaWF0IjoxNzUyMTI5ODQxLCJleHAiOjE3NTI3MzQ2NDF9.zImxV8ATpEV_ZumGaRKflQ7niNA--PSgKvhXhlPtpsU';
-
 async function makeRequestWithAuth(url: string, config: RequestConfig): Promise<Response> {
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -43,17 +40,13 @@ async function makeRequestWithAuth(url: string, config: RequestConfig): Promise<
     }
   }
   
-  // Если токена нет, используем fallback (временное решение)
-  if (!token) {
-    console.warn('[correctApiRequest] ⚠️ Токен отсутствует, используем fallback токен');
-    token = FALLBACK_JWT_TOKEN;
-    localStorage.setItem('unifarm_jwt_token', token);
+  // Добавляем токен в заголовки если он есть
+  if (token) {
+    requestHeaders['Authorization'] = `Bearer ${token}`;
+    console.log('[correctApiRequest] JWT токен добавлен, длина:', token.length);
+  } else {
+    console.warn('[correctApiRequest] ⚠️ Токен отсутствует, запрос будет выполнен без авторизации');
   }
-  
-  // Добавляем токен в заголовки
-  requestHeaders['Authorization'] = `Bearer ${token}`;
-  
-  console.log('[correctApiRequest] JWT токен добавлен, длина:', token.length);
 
   // Добавляем Telegram WebApp данные если доступны
   if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
