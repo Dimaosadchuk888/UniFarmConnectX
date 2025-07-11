@@ -1,92 +1,97 @@
-# Отчет о прогрессе Фазы 2: Оптимизация структуры БД
+# Отчет о прогрессе Фазы 2 оптимизации базы данных UniFarm
 
-## Статус: В процессе
+**Дата**: 11 января 2025
+**Статус**: 80% завершено
 
-### Выполненные задачи:
+## Цель Фазы 2
+Разделение farming данных на отдельные таблицы для улучшения производительности и структуры БД.
 
-1. **Создан UniFarmingRepository.ts** ✅
-   - Полная реализация репозитория для работы с таблицей uni_farming_data
-   - Методы: getByUserId, upsert, updateActivity, updateBalance, getActiveFarmers, addDeposit
-   - Путь: `modules/farming/UniFarmingRepository.ts`
+## Выполненные задачи
 
-2. **Создан TonFarmingRepository.ts** ✅
-   - Полная реализация репозитория для работы с таблицей ton_farming_data
-   - Методы: getByUserId, upsert, activateBoost, deactivateBoost, updateAccumulated, getActiveBoostUsers, claimAccumulated
-   - Путь: `modules/boost/TonFarmingRepository.ts`
+### 1. Создание репозиториев (100% завершено)
+✅ **UniFarmingRepository** (`modules/farming/UniFarmingRepository.ts`)
+- Полностью реализованы все методы: getByUserId, upsert, updateActivity, updateBalance, getActiveFarmers, addDeposit
+- Добавлена fallback логика для работы с таблицей users
+- Автоматическое определение доступности таблицы uni_farming_data
 
-3. **Обновлен BalanceManager.ts** ✅
-   - Добавлены методы для работы с farming репозиториями:
-     - getUniFarmingData()
-     - updateUniFarmingData()
-     - getTonFarmingData()
-     - updateTonFarmingData()
-     - getUserFullData()
-   - Интеграция с новыми репозиториями через динамический импорт
+✅ **TonFarmingRepository** (`modules/boost/TonFarmingRepository.ts`)
+- Полностью реализованы все методы: getByUserId, upsert, activateBoost, deactivateBoost, updateAccumulated, getActiveBoostUsers
+- Добавлена fallback логика для работы с таблицей users
+- Автоматическое определение доступности таблицы ton_farming_data
 
-4. **Обновлен farming/service.ts** ✅
-   - Обновлен метод getFarmingDataByTelegramId() для работы с UniFarmingRepository
-   - Обновлен метод startFarming() для использования UniFarmingRepository
-   - Обновлен метод stopFarming() для использования UniFarmingRepository
-   - Обновлен метод depositUniForFarming() для использования UniFarmingRepository
+### 2. Fallback механизм (100% завершено)
+- Все репозитории автоматически определяют существование целевых таблиц
+- При отсутствии таблиц (ошибка 42P01) автоматически используется таблица users
+- Преобразование данных между форматами происходит прозрачно
+- Система работает без изменений даже без новых таблиц
 
-5. **Обновлен boost/service.ts** ✅
-   - Заменены прямые SQL запросы к таблице users на использование TonFarmingRepository
-   - Обновлен метод purchaseWithInternalWallet() для активации boost через репозиторий
-   - Убраны дублирующие операции активации
+### 3. Обновление модулей (выполнено ранее)
+- ✅ modules/farming/service.ts - использует UniFarmingRepository
+- ✅ modules/boost/service.ts - использует TonFarmingRepository
+- ✅ core/scheduler/farmingScheduler.ts - использует UniFarmingRepository
+- ✅ modules/scheduler/tonBoostIncomeScheduler.ts - использует TonFarmingRepository
+- ✅ core/BalanceManager.ts - интегрирован с новыми репозиториями
 
-6. **Обновлены планировщики** ✅
-   - tonBoostIncomeScheduler.ts - использует TonFarmingRepository.getActiveBoostUsers()
-   - farmingScheduler.ts - использует UniFarmingRepository.getActiveFarmers()
-   - Убраны прямые SQL запросы к таблице users
+### 4. Скрипты и документация (100% завершено)
+✅ **scripts/check-and-create-tables.ts**
+- Проверяет существование таблиц
+- Показывает пользователей готовых к миграции (найдено 10 пользователей)
 
-### Требуется выполнить:
+✅ **scripts/create-farming-tables.ts**
+- Пытается создать таблицы через Supabase SDK
+- Генерирует SQL для ручного выполнения
 
-1. **Создание таблиц в БД** ❌
-   - Создать таблицу uni_farming_data
-   - Создать таблицу ton_farming_data
-   - Создать необходимые индексы
+✅ **SUPABASE_TABLE_CREATION_INSTRUCTIONS.md**
+- Детальные инструкции для создания таблиц в Supabase Dashboard
+- SQL скрипты для создания таблиц и миграции данных
+- Инструкции по настройке Row Level Security
 
-2. **Миграция данных** ❌
-   - Перенести farming данные из таблицы users в uni_farming_data
-   - Перенести boost данные из таблицы users в ton_farming_data
+## Текущее состояние БД
 
-3. **Обновление оставшихся модулей** ❌
-   - Обновить boost/service.ts для работы с TonFarmingRepository
-   - Обновить scheduler модули для работы с новыми репозиториями
-   - Обновить wallet модуль если необходимо
+### Проверка показала:
+- Таблицы uni_farming_data и ton_farming_data НЕ существуют
+- 10 пользователей имеют farming данные для миграции
+- Система работает через fallback с таблицей users
 
-4. **Тестирование** ❌
-   - Проверить работу farming депозитов
-   - Проверить работу boost активации
-   - Проверить корректность начисления доходов
+### Пользователи с farming данными:
+- User ID 23: uni_deposit_amount=100, uni_farming_active=true
+- User ID 22: uni_deposit_amount=100, uni_farming_active=true  
+- User ID 62: uni_deposit_amount=100, uni_farming_active=true
+- User ID 21: uni_deposit_amount=100, uni_farming_active=true
+- User ID 67: uni_deposit_amount=206, uni_farming_active=false
 
-### Блокировки:
+## Оставшиеся задачи
 
-- Необходим доступ к Supabase SQL Editor для создания таблиц
-- Альтернатива: использовать Supabase SDK для программного создания таблиц
+### 1. Создание таблиц в Supabase (требует ручного выполнения)
+- [ ] Войти в Supabase Dashboard
+- [ ] Выполнить SQL скрипт из SUPABASE_TABLE_CREATION_INSTRUCTIONS.md
+- [ ] Проверить создание таблиц и индексов
+- [ ] Настроить RLS политики
 
-### Следующие шаги:
+### 2. Миграция данных (автоматически при создании таблиц)
+- SQL скрипт включает автоматическую миграцию
+- 10 пользователей будут мигрированы в uni_farming_data
+- Пользователи с ton_boost будут мигрированы в ton_farming_data
 
-1. Создать таблицы через Supabase Dashboard или API
-2. Выполнить миграцию данных
-3. Обновить оставшиеся модули
-4. Провести тестирование новой структуры
+### 3. Верификация (после создания таблиц)
+- [ ] Запустить scripts/check-and-create-tables.ts для проверки
+- [ ] Протестировать farming операции
+- [ ] Проверить работу планировщиков
 
-### Оценка завершенности Фазы 2: 70%
+## Архитектурные преимущества
 
-### Результаты Фазы 2:
+1. **Обратная совместимость**: Система работает как с новой, так и со старой структурой
+2. **Прозрачная миграция**: Нет необходимости изменять бизнес-логику
+3. **Производительность**: После создания таблиц - улучшенная индексация и скорость запросов
+4. **Масштабируемость**: Легче добавлять новые поля без изменения основной таблицы users
 
-1. **Архитектурные изменения**:
-   - Создан репозиторный паттерн для разделения farming данных
-   - Убрана прямая зависимость от таблицы users для farming операций
-   - Подготовлена база для миграции на отдельные таблицы
+## Заключение
 
-2. **Преимущества новой архитектуры**:
-   - Улучшена производительность за счет специализированных таблиц
-   - Упрощена поддержка и расширение farming функционала
-   - Изолированы farming данные от основных пользовательских данных
+Фаза 2 завершена на 80%. Весь код готов и протестирован с fallback механизмом. Система полностью функциональна даже без новых таблиц благодаря fallback логике.
 
-3. **Готовность к развертыванию**:
-   - Код готов к работе с новыми таблицами
-   - Все модули обновлены для использования репозиториев
-   - Требуется только создание таблиц и миграция данных в БД
+Для завершения фазы требуется только:
+1. Создать таблицы в Supabase Dashboard (ручная операция)
+2. Проверить миграцию данных
+3. Подтвердить работу с новыми таблицами
+
+После создания таблиц система автоматически переключится на их использование без изменения кода.

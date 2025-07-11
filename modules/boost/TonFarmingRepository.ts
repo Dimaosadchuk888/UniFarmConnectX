@@ -18,6 +18,7 @@ export interface TonFarmingData {
 
 export class TonFarmingRepository {
   private readonly tableName = 'ton_farming_data';
+  private useFallback: boolean = false;
 
   /**
    * Получить данные TON farming для пользователя
@@ -30,14 +31,58 @@ export class TonFarmingRepository {
         .eq('user_id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        logger.error('[TonFarmingRepository] Error getting farming data:', error);
+      if (error) {
+        if (error.code === '42P01') {
+          // Таблица не существует, используем fallback
+          this.useFallback = true;
+          return this.getByUserIdFallback(userId);
+        }
+        
+        if (error.code !== 'PGRST116') {
+          logger.error('[TonFarmingRepository] Error getting farming data:', error);
+        }
         return null;
       }
 
       return data;
     } catch (error) {
       logger.error('[TonFarmingRepository] Exception getting farming data:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Fallback метод для получения данных из таблицы users
+   */
+  private async getByUserIdFallback(userId: string): Promise<TonFarmingData | null> {
+    try {
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error || !user) {
+        return null;
+      }
+
+      // Преобразуем данные из users в формат TonFarmingData
+      return {
+        user_id: parseInt(userId),
+        farming_balance: user.ton_farming_balance || '0',
+        farming_rate: user.ton_farming_rate || '0.01',
+        farming_start_timestamp: user.ton_farming_start_timestamp,
+        farming_last_update: user.ton_farming_last_update,
+        farming_accumulated: user.ton_farming_accumulated || '0',
+        farming_last_claim: user.ton_farming_last_claim,
+        boost_active: user.ton_boost_active || false,
+        boost_package_id: user.ton_boost_package_id,
+        boost_expires_at: user.ton_boost_expires_at,
+        created_at: user.created_at,
+        updated_at: user.updated_at || user.created_at
+      };
+    } catch (error) {
+      logger.error('[TonFarmingRepository] Exception in fallback:', error);
       return null;
     }
   }
@@ -55,6 +100,11 @@ export class TonFarmingRepository {
         });
 
       if (error) {
+        if (error.code === '42P01') {
+          // Таблица не существует, используем fallback
+          this.useFallback = true;
+          return this.upsertFallback(data);
+        }
         logger.error('[TonFarmingRepository] Error upserting farming data:', error);
         return false;
       }
@@ -62,6 +112,40 @@ export class TonFarmingRepository {
       return true;
     } catch (error) {
       logger.error('[TonFarmingRepository] Exception upserting farming data:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Fallback метод для обновления данных в таблице users
+   */
+  private async upsertFallback(data: Partial<TonFarmingData>): Promise<boolean> {
+    try {
+      const updates: any = {};
+      
+      if (data.farming_balance !== undefined) updates.ton_farming_balance = data.farming_balance;
+      if (data.farming_rate !== undefined) updates.ton_farming_rate = data.farming_rate;
+      if (data.farming_start_timestamp !== undefined) updates.ton_farming_start_timestamp = data.farming_start_timestamp;
+      if (data.farming_last_update !== undefined) updates.ton_farming_last_update = data.farming_last_update;
+      if (data.farming_accumulated !== undefined) updates.ton_farming_accumulated = data.farming_accumulated;
+      if (data.farming_last_claim !== undefined) updates.ton_farming_last_claim = data.farming_last_claim;
+      if (data.boost_active !== undefined) updates.ton_boost_active = data.boost_active;
+      if (data.boost_package_id !== undefined) updates.ton_boost_package_id = data.boost_package_id;
+      if (data.boost_expires_at !== undefined) updates.ton_boost_expires_at = data.boost_expires_at;
+      
+      const { error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', data.user_id);
+
+      if (error) {
+        logger.error('[TonFarmingRepository] Error updating users table:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      logger.error('[TonFarmingRepository] Exception in fallback upsert:', error);
       return false;
     }
   }
@@ -85,6 +169,27 @@ export class TonFarmingRepository {
         });
 
       if (error) {
+        if (error.code === '42P01') {
+          // Таблица не существует, используем fallback
+          this.useFallback = true;
+          const { error: fallbackError } = await supabase
+            .from('users')
+            .update({
+              ton_boost_active: true,
+              ton_boost_package_id: packageId,
+              ton_farming_rate: rate.toString(),
+              ton_boost_expires_at: expiresAt || null,
+              ton_farming_start_timestamp: new Date().toISOString(),
+              ton_farming_last_update: new Date().toISOString()
+            })
+            .eq('id', userId);
+          
+          if (fallbackError) {
+            logger.error('[TonFarmingRepository] Error activating boost in users table:', fallbackError);
+            return false;
+          }
+          return true;
+        }
         logger.error('[TonFarmingRepository] Error activating boost:', error);
         return false;
       }
@@ -112,6 +217,24 @@ export class TonFarmingRepository {
         .eq('user_id', userId);
 
       if (error) {
+        if (error.code === '42P01') {
+          // Таблица не существует, используем fallback
+          this.useFallback = true;
+          const { error: fallbackError } = await supabase
+            .from('users')
+            .update({
+              ton_boost_active: false,
+              ton_boost_package_id: null,
+              ton_boost_expires_at: null
+            })
+            .eq('id', userId);
+          
+          if (fallbackError) {
+            logger.error('[TonFarmingRepository] Error deactivating boost in users table:', fallbackError);
+            return false;
+          }
+          return true;
+        }
         logger.error('[TonFarmingRepository] Error deactivating boost:', error);
         return false;
       }
@@ -138,6 +261,23 @@ export class TonFarmingRepository {
         .eq('user_id', userId);
 
       if (error) {
+        if (error.code === '42P01') {
+          // Таблица не существует, используем fallback
+          this.useFallback = true;
+          const { error: fallbackError } = await supabase
+            .from('users')
+            .update({
+              ton_farming_accumulated: accumulated,
+              ton_farming_last_update: lastUpdate
+            })
+            .eq('id', userId);
+          
+          if (fallbackError) {
+            logger.error('[TonFarmingRepository] Error updating accumulated in users table:', fallbackError);
+            return false;
+          }
+          return true;
+        }
         logger.error('[TonFarmingRepository] Error updating accumulated:', error);
         return false;
       }
@@ -160,6 +300,11 @@ export class TonFarmingRepository {
         .eq('boost_active', true);
 
       if (error) {
+        if (error.code === '42P01') {
+          // Таблица не существует, используем fallback
+          this.useFallback = true;
+          return this.getActiveBoostUsersFallback();
+        }
         logger.error('[TonFarmingRepository] Error getting active boost users:', error);
         return [];
       }
@@ -167,6 +312,41 @@ export class TonFarmingRepository {
       return data || [];
     } catch (error) {
       logger.error('[TonFarmingRepository] Exception getting active boost users:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Fallback метод для получения активных boost пользователей из таблицы users
+   */
+  private async getActiveBoostUsersFallback(): Promise<TonFarmingData[]> {
+    try {
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('ton_boost_active', true);
+
+      if (error || !users) {
+        return [];
+      }
+
+      // Преобразуем данные из users в формат TonFarmingData
+      return users.map(user => ({
+        user_id: user.id,
+        farming_balance: user.ton_farming_balance || '0',
+        farming_rate: user.ton_farming_rate || '0.01',
+        farming_start_timestamp: user.ton_farming_start_timestamp,
+        farming_last_update: user.ton_farming_last_update,
+        farming_accumulated: user.ton_farming_accumulated || '0',
+        farming_last_claim: user.ton_farming_last_claim,
+        boost_active: user.ton_boost_active || false,
+        boost_package_id: user.ton_boost_package_id,
+        boost_expires_at: user.ton_boost_expires_at,
+        created_at: user.created_at,
+        updated_at: user.updated_at || user.created_at
+      }));
+    } catch (error) {
+      logger.error('[TonFarmingRepository] Exception in fallback getActiveBoostUsers:', error);
       return [];
     }
   }
