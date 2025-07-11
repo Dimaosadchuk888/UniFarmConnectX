@@ -409,6 +409,18 @@ async function startServer() {
     logger.info('[Server] Express Rate Limiting ПОЛНОСТЬЮ ОТКЛЮЧЕН');
     logger.info('[Server] Reload trigger: ' + new Date().toISOString());
 
+    // TON Connect manifest endpoint - обрабатываем ДО глобального CORS middleware
+    app.get('/tonconnect-manifest.json', (req: Request, res: Response) => {
+      // Специальные CORS заголовки для TON Connect
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      
+      res.sendFile(path.resolve('client/public/tonconnect-manifest.json'));
+    });
+
     // Middleware
     app.use(cors({
       origin: config.security.cors.origin,
@@ -1179,11 +1191,7 @@ async function startServer() {
       res.sendFile(path.resolve('client/public/manifest.json'));
     });
     
-    // TON Connect manifest for wallet integration
-    app.get('/tonconnect-manifest.json', (req: Request, res: Response) => {
-      res.setHeader('Content-Type', 'application/json');
-      res.sendFile(path.resolve('client/public/tonconnect-manifest.json'));
-    });
+
 
     // Тестовый endpoint для демонстрации WebSocket уведомлений
     app.post('/api/v2/test/balance-notification', express.json(), async (req: Request, res: Response) => {
