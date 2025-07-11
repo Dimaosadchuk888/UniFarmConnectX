@@ -221,6 +221,12 @@ router.get('/me', async (req: Request, res: Response) => {
 // Удаляем его чтобы использовать правильный endpoint из modules/user/routes.ts
 // который поддерживает JWT авторизацию
 
+// Диагностика загрузки модулей
+console.log('[ROUTES] Загрузка модулей:');
+console.log('[ROUTES] - authRoutes:', typeof authRoutes);
+console.log('[ROUTES] - walletRoutes:', typeof walletRoutes);
+console.log('[ROUTES] - walletRoutes endpoints:', walletRoutes?.stack?.map((r: any) => r.route?.path));
+
 // Main auth routes
 router.use('/auth', authRoutes);
 

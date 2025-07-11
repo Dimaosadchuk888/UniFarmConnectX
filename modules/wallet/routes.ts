@@ -9,6 +9,10 @@ import { z } from 'zod';
 const router = Router();
 const walletController = new WalletController();
 
+// Диагностика загрузки модуля
+console.log('[WALLET ROUTES] Модуль wallet загружается...');
+console.log('[WALLET ROUTES] walletController создан:', !!walletController);
+
 // Валидационные схемы для wallet операций
 const withdrawSchema = z.object({
   amount: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Invalid amount format').refine(
