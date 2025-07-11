@@ -7,6 +7,7 @@ import cron from 'node-cron';
 import { supabase } from '../supabase';
 import { logger } from '../logger';
 import { BalanceNotificationService } from '../balanceNotificationService';
+import { batchBalanceProcessor } from '../BatchBalanceProcessor';
 
 export class FarmingScheduler {
   private isRunning: boolean = false;
@@ -83,31 +84,46 @@ export class FarmingScheduler {
         });
       }
 
+      // Собираем все доходы для batch обработки
+      const farmerIncomes: Array<{ userId: number; income: number; currency: 'UNI' }> = [];
+      
       for (const farmer of activeFarmers || []) {
         try {
           const income = await this.calculateUniFarmingIncome(farmer);
           
           if (parseFloat(income) > 0) {
-            // Обновляем баланс пользователя через BalanceManager
-            const balanceManager = await import('../../core/BalanceManager').then(m => m.default);
-            const addBalanceResult = await balanceManager.addBalance(
-              farmer.id,
-              parseFloat(income),
-              0,
-              'UNI farming income'
-            );
-
-            if (addBalanceResult.success) {
-              // Обновляем время последнего обновления фарминга
-              await supabase
-                .from('users')
-                .update({
-                  uni_farming_last_update: new Date().toISOString()
-                })
-                .eq('id', farmer.id);
-            }
-
-            const updateError = !addBalanceResult.success ? new Error(addBalanceResult.error || 'Balance update failed') : null;
+            farmerIncomes.push({
+              userId: farmer.id,
+              income: parseFloat(income),
+              currency: 'UNI'
+            });
+          }
+        } catch (error) {
+          logger.error(`[UNI Farming] Ошибка расчета дохода для пользователя ${farmer.id}:`, error);
+        }
+      }
+      
+      // Выполняем batch обновление балансов
+      if (farmerIncomes.length > 0) {
+        logger.info(`[UNI Farming] Начинаем batch обновление для ${farmerIncomes.length} пользователей`);
+        
+        const batchResult = await batchBalanceProcessor.processFarmingIncome(farmerIncomes);
+        
+        logger.info('[UNI Farming] Batch обновление завершено', {
+          processed: batchResult.processed,
+          failed: batchResult.failed,
+          duration: batchResult.duration
+        });
+      }
+      
+      // Обрабатываем дополнительные операции для каждого фармера
+      for (const farmer of activeFarmers || []) {
+        try {
+          const incomeData = farmerIncomes.find(f => f.userId === farmer.id);
+          if (!incomeData) continue;
+          
+          const income = incomeData.income.toString();
+          const updateError = null; // Batch обработка уже выполнена
 
             if (!updateError) {
               // Записываем сессию в farming_sessions
@@ -215,33 +231,36 @@ export class FarmingScheduler {
 
       logger.info(`[TON Farming] Найдено ${activeFarmers?.length || 0} активных сессий`);
 
+      // Собираем все доходы для batch обработки
+      const farmerIncomes: Array<{ userId: number; income: number; currency: 'TON' }> = [];
+      
       for (const session of activeFarmers || []) {
         try {
           const income = await this.calculateTonFarmingIncome(session);
           
           if (parseFloat(income) > 0) {
-            // Обновляем баланс пользователя через BalanceManager
-            const balanceManager = await import('../../core/BalanceManager').then(m => m.default);
-            const addBalanceResult = await balanceManager.addBalance(
-              session.user_id,
-              0,
-              parseFloat(income),
-              'TON farming income'
-            );
-
-            if (addBalanceResult.success) {
-              logger.info(`[FARMING_SCHEDULER] Successfully processed TON farming for user ${session.user_id}`, {
-                userId: session.user_id,
-                amount: income,
-                currency: 'TON'
-              });
-            } else {
-              logger.error(`[TON Farming] Error updating balance for user ${session.user_id}:`, addBalanceResult.error);
-            }
+            farmerIncomes.push({
+              userId: session.user_id,
+              income: parseFloat(income),
+              currency: 'TON'
+            });
           }
         } catch (error) {
           logger.error(`[TON Farming] Error processing session ${session.id}:`, error instanceof Error ? error.message : String(error));
         }
+      }
+      
+      // Выполняем batch обновление балансов
+      if (farmerIncomes.length > 0) {
+        logger.info(`[TON Farming] Начинаем batch обновление для ${farmerIncomes.length} пользователей`);
+        
+        const batchResult = await batchBalanceProcessor.processFarmingIncome(farmerIncomes);
+        
+        logger.info('[TON Farming] Batch обновление завершено', {
+          processed: batchResult.processed,
+          failed: batchResult.failed,
+          duration: batchResult.duration
+        });
       }
     } catch (error) {
       logger.error('[TON Farming] Ошибка обработки автоматического начисления:', error instanceof Error ? error.message : String(error));

@@ -13,6 +13,7 @@
 import { supabase } from './supabaseClient';
 import { logger } from './logger';
 import { BalanceNotificationService } from './balanceNotificationService';
+import { balanceCache } from './BalanceCache';
 
 export interface BalanceUpdateData {
   user_id: number;
@@ -135,6 +136,9 @@ export class BalanceManager {
         last_updated: new Date().toISOString()
       };
 
+      // Обновляем кеш с новыми балансами
+      balanceCache.set(user_id, newBalance.balance_uni, newBalance.balance_ton);
+
       // Логируем успешное обновление с деталями изменений
       logger.info('[BalanceManager] Баланс успешно обновлен', {
         user_id,
@@ -202,6 +206,20 @@ export class BalanceManager {
         return { success: false, error: 'Некорректный user_id' };
       }
 
+      // Проверяем кеш
+      const cached = balanceCache.get(user_id);
+      if (cached) {
+        return {
+          success: true,
+          balance: {
+            user_id,
+            balance_uni: cached.uniBalance,
+            balance_ton: cached.tonBalance,
+            last_updated: new Date().toISOString()
+          }
+        };
+      }
+
       const { data: user, error } = await supabase
         .from('users')
         .select('id, balance_uni, balance_ton')
@@ -223,7 +241,10 @@ export class BalanceManager {
         last_updated: new Date().toISOString()
       };
 
-      logger.info('[BalanceManager] Баланс получен:', balance);
+      // Сохраняем в кеш
+      balanceCache.set(user_id, balance.balance_uni, balance.balance_ton);
+
+      logger.info('[BalanceManager] Баланс получен и закеширован:', balance);
       return { success: true, balance };
 
     } catch (error) {
