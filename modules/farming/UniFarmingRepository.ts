@@ -292,9 +292,17 @@ export class UniFarmingRepository {
    */
   async addDeposit(userId: string, amount: string): Promise<boolean> {
     try {
+      logger.info('[UniFarmingRepository] addDeposit вызван', { userId, amount });
+      
       const existing = await this.getByUserId(userId);
       const currentDeposit = existing ? parseFloat(existing.deposit_amount) : 0;
       const newDeposit = (currentDeposit + parseFloat(amount)).toString();
+      
+      logger.info('[UniFarmingRepository] Текущий депозит', { 
+        currentDeposit, 
+        newDeposit,
+        existing: !!existing 
+      });
 
       const { error } = await supabase
         .from(this.tableName)
@@ -309,30 +317,49 @@ export class UniFarmingRepository {
         });
 
       if (error) {
+        logger.warn('[UniFarmingRepository] Ошибка при upsert в uni_farming_data', {
+          code: error.code,
+          message: error.message,
+          details: error.details
+        });
+        
         if (error.code === '42P01') {
           // Таблица не существует, используем fallback
+          logger.info('[UniFarmingRepository] Таблица uni_farming_data не существует, используем fallback на users');
           this.useFallback = true;
+          
+          const updateData = {
+            uni_deposit_amount: newDeposit,
+            uni_farming_deposit: newDeposit,
+            uni_farming_active: true,
+            uni_farming_start_timestamp: new Date().toISOString(),
+            uni_farming_last_update: new Date().toISOString()
+          };
+          
+          logger.info('[UniFarmingRepository] Обновляем users таблицу', { userId, updateData });
+          
           const { error: fallbackError } = await supabase
             .from('users')
-            .update({
-              uni_deposit_amount: newDeposit,
-              uni_farming_deposit: newDeposit,
-              uni_farming_active: true,
-              uni_farming_start_timestamp: new Date().toISOString(),
-              uni_farming_last_update: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', userId);
           
           if (fallbackError) {
-            logger.error('[UniFarmingRepository] Error adding deposit in users table:', fallbackError);
+            logger.error('[UniFarmingRepository] Error adding deposit in users table:', {
+              error: fallbackError,
+              userId,
+              updateData
+            });
             return false;
           }
+          
+          logger.info('[UniFarmingRepository] Успешно обновлено в users таблице');
           return true;
         }
         logger.error('[UniFarmingRepository] Error adding deposit:', error);
         return false;
       }
 
+      logger.info('[UniFarmingRepository] Успешно добавлен депозит в uni_farming_data');
       return true;
     } catch (error) {
       logger.error('[UniFarmingRepository] Exception adding deposit:', error);
