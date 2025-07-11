@@ -9,6 +9,11 @@ import { logger } from '../../core/logger';
 
 export async function directDepositHandler(req: Request, res: Response) {
   try {
+    console.log('\n\n=== DIRECT DEPOSIT HANDLER CALLED ===');
+    console.log('Body:', JSON.stringify(req.body));
+    console.log('User from JWT:', req.user);
+    console.log('Timestamp:', new Date().toISOString());
+    
     console.log('[DirectDeposit] CRITICAL: Прямой вызов депозита');
     logger.info('[DirectDeposit] Прямой вызов депозита', {
       body: req.body,
