@@ -62,6 +62,16 @@ export async function directDepositHandler(req: Request, res: Response) {
 
     console.log('[DirectDeposit] CRITICAL: Результат depositUniForFarming', result);
 
+    // Проверяем результат от farmingService
+    if (result && result.success === false) {
+      console.log('[DirectDeposit] CRITICAL: farmingService вернул ошибку', result);
+      return res.status(400).json({
+        success: false,
+        error: result.message || 'Ошибка обновления данных',
+        data: result
+      });
+    }
+
     res.json({
       success: true,
       data: result

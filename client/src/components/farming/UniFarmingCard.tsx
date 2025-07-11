@@ -258,9 +258,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         console.log('[UniFarmingCard] Ответ от сервера после депозита:', response);
         
         // КРИТИЧЕСКАЯ ПРОВЕРКА: убеждаемся что запрос действительно успешен
-        if (!response || !response.success) {
+        // Проверяем как внешний success, так и вложенный data.success
+        if (!response || !response.success || (response.data && response.data.success === false)) {
           console.error('[UniFarmingCard] ❌ Получен неуспешный ответ:', response);
-          setError(response?.error || response?.message || 'Ошибка при выполнении депозита');
+          const errorMessage = response?.data?.message || response?.error || response?.message || 'Ошибка при выполнении депозита';
+          setError(errorMessage);
           // НЕ обновляем баланс при ошибке!
           return;
         }
