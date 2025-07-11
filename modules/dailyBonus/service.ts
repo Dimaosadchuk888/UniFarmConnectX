@@ -170,20 +170,26 @@ export class DailyBonusService {
         };
       }
 
-      // Create transaction record
-      const { error: txError } = await supabase
-        .from(DAILY_BONUS_TABLES.TRANSACTIONS)
-        .insert([{
+      // Создаем транзакцию через UnifiedTransactionService
+      const { UnifiedTransactionService } = await import('../../core/TransactionService');
+      const transactionService = UnifiedTransactionService.getInstance();
+      
+      try {
+        await transactionService.createTransaction({
           user_id: userIdNumber,
           type: 'DAILY_BONUS',
           amount_uni: parseFloat(bonusAmount),
           amount_ton: 0,
+          currency: 'UNI',
+          status: 'completed',
           description: `Daily bonus day ${newStreak}`,
-          created_at: now.toISOString()
-        }]);
-
-      if (txError) {
-        logger.warn('[DailyBonusService] Ошибка создания транзакции:', txError.message);
+          metadata: {
+            streak: newStreak,
+            bonus_amount: parseFloat(bonusAmount)
+          }
+        });
+      } catch (txError) {
+        logger.warn('[DailyBonusService] Ошибка создания транзакции:', txError);
       }
 
       // Записываем в daily_bonus_logs (правильное название таблицы)

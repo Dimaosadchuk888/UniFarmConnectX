@@ -134,17 +134,23 @@ export class MissionsService {
         return { success: false, message: result.error || 'Ошибка начисления награды' };
       }
 
-      // Добавляем транзакцию о награде
-      await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          type: 'MISSION_REWARD',
-          amount_uni: rewardAmount.toString(),
-          amount_ton: '0',
-          description: `Mission ${missionId} reward`,
-          created_at: new Date().toISOString()
-        });
+      // Создаем транзакцию через UnifiedTransactionService
+      const { UnifiedTransactionService } = await import('../../core/TransactionService');
+      const transactionService = UnifiedTransactionService.getInstance();
+      
+      await transactionService.createTransaction({
+        user_id: user.id,
+        type: 'MISSION_REWARD',
+        amount_uni: rewardAmount,
+        amount_ton: 0,
+        currency: 'UNI',
+        status: 'completed',
+        description: `Mission ${missionId} reward`,
+        metadata: {
+          mission_id: missionId,
+          reward_amount: rewardAmount
+        }
+      });
 
       // Сохраняем прогресс миссии в mission_progress
       try {
