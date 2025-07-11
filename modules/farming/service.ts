@@ -179,6 +179,13 @@ export class FarmingService {
   }
 
   async depositUniForFarming(userId: string, amount: string): Promise<{ success: boolean; message: string }> {
+    // КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ ДЛЯ ОТЛАДКИ
+    console.log('\n\n=== DEPOSIT UNI FARMING CALLED ===');
+    console.log('User ID:', userId);
+    console.log('Amount:', amount);
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Stack trace:', new Error().stack);
+    
     try {
       logger.info('[FarmingService] Депозит для фарминга', { 
         userId, 
@@ -317,13 +324,21 @@ export class FarmingService {
         userId: user.id,
         depositAmount
       });
+      
+      // КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ ДЛЯ ОТЛАДКИ
+      console.log('[FARMING DEPOSIT] === НАЧАЛО СОЗДАНИЯ ТРАНЗАКЦИИ ===');
+      console.log('[FARMING DEPOSIT] User ID:', user.id);
+      console.log('[FARMING DEPOSIT] Deposit Amount:', depositAmount);
+      console.log('[FARMING DEPOSIT] Timestamp:', new Date().toISOString());
 
       try {
         const transactionPayload = {
           user_id: user.id,
           type: 'FARMING_DEPOSIT',  // ИСПРАВЛЕНО: Используем новый тип для депозитов
+          amount: depositAmount.toString(),  // ДОБАВЛЕНО: общее поле amount
           amount_uni: depositAmount.toString(),  // ИСПРАВЛЕНО: Положительная сумма для депозита
           amount_ton: '0',  // Правильное поле для TON
+          currency: 'UNI',  // ДОБАВЛЕНО: поле currency
           status: 'confirmed',  // Используем confirmed как в существующей транзакции
           description: `UNI farming deposit: ${amount}`
         };
@@ -333,6 +348,8 @@ export class FarmingService {
           userId: user.id,
           depositAmount: depositAmount
         });
+        
+        console.log('[FARMING DEPOSIT] Transaction Payload:', JSON.stringify(transactionPayload, null, 2));
 
         const { data: transactionData, error: transactionError } = await supabase
           .from(FARMING_TABLES.TRANSACTIONS)
