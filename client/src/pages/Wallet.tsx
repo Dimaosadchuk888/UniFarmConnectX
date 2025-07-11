@@ -1,5 +1,6 @@
 import React from 'react';
 import BalanceCard from '@/components/wallet/BalanceCard';
+import TonDepositCard from '@/components/wallet/TonDepositCard';
 import WithdrawalForm from '@/components/wallet/WithdrawalForm';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -49,6 +50,14 @@ const Wallet: React.FC = () => {
           onReset={() => window.location.reload()}
         >
           <BalanceCard />
+        </ErrorBoundary>
+        
+        {/* Форма пополнения через TON Wallet с ErrorBoundary */}
+        <ErrorBoundary
+          FallbackComponent={ErrorFallback}
+          onReset={() => window.location.reload()}
+        >
+          <TonDepositCard />
         </ErrorBoundary>
         
         {/* Форма вывода средств с ErrorBoundary */}

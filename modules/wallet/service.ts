@@ -351,6 +351,95 @@ export class WalletService {
     }
   }
 
+  /**
+   * Обрабатывает TON депозит
+   */
+  async processTonDeposit(params: {
+    user_id: number;
+    ton_tx_hash: string;
+    amount: number;
+    wallet_address: string;
+  }): Promise<{ success: boolean; transaction_id?: string; error?: string }> {
+    try {
+      const { user_id, ton_tx_hash, amount, wallet_address } = params;
+
+      logger.info('[WalletService] Обработка TON депозита', {
+        userId: user_id,
+        amount,
+        txHash: ton_tx_hash,
+        walletAddress: wallet_address
+      });
+
+      // Проверяем, не был ли уже обработан этот депозит
+      const existingTransaction = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('description', ton_tx_hash)
+        .eq('type', 'DEPOSIT')
+        .single();
+
+      if (existingTransaction.data) {
+        logger.warn('[WalletService] Депозит уже был обработан', {
+          userId: user_id,
+          txHash: ton_tx_hash
+        });
+        return {
+          success: false,
+          error: 'Этот депозит уже был обработан'
+        };
+      }
+
+      // Начисляем TON на баланс пользователя
+      const balanceResult = await BalanceManager.addBalance(user_id, amount, 'TON');
+      
+      if (!balanceResult.success) {
+        throw new Error('Не удалось обновить баланс');
+      }
+
+      // Создаем запись транзакции
+      const transactionResult = await UnifiedTransactionService.createTransaction({
+        user_id,
+        amount,
+        type: 'DEPOSIT',
+        currency: 'TON',
+        status: 'completed',
+        description: ton_tx_hash,
+        metadata: {
+          source: 'ton_deposit',
+          wallet_address,
+          tx_hash: ton_tx_hash
+        }
+      });
+
+      if (!transactionResult.success) {
+        // Откатываем баланс в случае ошибки
+        await BalanceManager.subtractBalance(user_id, amount, 'TON');
+        throw new Error('Не удалось создать транзакцию');
+      }
+
+      logger.info('[WalletService] TON депозит успешно обработан', {
+        userId: user_id,
+        amount,
+        transactionId: transactionResult.transaction?.id
+      });
+
+      return {
+        success: true,
+        transaction_id: transactionResult.transaction?.id?.toString()
+      };
+    } catch (error) {
+      logger.error('[WalletService] Ошибка при обработке TON депозита', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        params
+      });
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка'
+      };
+    }
+  }
+
   async processWithdrawal(userId: string, amount: string, type: 'UNI' | 'TON', walletAddress?: string): Promise<boolean | { success: false; error: string }> {
     try {
       // Получаем пользователя

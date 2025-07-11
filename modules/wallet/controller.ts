@@ -345,6 +345,54 @@ export class WalletController extends BaseController {
     }
   }
 
+  async tonDeposit(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const { ton_tx_hash, amount, wallet_address } = req.body;
+
+        // Валидация входных данных
+        if (!ton_tx_hash || !amount || !wallet_address) {
+          return this.sendError(res, 'Не все обязательные поля заполнены', 400);
+        }
+
+        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        if (!user) {
+          return this.sendError(res, 'Пользователь не найден', 404);
+        }
+
+        // Обработка депозита
+        const result = await walletService.processTonDeposit({
+          user_id: user.id,
+          ton_tx_hash,
+          amount: parseFloat(amount),
+          wallet_address
+        });
+
+        if (!result.success) {
+          return this.sendError(res, result.error || 'Ошибка обработки депозита', 400);
+        }
+
+        logger.info('[WalletController] TON депозит успешно обработан', {
+          userId: user.id,
+          amount,
+          txHash: ton_tx_hash
+        });
+
+        this.sendSuccess(res, {
+          message: 'Депозит успешно обработан',
+          transaction_id: result.transaction_id,
+          amount: amount,
+          currency: 'TON'
+        });
+      }, 'обработки TON депозита');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async transfer(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {

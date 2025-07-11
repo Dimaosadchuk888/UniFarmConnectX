@@ -55,6 +55,12 @@ const transferSchema = z.object({
   currency: z.enum(['UNI', 'TON'], { errorMap: () => ({ message: 'Currency must be UNI or TON' }) })
 });
 
+const tonDepositSchema = z.object({
+  ton_tx_hash: z.string().min(1, 'Transaction hash is required'),
+  amount: z.number().positive('Amount must be positive'),
+  wallet_address: z.string().min(1, 'Wallet address is required')
+});
+
 // Простой обработчик для получения баланса по user_id - используем massOperationsRateLimit для частых обновлений
 router.get('/balance', massOperationsRateLimit, getDirectBalance);
 
@@ -69,6 +75,7 @@ router.post('/withdraw', requireTelegramAuth, strictRateLimit, validateBody(with
 router.post('/transfer', requireTelegramAuth, strictRateLimit, validateBody(transferSchema), walletController.transfer.bind(walletController)); // Внутренние переводы
 router.post('/save-ton-address', requireTelegramAuth, strictRateLimit, walletController.saveTonAddress.bind(walletController)); // Сохранение TON адреса
 router.post('/connect-ton', requireTelegramAuth, strictRateLimit, walletController.connectTonWallet.bind(walletController)); // Подключение TON кошелька
+router.post('/ton-deposit', requireTelegramAuth, standardRateLimit, validateBody(tonDepositSchema), walletController.tonDeposit.bind(walletController)); // Пополнение через TON
 
 // Внутренние системные endpoints (для использования другими модулями)
 // Эти endpoints предназначены для внутренних операций системы и требуют специальной авторизации
