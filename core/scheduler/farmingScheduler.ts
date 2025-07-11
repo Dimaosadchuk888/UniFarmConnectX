@@ -200,9 +200,10 @@ export class FarmingScheduler {
                 });
               }
             }
-          }
         } catch (error) {
           logger.error(`[UNI Farming] Error processing farmer ${farmer.id}:`, error instanceof Error ? error.message : String(error));
+        } finally {
+          // Continue processing other farmers
         }
       }
     } catch (error) {
