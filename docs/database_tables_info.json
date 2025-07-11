@@ -1,0 +1,140 @@
+[
+  {
+    "tableName": "users",
+    "columns": [
+      "id",
+      "telegram_id",
+      "username",
+      "first_name",
+      "wallet",
+      "ref_code",
+      "referred_by",
+      "balance_uni",
+      "balance_ton",
+      "uni_deposit_amount",
+      "uni_farming_start_timestamp",
+      "uni_farming_balance",
+      "uni_farming_rate",
+      "uni_farming_last_update",
+      "uni_farming_deposit",
+      "created_at",
+      "checkin_last_date",
+      "checkin_streak",
+      "is_admin",
+      "ton_boost_package",
+      "ton_farming_balance",
+      "ton_farming_rate",
+      "ton_farming_start_timestamp",
+      "ton_farming_last_update",
+      "ton_farming_accumulated",
+      "ton_farming_last_claim",
+      "ton_boost_active",
+      "ton_boost_package_id",
+      "ton_boost_rate",
+      "ton_boost_expires_at",
+      "uni_farming_active",
+      "last_active",
+      "referrer_id",
+      "ton_wallet_address",
+      "ton_wallet_verified",
+      "ton_wallet_linked_at"
+    ],
+    "rowCount": 64
+  },
+  {
+    "tableName": "user_sessions",
+    "columns": [],
+    "rowCount": 0
+  },
+  {
+    "tableName": "transactions",
+    "columns": [
+      "id",
+      "user_id",
+      "type",
+      "amount_uni",
+      "amount_ton",
+      "description",
+      "created_at",
+      "metadata",
+      "status",
+      "source",
+      "tx_hash",
+      "source_user_id",
+      "action",
+      "currency",
+      "amount"
+    ],
+    "rowCount": 595958
+  },
+  {
+    "tableName": "referrals",
+    "columns": [],
+    "rowCount": 0
+  },
+  {
+    "tableName": "farming_sessions",
+    "columns": [],
+    "rowCount": 0
+  },
+  {
+    "tableName": "boost_purchases",
+    "columns": [],
+    "rowCount": 0
+  },
+  {
+    "tableName": "missions",
+    "columns": [
+      "id",
+      "title",
+      "description",
+      "mission_type",
+      "target_value",
+      "reward_amount",
+      "reward_type",
+      "requirements",
+      "start_date",
+      "end_date",
+      "is_active",
+      "is_repeatable",
+      "sort_order",
+      "created_at",
+      "updated_at",
+      "reward_uni",
+      "reward_ton",
+      "status"
+    ],
+    "rowCount": 5
+  },
+  {
+    "tableName": "user_missions",
+    "columns": [],
+    "rowCount": 0
+  },
+  {
+    "tableName": "airdrops",
+    "columns": [],
+    "rowCount": 0
+  },
+  {
+    "tableName": "daily_bonus_logs",
+    "columns": [],
+    "rowCount": 0
+  },
+  {
+    "tableName": "withdraw_requests",
+    "columns": [
+      "id",
+      "user_id",
+      "telegram_id",
+      "username",
+      "amount_ton",
+      "ton_wallet",
+      "status",
+      "created_at",
+      "processed_at",
+      "processed_by"
+    ],
+    "rowCount": 12
+  }
+]
