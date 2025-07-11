@@ -39,19 +39,19 @@ interface AppState {
 }
 
 function App() {
-  // Preview mode detection - token should be set via authentication flow
-  useEffect(() => {
-    if (window.location.hostname.includes('replit') && !localStorage.getItem('unifarm_jwt_token')) {
-      console.log('[App] Preview mode detected, no JWT token found - authentication required');
-    }
-  }, []);
-
   const [state, setState] = useState<AppState>({
     isLoading: true,
     userId: null,
     activeTab: "dashboard",
     authError: null
   });
+
+  // Preview mode detection - token should be set via authentication flow
+  useEffect(() => {
+    if (window.location.hostname.includes('replit') && !localStorage.getItem('unifarm_jwt_token')) {
+      console.log('[App] Preview mode detected, no JWT token found - authentication required');
+    }
+  }, []);
 
   const { isReady: telegramReady, user: telegramUser, initData } = useTelegram();
   const { isAuthenticating, authError: autoAuthError } = useAutoAuth();
@@ -268,8 +268,8 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
-        <ErrorBoundary>
+      <ErrorBoundary>
+        <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
           <NotificationProvider>
             <UserProvider>
               <WebSocketProvider>
@@ -286,8 +286,8 @@ function App() {
               </WebSocketProvider>
             </UserProvider>
           </NotificationProvider>
-        </ErrorBoundary>
-      </TonConnectUIProvider>
+        </TonConnectUIProvider>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }
