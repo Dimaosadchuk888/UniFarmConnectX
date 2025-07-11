@@ -121,19 +121,21 @@ export class TONBoostIncomeScheduler {
 
           // Обновляем баланс пользователя
           const userCurrentBalance = parseFloat(user.balance_ton || '0');
-          const userNewBalance = userCurrentBalance + fiveMinuteIncome;
+          // Обновляем баланс через BalanceManager
+          const { default: balanceManager } = await import('../../core/BalanceManager');
+          const addBalanceResult = await balanceManager.addBalance(
+            user.id,
+            0,
+            fiveMinuteIncome,
+            'TON Boost income'
+          );
 
-          const { error: updateError } = await supabase
-            .from('users')
-            .update({
-              balance_ton: userNewBalance.toFixed(8)
-            })
-            .eq('id', user.id);
-
-          if (updateError) {
-            logger.error(`[TON_BOOST_SCHEDULER] Ошибка обновления баланса User ${user.id}:`, updateError);
+          if (!addBalanceResult.success) {
+            logger.error(`[TON_BOOST_SCHEDULER] Ошибка обновления баланса User ${user.id}:`, addBalanceResult.error);
             continue;
           }
+
+          const userNewBalance = userCurrentBalance + fiveMinuteIncome;
 
           // Создаем транзакцию через унифицированный сервис
           const { error: transactionError } = await supabase

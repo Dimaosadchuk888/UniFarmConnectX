@@ -88,14 +88,26 @@ export class FarmingScheduler {
           const income = await this.calculateUniFarmingIncome(farmer);
           
           if (parseFloat(income) > 0) {
-            // Обновляем баланс пользователя
-            const { error: updateError } = await supabase
-              .from('users')
-              .update({
-                balance_uni: parseFloat(farmer.balance_uni || '0') + parseFloat(income),
-                uni_farming_last_update: new Date().toISOString()
-              })
-              .eq('id', farmer.id);
+            // Обновляем баланс пользователя через BalanceManager
+            const balanceManager = await import('../../core/BalanceManager').then(m => m.default);
+            const addBalanceResult = await balanceManager.addBalance(
+              farmer.id,
+              parseFloat(income),
+              0,
+              'UNI farming income'
+            );
+
+            if (addBalanceResult.success) {
+              // Обновляем время последнего обновления фарминга
+              await supabase
+                .from('users')
+                .update({
+                  uni_farming_last_update: new Date().toISOString()
+                })
+                .eq('id', farmer.id);
+            }
+
+            const updateError = !addBalanceResult.success ? new Error(addBalanceResult.error || 'Balance update failed') : null;
 
             if (!updateError) {
               // Записываем сессию в farming_sessions
@@ -208,20 +220,23 @@ export class FarmingScheduler {
           const income = await this.calculateTonFarmingIncome(session);
           
           if (parseFloat(income) > 0) {
-            // Обновляем баланс пользователя
-            const { error: updateError } = await supabase
-              .from('users')
-              .update({
-                balance_ton: parseFloat(session.users?.balance_ton || '0') + parseFloat(income)
-              })
-              .eq('id', session.user_id);
+            // Обновляем баланс пользователя через BalanceManager
+            const balanceManager = await import('../../core/BalanceManager').then(m => m.default);
+            const addBalanceResult = await balanceManager.addBalance(
+              session.user_id,
+              0,
+              parseFloat(income),
+              'TON farming income'
+            );
 
-            if (!updateError) {
+            if (addBalanceResult.success) {
               logger.info(`[FARMING_SCHEDULER] Successfully processed TON farming for user ${session.user_id}`, {
                 userId: session.user_id,
                 amount: income,
                 currency: 'TON'
               });
+            } else {
+              logger.error(`[TON Farming] Error updating balance for user ${session.user_id}:`, addBalanceResult.error);
             }
           }
         } catch (error) {
