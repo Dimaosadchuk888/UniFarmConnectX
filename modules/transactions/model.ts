@@ -15,7 +15,8 @@ export const TRANSACTIONS_FIELDS = [
   'description',
   'metadata',
   'created_at',
-  'updated_at'
+  'updated_at',
+  'tx_hash'
 ];
 
 export const TRANSACTION_TYPES = {
