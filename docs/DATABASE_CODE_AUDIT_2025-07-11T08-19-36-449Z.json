@@ -1,0 +1,1442 @@
+{
+  "timestamp": "2025-07-11T08:19:30.887Z",
+  "database": {
+    "tables": {
+      "users": {
+        "exists": true,
+        "fields": {
+          "id": {
+            "type": "number",
+            "nullable": false,
+            "sample": 49
+          },
+          "telegram_id": {
+            "type": "number",
+            "nullable": false,
+            "sample": 48
+          },
+          "username": {
+            "type": "string",
+            "nullable": false,
+            "sample": "dev_user"
+          },
+          "first_name": {
+            "type": "string",
+            "nullable": false,
+            "sample": "Dev User"
+          },
+          "wallet": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "ref_code": {
+            "type": "string",
+            "nullable": false,
+            "sample": "REF_1751400282393_5su2uc"
+          },
+          "referred_by": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "balance_uni": {
+            "type": "number",
+            "nullable": false,
+            "sample": 110
+          },
+          "balance_ton": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "uni_deposit_amount": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "uni_farming_start_timestamp": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "uni_farming_balance": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "uni_farming_rate": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "uni_farming_last_update": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "uni_farming_deposit": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "created_at": {
+            "type": "string",
+            "nullable": false,
+            "sample": "2025-07-01T20:04:42.393"
+          },
+          "checkin_last_date": {
+            "type": "string",
+            "nullable": false,
+            "sample": "2025-07-01T20:12:41.434"
+          },
+          "checkin_streak": {
+            "type": "number",
+            "nullable": false,
+            "sample": 1
+          },
+          "is_admin": {
+            "type": "boolean",
+            "nullable": false,
+            "sample": false
+          },
+          "ton_boost_package": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "ton_farming_balance": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "ton_farming_rate": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0.001
+          },
+          "ton_farming_start_timestamp": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "ton_farming_last_update": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "ton_farming_accumulated": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "ton_farming_last_claim": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "ton_boost_active": {
+            "type": "boolean",
+            "nullable": false,
+            "sample": false
+          },
+          "ton_boost_package_id": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "ton_boost_rate": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "ton_boost_expires_at": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "uni_farming_active": {
+            "type": "boolean",
+            "nullable": false,
+            "sample": false
+          },
+          "last_active": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "referrer_id": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "ton_wallet_address": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "ton_wallet_verified": {
+            "type": "boolean",
+            "nullable": false,
+            "sample": false
+          },
+          "ton_wallet_linked_at": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          }
+        },
+        "recordCount": 1
+      },
+      "transactions": {
+        "exists": true,
+        "fields": {
+          "id": {
+            "type": "number",
+            "nullable": false,
+            "sample": 543328
+          },
+          "user_id": {
+            "type": "number",
+            "nullable": false,
+            "sample": 54
+          },
+          "type": {
+            "type": "string",
+            "nullable": false,
+            "sample": "REFERRAL_REWARD"
+          },
+          "amount_uni": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "amount_ton": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0.000067
+          },
+          "description": {
+            "type": "string",
+            "nullable": false,
+            "sample": "Referral L2 from User 56: 0.00006653 TON (2%)"
+          },
+          "created_at": {
+            "type": "string",
+            "nullable": false,
+            "sample": "2025-07-09T10:48:53.881"
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "status": {
+            "type": "string",
+            "nullable": false,
+            "sample": "completed"
+          },
+          "source": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "tx_hash": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "source_user_id": {
+            "type": "number",
+            "nullable": false,
+            "sample": 56
+          },
+          "action": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "currency": {
+            "type": "string",
+            "nullable": false,
+            "sample": "TON"
+          },
+          "amount": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0.000067
+          }
+        },
+        "recordCount": 1
+      },
+      "referrals": {
+        "exists": true,
+        "fields": {},
+        "recordCount": 0,
+        "empty": true
+      },
+      "farming_sessions": {
+        "exists": true,
+        "fields": {},
+        "recordCount": 0,
+        "empty": true
+      },
+      "user_sessions": {
+        "exists": true,
+        "fields": {},
+        "recordCount": 0,
+        "empty": true
+      },
+      "boost_purchases": {
+        "exists": true,
+        "fields": {},
+        "recordCount": 0,
+        "empty": true
+      },
+      "missions": {
+        "exists": true,
+        "fields": {
+          "id": {
+            "type": "number",
+            "nullable": false,
+            "sample": 1
+          },
+          "title": {
+            "type": "string",
+            "nullable": false,
+            "sample": "Подписаться на Telegram канал"
+          },
+          "description": {
+            "type": "string",
+            "nullable": false,
+            "sample": "Подпишись на Telegram-канал Universe Games https://t.me/UniverseGamesChannel"
+          },
+          "mission_type": {
+            "type": "string",
+            "nullable": false,
+            "sample": "one_time"
+          },
+          "target_value": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "reward_amount": {
+            "type": "string",
+            "nullable": false,
+            "sample": "500"
+          },
+          "reward_type": {
+            "type": "string",
+            "nullable": false,
+            "sample": "UNI"
+          },
+          "requirements": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "start_date": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "end_date": {
+            "type": "object",
+            "nullable": true,
+            "sample": null
+          },
+          "is_active": {
+            "type": "boolean",
+            "nullable": false,
+            "sample": true
+          },
+          "is_repeatable": {
+            "type": "boolean",
+            "nullable": false,
+            "sample": false
+          },
+          "sort_order": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "created_at": {
+            "type": "string",
+            "nullable": false,
+            "sample": "2025-07-09T08:31:02.797846+00:00"
+          },
+          "updated_at": {
+            "type": "string",
+            "nullable": false,
+            "sample": "2025-07-09T08:31:02.797846+00:00"
+          },
+          "reward_uni": {
+            "type": "number",
+            "nullable": false,
+            "sample": 500
+          },
+          "reward_ton": {
+            "type": "number",
+            "nullable": false,
+            "sample": 0
+          },
+          "status": {
+            "type": "string",
+            "nullable": false,
+            "sample": "active"
+          }
+        },
+        "recordCount": 1
+      },
+      "user_missions": {
+        "exists": true,
+        "fields": {},
+        "recordCount": 0,
+        "empty": true
+      },
+      "airdrops": {
+        "exists": true,
+        "fields": {},
+        "recordCount": 0,
+        "empty": true
+      },
+      "daily_bonus_logs": {
+        "exists": true,
+        "fields": {},
+        "recordCount": 0,
+        "empty": true
+      },
+      "withdraw_requests": {
+        "exists": true,
+        "fields": {
+          "id": {
+            "type": "string",
+            "nullable": false,
+            "sample": "2e886aae-80fd-45ec-821b-a831d3972d49"
+          },
+          "user_id": {
+            "type": "number",
+            "nullable": false,
+            "sample": 48
+          },
+          "telegram_id": {
+            "type": "string",
+            "nullable": false,
+            "sample": "88888888"
+          },
+          "username": {
+            "type": "string",
+            "nullable": false,
+            "sample": "demo_user"
+          },
+          "amount_ton": {
+            "type": "number",
+            "nullable": false,
+            "sample": 25.5
+          },
+          "ton_wallet": {
+            "type": "string",
+            "nullable": false,
+            "sample": "UQC7VNTwqVDNzRYvEcxw3Ls5_BLuKaUE_jPZ_mXvzP3obxvP"
+          },
+          "status": {
+            "type": "string",
+            "nullable": false,
+            "sample": "approved"
+          },
+          "created_at": {
+            "type": "string",
+            "nullable": false,
+            "sample": "2025-07-05T10:40:43.322937+00:00"
+          },
+          "processed_at": {
+            "type": "string",
+            "nullable": false,
+            "sample": "2025-07-05T11:08:54.377+00:00"
+          },
+          "processed_by": {
+            "type": "string",
+            "nullable": false,
+            "sample": "DimaOsadchuk"
+          }
+        },
+        "recordCount": 1
+      }
+    },
+    "missingTables": [],
+    "totalTables": 11
+  },
+  "codebase": {
+    "entities": {
+      "users": {
+        "files": [
+          "modules/admin/model.ts",
+          "modules/adminBot/model.ts",
+          "modules/adminBot/service.ts",
+          "modules/auth/model.ts",
+          "modules/boost/model.ts",
+          "modules/boost/service.ts",
+          "modules/dailyBonus/controller.ts",
+          "modules/dailyBonus/model.ts",
+          "modules/dailyBonus/routes.ts",
+          "modules/debug/debugRoutes.ts",
+          "modules/farming/directFarmingStatus.ts",
+          "modules/farming/model.ts",
+          "modules/missions/model.ts",
+          "modules/monitor/model.ts",
+          "modules/monitor/service.ts",
+          "modules/referral/model.ts",
+          "modules/referral/service.ts",
+          "modules/scheduler/tonBoostIncomeScheduler.ts",
+          "modules/telegram/model.ts",
+          "modules/tonFarming/model.ts",
+          "modules/tonFarming/service.ts",
+          "modules/user/controller.ts",
+          "modules/user/model.ts",
+          "modules/user/service.ts",
+          "modules/wallet/controller.ts",
+          "modules/wallet/model.ts"
+        ],
+        "fields": {},
+        "types": {},
+        "services": [
+          "adminBot/service",
+          "boost/service",
+          "monitor/service",
+          "referral/service",
+          "tonFarming/service",
+          "user/service"
+        ],
+        "controllers": [
+          "dailyBonus/controller",
+          "user/controller",
+          "wallet/controller"
+        ]
+      },
+      "transactions": {
+        "files": [
+          "modules/admin/model.ts",
+          "modules/adminBot/model.ts",
+          "modules/adminBot/service.ts",
+          "modules/boost/model.ts",
+          "modules/boost/service.ts",
+          "modules/dailyBonus/model.ts",
+          "modules/farming/model.ts",
+          "modules/missions/model.ts",
+          "modules/missions/service.ts",
+          "modules/monitor/model.ts",
+          "modules/monitor/service.ts",
+          "modules/referral/model.ts",
+          "modules/referral/service.ts",
+          "modules/scheduler/tonBoostIncomeScheduler.ts",
+          "modules/tonFarming/model.ts",
+          "modules/transactions/model.ts",
+          "modules/transactions/routes.ts",
+          "modules/user/controller.ts",
+          "modules/wallet/model.ts"
+        ],
+        "fields": {},
+        "types": {},
+        "services": [
+          "adminBot/service",
+          "boost/service",
+          "missions/service",
+          "monitor/service",
+          "referral/service"
+        ],
+        "controllers": [
+          "user/controller"
+        ]
+      },
+      "referrals": {
+        "files": [
+          "modules/referral/model.ts"
+        ],
+        "fields": {},
+        "types": {
+          "total_referrals": "number",
+          "active_referrals": "number",
+          "total_earnings": "string",
+          "referral_levels": "Record<number",
+          "top_referrers": "Array<{",
+          "user_id": "string",
+          "username": "string",
+          "referral_count": "number"
+        },
+        "services": [],
+        "controllers": []
+      },
+      "farming_sessions": {
+        "files": [
+          "modules/admin/model.ts",
+          "modules/farming/model.ts",
+          "modules/farming/service.ts",
+          "modules/monitor/model.ts",
+          "modules/monitor/service.ts",
+          "modules/tonFarming/model.ts"
+        ],
+        "fields": {},
+        "types": {},
+        "services": [
+          "farming/service",
+          "monitor/service"
+        ],
+        "controllers": []
+      },
+      "user_sessions": {
+        "files": [
+          "modules/admin/model.ts",
+          "modules/auth/model.ts",
+          "modules/telegram/model.ts",
+          "modules/user/model.ts"
+        ],
+        "fields": {},
+        "types": {},
+        "services": [],
+        "controllers": []
+      },
+      "boost_purchases": {
+        "files": [
+          "modules/boost/service.ts"
+        ],
+        "fields": {},
+        "types": {},
+        "services": [
+          "boost/service"
+        ],
+        "controllers": []
+      },
+      "missions": {
+        "files": [
+          "modules/adminBot/controller.ts"
+        ],
+        "fields": {},
+        "types": {},
+        "services": [],
+        "controllers": [
+          "adminBot/controller"
+        ]
+      },
+      "user_missions": {
+        "files": [],
+        "fields": {},
+        "types": {},
+        "services": [],
+        "controllers": []
+      },
+      "airdrops": {
+        "files": [],
+        "fields": {},
+        "types": {},
+        "services": [],
+        "controllers": []
+      },
+      "daily_bonus_logs": {
+        "files": [
+          "modules/dailyBonus/service.ts"
+        ],
+        "fields": {},
+        "types": {},
+        "services": [
+          "dailyBonus/service"
+        ],
+        "controllers": []
+      },
+      "withdraw_requests": {
+        "files": [
+          "modules/adminBot/service.ts",
+          "modules/wallet/service.ts"
+        ],
+        "fields": {},
+        "types": {},
+        "services": [
+          "adminBot/service",
+          "wallet/service"
+        ],
+        "controllers": []
+      }
+    },
+    "unmappedFields": [],
+    "totalEntities": 9
+  },
+  "comparison": {
+    "matches": [
+      {
+        "entity": "user_sessions",
+        "status": "ok",
+        "issues": [],
+        "warnings": []
+      },
+      {
+        "entity": "missions",
+        "status": "ok",
+        "issues": [],
+        "warnings": [
+          {
+            "type": "WARN",
+            "message": "Поля существуют в БД, но не используются в коде",
+            "fields": [
+              "title",
+              "description",
+              "mission_type",
+              "target_value",
+              "reward_amount",
+              "reward_type",
+              "requirements",
+              "start_date",
+              "end_date",
+              "is_active",
+              "is_repeatable",
+              "sort_order",
+              "reward_uni",
+              "reward_ton",
+              "status"
+            ]
+          }
+        ]
+      }
+    ],
+    "mismatches": [
+      {
+        "entity": "users",
+        "status": "has_errors",
+        "issues": [
+          {
+            "type": "ERROR",
+            "message": "Поля используются в коде, но отсутствуют в БД",
+            "fields": [
+              "is_active",
+              "status",
+              "processed_at",
+              "processed_by",
+              "user_id",
+              "type",
+              "amount_uni",
+              "amount_ton",
+              "currency",
+              "tx_hash",
+              "description",
+              "updated_at",
+              "uni_balance",
+              "ton_balance",
+              "filter",
+              "inviter_id",
+              "level",
+              "reward_uni",
+              "reward_ton",
+              "ref_path",
+              "referrer_user_id",
+              "referred_user_id",
+              "percentage",
+              "amount",
+              "source_type"
+            ],
+            "files": [
+              "modules/admin/model.ts",
+              "modules/adminBot/model.ts",
+              "modules/adminBot/service.ts",
+              "modules/auth/model.ts",
+              "modules/boost/model.ts",
+              "modules/boost/service.ts",
+              "modules/dailyBonus/controller.ts",
+              "modules/dailyBonus/model.ts",
+              "modules/dailyBonus/routes.ts",
+              "modules/debug/debugRoutes.ts",
+              "modules/farming/directFarmingStatus.ts",
+              "modules/farming/model.ts",
+              "modules/missions/model.ts",
+              "modules/monitor/model.ts",
+              "modules/monitor/service.ts",
+              "modules/referral/model.ts",
+              "modules/referral/service.ts",
+              "modules/scheduler/tonBoostIncomeScheduler.ts",
+              "modules/telegram/model.ts",
+              "modules/tonFarming/model.ts",
+              "modules/tonFarming/service.ts",
+              "modules/user/controller.ts",
+              "modules/user/model.ts",
+              "modules/user/service.ts",
+              "modules/wallet/controller.ts",
+              "modules/wallet/model.ts"
+            ]
+          }
+        ],
+        "warnings": [
+          {
+            "type": "WARN",
+            "message": "Поля существуют в БД, но не используются в коде",
+            "fields": [
+              "wallet",
+              "uni_deposit_amount",
+              "uni_farming_balance",
+              "uni_farming_rate",
+              "uni_farming_last_update",
+              "uni_farming_deposit",
+              "checkin_last_date",
+              "checkin_streak",
+              "ton_farming_balance",
+              "ton_farming_accumulated",
+              "ton_farming_last_claim",
+              "ton_boost_active",
+              "ton_boost_package_id",
+              "ton_boost_expires_at",
+              "uni_farming_active",
+              "last_active",
+              "ton_wallet_address",
+              "ton_wallet_verified",
+              "ton_wallet_linked_at"
+            ]
+          }
+        ]
+      },
+      {
+        "entity": "transactions",
+        "status": "has_errors",
+        "issues": [
+          {
+            "type": "ERROR",
+            "message": "Поля используются в коде, но отсутствуют в БД",
+            "fields": [
+              "is_admin",
+              "is_active",
+              "processed_at",
+              "processed_by",
+              "balance_uni",
+              "ton_boost_package",
+              "ton_boost_rate",
+              "updated_at",
+              "mission_id",
+              "is_completed",
+              "completed_at",
+              "reward_claimed",
+              "reward_amount",
+              "balance_ton",
+              "referrer_id",
+              "ref_code",
+              "telegram_id",
+              "username",
+              "referred_by",
+              "first_name",
+              "uni_balance",
+              "ton_balance",
+              "uni_farming_start_timestamp",
+              "inviter_id",
+              "level",
+              "reward_uni",
+              "reward_ton",
+              "ref_path",
+              "referrer_user_id",
+              "referred_user_id",
+              "percentage",
+              "source_type"
+            ],
+            "files": [
+              "modules/admin/model.ts",
+              "modules/adminBot/model.ts",
+              "modules/adminBot/service.ts",
+              "modules/boost/model.ts",
+              "modules/boost/service.ts",
+              "modules/dailyBonus/model.ts",
+              "modules/farming/model.ts",
+              "modules/missions/model.ts",
+              "modules/missions/service.ts",
+              "modules/monitor/model.ts",
+              "modules/monitor/service.ts",
+              "modules/referral/model.ts",
+              "modules/referral/service.ts",
+              "modules/scheduler/tonBoostIncomeScheduler.ts",
+              "modules/tonFarming/model.ts",
+              "modules/transactions/model.ts",
+              "modules/transactions/routes.ts",
+              "modules/user/controller.ts",
+              "modules/wallet/model.ts"
+            ]
+          }
+        ],
+        "warnings": [
+          {
+            "type": "WARN",
+            "message": "Поля существуют в БД, но не используются в коде",
+            "fields": [
+              "metadata",
+              "source",
+              "source_user_id",
+              "action"
+            ]
+          }
+        ]
+      },
+      {
+        "entity": "referrals",
+        "status": "has_errors",
+        "issues": [
+          {
+            "type": "ERROR",
+            "message": "Поля используются в коде, но отсутствуют в БД",
+            "fields": [
+              "total_referrals",
+              "active_referrals",
+              "total_earnings",
+              "referral_levels",
+              "top_referrers",
+              "user_id",
+              "username",
+              "referral_count"
+            ],
+            "files": [
+              "modules/referral/model.ts"
+            ]
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "entity": "farming_sessions",
+        "status": "has_errors",
+        "issues": [
+          {
+            "type": "ERROR",
+            "message": "Поля используются в коде, но отсутствуют в БД",
+            "fields": [
+              "uni_farming_start_timestamp",
+              "uni_farming_last_update",
+              "uni_farming_rate",
+              "//ИСПРАВЛЕНО",
+              "uni_deposit_amount",
+              "uni_farming_active",
+              "created_at",
+              "balance_uni",
+              "balance_ton",
+              "referrer_id",
+              "id"
+            ],
+            "files": [
+              "modules/admin/model.ts",
+              "modules/farming/model.ts",
+              "modules/farming/service.ts",
+              "modules/monitor/model.ts",
+              "modules/monitor/service.ts",
+              "modules/tonFarming/model.ts"
+            ]
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "entity": "boost_purchases",
+        "status": "has_errors",
+        "issues": [
+          {
+            "type": "ERROR",
+            "message": "Поля используются в коде, но отсутствуют в БД",
+            "fields": [
+              "balance_uni",
+              "id",
+              "ton_boost_package",
+              "ton_boost_rate",
+              "user_id",
+              "type",
+              "amount_uni",
+              "amount_ton",
+              "currency",
+              "status",
+              "tx_hash",
+              "description",
+              "created_at",
+              "updated_at"
+            ],
+            "files": [
+              "modules/boost/service.ts"
+            ]
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "entity": "daily_bonus_logs",
+        "status": "has_errors",
+        "issues": [
+          {
+            "type": "ERROR",
+            "message": "Поля используются в коде, но отсутствуют в БД",
+            "fields": [
+              "checkin_streak",
+              "amount_uni",
+              "user_id",
+              "amount",
+              "streak_day",
+              "claimed_at",
+              "bonus_type",
+              "previous_balance",
+              "new_balance",
+              "created_at",
+              "checkin_last_date"
+            ],
+            "files": [
+              "modules/dailyBonus/service.ts"
+            ]
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "entity": "withdraw_requests",
+        "status": "has_errors",
+        "issues": [
+          {
+            "type": "ERROR",
+            "message": "Поля используются в коде, но отсутствуют в БД",
+            "fields": [
+              "is_admin",
+              "is_active",
+              "balance_uni",
+              "balance_ton",
+              "type",
+              "amount_uni",
+              "description",
+              "ton_wallet_address",
+              "ton_wallet_verified",
+              "ton_wallet_linked_at",
+              "checkin_last_date"
+            ],
+            "files": [
+              "modules/adminBot/service.ts",
+              "modules/wallet/service.ts"
+            ]
+          }
+        ],
+        "warnings": []
+      }
+    ],
+    "warnings": [
+      {
+        "entity": "user_missions",
+        "status": "unused",
+        "issues": [],
+        "warnings": [
+          {
+            "type": "WARN",
+            "message": "Таблица user_missions существует в БД, но не используется в коде"
+          }
+        ]
+      },
+      {
+        "entity": "airdrops",
+        "status": "unused",
+        "issues": [],
+        "warnings": [
+          {
+            "type": "WARN",
+            "message": "Таблица airdrops существует в БД, но не используется в коде"
+          }
+        ]
+      }
+    ]
+  },
+  "criticalIssues": [
+    {
+      "type": "ERROR",
+      "message": "Поля используются в коде, но отсутствуют в БД",
+      "fields": [
+        "is_active",
+        "status",
+        "processed_at",
+        "processed_by",
+        "user_id",
+        "type",
+        "amount_uni",
+        "amount_ton",
+        "currency",
+        "tx_hash",
+        "description",
+        "updated_at",
+        "uni_balance",
+        "ton_balance",
+        "filter",
+        "inviter_id",
+        "level",
+        "reward_uni",
+        "reward_ton",
+        "ref_path",
+        "referrer_user_id",
+        "referred_user_id",
+        "percentage",
+        "amount",
+        "source_type"
+      ],
+      "files": [
+        "modules/admin/model.ts",
+        "modules/adminBot/model.ts",
+        "modules/adminBot/service.ts",
+        "modules/auth/model.ts",
+        "modules/boost/model.ts",
+        "modules/boost/service.ts",
+        "modules/dailyBonus/controller.ts",
+        "modules/dailyBonus/model.ts",
+        "modules/dailyBonus/routes.ts",
+        "modules/debug/debugRoutes.ts",
+        "modules/farming/directFarmingStatus.ts",
+        "modules/farming/model.ts",
+        "modules/missions/model.ts",
+        "modules/monitor/model.ts",
+        "modules/monitor/service.ts",
+        "modules/referral/model.ts",
+        "modules/referral/service.ts",
+        "modules/scheduler/tonBoostIncomeScheduler.ts",
+        "modules/telegram/model.ts",
+        "modules/tonFarming/model.ts",
+        "modules/tonFarming/service.ts",
+        "modules/user/controller.ts",
+        "modules/user/model.ts",
+        "modules/user/service.ts",
+        "modules/wallet/controller.ts",
+        "modules/wallet/model.ts"
+      ]
+    },
+    {
+      "type": "ERROR",
+      "message": "Поля используются в коде, но отсутствуют в БД",
+      "fields": [
+        "is_admin",
+        "is_active",
+        "processed_at",
+        "processed_by",
+        "balance_uni",
+        "ton_boost_package",
+        "ton_boost_rate",
+        "updated_at",
+        "mission_id",
+        "is_completed",
+        "completed_at",
+        "reward_claimed",
+        "reward_amount",
+        "balance_ton",
+        "referrer_id",
+        "ref_code",
+        "telegram_id",
+        "username",
+        "referred_by",
+        "first_name",
+        "uni_balance",
+        "ton_balance",
+        "uni_farming_start_timestamp",
+        "inviter_id",
+        "level",
+        "reward_uni",
+        "reward_ton",
+        "ref_path",
+        "referrer_user_id",
+        "referred_user_id",
+        "percentage",
+        "source_type"
+      ],
+      "files": [
+        "modules/admin/model.ts",
+        "modules/adminBot/model.ts",
+        "modules/adminBot/service.ts",
+        "modules/boost/model.ts",
+        "modules/boost/service.ts",
+        "modules/dailyBonus/model.ts",
+        "modules/farming/model.ts",
+        "modules/missions/model.ts",
+        "modules/missions/service.ts",
+        "modules/monitor/model.ts",
+        "modules/monitor/service.ts",
+        "modules/referral/model.ts",
+        "modules/referral/service.ts",
+        "modules/scheduler/tonBoostIncomeScheduler.ts",
+        "modules/tonFarming/model.ts",
+        "modules/transactions/model.ts",
+        "modules/transactions/routes.ts",
+        "modules/user/controller.ts",
+        "modules/wallet/model.ts"
+      ]
+    },
+    {
+      "type": "ERROR",
+      "message": "Поля используются в коде, но отсутствуют в БД",
+      "fields": [
+        "total_referrals",
+        "active_referrals",
+        "total_earnings",
+        "referral_levels",
+        "top_referrers",
+        "user_id",
+        "username",
+        "referral_count"
+      ],
+      "files": [
+        "modules/referral/model.ts"
+      ]
+    },
+    {
+      "type": "ERROR",
+      "message": "Поля используются в коде, но отсутствуют в БД",
+      "fields": [
+        "uni_farming_start_timestamp",
+        "uni_farming_last_update",
+        "uni_farming_rate",
+        "//ИСПРАВЛЕНО",
+        "uni_deposit_amount",
+        "uni_farming_active",
+        "created_at",
+        "balance_uni",
+        "balance_ton",
+        "referrer_id",
+        "id"
+      ],
+      "files": [
+        "modules/admin/model.ts",
+        "modules/farming/model.ts",
+        "modules/farming/service.ts",
+        "modules/monitor/model.ts",
+        "modules/monitor/service.ts",
+        "modules/tonFarming/model.ts"
+      ]
+    },
+    {
+      "type": "ERROR",
+      "message": "Поля используются в коде, но отсутствуют в БД",
+      "fields": [
+        "balance_uni",
+        "id",
+        "ton_boost_package",
+        "ton_boost_rate",
+        "user_id",
+        "type",
+        "amount_uni",
+        "amount_ton",
+        "currency",
+        "status",
+        "tx_hash",
+        "description",
+        "created_at",
+        "updated_at"
+      ],
+      "files": [
+        "modules/boost/service.ts"
+      ]
+    },
+    {
+      "type": "ERROR",
+      "message": "Поля используются в коде, но отсутствуют в БД",
+      "fields": [
+        "checkin_streak",
+        "amount_uni",
+        "user_id",
+        "amount",
+        "streak_day",
+        "claimed_at",
+        "bonus_type",
+        "previous_balance",
+        "new_balance",
+        "created_at",
+        "checkin_last_date"
+      ],
+      "files": [
+        "modules/dailyBonus/service.ts"
+      ]
+    },
+    {
+      "type": "ERROR",
+      "message": "Поля используются в коде, но отсутствуют в БД",
+      "fields": [
+        "is_admin",
+        "is_active",
+        "balance_uni",
+        "balance_ton",
+        "type",
+        "amount_uni",
+        "description",
+        "ton_wallet_address",
+        "ton_wallet_verified",
+        "ton_wallet_linked_at",
+        "checkin_last_date"
+      ],
+      "files": [
+        "modules/adminBot/service.ts",
+        "modules/wallet/service.ts"
+      ]
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "action": "ADD_MISSING_FIELDS",
+      "description": "Добавить отсутствующие поля в таблицу users",
+      "table": "users",
+      "fields": [
+        "is_active",
+        "status",
+        "processed_at",
+        "processed_by",
+        "user_id",
+        "type",
+        "amount_uni",
+        "amount_ton",
+        "currency",
+        "tx_hash",
+        "description",
+        "updated_at",
+        "uni_balance",
+        "ton_balance",
+        "filter",
+        "inviter_id",
+        "level",
+        "reward_uni",
+        "reward_ton",
+        "ref_path",
+        "referrer_user_id",
+        "referred_user_id",
+        "percentage",
+        "amount",
+        "source_type"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "ADD_MISSING_FIELDS",
+      "description": "Добавить отсутствующие поля в таблицу transactions",
+      "table": "transactions",
+      "fields": [
+        "is_admin",
+        "is_active",
+        "processed_at",
+        "processed_by",
+        "balance_uni",
+        "ton_boost_package",
+        "ton_boost_rate",
+        "updated_at",
+        "mission_id",
+        "is_completed",
+        "completed_at",
+        "reward_claimed",
+        "reward_amount",
+        "balance_ton",
+        "referrer_id",
+        "ref_code",
+        "telegram_id",
+        "username",
+        "referred_by",
+        "first_name",
+        "uni_balance",
+        "ton_balance",
+        "uni_farming_start_timestamp",
+        "inviter_id",
+        "level",
+        "reward_uni",
+        "reward_ton",
+        "ref_path",
+        "referrer_user_id",
+        "referred_user_id",
+        "percentage",
+        "source_type"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "ADD_MISSING_FIELDS",
+      "description": "Добавить отсутствующие поля в таблицу referrals",
+      "table": "referrals",
+      "fields": [
+        "total_referrals",
+        "active_referrals",
+        "total_earnings",
+        "referral_levels",
+        "top_referrers",
+        "user_id",
+        "username",
+        "referral_count"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "ADD_MISSING_FIELDS",
+      "description": "Добавить отсутствующие поля в таблицу farming_sessions",
+      "table": "farming_sessions",
+      "fields": [
+        "uni_farming_start_timestamp",
+        "uni_farming_last_update",
+        "uni_farming_rate",
+        "//ИСПРАВЛЕНО",
+        "uni_deposit_amount",
+        "uni_farming_active",
+        "created_at",
+        "balance_uni",
+        "balance_ton",
+        "referrer_id",
+        "id"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "ADD_MISSING_FIELDS",
+      "description": "Добавить отсутствующие поля в таблицу boost_purchases",
+      "table": "boost_purchases",
+      "fields": [
+        "balance_uni",
+        "id",
+        "ton_boost_package",
+        "ton_boost_rate",
+        "user_id",
+        "type",
+        "amount_uni",
+        "amount_ton",
+        "currency",
+        "status",
+        "tx_hash",
+        "description",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "ADD_MISSING_FIELDS",
+      "description": "Добавить отсутствующие поля в таблицу daily_bonus_logs",
+      "table": "daily_bonus_logs",
+      "fields": [
+        "checkin_streak",
+        "amount_uni",
+        "user_id",
+        "amount",
+        "streak_day",
+        "claimed_at",
+        "bonus_type",
+        "previous_balance",
+        "new_balance",
+        "created_at",
+        "checkin_last_date"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "ADD_MISSING_FIELDS",
+      "description": "Добавить отсутствующие поля в таблицу withdraw_requests",
+      "table": "withdraw_requests",
+      "fields": [
+        "is_admin",
+        "is_active",
+        "balance_uni",
+        "balance_ton",
+        "type",
+        "amount_uni",
+        "description",
+        "ton_wallet_address",
+        "ton_wallet_verified",
+        "ton_wallet_linked_at",
+        "checkin_last_date"
+      ]
+    },
+    {
+      "priority": "LOW",
+      "action": "REVIEW_UNUSED_TABLES",
+      "description": "Проверить необходимость неиспользуемых таблиц",
+      "tables": [
+        "user_missions",
+        "airdrops"
+      ]
+    }
+  ]
+}
