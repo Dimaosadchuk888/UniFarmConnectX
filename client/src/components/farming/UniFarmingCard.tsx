@@ -257,13 +257,21 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       try {
         console.log('[UniFarmingCard] Ответ от сервера после депозита:', response);
         
+        // КРИТИЧЕСКАЯ ПРОВЕРКА: убеждаемся что запрос действительно успешен
+        if (!response || !response.success) {
+          console.error('[UniFarmingCard] ❌ Получен неуспешный ответ:', response);
+          setError(response?.error || response?.message || 'Ошибка при выполнении депозита');
+          // НЕ обновляем баланс при ошибке!
+          return;
+        }
+        
         // Очищаем форму и сообщение об ошибке
         setDepositAmount('');
         setError(null);
 
         // Логируем успешный депозит
         if (response?.data) {
-          console.log('[UniFarmingCard] Детали успешного депозита:', {
+          console.log('[UniFarmingCard] ✅ Детали успешного депозита:', {
             success: response.success,
             message: response.message,
             data: response.data,
@@ -273,8 +281,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           });
         }
 
-        // Обновляем данные в правильном порядке
-        console.log('[UniFarmingCard] Начинаем обновление данных после депозита');
+        // Обновляем данные ТОЛЬКО при успешном ответе
+        console.log('[UniFarmingCard] Начинаем обновление данных после успешного депозита');
         
         // 1. Принудительно обновляем все кэши запросов
         await queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile'] });
@@ -300,8 +308,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         success('Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!');
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess depositMutation:', error);
-        // Даже в случае ошибки отображаем успех
-        setError(null);
+        setError('Произошла ошибка при обработке депозита');
+        // НЕ обновляем баланс при ошибке!
       }
     },
     onError: (error: Error) => {
