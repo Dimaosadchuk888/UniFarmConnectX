@@ -68,16 +68,17 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
 
           // Проверка числовых значений
           try {
-            // Приоритет отдаем общей скорости начисления из API
-            const ratePerSecond = new BigNumber(response.data.totalRatePerSecond || response.data.ratePerSecond || '0');
-            const dailyRate = ratePerSecond.multipliedBy(86400);
+            // API возвращает uni_farming_rate в процентах за час (0.01 = 1% в час)
+            const hourlyRate = response.data.uni_farming_rate || 0.01;
+            // Конвертируем в ставку за секунду
+            const ratePerSecond = new BigNumber(hourlyRate).dividedBy(100).dividedBy(3600); // процент в час -> доля в секунду
+            const dailyRate = new BigNumber(hourlyRate).multipliedBy(24); // процент в час * 24 часа
             console.log('[DEBUG] Числовые проверки:', {
-              totalRatePerSecond: response.data.totalRatePerSecond,
-              ratePerSecond: response.data.ratePerSecond,
-              calculatedRate: ratePerSecond.toString(),
+              uni_farming_rate: response.data.uni_farming_rate,
+              hourlyRate: hourlyRate,
+              calculatedRatePerSecond: ratePerSecond.toString(),
               dailyRate: dailyRate.toString(),
-              dailyIncomeUni: response.data.dailyIncomeUni,
-              depositCount: response.data.depositCount,
+              uni_deposit_amount: response.data.uni_deposit_amount,
               isNaN: ratePerSecond.isNaN(),
               isFinite: ratePerSecond.isFinite()
             });
@@ -616,51 +617,31 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return '0';
       }
 
-      // Получаем скорость начисления в секунду из API напрямую
-      // Приоритет отдаем dailyIncomeUni, затем totalRatePerSecond, затем обычному ratePerSecond
-      if (farmingInfo.dailyIncomeUni) {
-        console.log('[DEBUG] calculateDailyIncome - Используем готовый дневной доход из API:', farmingInfo.dailyIncomeUni);
-        return farmingInfo.dailyIncomeUni;
-      }
-
-      const ratePerSecondStr = farmingInfo.totalRatePerSecond || farmingInfo.ratePerSecond;
-      if (!ratePerSecondStr) {
-        console.log('[DEBUG] calculateDailyIncome - Отсутствует скорость начисления для расчета дневного дохода');
+      // Получаем ставку фарминга из API (процент в час)
+      const hourlyRate = farmingResponse?.data?.uni_farming_rate || 0.01;
+      const depositAmount = parseFloat(farmingResponse?.data?.uni_deposit_amount || '0');
+      
+      if (depositAmount <= 0) {
+        console.log('[DEBUG] calculateDailyIncome - Нет активных депозитов');
         return '0';
       }
 
       try {
-        // Выводим значение для диагностики
-        console.log('[DEBUG] calculateDailyIncome - Входные данные:', {
-          ratePerSecondStr: ratePerSecondStr,
-          type: typeof ratePerSecondStr
-        });
-
-        // Используем BigNumber для безопасных вычислений, гарантируем строку
-        const ratePerSecond = new BigNumber(String(ratePerSecondStr).trim());
-
-        // Проверка на валидное число
-        if (ratePerSecond.isNaN() || !ratePerSecond.isFinite()) {
-          console.error('[ERROR] calculateDailyIncome - Невалидное значение скорости начисления:', ratePerSecondStr);
-          return '0';
-        }
-
-        // Количество секунд в дне
-        const SECONDS_IN_DAY = new BigNumber(86400);
-
-        // Вычисляем дневной доход: ratePerSecond * SECONDS_IN_DAY
-        const dailyIncome = ratePerSecond.multipliedBy(SECONDS_IN_DAY);
+        // Рассчитываем дневной доход: (депозит * процент в час * 24 часа) / 100
+        const dailyRatePercent = hourlyRate * 24; // процент за день
+        const dailyIncome = new BigNumber(depositAmount).multipliedBy(dailyRatePercent).dividedBy(100);
 
         // Логирование для диагностики
         console.log('[DEBUG] calculateDailyIncome - Результат расчета:', {
-          ratePerSecond: ratePerSecond.toString(),
-          seconds: SECONDS_IN_DAY.toString(),
+          hourlyRate: hourlyRate,
+          dailyRatePercent: dailyRatePercent,
+          depositAmount: depositAmount,
           dailyIncome: dailyIncome.toString()
         });
 
         // Проверка результата на валидность
         if (dailyIncome.isNaN() || !dailyIncome.isFinite()) {
-          console.error('[ERROR] calculateDailyIncome - Ошибка при расчете дневного дохода, получено:', dailyIncome.toString());
+          console.error('[ERROR] calculateDailyIncome - Ошибка при расчете дневного дохода');
           return '0';
         }
 
@@ -686,37 +667,34 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return '0';
       }
 
-      // Получаем скорость начисления в секунду непосредственно из API
-      // Приоритет отдаем полю totalRatePerSecond из нового API
-      const ratePerSecondStr = farmingInfo.totalRatePerSecond || farmingInfo.ratePerSecond;
-      if (!ratePerSecondStr) {
-        console.log('[DEBUG] calculateSecondRate - Отсутствует скорость начисления из API');
+      // Получаем ставку фарминга из API (процент в час)
+      const hourlyRate = farmingResponse?.data?.uni_farming_rate || 0.01;
+      const depositAmount = parseFloat(farmingResponse?.data?.uni_deposit_amount || '0');
+      
+      if (depositAmount <= 0) {
+        console.log('[DEBUG] calculateSecondRate - Нет активных депозитов');
         return '0';
       }
 
       try {
+        // Рассчитываем доход в секунду: (депозит * процент в час) / 100 / 3600
+        const secondIncome = new BigNumber(depositAmount).multipliedBy(hourlyRate).dividedBy(100).dividedBy(3600);
+
         // Выводим значение для диагностики
         console.log('[DEBUG] calculateSecondRate - Входные данные:', {
-          totalRatePerSecond: farmingInfo.totalRatePerSecond,
-          ratePerSecond: farmingInfo.ratePerSecond,
-          finalRate: ratePerSecondStr,
-          type: typeof ratePerSecondStr
+          hourlyRate: hourlyRate,
+          depositAmount: depositAmount,
+          secondIncome: secondIncome.toString()
         });
 
-        // Создаем BigNumber из скорости начисления, гарантируя строковый тип
-        const ratePerSecond = new BigNumber(String(ratePerSecondStr).trim());
-
         // Проверка на валидное число
-        if (ratePerSecond.isNaN() || !ratePerSecond.isFinite()) {
-          console.error('[ERROR] calculateSecondRate - Невалидное значение скорости начисления:', ratePerSecondStr);
+        if (secondIncome.isNaN() || !secondIncome.isFinite()) {
+          console.error('[ERROR] calculateSecondRate - Невалидное значение скорости начисления');
           return '0';
         }
 
-        // Логируем результат для диагностики
-        console.log('[DEBUG] calculateSecondRate - Обработанное значение:', ratePerSecond.toString());
-
-        // Возвращаем скорость напрямую из API с форматированием
-        const result = ratePerSecond.toFixed(8); // 8 знаков для секундного дохода
+        // Возвращаем скорость с форматированием
+        const result = secondIncome.toFixed(8); // 8 знаков для секундного дохода
         console.log('[DEBUG] calculateSecondRate - Финальный результат:', result);
         return result;
       } catch (bnError) {
@@ -739,22 +717,26 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return { annual: '0', daily: '0' };
       }
 
-      console.log('[DEBUG] calculateAPR - Расчет фиксированной ставки');
-
-      // В нашем случае ставка фиксированная: 0.5% в день (из бизнес-логики)
-      const DAILY_PERCENTAGE = 0.5;
-      const ANNUAL_PERCENTAGE = DAILY_PERCENTAGE * 365;
+      // Получаем ставку из API (процент в час)
+      const hourlyRate = farmingResponse?.data?.uni_farming_rate || 0.01;
+      
+      // Рассчитываем дневную и годовую ставки
+      const DAILY_PERCENTAGE = hourlyRate * 24; // процент в день
+      const ANNUAL_PERCENTAGE = DAILY_PERCENTAGE * 365; // процент в год
 
       const result = {
-        annual: ANNUAL_PERCENTAGE.toFixed(1), // 182.5%
-        daily: DAILY_PERCENTAGE.toFixed(1)    // 0.5%
+        annual: ANNUAL_PERCENTAGE.toFixed(1), // Например: 87.6% для 0.01% в час
+        daily: DAILY_PERCENTAGE.toFixed(2)    // Например: 0.24% для 0.01% в час
       };
 
-      console.log('[DEBUG] calculateAPR - Результат:', result);
+      console.log('[DEBUG] calculateAPR - Результат:', {
+        hourlyRate,
+        ...result
+      });
       return result;
     } catch (err) {
       console.error('[ERROR] Ошибка при расчете APR:', err);
-      return { annual: '182.5', daily: '0.5' }; // Значения по умолчанию
+      return { annual: '87.6', daily: '0.24' }; // Значения по умолчанию для 0.01% в час
     }
   };
 
@@ -920,11 +902,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             <ul className="text-sm space-y-2 text-slate-300">
               <li className="flex items-start">
                 <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
-                <span>Ежедневная доходность: <span className="text-primary font-medium">0.5% в день</span></span>
+                <span>Ежедневная доходность: <span className="text-primary font-medium">0.24% в день</span></span>
               </li>
               <li className="flex items-start">
                 <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
-                <span>Годовая доходность (APR): <span className="text-primary font-medium">182.5%</span></span>
+                <span>Годовая доходность (APR): <span className="text-primary font-medium">87.6%</span></span>
               </li>
               <li className="flex items-start">
                 <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
