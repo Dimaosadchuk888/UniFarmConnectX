@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update JWT Token for User 74</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .token-info {
+            background: #e8f4ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+            display: none;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffecb5;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Обновление JWT токена для User 74</h1>
+        
+        <div class="warning">
+            <strong>Внимание!</strong> Эта страница обновит JWT токен в localStorage для тестового пользователя 74.
+        </div>
+        
+        <div class="token-info">
+            <p><strong>User ID:</strong> 74</p>
+            <p><strong>Telegram ID:</strong> 999489</p>
+            <p><strong>Username:</strong> test_user_1752129840905</p>
+            <p><strong>Ref Code:</strong> TEST_1752129840905_dokxv0</p>
+            <p><strong>Срок действия:</strong> 7 дней</p>
+        </div>
+        
+        <button onclick="updateToken()">Обновить JWT токен</button>
+        
+        <p class="success" id="success-message">
+            ✅ JWT токен успешно обновлен! Страница перезагрузится через 3 секунды...
+        </p>
+    </div>
+
+    <script>
+        // Новый JWT токен, сгенерированный с правильным JWT_SECRET
+        const newToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ1c2VyX2lkIjo3NCwidXNlcm5hbWUiOiJ0ZXN0X3VzZXJfMTc1MjEyOTg0MDkwNSIsInRlbGVncmFtX2lkIjo5OTk0ODksInJlZl9jb2RlIjoiVEVTVF8xNzUyMTI5ODQwOTA1X2Rva3h2MCIsImlhdCI6MTc1MjI1Mzk4OSwiZXhwIjoxNzUyODU4Nzg5fQ.5v_bSA2XlLkLLgIxpZ0gzRoTVplbKIcNvtMEQqfErEc';
+
+        function updateToken() {
+            try {
+                // Очищаем старые данные
+                localStorage.removeItem('unifarm_jwt_token');
+                localStorage.removeItem('auth_user');
+                localStorage.removeItem('user_id');
+                
+                // Устанавливаем новый токен
+                localStorage.setItem('unifarm_jwt_token', newToken);
+                
+                // Показываем сообщение об успехе
+                document.getElementById('success-message').style.display = 'block';
+                
+                // Перезагружаем страницу через 3 секунды
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+            } catch (error) {
+                alert('Ошибка при обновлении токена: ' + error.message);
+            }
+        }
+        
+        // Проверяем текущий токен при загрузке страницы
+        window.onload = function() {
+            const currentToken = localStorage.getItem('unifarm_jwt_token');
+            if (currentToken) {
+                console.log('Текущий токен найден:', currentToken.substring(0, 50) + '...');
+            } else {
+                console.log('JWT токен не найден в localStorage');
+            }
+        };
+    </script>
+</body>
+</html>

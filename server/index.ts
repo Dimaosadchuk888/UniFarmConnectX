@@ -49,6 +49,7 @@ import { AdminBotService } from '../modules/adminBot/service';
 import { adminBotConfig } from '../config/adminBot';
 import { metricsCollector } from '../core/metrics';
 import { setupWebSocketBalanceIntegration } from './websocket-balance-integration';
+import jwt from 'jsonwebtoken';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
@@ -508,7 +509,6 @@ async function startServer() {
       
       const token = authHeader.substring(7);
       try {
-        const jwt = require('jsonwebtoken');
         const jwtSecret = process.env.JWT_SECRET;
         
         if (!jwtSecret) {
@@ -531,6 +531,40 @@ async function startServer() {
           error: 'JWT verification failed',
           message: error.message
         });
+      }
+    });
+    
+    // Temporary endpoint для генерации JWT токена для user 74
+    app.get('/api/v2/debug/generate-jwt-74', (req: Request, res: Response) => {
+      try {
+        const jwtSecret = process.env.JWT_SECRET;
+        
+        if (!jwtSecret) {
+          return res.status(500).json({ 
+            error: 'JWT_SECRET not configured',
+            env_check: 'JWT_SECRET' in process.env
+          });
+        }
+        
+        const payload = {
+          userId: 74,
+          user_id: 74,
+          username: 'test_user_1752129840905',
+          telegram_id: 999489,
+          ref_code: 'TEST_1752129840905_dokxv0'
+        };
+        
+        const token = jwt.sign(payload, jwtSecret, { expiresIn: '7d' });
+        
+        res.json({
+          success: true,
+          token,
+          payload,
+          jwt_secret_preview: jwtSecret.substring(0, 15) + '...',
+          message: 'Use this token in Authorization header'
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
     });
 

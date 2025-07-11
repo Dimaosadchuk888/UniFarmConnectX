@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Проверка UserContext и JWT</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #0f0;
+        }
+        .section {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .error { color: #f33; }
+        .warning { color: #fa0; }
+        .success { color: #0f0; }
+        pre { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Отладка UserContext и JWT для аккаунта 74</h1>
+    
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+        
+        function section(title) {
+            const div = document.createElement('div');
+            div.className = 'section';
+            div.innerHTML = `<h2>${title}</h2>`;
+            results.appendChild(div);
+            return div;
+        }
+        
+        // 1. Проверка JWT токена
+        const jwtSection = section('1. JWT Токен');
+        const token = localStorage.getItem('unifarm_jwt_token');
+        
+        if (token) {
+            jwtSection.innerHTML += `<div class="success">✓ JWT токен найден</div>`;
+            jwtSection.innerHTML += `<div>Длина токена: ${token.length}</div>`;
+            
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                jwtSection.innerHTML += `<pre class="success">Payload:
+${JSON.stringify(payload, null, 2)}</pre>`;
+                
+                // Проверяем userId в payload
+                const userId = payload.userId || payload.user_id;
+                if (userId) {
+                    jwtSection.innerHTML += `<div class="success">✓ userId в токене: ${userId}</div>`;
+                } else {
+                    jwtSection.innerHTML += `<div class="error">✗ userId не найден в токене!</div>`;
+                }
+            } catch (e) {
+                jwtSection.innerHTML += `<div class="error">✗ Ошибка парсинга JWT: ${e.message}</div>`;
+            }
+        } else {
+            jwtSection.innerHTML += `<div class="error">✗ JWT токен отсутствует!</div>`;
+        }
+        
+        // 2. Проверка localStorage
+        const storageSection = section('2. LocalStorage');
+        const lastSession = localStorage.getItem('unifarm_last_session');
+        
+        if (lastSession) {
+            try {
+                const session = JSON.parse(lastSession);
+                storageSection.innerHTML += `<pre class="success">Last Session:
+${JSON.stringify(session, null, 2)}</pre>`;
+            } catch (e) {
+                storageSection.innerHTML += `<div class="error">✗ Ошибка парсинга last_session</div>`;
+            }
+        } else {
+            storageSection.innerHTML += `<div class="warning">⚠ unifarm_last_session отсутствует</div>`;
+        }
+        
+        // 3. Инструкции для отладки
+        const debugSection = section('3. Команды для консоли браузера');
+        debugSection.innerHTML += `<pre>// Откройте консоль браузера (F12) и выполните:
+
+// 1. Проверить текущий контекст пользователя:
+const userContext = window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers?.get(1)?.getCurrentFiber()?.memoizedProps?.value;
+console.log('UserContext:', userContext);
+
+// 2. Принудительно обновить баланс:
+window.dispatchEvent(new CustomEvent('force-refresh-balance'));
+
+// 3. Проверить API запрос баланса напрямую:
+fetch('/api/v2/wallet/balance?user_id=74', {
+    headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('unifarm_jwt_token')
+    }
+}).then(r => r.json()).then(console.log);
+
+// 4. Проверить профиль пользователя:
+fetch('/api/v2/users/profile', {
+    headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('unifarm_jwt_token')
+    }
+}).then(r => r.json()).then(console.log);
+</pre>`;
+        
+        // 4. Тестовый API запрос
+        const apiSection = section('4. Тестовый API запрос');
+        
+        fetch('/api/v2/wallet/balance?user_id=74', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            apiSection.innerHTML += `<pre class="success">API ответ:
+${JSON.stringify(data, null, 2)}</pre>`;
+        })
+        .catch(err => {
+            apiSection.innerHTML += `<div class="error">✗ Ошибка API: ${err.message}</div>`;
+        });
+    </script>
+</body>
+</html>
