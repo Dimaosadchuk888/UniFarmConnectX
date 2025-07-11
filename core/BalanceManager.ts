@@ -14,6 +14,7 @@ import { supabase } from './supabaseClient';
 import { logger } from './logger';
 import { BalanceNotificationService } from './balanceNotificationService';
 import { balanceCache } from './BalanceCache';
+import { transactionEnforcer } from './TransactionEnforcer';
 
 export interface BalanceUpdateData {
   user_id: number;
@@ -252,27 +253,79 @@ export class BalanceManager {
   /**
    * Пополнение баланса (добавление средств)
    */
-  async addBalance(user_id: number, amount_uni: number = 0, amount_ton: number = 0, source?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
-    return this.updateUserBalance({
+  async addBalance(user_id: number, amount_uni: number = 0, amount_ton: number = 0, source?: string, operationType?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
+    // Сначала обновляем баланс
+    const result = await this.updateUserBalance({
       user_id,
       amount_uni,
       amount_ton,
       operation: 'add',
       source: source || 'addBalance'
     });
+    
+    // Если успешно и указан тип операции, создаем транзакцию согласно политике
+    if (result.success && operationType) {
+      const currency = amount_uni > 0 ? 'UNI' : 'TON';
+      const amount = amount_uni > 0 ? amount_uni : amount_ton;
+      
+      const transactionResult = await transactionEnforcer.createRequiredTransaction(
+        operationType,
+        user_id,
+        amount,
+        currency,
+        source || 'Balance addition',
+        { source }
+      );
+      
+      if (!transactionResult.success) {
+        logger.warn('[BalanceManager] Не удалось создать транзакцию', {
+          operationType,
+          user_id,
+          error: transactionResult.error
+        });
+      }
+    }
+    
+    return result;
   }
 
   /**
    * Списание с баланса (вычитание средств)
    */
-  async subtractBalance(user_id: number, amount_uni: number = 0, amount_ton: number = 0, source?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
-    return this.updateUserBalance({
+  async subtractBalance(user_id: number, amount_uni: number = 0, amount_ton: number = 0, source?: string, operationType?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
+    // Сначала обновляем баланс
+    const result = await this.updateUserBalance({
       user_id,
       amount_uni,
       amount_ton,
       operation: 'subtract',
       source: source || 'subtractBalance'
     });
+    
+    // Если успешно и указан тип операции, создаем транзакцию согласно политике
+    if (result.success && operationType) {
+      const currency = amount_uni > 0 ? 'UNI' : 'TON';
+      const amount = amount_uni > 0 ? amount_uni : amount_ton;
+      
+      const transactionResult = await transactionEnforcer.createRequiredTransaction(
+        operationType,
+        user_id,
+        amount,
+        currency,
+        source || 'Balance deduction',
+        { source }
+      );
+      
+      if (!transactionResult.success) {
+        logger.warn('[BalanceManager] Не удалось создать транзакцию', {
+          operationType,
+          user_id,
+          error: transactionResult.error
+        });
+      }
+    }
+    
+    return result;
   }
 
   /**

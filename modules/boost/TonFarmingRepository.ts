@@ -19,12 +19,42 @@ export interface TonFarmingData {
 export class TonFarmingRepository {
   private readonly tableName = 'ton_farming_data';
   private useFallback: boolean = false;
+  
+  constructor() {
+    // Проверяем существование таблицы при инициализации
+    this.checkTableExists();
+  }
+  
+  private async checkTableExists(): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from(this.tableName)
+        .select('user_id')
+        .limit(1);
+        
+      if (error?.code === '42P01') {
+        this.useFallback = true;
+        logger.info('[TonFarmingRepository] Using fallback mode - table does not exist');
+      } else {
+        this.useFallback = false;
+        logger.info('[TonFarmingRepository] Table exists, using direct mode');
+      }
+    } catch (error) {
+      this.useFallback = true;
+      logger.warn('[TonFarmingRepository] Error checking table, using fallback:', error);
+    }
+  }
 
   /**
    * Получить данные TON farming для пользователя
    */
   async getByUserId(userId: string): Promise<TonFarmingData | null> {
     try {
+      // Если используем fallback, сразу идем в users
+      if (this.useFallback) {
+        return this.getByUserIdFallback(userId);
+      }
+      
       const { data, error } = await supabase
         .from(this.tableName)
         .select('*')
@@ -38,9 +68,23 @@ export class TonFarmingRepository {
           return this.getByUserIdFallback(userId);
         }
         
-        if (error.code !== 'PGRST116') {
-          logger.error('[TonFarmingRepository] Error getting farming data:', error);
+        if (error.code === 'PGRST116') {
+          // Нет данных - создаем запись
+          const newData: Partial<TonFarmingData> = {
+            user_id: parseInt(userId),
+            farming_balance: '0',
+            farming_rate: '0.01',
+            farming_accumulated: '0',
+            boost_active: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          await this.upsert(newData);
+          return this.getByUserId(userId);
         }
+        
+        logger.error('[TonFarmingRepository] Error getting farming data:', error);
         return null;
       }
 
@@ -92,6 +136,10 @@ export class TonFarmingRepository {
    */
   async upsert(data: Partial<TonFarmingData>): Promise<boolean> {
     try {
+      if (this.useFallback) {
+        return this.upsertFallback(data);
+      }
+      
       const { error } = await supabase
         .from(this.tableName)
         .upsert({
@@ -109,10 +157,49 @@ export class TonFarmingRepository {
         return false;
       }
 
+      // Синхронизируем с таблицей users
+      await this.syncToUsers(data);
+      
       return true;
     } catch (error) {
       logger.error('[TonFarmingRepository] Exception upserting farming data:', error);
       return false;
+    }
+  }
+  
+  /**
+   * Синхронизирует данные из ton_farming_data в users
+   */
+  private async syncToUsers(data: Partial<TonFarmingData>): Promise<void> {
+    if (!data.user_id) return;
+    
+    try {
+      const updates: any = {};
+      
+      if (data.farming_balance !== undefined) updates.ton_farming_balance = data.farming_balance;
+      if (data.farming_rate !== undefined) updates.ton_farming_rate = data.farming_rate;
+      if (data.farming_start_timestamp !== undefined) updates.ton_farming_start_timestamp = data.farming_start_timestamp;
+      if (data.farming_last_update !== undefined) updates.ton_farming_last_update = data.farming_last_update;
+      if (data.farming_accumulated !== undefined) updates.ton_farming_accumulated = data.farming_accumulated;
+      if (data.farming_last_claim !== undefined) updates.ton_farming_last_claim = data.farming_last_claim;
+      if (data.boost_active !== undefined) updates.ton_boost_active = data.boost_active;
+      if (data.boost_package_id !== undefined) updates.ton_boost_package_id = data.boost_package_id;
+      if (data.boost_expires_at !== undefined) updates.ton_boost_expires_at = data.boost_expires_at;
+      
+      if (Object.keys(updates).length === 0) return;
+      
+      const { error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', data.user_id);
+        
+      if (error) {
+        logger.warn('[TonFarmingRepository] Failed to sync to users:', error);
+      } else {
+        logger.info('[TonFarmingRepository] Synced to users table');
+      }
+    } catch (error) {
+      logger.warn('[TonFarmingRepository] Exception syncing to users:', error);
     }
   }
   
