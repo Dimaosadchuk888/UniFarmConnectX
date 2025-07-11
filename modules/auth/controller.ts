@@ -296,8 +296,8 @@ export class AuthController extends BaseController {
           balance_ton: '0'
         };
 
-        // Импортируем функцию generateJWTToken из core/utils/jwt
-        const { generateJWTToken } = await import('../../core/utils/jwt.js');
+        // Импортируем функцию generateJWTToken из utils/telegram
+        const { generateJWTToken } = await import('../../utils/telegram');
         
         // Создаем JWT токен для гостя
         const token = generateJWTToken(guestUser, guestUser.ref_code);

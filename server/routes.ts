@@ -16,7 +16,7 @@ import adminRoutes from '../modules/admin/routes';
 import { adminBotRoutes } from '../modules/adminBot/routes';
 import debugRoutes from '../modules/debug/debugRoutes';
 import { supabase } from '../core/supabase';
-// import { requireTelegramAuth } from '../core/middleware/telegramAuth'; // Временно отключено для диагностики
+import { requireTelegramAuth } from '../core/middleware/telegramAuth'; // Временно отключено для диагностики
 
 const router = express.Router();
 
