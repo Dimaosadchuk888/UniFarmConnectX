@@ -3,72 +3,48 @@ import { supabase } from './core/supabaseClient';
 async function checkUserMapping() {
   console.log('=== Проверка маппинга пользователей ===\n');
   
-  // Проверяем пользователя с telegram_id = 999489 (из JWT)
-  const { data: user74, error: error74 } = await supabase
+  // 1. Проверяем всех пользователей с telegram_id=999489 (это ID из JWT токена)
+  const { data: usersByTelegramId } = await supabase
     .from('users')
-    .select('id, telegram_id, username, balance_uni, balance_ton')
-    .eq('telegram_id', 999489)
-    .single();
+    .select('id, telegram_id, username, balance_uni, created_at')
+    .eq('telegram_id', 999489);
     
-  if (user74) {
-    console.log('Пользователь с telegram_id=999489:');
-    console.log(user74);
-    console.log('');
+  console.log('Пользователи с telegram_id=999489:');
+  if (usersByTelegramId && usersByTelegramId.length > 0) {
+    usersByTelegramId.forEach(user => {
+      console.log(`ID: ${user.id}, Username: ${user.username}, Balance: ${user.balance_uni}, Created: ${user.created_at}`);
+    });
+  } else {
+    console.log('Не найдено');
   }
   
-  // Проверяем пользователя с id = 74
-  const { data: userById74, error: errorById74 } = await supabase
-    .from('users')
-    .select('id, telegram_id, username, balance_uni, balance_ton')
-    .eq('id', 74)
-    .single();
-    
-  if (userById74) {
-    console.log('\nПользователь с id=74:');
-    console.log(userById74);
-    console.log('');
-  }
+  console.log('\n');
   
-  // Проверяем пользователя с id = 75 (чьи транзакции возвращаются)
-  const { data: user75, error: error75 } = await supabase
+  // 2. Проверяем пользователей 74, 75, 76
+  const { data: users } = await supabase
     .from('users')
-    .select('id, telegram_id, username, balance_uni, balance_ton')
-    .eq('id', 75)
-    .single();
+    .select('id, telegram_id, username, balance_uni')
+    .in('id', [74, 75, 76]);
     
-  if (user75) {
-    console.log('\nПользователь с id=75:');
-    console.log(user75);
-    console.log('');
-  }
+  console.log('Пользователи 74, 75, 76:');
+  users?.forEach(user => {
+    console.log(`ID: ${user.id}, Telegram ID: ${user.telegram_id}, Username: ${user.username}, Balance: ${user.balance_uni}`);
+  });
   
-  // Проверяем транзакции для user_id = 74
-  const { data: transactions74, error: txError74 } = await supabase
+  console.log('\n');
+  
+  // 3. Проверяем последние транзакции MISSION_REWARD
+  const { data: missionTx } = await supabase
     .from('transactions')
-    .select('id, user_id, type, amount, currency, created_at')
-    .eq('user_id', 74)
+    .select('id, user_id, type, amount, currency, description, created_at')
+    .eq('type', 'MISSION_REWARD')
     .order('created_at', { ascending: false })
     .limit(5);
     
-  console.log('\nТранзакции для user_id=74:');
-  console.log('Количество:', transactions74?.length || 0);
-  if (transactions74 && transactions74.length > 0) {
-    console.log(transactions74);
-  }
-  
-  // Проверяем транзакции для user_id = 75
-  const { data: transactions75, error: txError75 } = await supabase
-    .from('transactions')
-    .select('id, user_id, type, amount, currency, created_at')
-    .eq('user_id', 75)
-    .order('created_at', { ascending: false })
-    .limit(5);
-    
-  console.log('\nТранзакции для user_id=75:');
-  console.log('Количество:', transactions75?.length || 0);
-  if (transactions75 && transactions75.length > 0) {
-    console.log(transactions75);
-  }
+  console.log('Последние MISSION_REWARD транзакции:');
+  missionTx?.forEach(tx => {
+    console.log(`ID: ${tx.id}, User: ${tx.user_id}, Amount: ${tx.amount} ${tx.currency}, Desc: ${tx.description}, Time: ${tx.created_at}`);
+  });
   
   process.exit(0);
 }
