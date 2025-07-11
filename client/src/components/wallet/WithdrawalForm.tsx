@@ -108,13 +108,6 @@ const WithdrawalForm: React.FC = () => {
     setErrorMessage(null);
     
     try {
-      // Блокировка вывода UNI во время Airdrop
-      if (data.currency === 'UNI') {
-        setErrorMessage('Вывод UNI временно недоступен во время Airdrop кампании');
-        setSubmitState(SubmitState.ERROR);
-        return;
-      }
-      
       // Дополнительная валидация
       if (data.amount > getAvailableBalance()) {
         throw new Error(`Недостаточно средств. Доступно: ${getAvailableBalance()} ${selectedCurrency}`);
@@ -232,14 +225,6 @@ const WithdrawalForm: React.FC = () => {
           </div>
         </div>
         
-        {/* Предупреждение для UNI */}
-        {selectedCurrency === 'UNI' && (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-yellow-400 text-sm">
-            <i className="fas fa-exclamation-triangle mr-2"></i>
-            Вывод UNI временно недоступен во время Airdrop кампании
-          </div>
-        )}
-        
         {/* Поле адреса кошелька */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -312,7 +297,7 @@ const WithdrawalForm: React.FC = () => {
         {/* Кнопка отправки */}
         <Button
           type="submit"
-          disabled={!isValid || submitState === SubmitState.SUBMITTING || selectedCurrency === 'UNI'}
+          disabled={!isValid || submitState === SubmitState.SUBMITTING}
           className={`w-full transition-all duration-300 ${
             submitState === SubmitState.SUBMITTING
               ? 'bg-gray-600 cursor-not-allowed'
