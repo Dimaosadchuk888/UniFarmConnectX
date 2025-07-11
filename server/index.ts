@@ -406,6 +406,7 @@ async function startServer() {
     // app.use(limiter); // ОТКЛЮЧЕН
     
     logger.info('[Server] Express Rate Limiting ПОЛНОСТЬЮ ОТКЛЮЧЕН');
+    logger.info('[Server] Reload trigger: ' + new Date().toISOString());
 
     // Middleware
     app.use(cors({
