@@ -75,7 +75,7 @@ router.post('/withdraw', requireTelegramAuth, strictRateLimit, validateBody(with
 router.post('/transfer', requireTelegramAuth, strictRateLimit, validateBody(transferSchema), walletController.transfer.bind(walletController)); // Внутренние переводы
 router.post('/save-ton-address', requireTelegramAuth, strictRateLimit, walletController.saveTonAddress.bind(walletController)); // Сохранение TON адреса
 router.post('/connect-ton', requireTelegramAuth, strictRateLimit, walletController.connectTonWallet.bind(walletController)); // Подключение TON кошелька
-router.post('/ton-deposit', requireTelegramAuth, standardRateLimit, validateBody(tonDepositSchema), walletController.tonDeposit.bind(walletController)); // Пополнение через TON
+router.post('/ton-deposit', requireTelegramAuth, liberalRateLimit, validateBody(tonDepositSchema), walletController.tonDeposit.bind(walletController)); // Пополнение через TON
 
 // Внутренние системные endpoints (для использования другими модулями)
 // Эти endpoints предназначены для внутренних операций системы и требуют специальной авторизации

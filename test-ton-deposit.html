@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест TON Депозита</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Тестирование TON Депозита</h1>
+        
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Текущий JWT Токен</h2>
+            <div id="jwt-status" class="text-sm break-all bg-gray-700 p-3 rounded">
+                Проверяю...
+            </div>
+        </div>
+        
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Тестовый Депозит</h2>
+            <form id="deposit-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm mb-1">Hash транзакции:</label>
+                    <input type="text" id="tx_hash" value="test_ton_tx_demo_001" class="w-full bg-gray-700 px-3 py-2 rounded">
+                </div>
+                <div>
+                    <label class="block text-sm mb-1">Сумма TON:</label>
+                    <input type="number" id="amount" value="0.5" step="0.1" class="w-full bg-gray-700 px-3 py-2 rounded">
+                </div>
+                <div>
+                    <label class="block text-sm mb-1">Адрес кошелька:</label>
+                    <input type="text" id="wallet" value="UQB_demo_wallet_123" class="w-full bg-gray-700 px-3 py-2 rounded">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                    Отправить Депозит
+                </button>
+            </form>
+        </div>
+        
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">Результат</h2>
+            <div id="result" class="text-sm">
+                Ожидание действия...
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Проверка JWT токена
+        const jwtToken = localStorage.getItem('unifarm_jwt_token');
+        const jwtStatus = document.getElementById('jwt-status');
+        
+        if (jwtToken) {
+            jwtStatus.innerHTML = `<span class="text-green-400">✓ Токен найден:</span><br>${jwtToken}`;
+        } else {
+            jwtStatus.innerHTML = `<span class="text-red-400">✗ Токен не найден в localStorage</span>`;
+        }
+        
+        // Обработка формы
+        document.getElementById('deposit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="text-yellow-400">Отправка запроса...</div>';
+            
+            const data = {
+                ton_tx_hash: document.getElementById('tx_hash').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                wallet_address: document.getElementById('wallet').value
+            };
+            
+            try {
+                const response = await fetch('/api/v2/wallet/ton-deposit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwtToken}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="text-green-400">
+                            <h3 class="font-semibold mb-2">✓ Успешно!</h3>
+                            <p>Депозит обработан: ${data.amount} TON</p>
+                            <p>Hash: ${data.ton_tx_hash}</p>
+                            <pre class="bg-gray-700 p-2 rounded mt-2">${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="text-red-400">
+                            <h3 class="font-semibold mb-2">✗ Ошибка</h3>
+                            <p>${result.error || 'Неизвестная ошибка'}</p>
+                            <pre class="bg-gray-700 p-2 rounded mt-2">${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="text-red-400">
+                        <h3 class="font-semibold mb-2">✗ Ошибка сети</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

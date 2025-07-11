@@ -689,6 +689,91 @@ async function startServer() {
 
     // Removed test handler that was intercepting /api/v2/users/profile requests
     
+    // Direct TON deposit endpoint - временное решение для обхода проблем с маршрутизацией
+    app.post(`${apiPrefix}/wallet/ton-deposit`, requireTelegramAuth, async (req: Request, res: Response) => {
+      console.log('[TON DEPOSIT] Direct endpoint called');
+      
+      try {
+        const { ton_tx_hash, amount, wallet_address } = req.body;
+        const userId = (req as any).user?.id;
+        
+        if (!userId) {
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        
+        // Валидация
+        if (!ton_tx_hash || !amount || !wallet_address) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Missing required fields: ton_tx_hash, amount, wallet_address' 
+          });
+        }
+        
+        if (typeof amount !== 'number' || amount <= 0) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Amount must be a positive number' 
+          });
+        }
+        
+        // Проверка на дубликаты транзакций
+        const { data: existingTx } = await supabase
+          .from('transactions')
+          .select('id')
+          .eq('tx_hash', ton_tx_hash)
+          .single();
+          
+        if (existingTx) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Transaction already processed' 
+          });
+        }
+        
+        // Импортируем необходимые модули
+        const { BalanceManager } = await import('../core/BalanceManager');
+        const { UnifiedTransactionService } = await import('../modules/transactions/UnifiedTransactionService');
+        
+        // Начисляем TON на баланс
+        await BalanceManager.addBalance(userId, 0, amount, 'TON deposit');
+        
+        // Создаем запись транзакции
+        await UnifiedTransactionService.createTransaction({
+          user_id: userId,
+          type: 'DEPOSIT',
+          amount_ton: amount,
+          amount_uni: 0,
+          status: 'COMPLETED',
+          description: `TON deposit from ${wallet_address}`,
+          tx_hash: ton_tx_hash,
+          metadata: {
+            wallet_address,
+            source: 'ton_connect',
+            deposit_type: 'ton'
+          }
+        });
+        
+        console.log('[TON DEPOSIT] Deposit successful:', { userId, amount, ton_tx_hash });
+        
+        return res.status(200).json({ 
+          success: true, 
+          message: 'TON deposit successful',
+          data: {
+            amount,
+            tx_hash: ton_tx_hash
+          }
+        });
+        
+      } catch (error) {
+        console.error('[TON DEPOSIT] Error:', error);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Internal server error',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+    
     // Import centralized routes (after critical endpoints)
     console.log('[ROUTES] Attempting to import ./routes...');
     try {
