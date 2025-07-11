@@ -774,6 +774,337 @@ async function startServer() {
       }
     });
     
+    // Direct wallet balance endpoint - обход проблемы с маршрутизацией
+    app.get(`${apiPrefix}/wallet/balance`, requireTelegramAuth, async (req: Request, res: Response) => {
+      console.log('[WALLET BALANCE] Direct endpoint called');
+      
+      try {
+        const userId = (req as any).user?.id;
+        
+        if (!userId) {
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        
+        // Получаем баланс через BalanceManager
+        const { BalanceManager } = await import('../core/BalanceManager');
+        const balance = await BalanceManager.getUserBalance(userId);
+        
+        return res.json({
+          success: true,
+          data: {
+            balance_uni: balance.balance_uni,
+            balance_ton: balance.balance_ton
+          }
+        });
+        
+      } catch (error) {
+        console.error('[WALLET BALANCE] Error:', error);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Internal server error',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+    
+    // Direct wallet withdraw endpoint - обход проблемы с маршрутизацией
+    app.post(`${apiPrefix}/wallet/withdraw`, requireTelegramAuth, async (req: Request, res: Response) => {
+      console.log('[WALLET WITHDRAW] Direct endpoint called');
+      
+      try {
+        const { amount, currency, wallet_address } = req.body;
+        const userId = (req as any).user?.id;
+        
+        if (!userId) {
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        
+        // Валидация
+        if (!amount || !currency || !wallet_address) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Missing required fields: amount, currency, wallet_address' 
+          });
+        }
+        
+        if (typeof amount !== 'number' || amount <= 0) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Amount must be a positive number' 
+          });
+        }
+        
+        if (!['UNI', 'TON'].includes(currency)) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Invalid currency. Must be UNI or TON' 
+          });
+        }
+        
+        // Импортируем необходимые модули
+        const { BalanceManager } = await import('../core/BalanceManager');
+        const { UnifiedTransactionService } = await import('../modules/transactions/UnifiedTransactionService');
+        
+        // Для UNI вывода проверяем минимальную сумму и комиссию
+        if (currency === 'UNI') {
+          const MIN_UNI_WITHDRAW = 1000;
+          const TON_FEE_PER_1000_UNI = 0.1;
+          
+          if (amount < MIN_UNI_WITHDRAW) {
+            return res.status(400).json({ 
+              success: false, 
+              error: `Minimum withdrawal amount is ${MIN_UNI_WITHDRAW} UNI` 
+            });
+          }
+          
+          const tonFee = Math.floor(amount / 1000) * TON_FEE_PER_1000_UNI;
+          
+          // Проверяем достаточность TON для комиссии
+          const balance = await BalanceManager.getUserBalance(userId);
+          if (balance.balance_ton < tonFee) {
+            return res.status(400).json({ 
+              success: false, 
+              error: `Insufficient TON balance for fee. Required: ${tonFee} TON` 
+            });
+          }
+          
+          // Списываем UNI и комиссию TON
+          await BalanceManager.subtractBalance(userId, amount, 0, 'UNI withdrawal');
+          await BalanceManager.subtractBalance(userId, 0, tonFee, 'UNI withdrawal fee');
+        } else {
+          // Для TON проверяем баланс
+          const hasSufficient = await BalanceManager.hasSufficientBalance(userId, 0, amount);
+          if (!hasSufficient) {
+            return res.status(400).json({ 
+              success: false, 
+              error: 'Insufficient balance' 
+            });
+          }
+          
+          // Списываем TON
+          await BalanceManager.subtractBalance(userId, 0, amount, 'TON withdrawal');
+        }
+        
+        // Создаем заявку на вывод
+        const { data: withdrawRequest, error: withdrawError } = await supabase
+          .from('withdraw_requests')
+          .insert({
+            user_id: userId,
+            amount_uni: currency === 'UNI' ? amount : 0,
+            amount_ton: currency === 'TON' ? amount : 0,
+            wallet_address,
+            status: 'PENDING',
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+          
+        if (withdrawError) {
+          throw withdrawError;
+        }
+        
+        // Создаем транзакцию
+        await UnifiedTransactionService.createTransaction({
+          user_id: userId,
+          type: 'WITHDRAWAL',
+          amount_uni: currency === 'UNI' ? amount : 0,
+          amount_ton: currency === 'TON' ? amount : 0,
+          status: 'PENDING',
+          description: `${currency} withdrawal to ${wallet_address}`,
+          metadata: {
+            withdraw_request_id: withdrawRequest.id,
+            wallet_address,
+            currency
+          }
+        });
+        
+        return res.json({
+          success: true,
+          message: 'Withdrawal request created successfully',
+          data: {
+            request_id: withdrawRequest.id,
+            amount,
+            currency,
+            status: 'PENDING'
+          }
+        });
+        
+      } catch (error) {
+        console.error('[WALLET WITHDRAW] Error:', error);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Internal server error',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+    
+    // Direct wallet transfer endpoint - обход проблемы с маршрутизацией
+    app.post(`${apiPrefix}/wallet/transfer`, requireTelegramAuth, async (req: Request, res: Response) => {
+      console.log('[WALLET TRANSFER] Direct endpoint called');
+      
+      try {
+        const { recipient_id, amount, currency } = req.body;
+        const userId = (req as any).user?.id;
+        
+        if (!userId) {
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        
+        // Валидация
+        if (!recipient_id || !amount || !currency) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Missing required fields: recipient_id, amount, currency' 
+          });
+        }
+        
+        if (typeof amount !== 'number' || amount <= 0) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Amount must be a positive number' 
+          });
+        }
+        
+        if (!['UNI', 'TON'].includes(currency)) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Invalid currency. Must be UNI or TON' 
+          });
+        }
+        
+        if (userId === recipient_id) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Cannot transfer to yourself' 
+          });
+        }
+        
+        // Импортируем необходимые модули
+        const { BalanceManager } = await import('../core/BalanceManager');
+        const { UnifiedTransactionService } = await import('../modules/transactions/UnifiedTransactionService');
+        
+        // Проверяем существование получателя
+        const { data: recipient } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', recipient_id)
+          .single();
+          
+        if (!recipient) {
+          return res.status(404).json({ 
+            success: false, 
+            error: 'Recipient not found' 
+          });
+        }
+        
+        // Проверяем баланс
+        const amountUni = currency === 'UNI' ? amount : 0;
+        const amountTon = currency === 'TON' ? amount : 0;
+        
+        const hasSufficient = await BalanceManager.hasSufficientBalance(userId, amountUni, amountTon);
+        if (!hasSufficient) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Insufficient balance' 
+          });
+        }
+        
+        // Выполняем перевод
+        await BalanceManager.subtractBalance(userId, amountUni, amountTon, `Transfer to user ${recipient_id}`);
+        await BalanceManager.addBalance(recipient_id, amountUni, amountTon, `Transfer from user ${userId}`);
+        
+        // Создаем транзакции
+        await UnifiedTransactionService.createTransaction({
+          user_id: userId,
+          type: 'TRANSFER_OUT',
+          amount_uni: amountUni,
+          amount_ton: amountTon,
+          status: 'COMPLETED',
+          description: `Transfer to user ${recipient_id}`,
+          metadata: {
+            recipient_id,
+            currency
+          }
+        });
+        
+        await UnifiedTransactionService.createTransaction({
+          user_id: recipient_id,
+          type: 'TRANSFER_IN',
+          amount_uni: amountUni,
+          amount_ton: amountTon,
+          status: 'COMPLETED',
+          description: `Transfer from user ${userId}`,
+          metadata: {
+            sender_id: userId,
+            currency
+          }
+        });
+        
+        return res.json({
+          success: true,
+          message: 'Transfer completed successfully',
+          data: {
+            amount,
+            currency,
+            recipient_id
+          }
+        });
+        
+      } catch (error) {
+        console.error('[WALLET TRANSFER] Error:', error);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Internal server error',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+    
+    // Direct wallet transactions endpoint - обход проблемы с маршрутизацией
+    app.get(`${apiPrefix}/wallet/transactions`, requireTelegramAuth, async (req: Request, res: Response) => {
+      console.log('[WALLET TRANSACTIONS] Direct endpoint called');
+      
+      try {
+        const userId = (req as any).user?.id;
+        const { limit = 50, offset = 0 } = req.query;
+        
+        if (!userId) {
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        
+        // Получаем транзакции пользователя
+        const { data: transactions, error, count } = await supabase
+          .from('transactions')
+          .select('*', { count: 'exact' })
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .range(Number(offset), Number(offset) + Number(limit) - 1);
+          
+        if (error) {
+          throw error;
+        }
+        
+        return res.json({
+          success: true,
+          data: {
+            transactions: transactions || [],
+            total: count || 0,
+            limit: Number(limit),
+            offset: Number(offset)
+          }
+        });
+        
+      } catch (error) {
+        console.error('[WALLET TRANSACTIONS] Error:', error);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Internal server error',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+    
     // Import centralized routes (after critical endpoints)
     console.log('[ROUTES] Attempting to import ./routes...');
     try {
