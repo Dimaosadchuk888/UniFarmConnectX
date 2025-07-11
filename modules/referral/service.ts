@@ -323,19 +323,25 @@ export class ReferralService {
                 created_at: new Date().toISOString()
               });
 
-            // Создаем транзакцию REFERRAL_REWARD
-            await supabase
-              .from(REFERRAL_TABLES.TRANSACTIONS)
-              .insert({
-                user_id: parseInt(commission.userId),
-                type: 'REFERRAL_REWARD',
-                amount_uni: currency === 'UNI' ? commission.amount : '0',
-                amount_ton: currency === 'TON' ? commission.amount : '0', 
-                status: 'completed',
-                description: `Referral L${commission.level} from User ${sourceUserId}: ${commission.amount} ${currency} (${commission.percentage}%)`,
+            // Создаем транзакцию через UnifiedTransactionService
+            const { UnifiedTransactionService } = await import('../../core/TransactionService');
+            const transactionService = UnifiedTransactionService.getInstance();
+            
+            await transactionService.createTransaction({
+              user_id: parseInt(commission.userId),
+              type: 'REFERRAL_REWARD',
+              amount_uni: currency === 'UNI' ? parseFloat(commission.amount) : 0,
+              amount_ton: currency === 'TON' ? parseFloat(commission.amount) : 0,
+              currency: currency,
+              status: 'completed',
+              description: `Referral L${commission.level} from User ${sourceUserId}: ${commission.amount} ${currency} (${commission.percentage}%)`,
+              metadata: {
                 source_user_id: parseInt(sourceUserId),
-                created_at: new Date().toISOString()
-              });
+                level: commission.level,
+                percentage: commission.percentage,
+                source_type: sourceType
+              }
+            });
 
             logger.info('[ReferralService] Реферальная награда начислена', {
               recipientId: commission.userId,

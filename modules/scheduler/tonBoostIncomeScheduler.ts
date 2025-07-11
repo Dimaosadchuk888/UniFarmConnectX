@@ -4,7 +4,6 @@
  */
 
 import { logger } from '../../core/logger';
-import { supabase } from '../../core/supabase';
 import { ReferralService } from '../referral/service';
 import { BalanceNotificationService } from '../../core/BalanceNotificationService';
 import { BalanceManager } from '../../core/BalanceManager';
@@ -123,22 +122,27 @@ export class TONBoostIncomeScheduler {
 
           const userNewBalance = userCurrentBalance + fiveMinuteIncome;
 
-          // Создаем транзакцию через унифицированный сервис
-          const { error: transactionError } = await supabase
-            .from('transactions')
-            .insert({
-              user_id: user.id,
-              type: 'FARMING_REWARD',  // Используем поддерживаемый тип
-              amount: fiveMinuteIncome.toFixed(8), // Добавляем общее поле amount
-              amount_uni: '0',
-              amount_ton: fiveMinuteIncome.toFixed(8),
-              currency: 'TON', // Добавляем валюту
-              status: 'completed',
-              description: `TON Boost доход (${user.ton_boost_package}): ${fiveMinuteIncome.toFixed(6)} TON`
-            });
+          // Создаем транзакцию через UnifiedTransactionService
+          const { UnifiedTransactionService } = await import('../../core/TransactionService');
+          const transactionService = UnifiedTransactionService.getInstance();
+          
+          const transactionResult = await transactionService.createTransaction({
+            user_id: user.id,
+            type: 'TON_BOOST_INCOME',  // Используем специфичный тип (будет преобразован в FARMING_REWARD)
+            amount_uni: 0,
+            amount_ton: fiveMinuteIncome,
+            currency: 'TON',
+            status: 'completed',
+            description: `TON Boost доход (${user.ton_boost_package}): ${fiveMinuteIncome.toFixed(6)} TON`,
+            metadata: {
+              boost_package_id: user.ton_boost_package,
+              daily_rate: dailyRate,
+              user_deposit: userDeposit
+            }
+          });
 
-          if (transactionError) {
-            logger.error(`[TON_BOOST_SCHEDULER] Ошибка создания транзакции User ${user.id}:`, transactionError);
+          if (!transactionResult.success) {
+            logger.error(`[TON_BOOST_SCHEDULER] Ошибка создания транзакции User ${user.id}:`, transactionResult.error);
             continue;
           }
 
