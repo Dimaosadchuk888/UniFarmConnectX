@@ -731,11 +731,11 @@ async function startServer() {
         }
         
         // Импортируем необходимые модули
-        const { BalanceManager } = await import('../core/BalanceManager');
+        const { balanceManager } = await import('../core/BalanceManager');
         const { UnifiedTransactionService } = await import('../modules/transactions/UnifiedTransactionService');
         
         // Начисляем TON на баланс
-        await BalanceManager.addBalance(userId, 0, amount, 'TON deposit');
+        await balanceManager.addBalance(userId, 0, amount, 'TON deposit');
         
         // Создаем запись транзакции
         await UnifiedTransactionService.createTransaction({
@@ -786,8 +786,8 @@ async function startServer() {
         }
         
         // Получаем баланс через BalanceManager
-        const { BalanceManager } = await import('../core/BalanceManager');
-        const balance = await BalanceManager.getUserBalance(userId);
+        const { balanceManager } = await import('../core/BalanceManager');
+        const balance = await balanceManager.getUserBalance(userId);
         
         return res.json({
           success: true,
@@ -842,7 +842,7 @@ async function startServer() {
         }
         
         // Импортируем необходимые модули
-        const { BalanceManager } = await import('../core/BalanceManager');
+        const { balanceManager } = await import('../core/BalanceManager');
         const { UnifiedTransactionService } = await import('../modules/transactions/UnifiedTransactionService');
         
         // Для UNI вывода проверяем минимальную сумму и комиссию
@@ -860,7 +860,7 @@ async function startServer() {
           const tonFee = Math.floor(amount / 1000) * TON_FEE_PER_1000_UNI;
           
           // Проверяем достаточность TON для комиссии
-          const balance = await BalanceManager.getUserBalance(userId);
+          const balance = await balanceManager.getUserBalance(userId);
           if (balance.balance_ton < tonFee) {
             return res.status(400).json({ 
               success: false, 
@@ -869,11 +869,11 @@ async function startServer() {
           }
           
           // Списываем UNI и комиссию TON
-          await BalanceManager.subtractBalance(userId, amount, 0, 'UNI withdrawal');
-          await BalanceManager.subtractBalance(userId, 0, tonFee, 'UNI withdrawal fee');
+          await balanceManager.subtractBalance(userId, amount, 0, 'UNI withdrawal');
+          await balanceManager.subtractBalance(userId, 0, tonFee, 'UNI withdrawal fee');
         } else {
           // Для TON проверяем баланс
-          const hasSufficient = await BalanceManager.hasSufficientBalance(userId, 0, amount);
+          const hasSufficient = await balanceManager.hasSufficientBalance(userId, 0, amount);
           if (!hasSufficient) {
             return res.status(400).json({ 
               success: false, 
@@ -882,7 +882,7 @@ async function startServer() {
           }
           
           // Списываем TON
-          await BalanceManager.subtractBalance(userId, 0, amount, 'TON withdrawal');
+          await balanceManager.subtractBalance(userId, 0, amount, 'TON withdrawal');
         }
         
         // Создаем заявку на вывод
@@ -981,7 +981,7 @@ async function startServer() {
         }
         
         // Импортируем необходимые модули
-        const { BalanceManager } = await import('../core/BalanceManager');
+        const { balanceManager } = await import('../core/BalanceManager');
         const { UnifiedTransactionService } = await import('../modules/transactions/UnifiedTransactionService');
         
         // Проверяем существование получателя
@@ -1002,7 +1002,7 @@ async function startServer() {
         const amountUni = currency === 'UNI' ? amount : 0;
         const amountTon = currency === 'TON' ? amount : 0;
         
-        const hasSufficient = await BalanceManager.hasSufficientBalance(userId, amountUni, amountTon);
+        const hasSufficient = await balanceManager.hasSufficientBalance(userId, amountUni, amountTon);
         if (!hasSufficient) {
           return res.status(400).json({ 
             success: false, 
@@ -1011,8 +1011,8 @@ async function startServer() {
         }
         
         // Выполняем перевод
-        await BalanceManager.subtractBalance(userId, amountUni, amountTon, `Transfer to user ${recipient_id}`);
-        await BalanceManager.addBalance(recipient_id, amountUni, amountTon, `Transfer from user ${userId}`);
+        await balanceManager.subtractBalance(userId, amountUni, amountTon, `Transfer to user ${recipient_id}`);
+        await balanceManager.addBalance(recipient_id, amountUni, amountTon, `Transfer from user ${userId}`);
         
         // Создаем транзакции
         await UnifiedTransactionService.createTransaction({
