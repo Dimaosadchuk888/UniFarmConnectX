@@ -50,9 +50,32 @@ export class FarmingService {
         };
       }
 
+      // Получаем данные из новой таблицы uni_farming_data
+      const { uniFarmingRepository } = await import('./UniFarmingRepository');
+      const farmingData = await uniFarmingRepository.getByUserId(user.id.toString());
+
+      if (!farmingData) {
+        return {
+          isActive: false,
+          depositAmount: '0',
+          ratePerSecond: '0',
+          totalRatePerSecond: '0',
+          dailyIncomeUni: '0',
+          depositCount: 0,
+          totalDepositAmount: '0',
+          startDate: null,
+          uni_farming_start_timestamp: null,
+          rate: '0.000000',
+          accumulated: '0.000000',
+          last_claim: null,
+          can_claim: false,
+          next_claim_available: null
+        };
+      }
+
       const now = new Date();
-      const lastClaim = user.uni_farming_last_update ? new Date(user.uni_farming_last_update) : null;
-      const farmingStart = user.uni_farming_start_timestamp ? new Date(user.uni_farming_start_timestamp) : now;
+      const lastClaim = farmingData.farming_last_update ? new Date(farmingData.farming_last_update) : null;
+      const farmingStart = farmingData.farming_start_timestamp ? new Date(farmingData.farming_start_timestamp) : now;
       
       const baseHourlyRate = 0.01;
       const ratePerSecond = baseHourlyRate / 3600;
@@ -63,8 +86,8 @@ export class FarmingService {
         : (now.getTime() - farmingStart.getTime()) / (1000 * 60 * 60);
       
       const accumulated = Math.max(0, hoursElapsed * baseHourlyRate);
-      const isActive = !!user.uni_farming_start_timestamp;
-      const depositAmount = user.uni_deposit_amount || '0';
+      const isActive = farmingData.is_active;
+      const depositAmount = farmingData.deposit_amount || '0';
       
       return {
         isActive,
@@ -95,17 +118,17 @@ export class FarmingService {
       const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
       if (!user) return false;
 
-      const { error } = await supabase
-        .from(FARMING_TABLES.USERS)
-        .update({
-          uni_farming_start_timestamp: new Date().toISOString(),
-          uni_farming_last_update: new Date().toISOString(),
-          uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE,  // ИСПРАВЛЕНО: Устанавливаем ставку
-          uni_farming_active: true  // ИСПРАВЛЕНО: Активируем фарминг
-        })
-        .eq('id', user.id);
+      const { uniFarmingRepository } = await import('./UniFarmingRepository');
+      
+      const success = await uniFarmingRepository.upsert({
+        user_id: user.id,
+        farming_start_timestamp: new Date().toISOString(),
+        farming_last_update: new Date().toISOString(),
+        farming_rate: FARMING_CONFIG.DEFAULT_RATE,
+        is_active: true
+      });
 
-      return !error;
+      return success;
     } catch (error) {
       logger.error('[FarmingService] Ошибка запуска фарминга', { error: error instanceof Error ? error.message : String(error) });
       return false;
@@ -117,15 +140,11 @@ export class FarmingService {
       const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
       if (!user) return false;
 
-      const { error } = await supabase
-        .from(FARMING_TABLES.USERS)
-        .update({
-          uni_farming_start_timestamp: null,
-          uni_farming_last_update: new Date().toISOString()
-        })
-        .eq('id', user.id);
+      const { uniFarmingRepository } = await import('./UniFarmingRepository');
+      
+      const success = await uniFarmingRepository.updateActivity(user.id.toString(), false);
 
-      return !error;
+      return success;
     } catch (error) {
       logger.error('[FarmingService] Ошибка остановки фарминга', { error: error instanceof Error ? error.message : String(error) });
       return false;
@@ -263,32 +282,23 @@ export class FarmingService {
         return { success: false, message: 'Ошибка обновления баланса' };
       }
 
-      // Обновляем депозит в фарминге
-      const { data: updateData, error: updateError } = await supabase
-        .from(FARMING_TABLES.USERS)
-        .update({
-          uni_deposit_amount: newDepositAmount,
-          uni_farming_start_timestamp: new Date().toISOString(),
-          uni_farming_last_update: new Date().toISOString(),
-          uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE,
-          uni_farming_active: true  // ИСПРАВЛЕНО: Активируем фарминг
-        })
-        .eq('id', user.id)
-        .select();
+      // Обновляем депозит в фарминге через новый репозиторий
+      const { uniFarmingRepository } = await import('./UniFarmingRepository');
+      
+      const updateSuccess = await uniFarmingRepository.addDeposit(
+        user.id.toString(),
+        depositAmount.toString()
+      );
 
       logger.info('[FarmingService] ЭТАП 6: Результат обновления базы данных', { 
-        updateError: updateError?.message || null,
-        updatedData: updateData,
-        success: !updateError
+        success: updateSuccess,
+        userId: user.id,
+        depositAmount
       });
 
-      if (updateError) {
+      if (!updateSuccess) {
         logger.error('[FarmingService] ЭТАП 6.1: Ошибка обновления базы данных', { 
-          error: updateError,
-          userId: user.id,
-          errorMessage: updateError?.message,
-          errorDetails: updateError?.details,
-          errorCode: updateError?.code
+          userId: user.id
         });
         return { success: false, message: 'Ошибка обновления данных' };
       }

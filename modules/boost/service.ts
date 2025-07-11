@@ -318,20 +318,21 @@ export class BoostService {
         reason: 'Активация сразу после успешного списания средств'
       });
       
-      const { supabase: supabaseImmediate } = await import('../../core/supabase');
-      const { data: immediateActivation, error: immediateError } = await supabaseImmediate
-        .from('users')
-        .update({ 
-          ton_boost_package: boostPackage.id,
-          ton_boost_rate: boostPackage.daily_rate
-        })
-        .eq('id', userId)
-        .select('id, ton_boost_package, ton_boost_rate');
+      // Используем TonFarmingRepository для активации boost
+      const { TonFarmingRepository } = await import('./TonFarmingRepository');
+      const tonFarmingRepo = new TonFarmingRepository();
+      
+      const immediateActivation = await tonFarmingRepo.activateBoost(
+        parseInt(userId),
+        boostPackage.id,
+        boostPackage.daily_rate / 100, // Конвертируем процент в десятичное число
+        boostPackage.duration_days
+      );
         
-      if (immediateError) {
-        logger.error('[BoostService] КРИТИЧЕСКАЯ ОШИБКА немедленной активации:', immediateError);
+      if (!immediateActivation) {
+        logger.error('[BoostService] КРИТИЧЕСКАЯ ОШИБКА немедленной активации');
       } else {
-        logger.info('[BoostService] Немедленная активация УСПЕШНА - планировщик активирован:', immediateActivation);
+        logger.info('[BoostService] Немедленная активация УСПЕШНА - планировщик активирован');
       }
 
       // Создаем запись о покупке
@@ -416,20 +417,18 @@ export class BoostService {
         reason: 'Гарантированная активация после успешной покупки'
       });
       
-      const { supabase: supabaseFinal } = await import('../../core/supabase');
-      const { data: finalActivation, error: activationError } = await supabaseFinal
-        .from('users')
-        .update({ 
-          ton_boost_package: boostPackage.id,
-          ton_boost_rate: boostPackage.daily_rate
-        })
-        .eq('id', userId)
-        .select('id, ton_boost_package, ton_boost_rate');
+      // Используем TonFarmingRepository для финальной активации boost
+      const finalActivation = await tonFarmingRepo.activateBoost(
+        parseInt(userId),
+        boostPackage.id,
+        boostPackage.daily_rate / 100, // Конвертируем процент в десятичное число
+        boostPackage.duration_days
+      );
         
-      if (activationError) {
-        logger.error('[BoostService] КРИТИЧЕСКАЯ ОШИБКА финальной активации:', activationError);
+      if (!finalActivation) {
+        logger.error('[BoostService] КРИТИЧЕСКАЯ ОШИБКА финальной активации');
       } else {
-        logger.info('[BoostService] Финальная активация УСПЕШНА - планировщик активирован:', finalActivation);
+        logger.info('[BoostService] Финальная активация УСПЕШНА - планировщик активирован');
       }
 
       const responseData = {

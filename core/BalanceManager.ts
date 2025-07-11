@@ -489,6 +489,92 @@ export class BalanceManager {
       return { success: false, corrected: false, error: 'Ошибка валидации баланса' };
     }
   }
+
+  /**
+   * Получить данные UNI farming для пользователя
+   */
+  async getUniFarmingData(user_id: number): Promise<any> {
+    try {
+      const { uniFarmingRepository } = await import('../modules/farming/UniFarmingRepository');
+      const data = await uniFarmingRepository.getByUserId(user_id.toString());
+      return data;
+    } catch (error) {
+      logger.error('[BalanceManager] Ошибка получения UNI farming данных:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Обновить данные UNI farming
+   */
+  async updateUniFarmingData(user_id: number, data: any): Promise<boolean> {
+    try {
+      const { uniFarmingRepository } = await import('../modules/farming/UniFarmingRepository');
+      return await uniFarmingRepository.upsert({
+        user_id,
+        ...data
+      });
+    } catch (error) {
+      logger.error('[BalanceManager] Ошибка обновления UNI farming данных:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Получить данные TON farming для пользователя
+   */
+  async getTonFarmingData(user_id: number): Promise<any> {
+    try {
+      const { tonFarmingRepository } = await import('../modules/boost/TonFarmingRepository');
+      const data = await tonFarmingRepository.getByUserId(user_id.toString());
+      return data;
+    } catch (error) {
+      logger.error('[BalanceManager] Ошибка получения TON farming данных:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Обновить данные TON farming
+   */
+  async updateTonFarmingData(user_id: number, data: any): Promise<boolean> {
+    try {
+      const { tonFarmingRepository } = await import('../modules/boost/TonFarmingRepository');
+      return await tonFarmingRepository.upsert({
+        user_id,
+        ...data
+      });
+    } catch (error) {
+      logger.error('[BalanceManager] Ошибка обновления TON farming данных:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Получить полные данные пользователя включая farming
+   */
+  async getUserFullData(user_id: number): Promise<any> {
+    try {
+      const [balance, uniFarming, tonFarming] = await Promise.all([
+        this.getUserBalance(user_id),
+        this.getUniFarmingData(user_id),
+        this.getTonFarmingData(user_id)
+      ]);
+
+      if (!balance.success) {
+        return null;
+      }
+
+      return {
+        ...balance.balance,
+        uni_farming: uniFarming,
+        ton_farming: tonFarming
+      };
+    } catch (error) {
+      logger.error('[BalanceManager] Ошибка получения полных данных пользователя:', error);
+      return null;
+    }
+  }
 }
 
 // Экспорт singleton instance для использования в других модулях

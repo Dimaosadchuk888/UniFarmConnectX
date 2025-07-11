@@ -56,16 +56,14 @@ export class FarmingScheduler {
     try {
       logger.info('[UNI Farming] Начинаем обработку автоматического начисления дохода');
 
-      // Находим всех активных UNI фармеров (с проверкой флага активности)
-      const { data: activeFarmers, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('uni_farming_active', true)  // Проверяем флаг активности
-        .not('uni_farming_start_timestamp', 'is', null)
-        .not('uni_farming_rate', 'is', null);
-
-      if (error) {
-        logger.error('[UNI Farming] Ошибка получения активных фармеров:', error.message);
+      // Получаем активных UNI фармеров через репозиторий
+      const UniFarmingRepository = await import('../../modules/farming/UniFarmingRepository').then(m => m.UniFarmingRepository);
+      const uniFarmingRepo = new UniFarmingRepository();
+      
+      const activeFarmers = await uniFarmingRepo.getActiveFarmers();
+      
+      if (!activeFarmers) {
+        logger.error('[UNI Farming] Ошибка получения активных фармеров');
         return;
       }
 

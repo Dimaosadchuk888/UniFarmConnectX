@@ -52,29 +52,15 @@ export class TONBoostIncomeScheduler {
     try {
       logger.info('[TON_BOOST_SCHEDULER] Начало цикла обработки TON Boost доходов');
 
-      // Получаем пользователей с активными TON Boost пакетами
-      // Используем существующие поля: ton_boost_package (не null) и balance_ton (> 10 как депозит)
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('*')
-        .not('ton_boost_package', 'is', null)
-        .gte('balance_ton', 10); // Минимальный баланс TON для активного Boost
-
-      if (usersError) {
-        logger.error('[TON_BOOST_SCHEDULER] Ошибка получения пользователей:', usersError);
-        return;
-      }
-
-      // Фильтруем активных TON Boost пользователей по существующим полям
-      const activeBoostUsers = users?.filter(user => 
-        user.ton_boost_package && 
-        user.ton_boost_package !== 0 &&
-        user.ton_boost_package !== '0' &&
-        parseFloat(user.balance_ton || '0') >= 10
-      ) || [];
-
-      if (activeBoostUsers.length === 0) {
-        logger.info('[TON_BOOST_SCHEDULER] ✅ Цикл завершен: 0 активных TON Boost пользователей');
+      // Получаем пользователей с активными TON Boost пакетами через репозиторий
+      const TonFarmingRepository = await import('../boost/TonFarmingRepository').then(m => m.TonFarmingRepository);
+      const tonFarmingRepo = new TonFarmingRepository();
+      
+      // Получаем активных пользователей с boost
+      const activeBoostUsers = await tonFarmingRepo.getActiveBoostUsers();
+      
+      if (!activeBoostUsers || activeBoostUsers.length === 0) {
+        logger.info('[TON_BOOST_SCHEDULER] Нет активных пользователей с TON Boost');
         return;
       }
 
