@@ -36,7 +36,7 @@ export class DailyBonusController extends BaseController {
       // Если userId это telegram_id, ищем внутренний ID пользователя
       const userIdNumber = parseInt(userId);
       if (!isNaN(userIdNumber)) {
-        const { supabase } = require('../../core/supabase');
+        const { supabase } = await import('../../core/supabase');
         const { data: userByTelegramId } = await supabase
           .from('users')
           .select('id')

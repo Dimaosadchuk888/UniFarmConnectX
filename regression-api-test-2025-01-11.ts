@@ -145,7 +145,7 @@ async function runTests() {
   // 6. Тестирование реферальной системы
   log('\n=== МОДУЛЬ: РЕФЕРАЛЬНАЯ СИСТЕМА ===', 'blue');
   await testEndpoint('/api/v2/referral/stats?user_id=74', 'GET', true);
-  await testEndpoint('/api/v2/referral/list?user_id=74', 'GET', true);
+  await testEndpoint('/api/v2/referral/74/list', 'GET', true);
   
   // 7. Тестирование миссий
   log('\n=== МОДУЛЬ: МИССИИ ===', 'blue');
@@ -155,7 +155,7 @@ async function runTests() {
   // 8. Тестирование ежедневных бонусов
   log('\n=== МОДУЛЬ: ЕЖЕДНЕВНЫЕ БОНУСЫ ===', 'blue');
   await testEndpoint('/api/v2/daily-bonus/status?user_id=74', 'GET', true);
-  await testEndpoint('/api/v2/daily-bonus/history?user_id=74', 'GET', true);
+  await testEndpoint('/api/v2/daily-bonus/74/stats', 'GET', true);
   
   // 9. Тестирование транзакций
   log('\n=== МОДУЛЬ: ТРАНЗАКЦИИ ===', 'blue');
