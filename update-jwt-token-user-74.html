@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обновление JWT токена для User 74</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .token-box {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 20px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .info {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Обновление JWT токена для User 74</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Внимание!</strong> Токен истек или имеет неверную подпись. 
+            Обновите токен для продолжения работы с API.
+        </div>
+
+        <div class="token-box" id="tokenBox">
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NzQsInRlbGVncmFtX2lkIjo5OTk0ODksInVzZXJuYW1lIjoidGVzdF91c2VyXzE3NTIxMjk4NDA5MDUiLCJmaXJzdF9uYW1lIjoiVGVzdCIsImxhc3RfbmFtZSI6IlVzZXIiLCJyZWZfY29kZSI6IlJFRl8xNzUyMTI5ODQwOTA1X2k1cTY4diIsImlhdCI6MTc1MjIzNjk5NCwiZXhwIjoxNzUyODQxNzk0fQ.Qz7D8OsuQlMeMt1yCZ48XIgZYsxrqH-eJif6s8Kt7vc
+        </div>
+
+        <div>
+            <button onclick="updateToken()">Обновить токен</button>
+            <button onclick="clearStorage()">Очистить хранилище</button>
+            <button onclick="checkAuth()">Проверить авторизацию</button>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="info">
+            <strong>Информация о токене:</strong><br>
+            • User ID: 74<br>
+            • Telegram ID: 999489<br>
+            • Username: test_user_1752129840905<br>
+            • Создан: 11 июля 2025, 15:29<br>
+            • Истекает: 18 июля 2025, 15:29<br>
+            • Баланс: 362200.123 UNI / 1000 TON
+        </div>
+    </div>
+
+    <script>
+        const newToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NzQsInRlbGVncmFtX2lkIjo5OTk0ODksInVzZXJuYW1lIjoidGVzdF91c2VyXzE3NTIxMjk4NDA5MDUiLCJmaXJzdF9uYW1lIjoiVGVzdCIsImxhc3RfbmFtZSI6IlVzZXIiLCJyZWZfY29kZSI6IlJFRl8xNzUyMTI5ODQwOTA1X2k1cTY4diIsImlhdCI6MTc1MjIzNjk5NCwiZXhwIjoxNzUyODQxNzk0fQ.Qz7D8OsuQlMeMt1yCZ48XIgZYsxrqH-eJif6s8Kt7vc';
+
+        function updateToken() {
+            try {
+                // Очищаем старые данные
+                localStorage.removeItem('unifarm_jwt_token');
+                localStorage.removeItem('unifarm_last_session');
+                
+                // Устанавливаем новый токен
+                localStorage.setItem('unifarm_jwt_token', newToken);
+                
+                // Обновляем сессию
+                localStorage.setItem('unifarm_last_session', JSON.stringify({
+                    timestamp: new Date().toISOString(),
+                    user_id: 74,
+                    username: 'test_user_1752129840905',
+                    refCode: 'REF_1752129840905_i5q68v'
+                }));
+                
+                document.getElementById('status').innerHTML = 
+                    '<div class="success">✅ Токен успешно обновлен! Обновите страницу приложения.</div>';
+                
+                // Автоматический переход через 2 секунды
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } catch (error) {
+                document.getElementById('status').innerHTML = 
+                    '<div class="error">❌ Ошибка: ' + error.message + '</div>';
+            }
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            document.getElementById('status').innerHTML = 
+                '<div class="success">✅ Хранилище очищено!</div>';
+        }
+
+        async function checkAuth() {
+            try {
+                const token = localStorage.getItem('unifarm_jwt_token');
+                if (!token) {
+                    document.getElementById('status').innerHTML = 
+                        '<div class="error">❌ Токен не найден в localStorage</div>';
+                    return;
+                }
+
+                const response = await fetch('/api/v2/users/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('status').innerHTML = 
+                        '<div class="success">✅ Авторизация работает! User ID: ' + 
+                        (data.data?.user?.id || 'неизвестно') + '</div>';
+                } else {
+                    document.getElementById('status').innerHTML = 
+                        '<div class="error">❌ Ошибка авторизации: ' + 
+                        (data.error || data.message || 'Неизвестная ошибка') + '</div>';
+                }
+            } catch (error) {
+                document.getElementById('status').innerHTML = 
+                    '<div class="error">❌ Ошибка запроса: ' + error.message + '</div>';
+            }
+        }
+
+        // Проверяем текущий токен при загрузке
+        window.onload = function() {
+            const currentToken = localStorage.getItem('unifarm_jwt_token');
+            if (currentToken) {
+                console.log('Текущий токен найден, длина:', currentToken.length);
+            } else {
+                console.log('Токен не найден в localStorage');
+            }
+        };
+    </script>
+</body>
+</html>
