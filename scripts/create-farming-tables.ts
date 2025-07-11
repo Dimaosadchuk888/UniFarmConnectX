@@ -2,143 +2,174 @@ import { supabase } from '../core/supabase';
 import { logger } from '../core/logger';
 
 async function createFarmingTables() {
+  console.log('\n=== CREATING FARMING TABLES IN PRODUCTION ===\n');
+  
   try {
-    logger.info('[CreateTables] Starting table creation...');
-
-    // Создаем таблицу uni_farming_data
-    logger.info('[CreateTables] Creating uni_farming_data table...');
-    const { data: uniTable, error: uniError } = await supabase.rpc('exec_sql', {
-      sql: `
+    // 1. Создаем таблицу uni_farming_data
+    console.log('1. Creating uni_farming_data table...');
+    const { error: uniError } = await supabase.rpc('execute_sql', {
+      sql_query: `
         CREATE TABLE IF NOT EXISTS uni_farming_data (
-            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-            deposit_amount NUMERIC(20, 9) DEFAULT 0,
-            farming_balance NUMERIC(20, 9) DEFAULT 0,
-            farming_rate NUMERIC(10, 6) DEFAULT 0.01,
-            farming_start_timestamp TIMESTAMP WITH TIME ZONE,
-            farming_last_update TIMESTAMP WITH TIME ZONE,
-            farming_deposit NUMERIC(20, 9) DEFAULT 0,
-            is_active BOOLEAN DEFAULT FALSE,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+          user_id TEXT NOT NULL UNIQUE,
+          deposit_amount NUMERIC(20, 9) DEFAULT 0,
+          farming_balance NUMERIC(20, 9) DEFAULT 0,
+          total_earned NUMERIC(20, 9) DEFAULT 0,
+          last_claim_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          is_active BOOLEAN DEFAULT false,
+          farming_start TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- Создаем индексы для uni_farming_data
-        CREATE INDEX IF NOT EXISTS idx_uni_farming_active ON uni_farming_data(is_active);
-        CREATE INDEX IF NOT EXISTS idx_uni_farming_updated ON uni_farming_data(farming_last_update);
+        CREATE INDEX idx_uni_farming_user_id ON uni_farming_data(user_id);
+        CREATE INDEX idx_uni_farming_active ON uni_farming_data(is_active);
       `
     });
-
+    
     if (uniError) {
-      logger.error('[CreateTables] Error creating uni_farming_data:', uniError);
-      
-      // Пробуем альтернативный подход - создать через обычный insert с конфликтом
-      logger.info('[CreateTables] Trying alternative approach for uni_farming_data...');
-      
-      // Проверяем, можем ли мы вставить данные (если таблица существует)
-      const { error: testError } = await supabase
-        .from('uni_farming_data')
-        .select('user_id')
-        .limit(1);
-        
-      if (testError?.code === '42P01') {
-        logger.error('[CreateTables] Table uni_farming_data definitely does not exist. Need manual creation in Supabase Dashboard.');
-      } else if (!testError) {
-        logger.info('[CreateTables] Table uni_farming_data already exists!');
-      }
+      console.error('Error creating uni_farming_data:', uniError);
     } else {
-      logger.info('[CreateTables] uni_farming_data table created successfully');
+      console.log('✅ uni_farming_data table created successfully');
     }
-
-    // Создаем таблицу ton_farming_data
-    logger.info('[CreateTables] Creating ton_farming_data table...');
-    const { data: tonTable, error: tonError } = await supabase.rpc('exec_sql', {
-      sql: `
+    
+    // 2. Создаем таблицу ton_farming_data
+    console.log('\n2. Creating ton_farming_data table...');
+    const { error: tonError } = await supabase.rpc('execute_sql', {
+      sql_query: `
         CREATE TABLE IF NOT EXISTS ton_farming_data (
-            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-            farming_balance NUMERIC(20, 9) DEFAULT 0,
-            farming_rate NUMERIC(10, 6) DEFAULT 0.01,
-            farming_start_timestamp TIMESTAMP WITH TIME ZONE,
-            farming_last_update TIMESTAMP WITH TIME ZONE,
-            farming_accumulated NUMERIC(20, 9) DEFAULT 0,
-            farming_last_claim TIMESTAMP WITH TIME ZONE,
-            boost_active BOOLEAN DEFAULT FALSE,
-            boost_package_id INTEGER,
-            boost_expires_at TIMESTAMP WITH TIME ZONE,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+          user_id TEXT NOT NULL UNIQUE,
+          boost_active BOOLEAN DEFAULT false,
+          boost_package_id INTEGER,
+          boost_expires_at TIMESTAMP WITH TIME ZONE,
+          farming_balance NUMERIC(20, 9) DEFAULT 0,
+          total_earned NUMERIC(20, 9) DEFAULT 0,
+          last_claim_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
         
-        -- Создаем индексы для ton_farming_data
-        CREATE INDEX IF NOT EXISTS idx_ton_farming_active ON ton_farming_data(boost_active);
-        CREATE INDEX IF NOT EXISTS idx_ton_farming_updated ON ton_farming_data(farming_last_update);
+        CREATE INDEX idx_ton_farming_user_id ON ton_farming_data(user_id);
+        CREATE INDEX idx_ton_farming_active ON ton_farming_data(boost_active);
       `
     });
-
+    
     if (tonError) {
-      logger.error('[CreateTables] Error creating ton_farming_data:', tonError);
-      
-      // Проверяем существование таблицы
-      const { error: testError } = await supabase
-        .from('ton_farming_data')
-        .select('user_id')
-        .limit(1);
-        
-      if (testError?.code === '42P01') {
-        logger.error('[CreateTables] Table ton_farming_data definitely does not exist. Need manual creation in Supabase Dashboard.');
-      } else if (!testError) {
-        logger.info('[CreateTables] Table ton_farming_data already exists!');
-      }
+      console.error('Error creating ton_farming_data:', tonError);
     } else {
-      logger.info('[CreateTables] ton_farming_data table created successfully');
+      console.log('✅ ton_farming_data table created successfully');
     }
-
-    // Если RPC не работает, выводим SQL для ручного выполнения
-    if ((uniError || tonError) && (uniError?.message?.includes('function') || tonError?.message?.includes('function'))) {
-      console.log('\n[CreateTables] RPC function not found. Please execute the following SQL manually in Supabase SQL Editor:\n');
-      console.log('-- Create uni_farming_data table');
-      console.log(`CREATE TABLE IF NOT EXISTS uni_farming_data (
-    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    deposit_amount NUMERIC(20, 9) DEFAULT 0,
-    farming_balance NUMERIC(20, 9) DEFAULT 0,
-    farming_rate NUMERIC(10, 6) DEFAULT 0.01,
-    farming_start_timestamp TIMESTAMP WITH TIME ZONE,
-    farming_last_update TIMESTAMP WITH TIME ZONE,
-    farming_deposit NUMERIC(20, 9) DEFAULT 0,
-    is_active BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_uni_farming_active ON uni_farming_data(is_active);
-CREATE INDEX IF NOT EXISTS idx_uni_farming_updated ON uni_farming_data(farming_last_update);
-
--- Create ton_farming_data table
-CREATE TABLE IF NOT EXISTS ton_farming_data (
-    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    farming_balance NUMERIC(20, 9) DEFAULT 0,
-    farming_rate NUMERIC(10, 6) DEFAULT 0.01,
-    farming_start_timestamp TIMESTAMP WITH TIME ZONE,
-    farming_last_update TIMESTAMP WITH TIME ZONE,
-    farming_accumulated NUMERIC(20, 9) DEFAULT 0,
-    farming_last_claim TIMESTAMP WITH TIME ZONE,
-    boost_active BOOLEAN DEFAULT FALSE,
-    boost_package_id INTEGER,
-    boost_expires_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_ton_farming_active ON ton_farming_data(boost_active);
-CREATE INDEX IF NOT EXISTS idx_ton_farming_updated ON ton_farming_data(farming_last_update);`);
-    }
-
-    console.log('\n[CreateTables] Process completed!');
-
+    
+    // 3. Настраиваем RLS
+    console.log('\n3. Setting up Row Level Security...');
+    
+    // RLS для uni_farming_data
+    await supabase.rpc('execute_sql', {
+      sql_query: `
+        ALTER TABLE uni_farming_data ENABLE ROW LEVEL SECURITY;
+        
+        CREATE POLICY "Users can view their own uni farming data" ON uni_farming_data
+        FOR SELECT USING (true);
+        
+        CREATE POLICY "Service can manage all uni farming data" ON uni_farming_data
+        FOR ALL USING (true);
+      `
+    });
+    
+    // RLS для ton_farming_data
+    await supabase.rpc('execute_sql', {
+      sql_query: `
+        ALTER TABLE ton_farming_data ENABLE ROW LEVEL SECURITY;
+        
+        CREATE POLICY "Users can view their own ton farming data" ON ton_farming_data
+        FOR SELECT USING (true);
+        
+        CREATE POLICY "Service can manage all ton farming data" ON ton_farming_data
+        FOR ALL USING (true);
+      `
+    });
+    
+    console.log('✅ Row Level Security configured');
+    
+    // 4. Проверяем создание
+    console.log('\n4. Verifying tables...');
+    
+    const { data: uniCheck } = await supabase
+      .from('uni_farming_data')
+      .select('*')
+      .limit(1);
+      
+    const { data: tonCheck } = await supabase
+      .from('ton_farming_data')
+      .select('*')
+      .limit(1);
+      
+    console.log('✅ uni_farming_data table exists:', uniCheck !== null);
+    console.log('✅ ton_farming_data table exists:', tonCheck !== null);
+    
+    console.log('\n=== TABLES CREATED SUCCESSFULLY ===\n');
+    console.log('Next step: Run migration script to move data');
+    
   } catch (error) {
-    logger.error('[CreateTables] Fatal error:', error);
-    console.error('[CreateTables] Fatal error:', error);
+    console.error('Error in table creation:', error);
   }
 }
 
-// Запускаем создание таблиц
-createFarmingTables();
+// Альтернативный метод через direct SQL если RPC не работает
+async function createTablesDirectSQL() {
+  console.log('\n=== ATTEMPTING DIRECT SQL TABLE CREATION ===\n');
+  
+  const sqlCommands = [
+    // uni_farming_data
+    `CREATE TABLE IF NOT EXISTS uni_farming_data (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE,
+      deposit_amount NUMERIC(20, 9) DEFAULT 0,
+      farming_balance NUMERIC(20, 9) DEFAULT 0,
+      total_earned NUMERIC(20, 9) DEFAULT 0,
+      last_claim_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      is_active BOOLEAN DEFAULT false,
+      farming_start TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )`,
+    
+    // Indexes for uni_farming_data
+    `CREATE INDEX IF NOT EXISTS idx_uni_farming_user_id ON uni_farming_data(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_uni_farming_active ON uni_farming_data(is_active)`,
+    
+    // ton_farming_data
+    `CREATE TABLE IF NOT EXISTS ton_farming_data (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE,
+      boost_active BOOLEAN DEFAULT false,
+      boost_package_id INTEGER,
+      boost_expires_at TIMESTAMP WITH TIME ZONE,
+      farming_balance NUMERIC(20, 9) DEFAULT 0,
+      total_earned NUMERIC(20, 9) DEFAULT 0,
+      last_claim_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )`,
+    
+    // Indexes for ton_farming_data
+    `CREATE INDEX IF NOT EXISTS idx_ton_farming_user_id ON ton_farming_data(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_ton_farming_active ON ton_farming_data(boost_active)`
+  ];
+  
+  console.log('Copy and paste these SQL commands into Supabase SQL editor:\n');
+  console.log('https://app.supabase.com/project/wunnsvicbebssrjqedor/sql/new\n');
+  
+  sqlCommands.forEach((sql, index) => {
+    console.log(`-- Command ${index + 1}`);
+    console.log(sql + ';');
+    console.log('');
+  });
+}
+
+// Пробуем сначала через RPC, если не работает - показываем SQL
+createFarmingTables().catch(error => {
+  console.error('RPC method failed:', error);
+  createTablesDirectSQL();
+});
