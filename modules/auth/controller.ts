@@ -296,18 +296,17 @@ export class AuthController extends BaseController {
           balance_ton: '0'
         };
 
-        // Создаем JWT токен для гостя
-        const result = await this.authService.generateToken(guestUser);
+        // Импортируем функцию generateJWTToken из core/utils/jwt
+        const { generateJWTToken } = await import('../../core/utils/jwt.js');
         
-        if (result.success) {
-          this.sendSuccess(res, {
-            user: guestUser,
-            token: result.token,
-            isGuest: true
-          });
-        } else {
-          this.sendError(res, result.error || 'Failed to create guest session', 500);
-        }
+        // Создаем JWT токен для гостя
+        const token = generateJWTToken(guestUser, guestUser.ref_code);
+        
+        this.sendSuccess(res, {
+          user: guestUser,
+          token: token,
+          isGuest: true
+        });
       }, 'гостевой авторизации');
     } catch (error) {
       next(error);

@@ -16,7 +16,7 @@ interface TestResult {
 
 const testResults: TestResult[] = [];
 const BASE_URL = 'http://localhost:3000';
-const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbUlkIjo5OTk0ODksInVzZXJuYW1lIjoidGVzdF91c2VyXzE3NTIxMjk4NDA5MDUiLCJyZWZDb2RlIjoiVEVTVF8xNzUyMTI5ODQwOTA1X2Rva3h2MCIsImlhdCI6MTc1MjEyOTg2MiwiZXhwIjoxNzUyNzM0NjYyfQ.jP-mbgMnGwP2hdZJ7e14w_NDMJdT0sRh0r8B6P8dALo';
+const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbUlkIjo5OTk0ODksInVzZXJuYW1lIjoidGVzdF91c2VyXzE3NTIxMjk4NDA5MDUiLCJyZWZDb2RlIjoiVEVTVF8xNzUyMTI5ODQwOTA1X2Rva3h2MCIsImlhdCI6MTc1MjIzMjU4MywiZXhwIjoxNzUyODM3MzgzfQ.s2_JPwkjBJQ5dTODm4sTXdHc5xrcSqmP-1Jy3ueFIq4';
 
 // Цветной вывод
 const colors = {

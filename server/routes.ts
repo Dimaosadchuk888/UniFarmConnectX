@@ -16,7 +16,7 @@ import adminRoutes from '../modules/admin/routes';
 import { adminBotRoutes } from '../modules/adminBot/routes';
 import debugRoutes from '../modules/debug/debugRoutes';
 import { supabase } from '../core/supabase';
-import { requireTelegramAuth } from '../core/middleware/telegramAuth';
+// import { requireTelegramAuth } from '../core/middleware/telegramAuth'; // Временно отключено для диагностики
 
 const router = express.Router();
 
@@ -56,8 +56,8 @@ router.get('/metrics/balance-cache', (req: Request, res: Response) => {
   }
 });
 
-// JWT debug endpoint
-router.get('/jwt-debug', requireTelegramAuth, (req: Request, res: Response) => {
+// JWT debug endpoint - временно отключена авторизация для диагностики
+router.get('/jwt-debug', /*requireTelegramAuth,*/ (req: Request, res: Response) => {
   console.log('[JWT-DEBUG] Endpoint called');
   res.json({ 
     success: true,
