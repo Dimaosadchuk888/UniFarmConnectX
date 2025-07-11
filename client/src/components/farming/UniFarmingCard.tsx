@@ -627,13 +627,12 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
 
       try {
-        // Рассчитываем дневной доход: (депозит * процент в час * 24 часа) / 100
-        const dailyRatePercent = hourlyRate * 24; // процент за день
+        // Рассчитываем дневной доход: депозит * 1% в день
+        const dailyRatePercent = 1; // 1% в день
         const dailyIncome = new BigNumber(depositAmount).multipliedBy(dailyRatePercent).dividedBy(100);
 
         // Логирование для диагностики
         console.log('[DEBUG] calculateDailyIncome - Результат расчета:', {
-          hourlyRate: hourlyRate,
           dailyRatePercent: dailyRatePercent,
           depositAmount: depositAmount,
           dailyIncome: dailyIncome.toString()
@@ -677,12 +676,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
 
       try {
-        // Рассчитываем доход в секунду: (депозит * процент в час) / 100 / 3600
-        const secondIncome = new BigNumber(depositAmount).multipliedBy(hourlyRate).dividedBy(100).dividedBy(3600);
+        // Рассчитываем доход в секунду: (депозит * 1% в день) / 100 / 86400
+        const dailyRatePercent = 1; // 1% в день
+        const secondIncome = new BigNumber(depositAmount).multipliedBy(dailyRatePercent).dividedBy(100).dividedBy(86400);
 
         // Выводим значение для диагностики
         console.log('[DEBUG] calculateSecondRate - Входные данные:', {
-          hourlyRate: hourlyRate,
+          dailyRatePercent: dailyRatePercent,
           depositAmount: depositAmount,
           secondIncome: secondIncome.toString()
         });
@@ -717,26 +717,20 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return { annual: '0', daily: '0' };
       }
 
-      // Получаем ставку из API (процент в час)
-      const hourlyRate = farmingResponse?.data?.uni_farming_rate || 0.01;
-      
-      // Рассчитываем дневную и годовую ставки
-      const DAILY_PERCENTAGE = hourlyRate * 24; // процент в день
-      const ANNUAL_PERCENTAGE = DAILY_PERCENTAGE * 365; // процент в год
+      // Фиксированные ставки по требованию
+      const DAILY_PERCENTAGE = 1; // 1% в день
+      const ANNUAL_PERCENTAGE = 365; // 365% в год
 
       const result = {
-        annual: ANNUAL_PERCENTAGE.toFixed(1), // Например: 87.6% для 0.01% в час
-        daily: DAILY_PERCENTAGE.toFixed(2)    // Например: 0.24% для 0.01% в час
+        annual: ANNUAL_PERCENTAGE.toFixed(0), // 365%
+        daily: DAILY_PERCENTAGE.toFixed(0)    // 1%
       };
 
-      console.log('[DEBUG] calculateAPR - Результат:', {
-        hourlyRate,
-        ...result
-      });
+      console.log('[DEBUG] calculateAPR - Результат:', result);
       return result;
     } catch (err) {
       console.error('[ERROR] Ошибка при расчете APR:', err);
-      return { annual: '87.6', daily: '0.24' }; // Значения по умолчанию для 0.01% в час
+      return { annual: '365', daily: '1' }; // Значения по умолчанию 1% в день
     }
   };
 
@@ -902,11 +896,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             <ul className="text-sm space-y-2 text-slate-300">
               <li className="flex items-start">
                 <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
-                <span>Ежедневная доходность: <span className="text-primary font-medium">0.24% в день</span></span>
+                <span>Ежедневная доходность: <span className="text-primary font-medium">1% в день</span></span>
               </li>
               <li className="flex items-start">
                 <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
-                <span>Годовая доходность (APR): <span className="text-primary font-medium">87.6%</span></span>
+                <span>Годовая доходность (APR): <span className="text-primary font-medium">365%</span></span>
               </li>
               <li className="flex items-start">
                 <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
