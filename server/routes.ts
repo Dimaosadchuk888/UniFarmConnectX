@@ -30,6 +30,32 @@ router.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// Balance cache metrics endpoint
+router.get('/metrics/balance-cache', (req: Request, res: Response) => {
+  try {
+    const { balanceCache } = require('../core/BalanceCache');
+    const stats = balanceCache.getStats();
+    
+    res.status(200).json({
+      success: true,
+      cache: {
+        hits: stats.hits,
+        misses: stats.misses,
+        evictions: stats.evictions,
+        size: stats.size,
+        hitRate: stats.hitRate,
+        hitRatePercent: `${stats.hitRate}%`
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve cache metrics'
+    });
+  }
+});
+
 // JWT debug endpoint
 router.get('/jwt-debug', requireTelegramAuth, (req: Request, res: Response) => {
   console.log('[JWT-DEBUG] Endpoint called');

@@ -3,10 +3,10 @@
  * Оптимизирует производительность при массовых начислениях
  */
 
-import { supabase } from './supabaseClient';
+import { supabase } from './supabase';
 import { logger } from './logger';
 import { balanceCache } from './BalanceCache';
-import { BalanceNotificationService } from './balanceNotificationService';
+import { BalanceNotificationService } from './BalanceNotificationService';
 
 interface BatchOperation {
   userId: number;
@@ -172,29 +172,53 @@ export class BatchBalanceProcessor {
       ton_increment: op.amountTon || 0
     }));
 
-    // Используем RPC функцию для bulk update (если она существует)
-    // Или делаем через транзакцию
+    // Обрабатываем каждое обновление
     for (const update of updates) {
-      const { data, error } = await supabase
-        .rpc('increment_user_balance', {
-          p_user_id: update.user_id,
-          p_uni_amount: update.uni_increment,
-          p_ton_amount: update.ton_increment
-        });
+      try {
+        // Сначала пробуем RPC функцию для атомарного обновления
+        const { data, error } = await supabase
+          .rpc('increment_user_balance', {
+            p_user_id: update.user_id,
+            p_uni_amount: update.uni_increment,
+            p_ton_amount: update.ton_increment
+          });
 
-      if (error) {
-        // Fallback на обычное обновление
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            balance_uni: supabase.raw(`balance_uni + ${update.uni_increment}`),
-            balance_ton: supabase.raw(`balance_ton + ${update.ton_increment}`)
-          })
-          .eq('id', update.user_id);
+        if (error) {
+          // Fallback: получаем текущий баланс и обновляем
+          const { data: currentUser, error: fetchError } = await supabase
+            .from('users')
+            .select('balance_uni, balance_ton')
+            .eq('id', update.user_id)
+            .single();
 
-        if (updateError) {
-          throw new Error(`Failed to update user ${update.user_id}: ${updateError.message}`);
+          if (fetchError) {
+            throw new Error(`Failed to fetch user ${update.user_id}: ${fetchError.message}`);
+          }
+
+          const newUniBalance = parseFloat(currentUser.balance_uni || '0') + update.uni_increment;
+          const newTonBalance = parseFloat(currentUser.balance_ton || '0') + update.ton_increment;
+
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({
+              balance_uni: newUniBalance,
+              balance_ton: newTonBalance
+            })
+            .eq('id', update.user_id);
+
+          if (updateError) {
+            throw new Error(`Failed to update user ${update.user_id}: ${updateError.message}`);
+          }
+
+          // Инвалидируем кеш для пользователя
+          balanceCache.invalidate(update.user_id);
         }
+      } catch (error) {
+        logger.error('[BatchBalanceProcessor] Ошибка при обновлении баланса', {
+          userId: update.user_id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        throw error;
       }
     }
 
@@ -215,18 +239,57 @@ export class BatchBalanceProcessor {
    * Массовое вычитание из балансов
    */
   private async processBulkSubtract(operations: BatchOperation[]): Promise<void> {
-    // Аналогично processBulkAdd, но с вычитанием
+    // Обрабатываем каждую операцию вычитания
     for (const op of operations) {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          balance_uni: supabase.raw(`GREATEST(0, balance_uni - ${op.amountUni || 0})`),
-          balance_ton: supabase.raw(`GREATEST(0, balance_ton - ${op.amountTon || 0})`)
-        })
-        .eq('id', op.userId);
+      try {
+        // Получаем текущий баланс пользователя
+        const { data: currentUser, error: fetchError } = await supabase
+          .from('users')
+          .select('balance_uni, balance_ton')
+          .eq('id', op.userId)
+          .single();
 
-      if (error) {
-        throw new Error(`Failed to subtract from user ${op.userId}: ${error.message}`);
+        if (fetchError) {
+          throw new Error(`Failed to fetch user ${op.userId}: ${fetchError.message}`);
+        }
+
+        // Вычисляем новые балансы с защитой от отрицательных значений
+        const currentUni = parseFloat(currentUser.balance_uni || '0');
+        const currentTon = parseFloat(currentUser.balance_ton || '0');
+        const newUniBalance = Math.max(0, currentUni - (op.amountUni || 0));
+        const newTonBalance = Math.max(0, currentTon - (op.amountTon || 0));
+
+        // Обновляем балансы
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            balance_uni: newUniBalance,
+            balance_ton: newTonBalance
+          })
+          .eq('id', op.userId);
+
+        if (updateError) {
+          throw new Error(`Failed to subtract from user ${op.userId}: ${updateError.message}`);
+        }
+
+        // Инвалидируем кеш
+        balanceCache.invalidate(op.userId);
+        
+        // Отправляем уведомление о изменении баланса
+        const notificationService = BalanceNotificationService.getInstance();
+        notificationService.notifyBalanceUpdate({
+          userId: op.userId,
+          changeAmount: -(op.amountUni || op.amountTon || 0),
+          currency: op.amountUni ? 'UNI' : 'TON',
+          source: op.source || 'batch_subtract',
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        logger.error('[BatchBalanceProcessor] Ошибка при вычитании из баланса', {
+          userId: op.userId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        throw error;
       }
     }
   }

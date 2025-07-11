@@ -6,7 +6,8 @@
 import { logger } from '../../core/logger';
 import { supabase } from '../../core/supabase';
 import { ReferralService } from '../referral/service';
-import { BalanceNotificationService } from '../../core/balanceNotificationService';
+import { BalanceNotificationService } from '../../core/BalanceNotificationService';
+import { BalanceManager } from '../../core/BalanceManager';
 
 export class TONBoostIncomeScheduler {
   private intervalId: NodeJS.Timeout | null = null;
@@ -122,8 +123,7 @@ export class TONBoostIncomeScheduler {
           // Обновляем баланс пользователя
           const userCurrentBalance = parseFloat(user.balance_ton || '0');
           // Обновляем баланс через BalanceManager
-          const { default: balanceManager } = await import('../../core/BalanceManager');
-          const addBalanceResult = await balanceManager.addBalance(
+          const addBalanceResult = await BalanceManager.addBalance(
             user.id,
             0,
             fiveMinuteIncome,
@@ -182,7 +182,13 @@ export class TONBoostIncomeScheduler {
           totalEarned += fiveMinuteIncome;
 
         } catch (boostError) {
-          logger.error(`[TON_BOOST_SCHEDULER] Ошибка обработки TON Boost пользователя ${user.id}:`, boostError);
+          logger.error(`[TON_BOOST_SCHEDULER] Ошибка обработки TON Boost пользователя ${user.id}:`, {
+            error: boostError instanceof Error ? boostError.message : String(boostError),
+            stack: boostError instanceof Error ? boostError.stack : undefined,
+            userId: user.id,
+            packageId: user.ton_boost_package,
+            deposit: userDeposit
+          });
         }
       }
 

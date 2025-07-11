@@ -129,10 +129,12 @@ export class ReferralService {
       const { error: referralError } = await supabase
         .from(REFERRAL_TABLES.REFERRALS)
         .insert({
-          referrer_id: inviter.id,
-          referred_id: parseInt(newUserId),
+          user_id: parseInt(newUserId),
+          inviter_id: inviter.id,
           level: 1,
-          created_at: new Date().toISOString()
+          reward_uni: '0',
+          reward_ton: '0',
+          ref_path: [inviter.id] // Путь начинается с прямого пригласителя
         });
 
       if (referralError) {
