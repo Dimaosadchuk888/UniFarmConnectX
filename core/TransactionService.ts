@@ -158,6 +158,11 @@ export class UnifiedTransactionService {
     hasMore: boolean;
   }> {
     try {
+      logger.info('[UnifiedTransactionService] Запрос транзакций для user_id:', {
+        user_id,
+        filters
+      });
+      
       let query = supabase
         .from('transactions')
         .select('*', { count: 'exact' })

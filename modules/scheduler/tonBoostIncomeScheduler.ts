@@ -143,8 +143,10 @@ export class TONBoostIncomeScheduler {
             .insert({
               user_id: user.id,
               type: 'FARMING_REWARD',  // Используем поддерживаемый тип
+              amount: fiveMinuteIncome.toFixed(8), // Добавляем общее поле amount
               amount_uni: '0',
               amount_ton: fiveMinuteIncome.toFixed(8),
+              currency: 'TON', // Добавляем валюту
               status: 'completed',
               description: `TON Boost доход (${user.ton_boost_package}): ${fiveMinuteIncome.toFixed(6)} TON`
             });

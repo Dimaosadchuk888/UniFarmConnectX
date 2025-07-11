@@ -147,8 +147,10 @@ export class FarmingScheduler {
                 .insert({
                   user_id: farmer.id,
                   type: 'FARMING_REWARD',
+                  amount: income, // Добавляем общее поле amount
                   amount_uni: income,
                   amount_ton: '0',
+                  currency: 'UNI', // Добавляем валюту
                   status: 'completed',
                   description: `UNI farming income: ${parseFloat(income).toFixed(6)} UNI (rate: ${farmer.uni_farming_rate})`,
                   source_user_id: farmer.id,

@@ -18,8 +18,10 @@ export class TransactionsService {
     currency?: string
   ): Promise<TransactionHistory> {
     try {
+      const userIdNumber = parseInt(userId);
       logger.info(`[TransactionsService] Делегирование на UnifiedTransactionService для пользователя ${userId}`, {
         userId,
+        userIdNumber,
         page,
         limit,
         currency

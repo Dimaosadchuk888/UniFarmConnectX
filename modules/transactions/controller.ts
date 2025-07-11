@@ -3,6 +3,7 @@ import { BaseController } from '../../core/BaseController';
 import { WalletService } from '../wallet/service';
 import { SupabaseUserRepository } from '../index';
 import { TransactionsService } from './service';
+import { logger } from '../../core/logger';
 
 const walletService = new WalletService();
 const transactionsService = new TransactionsService();
@@ -23,6 +24,13 @@ export class TransactionsController extends BaseController {
       if (!user) {
         return this.sendError(res, 'Пользователь не найден', 404);
       }
+      
+      // Логируем для отладки маппинга
+      logger.info('[TransactionsController] Маппинг пользователя:', {
+        telegram_id: telegram.user.id,
+        database_user_id: user.id,
+        username: user.username
+      });
       
       // Используем transactions service для получения транзакций по database user id
       const result = await transactionsService.getTransactionHistory(
