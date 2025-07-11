@@ -377,7 +377,7 @@ export class WalletService {
         balanceField = 'balance_ton';
       }
 
-      // Проверка минимальной суммы для TON
+      // Проверка минимальной суммы
       if (type === 'TON' && withdrawAmount < 1) {
         logger.warn('[WalletService] Сумма вывода TON меньше минимальной', { 
           userId, 
@@ -385,6 +385,31 @@ export class WalletService {
           minimum: 1
         });
         return { success: false, error: 'Минимальная сумма вывода — 1 TON' };
+      }
+
+      if (type === 'UNI' && withdrawAmount < 1000) {
+        logger.warn('[WalletService] Сумма вывода UNI меньше минимальной', { 
+          userId, 
+          requested: withdrawAmount, 
+          minimum: 1000
+        });
+        return { success: false, error: 'Минимальная сумма вывода — 1000 UNI' };
+      }
+
+      // Расчет и проверка комиссии для UNI
+      let commission = 0;
+      if (type === 'UNI') {
+        commission = Math.ceil(withdrawAmount / 1000) * 0.1;
+        const tonBalance = parseFloat(user.balance_ton || "0");
+        
+        if (tonBalance < commission) {
+          logger.warn('[WalletService] Недостаточно TON для оплаты комиссии', { 
+            userId, 
+            commission, 
+            available: tonBalance
+          });
+          return { success: false, error: `Недостаточно TON для оплаты комиссии. Требуется ${commission} TON` };
+        }
       }
 
       // Проверяем достаточность средств
@@ -398,29 +423,37 @@ export class WalletService {
         return { success: false, error: `Недостаточно средств. Доступно: ${currentBalance} ${type}` };
       }
 
-      // Сначала создаем заявку на вывод (только для TON, так как UNI не выводится)
-      if (type === 'TON') {
-        const { data: withdrawRequest, error: withdrawError } = await supabase
-          .from('withdraw_requests')
-          .insert({
-            user_id: parseInt(userId),
-            telegram_id: user.telegram_id?.toString() || '',
-            username: user.username || '',
-            amount_ton: withdrawAmount,
-            ton_wallet: walletAddress || '',
-            status: 'pending',
-            created_at: new Date().toISOString()
-          })
-          .select()
-          .single();
+      // Создаем заявку на вывод для обеих валют
+      const withdrawData: any = {
+        user_id: parseInt(userId),
+        telegram_id: user.telegram_id?.toString() || '',
+        username: user.username || '',
+        status: 'pending',
+        created_at: new Date().toISOString()
+      };
 
-        if (withdrawError) {
-          logger.error('[WalletService] Ошибка создания заявки на вывод', { 
-            userId, 
-            error: withdrawError.message 
-          });
-          return { success: false, error: 'Ошибка создания заявки на вывод' };
-        }
+      // Добавляем специфичные для валюты поля
+      if (type === 'TON') {
+        withdrawData.amount_ton = withdrawAmount;
+        withdrawData.ton_wallet = walletAddress || '';
+      } else if (type === 'UNI') {
+        // Для UNI сохраняем сумму в amount_ton (универсальное поле amount)
+        withdrawData.amount_ton = withdrawAmount;
+        withdrawData.ton_wallet = walletAddress || ''; // Адрес для UNI
+      }
+
+      const { data: withdrawRequest, error: withdrawError } = await supabase
+        .from('withdraw_requests')
+        .insert(withdrawData)
+        .select()
+        .single();
+
+      if (withdrawError) {
+        logger.error('[WalletService] Ошибка создания заявки на вывод', { 
+          userId, 
+          error: withdrawError.message 
+        });
+        return { success: false, error: 'Ошибка создания заявки на вывод' };
       }
 
 
@@ -428,7 +461,8 @@ export class WalletService {
       // Обновляем баланс через централизованный BalanceManager
       const { balanceManager } = await import('../../core/BalanceManager');
       const amount_uni = type === 'UNI' ? withdrawAmount : 0;
-      const amount_ton = type === 'TON' ? withdrawAmount : 0;
+      // Для TON списываем сумму вывода + комиссию за UNI (если есть)
+      const amount_ton = type === 'TON' ? withdrawAmount : commission;
       
       const result = await balanceManager.subtractBalance(
         userId,
@@ -438,16 +472,14 @@ export class WalletService {
       );
 
       if (!result.success) {
-        // Если не удалось списать баланс, отменяем заявку (только для TON)
-        if (type === 'TON') {
-          await supabase
-            .from('withdraw_requests')
-            .update({ status: 'rejected' })
-            .eq('user_id', parseInt(userId))
-            .eq('status', 'pending')
-            .order('created_at', { ascending: false })
-            .limit(1);
-        }
+        // Если не удалось списать баланс, отменяем заявку
+        await supabase
+          .from('withdraw_requests')
+          .update({ status: 'rejected' })
+          .eq('user_id', parseInt(userId))
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1);
           
         logger.error('[WalletService] Ошибка обновления баланса при выводе', { 
           userId, 
@@ -456,7 +488,7 @@ export class WalletService {
         return { success: false, error: result.error || 'Ошибка обновления баланса' };
       }
 
-      // Создаем запись транзакции
+      // Создаем запись транзакции для основного вывода
       const { error: transactionError } = await supabase
         .from(WALLET_TABLES.TRANSACTIONS)
         .insert({
@@ -475,6 +507,29 @@ export class WalletService {
           userId, 
           error: transactionError.message 
         });
+      }
+
+      // Создаем запись транзакции для комиссии (если есть)
+      if (type === 'UNI' && commission > 0) {
+        const { error: commissionError } = await supabase
+          .from(WALLET_TABLES.TRANSACTIONS)
+          .insert({
+            user_id: parseInt(userId),
+            type: 'withdrawal_fee',
+            amount_uni: '0',
+            amount_ton: commission.toString(),
+            currency: 'TON',
+            status: 'completed',
+            description: `Комиссия за вывод ${withdrawAmount} UNI`,
+            created_at: new Date().toISOString()
+          });
+
+        if (commissionError) {
+          logger.warn('[WalletService] Ошибка создания транзакции комиссии', { 
+            userId, 
+            error: commissionError.message 
+          });
+        }
       }
 
       logger.info('[WalletService] Вывод средств обработан успешно', { 

@@ -81,7 +81,12 @@ const WithdrawalForm: React.FC = () => {
   
   // Минимальные суммы для вывода
   const getMinAmount = () => {
-    return selectedCurrency === 'UNI' ? 1 : 0.001;
+    return selectedCurrency === 'UNI' ? 1000 : 1;
+  };
+  
+  // Расчет комиссии для UNI (0.1 TON за каждые 1000 UNI)
+  const calculateUniCommission = (amount: number) => {
+    return Math.ceil(amount / 1000) * 0.1;
   };
   
   // Обработчик переключения валюты
@@ -119,6 +124,14 @@ const WithdrawalForm: React.FC = () => {
       
       if (selectedCurrency === 'TON' && !validateTonAddress(data.walletAddress)) {
         throw new Error('Неверный формат TON адреса');
+      }
+      
+      // Проверка комиссии для UNI
+      if (selectedCurrency === 'UNI') {
+        const commission = calculateUniCommission(data.amount);
+        if (tonBalance < commission) {
+          throw new Error(`Недостаточно TON для оплаты комиссии. Требуется ${commission} TON, доступно ${tonBalance} TON`);
+        }
       }
       
       // Отправляем реальный запрос на сервер
@@ -256,7 +269,7 @@ const WithdrawalForm: React.FC = () => {
             <Input
               {...register('amount', { valueAsNumber: true })}
               type="number"
-              step={selectedCurrency === 'TON' ? '0.001' : '1'}
+              step={selectedCurrency === 'TON' ? '1' : '1000'}
               min={getMinAmount()}
               max={getAvailableBalance()}
               placeholder={`${getMinAmount()}`}
@@ -276,6 +289,17 @@ const WithdrawalForm: React.FC = () => {
           <p className="text-xs text-gray-400 mt-1">
             Доступно: {getAvailableBalance().toFixed(selectedCurrency === 'TON' ? 6 : 2)} {selectedCurrency}
           </p>
+          {selectedCurrency === 'UNI' && watchedAmount > 0 && (
+            <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <p className="text-xs text-blue-400">
+                <i className="fas fa-info-circle mr-1"></i>
+                Комиссия: {calculateUniCommission(watchedAmount)} TON
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                (0.1 TON за каждые 1000 UNI)
+              </p>
+            </div>
+          )}
         </div>
         
         {/* Сообщение об ошибке */}
