@@ -3,28 +3,22 @@
 -- ВНИМАНИЕ: Выполняйте каждый блок по отдельности и проверяйте результаты!
 
 -- ========================================
--- 1. УДАЛЕНИЕ УСТАРЕВШИХ ПОЛЕЙ DAILY BONUS
+-- 1. ОБРАБОТКА ПОЛЕЙ DAILY BONUS
 -- ========================================
 
--- Проверка использования полей перед удалением
+-- ВАЖНО: Поля checkin_last_date и checkin_streak АКТИВНО используются в модуле dailyBonus!
+-- НЕ УДАЛЯТЬ эти поля - они необходимы для работы системы ежедневных бонусов
+
+-- Проверка использования полей
 SELECT 
     COUNT(CASE WHEN checkin_last_date IS NOT NULL THEN 1 END) as has_checkin_date,
-    COUNT(CASE WHEN checkin_streak > 0 THEN 1 END) as has_streak
+    COUNT(CASE WHEN checkin_streak > 0 THEN 1 END) as has_streak,
+    MAX(checkin_streak) as max_streak
 FROM users;
 
--- Создание резервной копии данных (если нужно сохранить историю)
-CREATE TABLE IF NOT EXISTS daily_bonus_legacy_backup AS
-SELECT 
-    id as user_id,
-    checkin_last_date,
-    checkin_streak,
-    CURRENT_TIMESTAMP as backed_up_at
-FROM users
-WHERE checkin_last_date IS NOT NULL OR checkin_streak > 0;
-
--- Удаление полей
-ALTER TABLE users DROP COLUMN IF EXISTS checkin_last_date;
-ALTER TABLE users DROP COLUMN IF EXISTS checkin_streak;
+-- Добавление комментариев к полям для документации
+COMMENT ON COLUMN users.checkin_last_date IS 'Дата последнего получения ежедневного бонуса';
+COMMENT ON COLUMN users.checkin_streak IS 'Текущая серия дней получения бонусов подряд';
 
 -- ========================================
 -- 2. АНАЛИЗ ПУСТЫХ ТАБЛИЦ

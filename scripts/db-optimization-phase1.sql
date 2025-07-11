@@ -11,6 +11,7 @@ FROM information_schema.columns
 WHERE table_name = 'users' AND column_name = 'last_active';
 
 -- Удаление поля (выполнить если поле существует)
+-- ВНИМАНИЕ: Поле есть в БД, но НЕ используется в коде
 ALTER TABLE users DROP COLUMN IF EXISTS last_active;
 
 -- ========================================
