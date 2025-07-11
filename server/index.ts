@@ -47,6 +47,7 @@ import { requireTelegramAuth } from '../core/middleware/telegramAuth';
 import { AdminBotService } from '../modules/adminBot/service';
 import { adminBotConfig } from '../config/adminBot';
 import { metricsCollector } from '../core/metrics';
+import { setupWebSocketBalanceIntegration } from './websocket-balance-integration';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
@@ -918,6 +919,14 @@ async function startServer() {
         logger.info('✅ TON Boost планировщик запущен');
       } catch (error) {
         logger.error('❌ Ошибка запуска TON Boost планировщика', { error });
+      }
+      
+      // Настройка интеграции WebSocket с BalanceManager
+      try {
+        setupWebSocketBalanceIntegration();
+        logger.info('✅ WebSocket интеграция с BalanceManager настроена');
+      } catch (error) {
+        logger.error('❌ Ошибка настройки WebSocket интеграции', { error });
       }
 
       // Start performance metrics logging

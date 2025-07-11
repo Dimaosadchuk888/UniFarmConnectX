@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Restore JWT Authentication</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Восстановление JWT авторизации</h1>
+    <p>Нажмите кнопку ниже для установки JWT токена пользователя ID 74</p>
+    
+    <button onclick="restoreAuth()">Восстановить авторизацию</button>
+    
+    <div id="status"></div>
+
+    <script>
+        function restoreAuth() {
+            // JWT токен для user ID 74
+            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NzQsInRlbGVncmFtX2lkIjoiOTk5NDg5IiwidXNlcm5hbWUiOiJZZXM1NDk0IiwicmVmX2NvZGUiOiJSRUZfMTc1MjA0NTQ4NDk3MF84eHpuODQiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbl8xNzUyMjA3OTM3OTIxIiwiaWF0IjoxNzUyMjA3OTM3LCJleHAiOjE3NTI4MTI3Mzd9.E9iJQOQuHBFvOe-cGTLIRXiXGLdqxGvv8jhhQa1Smqg';
+            
+            // Устанавливаем токен
+            localStorage.setItem('unifarm_jwt_token', token);
+            
+            // Показываем статус
+            document.getElementById('status').innerHTML = '<div class="success">✓ JWT токен успешно установлен для пользователя ID 74</div>';
+            
+            // Через 2 секунды перенаправляем на главную страницу
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

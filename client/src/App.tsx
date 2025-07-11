@@ -17,6 +17,7 @@ import { UserProvider } from "@/contexts/userContext";
 import { WebSocketProvider } from "@/contexts/webSocketContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
+import { WebSocketBalanceSync } from "@/components/WebSocketBalanceSync";
 
 
 // Pages
@@ -273,6 +274,7 @@ function App() {
           <NotificationProvider>
             <UserProvider>
               <WebSocketProvider>
+                <WebSocketBalanceSync />
                 <TelegramWebAppCheck>
                   <MainLayout 
                     activeTab={state.activeTab} 

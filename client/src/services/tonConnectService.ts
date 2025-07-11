@@ -96,6 +96,36 @@ export function isTonWalletConnected(tonConnectUI: TonConnectUI): boolean {
 }
 
 /**
+ * Сохраняет адрес TON кошелька в backend
+ * @param walletAddress Адрес кошелька
+ */
+export async function saveTonWalletAddress(walletAddress: string): Promise<boolean> {
+  try {
+    const response = await fetch('/api/v2/wallet/connect-ton', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('unifarm_jwt_token')}`
+      },
+      body: JSON.stringify({ walletAddress })
+    });
+
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log('[TON_CONNECT] Адрес кошелька сохранен:', walletAddress);
+      return true;
+    } else {
+      console.error('[TON_CONNECT] Ошибка сохранения адреса:', data.error);
+      return false;
+    }
+  } catch (error) {
+    console.error('[TON_CONNECT] Ошибка при сохранении адреса кошелька:', error);
+    return false;
+  }
+}
+
+/**
  * Подключает TON кошелек, если он не подключен
  * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  */
@@ -121,6 +151,12 @@ export async function connectTonWallet(tonConnectUI: TonConnectUI): Promise<bool
       debugLog('Attempting to connect wallet...');
       // Вызываем соединение с кошельком
       await tonConnectUI.connectWallet();
+      
+      // После подключения сохраняем адрес
+      if (tonConnectUI.connected && tonConnectUI.wallet) {
+        const address = tonConnectUI.wallet.account.address;
+        await saveTonWalletAddress(address);
+      }
       
       // Проверяем состояние после попытки подключения
       debugLog('Connection result:', { connected: tonConnectUI.connected, wallet: tonConnectUI.wallet });

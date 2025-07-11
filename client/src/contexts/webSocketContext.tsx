@@ -65,6 +65,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
             return;
           }
           
+          // Обрабатываем обновление баланса
+          if (message.type === 'balance_update') {
+            console.log('[WebSocket] Получено обновление баланса:', message);
+          }
+          
           setLastMessage(message);
         } catch (error) {
           console.error('[WebSocket] Ошибка парсинга сообщения:', error);
@@ -112,16 +117,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   };
 
   useEffect(() => {
-    // Временно отключаем автоматическое подключение для диагностики
-    console.log('[WebSocket] Автоподключение временно отключено для диагностики');
+    // Включаем автоматическое подключение WebSocket
+    console.log('[WebSocket] Инициализация WebSocket подключения');
     
     // Откладываем подключение чтобы дать время React полностью инициализироваться
-    // const timer = setTimeout(() => {
-    //   connect();
-    // }, 100);
+    const timer = setTimeout(() => {
+      connect();
+    }, 100);
 
     return () => {
-      // clearTimeout(timer);
+      clearTimeout(timer);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }

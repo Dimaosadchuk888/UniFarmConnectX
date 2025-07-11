@@ -161,9 +161,15 @@ const BoostPackagesCard: React.FC = () => {
               <Button 
                 variant="default" 
                 size="sm" 
-                onClick={() => {
+                onClick={async () => {
                   if (tonConnectUI && typeof tonConnectUI.connectWallet === 'function') {
-                    tonConnectUI.connectWallet();
+                    await tonConnectUI.connectWallet();
+                    // После подключения сохраняем адрес
+                    if (tonConnectUI.connected && tonConnectUI.wallet) {
+                      const address = tonConnectUI.wallet.account.address;
+                      const { saveTonWalletAddress } = await import('@/services/tonConnectService');
+                      await saveTonWalletAddress(address);
+                    }
                   }
                 }}
               >

@@ -3,6 +3,76 @@ import { logger } from '../../core/logger.js';
 import { WALLET_TABLES, WALLET_CONFIG } from './model';
 
 export class WalletService {
+  async saveTonWallet(userId: number, walletAddress: string): Promise<any> {
+    try {
+      // Проверяем, не привязан ли адрес к другому аккаунту
+      const { data: existingUser, error: checkError } = await supabase
+        .from(WALLET_TABLES.USERS)
+        .select('id, telegram_id')
+        .eq('ton_wallet_address', walletAddress)
+        .neq('id', userId)
+        .single();
+      
+      if (existingUser) {
+        throw new Error('Этот адрес кошелька уже привязан к другому аккаунту');
+      }
+      
+      // Сохраняем адрес кошелька
+      const { data: updatedUser, error: updateError } = await supabase
+        .from(WALLET_TABLES.USERS)
+        .update({
+          ton_wallet_address: walletAddress,
+          ton_wallet_verified: true,
+          ton_wallet_linked_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+      
+      if (updateError) {
+        logger.error('[WalletService] Ошибка сохранения TON адреса', {
+          userId,
+          error: updateError.message
+        });
+        throw updateError;
+      }
+      
+      // Логируем событие подключения кошелька
+      await this.logWalletConnection(userId, walletAddress);
+      
+      return updatedUser;
+    } catch (error) {
+      logger.error('[WalletService] Ошибка подключения TON кошелька', {
+        userId,
+        walletAddress,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
+  
+  private async logWalletConnection(userId: number, address: string): Promise<void> {
+    try {
+      await supabase
+        .from(WALLET_TABLES.TRANSACTIONS)
+        .insert({
+          user_id: userId,
+          type: 'WALLET_CONNECT',
+          amount: 0,
+          currency: 'TON',
+          status: 'completed',
+          description: `TON wallet connected: ${address}`,
+          created_at: new Date().toISOString()
+        });
+    } catch (error) {
+      logger.warn('[WalletService] Не удалось записать событие подключения кошелька', {
+        userId,
+        address,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
   async getWalletDataByTelegramId(telegramId: string): Promise<{
     uni_balance: number;
     ton_balance: number;

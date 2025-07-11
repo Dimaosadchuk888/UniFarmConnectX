@@ -8,6 +8,59 @@ const walletService = new WalletService();
 const userRepository = new SupabaseUserRepository();
 
 export class WalletController extends BaseController {
+  async connectTonWallet(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+        
+        const { walletAddress } = req.body;
+        
+        if (!walletAddress || typeof walletAddress !== 'string') {
+          return this.sendError(res, 'Адрес кошелька обязателен', 400);
+        }
+        
+        // Валидация TON адреса
+        if (!this.isValidTonAddress(walletAddress)) {
+          return this.sendError(res, 'Некорректный адрес TON кошелька', 400);
+        }
+        
+        // Получаем пользователя
+        const user = await userRepository.getOrCreateUserFromTelegram({
+          telegram_id: telegram.user.id,
+          username: telegram.user.username,
+          first_name: telegram.user.first_name
+        });
+        
+        // Сохраняем адрес кошелька
+        const result = await walletService.saveTonWallet(user.id, walletAddress);
+        
+        logger.info('[Wallet] TON кошелек подключен', {
+          userId: user.id,
+          address: walletAddress
+        });
+        
+        this.sendSuccess(res, {
+          message: 'TON кошелек успешно подключен',
+          address: walletAddress,
+          verified: true
+        });
+      }, 'подключения TON кошелька');
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  private isValidTonAddress(address: string): boolean {
+    // TON адреса могут быть в двух форматах:
+    // 1. Raw: 64 символа hex (32 байта)
+    // 2. User-friendly: начинается с EQ или UQ, base64 encoded
+    const rawAddressRegex = /^[0-9a-fA-F]{64}$/;
+    const userFriendlyRegex = /^(EQ|UQ)[A-Za-z0-9_-]{46}$/;
+    
+    return rawAddressRegex.test(address) || userFriendlyRegex.test(address);
+  }
+
   async getWalletData(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {
