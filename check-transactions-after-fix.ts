@@ -1,88 +1,72 @@
 import { supabase } from './core/supabaseClient';
-import fetch from 'node-fetch';
-
-const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwicmVmX2NvZGUiOiJURVNUXzc0X1JFUExJVCIsImlhdCI6MTc1MjE1NzI4OCwiZXhwIjoxNzUyNzYyMDg4fQ.7Yz7CnlnmxEf1vafKe44B88ZHobMKOfJqPajvYzqVOI';
 
 async function checkTransactionsAfterFix() {
-  console.log('=== Проверка транзакций после исправления конфликта ===\n');
+  console.log('=== Проверка транзакций после исправления конфликтов ===\n');
   
-  // 1. Проверяем пользователей
-  const { data: users } = await supabase
+  // 1. Проверяем пользователя 74
+  const { data: user74 } = await supabase
     .from('users')
-    .select('id, telegram_id, username')
-    .in('id', [74, 75]);
+    .select('*')
+    .eq('id', 74)
+    .single();
     
-  console.log('Пользователи после исправления:');
-  users?.forEach(user => {
-    console.log(`ID: ${user.id}, Telegram ID: ${user.telegram_id}, Username: ${user.username}`);
-  });
+  console.log('Пользователь 74:');
+  console.log('- ID:', user74?.id);
+  console.log('- Telegram ID:', user74?.telegram_id);
+  console.log('- Username:', user74?.username);
+  console.log('- Balance UNI:', user74?.balance_uni);
+  console.log('- Balance TON:', user74?.balance_ton);
   
   console.log('\n');
   
-  // 2. Проверяем транзакции user 74 в БД
-  const { data: tx74 } = await supabase
+  // 2. Проверяем, есть ли транзакции для user 74
+  const { data: transactions74, count } = await supabase
     .from('transactions')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('user_id', 74)
     .order('created_at', { ascending: false })
-    .limit(5);
+    .limit(10);
     
-  console.log('Транзакции user_id=74 в БД:');
-  if (tx74 && tx74.length > 0) {
-    tx74.forEach(tx => {
-      console.log(`ID: ${tx.id}, Type: ${tx.type}, Amount: ${tx.amount}, Currency: ${tx.currency}`);
+  console.log(`Транзакций у user 74: ${count}`);
+  
+  if (transactions74 && transactions74.length > 0) {
+    console.log('\nПоследние транзакции user 74:');
+    transactions74.forEach(tx => {
+      console.log(`- ID: ${tx.id}, Type: ${tx.type}, Amount: ${tx.amount || tx.amount_uni || tx.amount_ton} ${tx.currency || 'UNI'}, Time: ${tx.created_at}`);
     });
   } else {
-    console.log('Нет транзакций');
+    console.log('У пользователя 74 нет транзакций');
   }
   
   console.log('\n');
   
-  // 3. Проверяем транзакции user 75 в БД
-  const { data: tx75 } = await supabase
-    .from('transactions')
+  // 3. Проверяем user mapping по telegram_id
+  const { data: userByTelegram } = await supabase
+    .from('users')
     .select('*')
-    .eq('user_id', 75)
-    .order('created_at', { ascending: false })
-    .limit(5);
+    .eq('telegram_id', 999489)
+    .single();
     
-  console.log('Транзакции user_id=75 в БД:');
-  if (tx75 && tx75.length > 0) {
-    tx75.forEach(tx => {
-      console.log(`ID: ${tx.id}, Type: ${tx.type}, Amount: ${tx.amount}, Currency: ${tx.currency}`);
-    });
+  if (userByTelegram) {
+    console.log('Пользователь найден по telegram_id 999489:');
+    console.log('- ID:', userByTelegram.id);
+    console.log('- Должен быть 74:', userByTelegram.id === 74 ? '✅' : '❌');
   } else {
-    console.log('Нет транзакций');
+    console.log('Пользователь с telegram_id 999489 не найден ❌');
   }
   
   console.log('\n');
   
-  // 4. Проверяем API ответ
-  try {
-    console.log('Проверяем API /api/v2/transactions:');
-    const response = await fetch('http://localhost:3000/api/v2/transactions?page=1&limit=5', {
-      headers: {
-        'Authorization': `Bearer ${JWT_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
-    });
+  // 4. Проверяем все пользователи с похожими telegram_id
+  const { data: allUsers } = await supabase
+    .from('users')
+    .select('id, telegram_id, username')
+    .or('telegram_id.eq.74,telegram_id.eq.999489,id.in.(74,75,76)');
     
-    if (response.ok) {
-      const data = await response.json();
-      console.log('API возвращает транзакции:');
-      if (data.success && data.data?.transactions) {
-        data.data.transactions.forEach(tx => {
-          console.log(`- User ID: ${tx.user_id}, ID: ${tx.id}, Type: ${tx.type}`);
-        });
-      } else {
-        console.log('Нет транзакций в ответе');
-      }
-    } else {
-      console.log('Ошибка API:', response.status, response.statusText);
-    }
-  } catch (error) {
-    console.log('API недоступен:', error.message);
-  }
+  console.log('Все пользователи с потенциальными конфликтами:');
+  allUsers?.forEach(user => {
+    console.log(`- User ${user.id}: telegram_id=${user.telegram_id}, username=${user.username}`);
+  });
   
   process.exit(0);
 }
