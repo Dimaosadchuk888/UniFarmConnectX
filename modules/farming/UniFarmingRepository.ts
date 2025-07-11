@@ -304,17 +304,64 @@ export class UniFarmingRepository {
         existing: !!existing 
       });
 
-      const { error } = await supabase
+      // Проверяем, существует ли запись
+      const { data: existingData, error: checkError } = await supabase
         .from(this.tableName)
-        .upsert({
-          user_id: parseInt(userId),
-          deposit_amount: newDeposit,
-          farming_deposit: newDeposit,
-          is_active: true,
-          farming_start_timestamp: new Date().toISOString(),
-          farming_last_update: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        .select('user_id')
+        .eq('user_id', parseInt(userId))
+        .single();
+      
+      let error;
+      
+      if (existingData) {
+        // Запись существует - используем UPDATE
+        logger.info('[UniFarmingRepository] Запись существует, используем UPDATE');
+        const { error: updateError } = await supabase
+          .from(this.tableName)
+          .update({
+            deposit_amount: newDeposit,
+            farming_deposit: newDeposit,
+            is_active: true,
+            farming_last_update: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', parseInt(userId));
+        error = updateError;
+        
+        // Синхронизируем с таблицей users
+        if (!error) {
+          logger.info('[UniFarmingRepository] Синхронизируем с таблицей users');
+          const { error: syncError } = await supabase
+            .from('users')
+            .update({
+              uni_deposit_amount: newDeposit,
+              uni_farming_deposit: newDeposit,
+              uni_farming_active: true,
+              uni_farming_last_update: new Date().toISOString()
+            })
+            .eq('id', userId);
+          
+          if (syncError) {
+            logger.error('[UniFarmingRepository] Ошибка синхронизации с users:', syncError);
+          }
+        }
+      } else {
+        // Записи нет - используем INSERT
+        logger.info('[UniFarmingRepository] Записи нет, используем INSERT');
+        const { error: insertError } = await supabase
+          .from(this.tableName)
+          .insert({
+            user_id: parseInt(userId),
+            deposit_amount: newDeposit,
+            farming_deposit: newDeposit,
+            is_active: true,
+            farming_start_timestamp: new Date().toISOString(),
+            farming_last_update: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        error = insertError;
+      }
 
       if (error) {
         logger.warn('[UniFarmingRepository] Ошибка при upsert в uni_farming_data', {
