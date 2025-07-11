@@ -26,6 +26,7 @@ const userIdParamSchema = z.object({
 router.get('/', requireTelegramAuth, massOperationsRateLimit, missionsController.getActiveMissions.bind(missionsController)); // Main missions endpoint
 router.get('/list', requireTelegramAuth, massOperationsRateLimit, missionsController.getActiveMissions.bind(missionsController)); // List endpoint for API consistency  
 router.get('/active', requireTelegramAuth, massOperationsRateLimit, missionsController.getActiveMissions.bind(missionsController));
+router.get('/user', requireTelegramAuth, massOperationsRateLimit, missionsController.getCurrentUserMissions.bind(missionsController)); // Current user's missions
 router.post('/complete', requireTelegramAuth, strictRateLimit, validateBody(missionCompleteSchema), missionsController.completeMission.bind(missionsController));
 router.post('/:missionId/complete', requireTelegramAuth, strictRateLimit, missionsController.completeMissionById.bind(missionsController));
 router.post('/:missionId/claim', requireTelegramAuth, strictRateLimit, missionsController.claimMissionReward.bind(missionsController));

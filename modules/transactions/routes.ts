@@ -26,4 +26,7 @@ router.get('/stats', requireTelegramAuth, liberalRateLimit, transactionsControll
 // Тестовый endpoint для создания TON транзакции (диагностика UI) - либеральный лимит
 router.post('/create-test', liberalRateLimit, transactionsController.createTestTonTransaction.bind(transactionsController));
 
+// GET /api/transactions/summary - Получить сводку транзакций текущего пользователя
+router.get('/summary', requireTelegramAuth, liberalRateLimit, transactionsController.getTransactionSummary.bind(transactionsController));
+
 export default router;

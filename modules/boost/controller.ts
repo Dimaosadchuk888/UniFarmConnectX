@@ -314,4 +314,22 @@ export class BoostController extends BaseController {
       }
     }, 'активации TON Boost пакета');
   }
+
+  /**
+   * Получить активные boost пакеты текущего пользователя
+   */
+  async getActiveBoosts(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      const user = (req as any).user;
+      if (!user || !user.id) {
+        return this.sendError(res, 'Пользователь не авторизован', 401);
+      }
+
+      const activeBoosts = await this.boostService.getActiveBoosts(user.id);
+      
+      this.sendSuccess(res, {
+        active_boosts: activeBoosts
+      });
+    }, 'получения активных boost пакетов');
+  }
 }

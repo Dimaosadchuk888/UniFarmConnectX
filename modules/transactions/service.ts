@@ -232,4 +232,65 @@ export class TransactionsService {
       return { uni: 0, ton: 0 };
     }
   }
+
+  /**
+   * Получение сводки транзакций пользователя
+   */
+  async getTransactionSummary(userId: number): Promise<any> {
+    try {
+      logger.info('[TransactionsService] Получение сводки транзакций', { userId });
+      
+      // Получаем все транзакции пользователя
+      const transactions = await unifiedTransactionService.getUserTransactions(userId, 100);
+      
+      // Группируем транзакции по типам
+      const summary = {
+        total_count: transactions.transactions.length,
+        by_type: {} as Record<string, number>,
+        by_currency: {
+          UNI: { count: 0, total_amount: 0 },
+          TON: { count: 0, total_amount: 0 }
+        },
+        recent_transactions: transactions.transactions.slice(0, 5)
+      };
+
+      // Подсчитываем статистику
+      transactions.transactions.forEach(tx => {
+        // По типам
+        summary.by_type[tx.type] = (summary.by_type[tx.type] || 0) + 1;
+        
+        // По валютам
+        if (tx.currency === 'UNI') {
+          summary.by_currency.UNI.count++;
+          summary.by_currency.UNI.total_amount += tx.amount;
+        } else if (tx.currency === 'TON') {
+          summary.by_currency.TON.count++;
+          summary.by_currency.TON.total_amount += tx.amount;
+        }
+      });
+
+      logger.info('[TransactionsService] Сводка транзакций получена', {
+        userId,
+        totalCount: summary.total_count,
+        types: Object.keys(summary.by_type).length
+      });
+
+      return summary;
+    } catch (error) {
+      logger.error('[TransactionsService] Ошибка получения сводки транзакций:', {
+        userId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      return {
+        total_count: 0,
+        by_type: {},
+        by_currency: {
+          UNI: { count: 0, total_amount: 0 },
+          TON: { count: 0, total_amount: 0 }
+        },
+        recent_transactions: []
+      };
+    }
+  }
 }

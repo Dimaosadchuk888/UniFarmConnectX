@@ -238,4 +238,28 @@ export class TransactionsController extends BaseController {
       next(error);
     }
   }
+
+  /**
+   * Получение сводки транзакций текущего пользователя
+   */
+  async getTransactionSummary(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const userRepository = new SupabaseUserRepository();
+        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        
+        if (!user) {
+          return this.sendError(res, 'Пользователь не найден', 404);
+        }
+
+        const summary = await transactionsService.getTransactionSummary(user.id);
+        this.sendSuccess(res, summary);
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

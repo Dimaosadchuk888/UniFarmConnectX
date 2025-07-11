@@ -200,4 +200,25 @@ export class MissionsController extends BaseController {
       next(error);
     }
   }
+
+  async getCurrentUserMissions(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const user = await userRepository.getOrCreateUserFromTelegram({
+          telegram_id: telegram.user.id,
+          username: telegram.user.username,
+          first_name: telegram.user.first_name,
+          ref_by: req.query.start_param as string
+        });
+
+        const missions = await missionsService.getUserCompletedMissions(telegram.user.id.toString());
+        this.sendSuccess(res, missions);
+      }, 'получения миссий текущего пользователя');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

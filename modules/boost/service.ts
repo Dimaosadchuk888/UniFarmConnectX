@@ -1055,6 +1055,62 @@ export class BoostService {
       };
     }
   }
+
+  /**
+   * Получить активные boost пакеты пользователя
+   */
+  async getActiveBoosts(userId: string): Promise<any[]> {
+    try {
+      logger.info('[BoostService] Получение активных boost пакетов', { userId });
+      
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('ton_boost_package, ton_boost_rate, uni_farming_active, uni_deposit_amount')
+        .eq('id', userId)
+        .single();
+
+      if (error || !user) {
+        logger.error('[BoostService] Ошибка получения пользователя:', error);
+        return [];
+      }
+
+      const activeBoosts = [];
+
+      // Проверяем активный TON Boost пакет
+      if (user.ton_boost_package) {
+        const tonPackage = this.tonBoostPackages.find(pkg => pkg.id === user.ton_boost_package);
+        if (tonPackage) {
+          activeBoosts.push({
+            type: 'ton_boost',
+            package_id: tonPackage.id,
+            name: tonPackage.name,
+            daily_rate: tonPackage.daily_rate,
+            status: 'active'
+          });
+        }
+      }
+
+      // Проверяем активный UNI Farming
+      if (user.uni_farming_active && user.uni_deposit_amount > 0) {
+        activeBoosts.push({
+          type: 'uni_farming',
+          deposit_amount: user.uni_deposit_amount,
+          daily_rate: 0.01, // 1% в день
+          status: 'active'
+        });
+      }
+
+      logger.info('[BoostService] Найдены активные boost пакеты', {
+        userId,
+        activeBoostsCount: activeBoosts.length
+      });
+
+      return activeBoosts;
+    } catch (error) {
+      logger.error('[BoostService] Ошибка получения активных boost пакетов:', error);
+      return [];
+    }
+  }
 }
 
 export const boostService = new BoostService();

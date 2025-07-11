@@ -62,6 +62,7 @@ router.get('/balance', massOperationsRateLimit, getDirectBalance);
 router.get('/', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController));
 router.get('/data', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController)); // Alias для Telegram авторизации
 router.get('/transactions', requireTelegramAuth, liberalRateLimit, walletController.getTransactionsList.bind(walletController)); // История транзакций текущего пользователя
+router.get('/history', requireTelegramAuth, liberalRateLimit, walletController.getTransactionsList.bind(walletController)); // Alias для history
 router.get('/:userId/transactions', requireTelegramAuth, massOperationsRateLimit, validateParams(userIdSchema), walletController.getTransactions.bind(walletController));
 router.post('/deposit', requireTelegramAuth, massOperationsRateLimit, validateBody(depositSchema), walletController.createDeposit.bind(walletController));
 router.post('/withdraw', requireTelegramAuth, strictRateLimit, validateBody(withdrawSchema), walletController.withdraw.bind(walletController)); // Оставляем строгий лимит для выводов

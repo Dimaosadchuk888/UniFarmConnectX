@@ -277,4 +277,40 @@ export class AuthController extends BaseController {
       next(error);
     }
   }
+
+  /**
+   * Гостевая авторизация (для тестирования)
+   */
+  async guestAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
+        // Создаем гостевого пользователя
+        const guestUser = {
+          id: 99999,
+          telegram_id: 999999999,
+          username: 'guest_user',
+          first_name: 'Guest',
+          last_name: 'User',
+          ref_code: 'GUEST_REF_CODE',
+          balance_uni: '0',
+          balance_ton: '0'
+        };
+
+        // Создаем JWT токен для гостя
+        const result = await this.authService.generateToken(guestUser);
+        
+        if (result.success) {
+          this.sendSuccess(res, {
+            user: guestUser,
+            token: result.token,
+            isGuest: true
+          });
+        } else {
+          this.sendError(res, result.error || 'Failed to create guest session', 500);
+        }
+      }, 'гостевой авторизации');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -71,4 +71,7 @@ router.post('/logout', liberalRateLimit, authController.logout.bind(authControll
 // GET /api/auth/session - Получение информации о текущей сессии (либеральный лимит)
 router.get('/session', liberalRateLimit, authController.getSessionInfo.bind(authController));
 
+// POST /api/auth/guest - Гостевая авторизация (для тестирования)
+router.post('/guest', strictRateLimit, authController.guestAuth.bind(authController));
+
 export default router;
