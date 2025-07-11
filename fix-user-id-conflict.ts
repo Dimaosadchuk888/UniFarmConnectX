@@ -3,52 +3,64 @@ import { supabase } from './core/supabaseClient';
 async function fixUserIdConflict() {
   console.log('=== Исправление конфликта ID пользователей ===\n');
   
-  // Проверяем текущую ситуацию
-  const { data: user75, error: error75 } = await supabase
+  // Проверяем всех пользователей с конфликтующими telegram_id
+  const { data: conflictUsers } = await supabase
     .from('users')
     .select('id, telegram_id, username')
-    .eq('id', 75)
-    .single();
+    .or('telegram_id.eq.74,telegram_id.eq.999489');
     
-  if (user75) {
-    console.log('Текущее состояние user_id=75:');
-    console.log(`ID: ${user75.id}, Telegram ID: ${user75.telegram_id}, Username: ${user75.username}`);
+  console.log('Пользователи с потенциальными конфликтами:');
+  conflictUsers?.forEach(user => {
+    console.log(`ID: ${user.id}, Telegram ID: ${user.telegram_id}, Username: ${user.username}`);
+  });
+  
+  // Исправляем user 76 если у него telegram_id=74
+  const user76 = conflictUsers?.find(u => u.id === 76);
+  if (user76 && user76.telegram_id === 74) {
+    console.log('\nОбнаружен конфликт! User 76 имеет telegram_id=74');
+    console.log('Изменяем telegram_id пользователя 76 на уникальное значение...');
     
-    if (user75.telegram_id === 74) {
-      console.log('\nОбнаружен конфликт! User 75 имеет telegram_id=74');
-      console.log('Изменяем telegram_id пользователя 75 на уникальное значение...');
+    const newTelegramId = 999976; // Уникальный ID для user 76
+    
+    const { data: updateData, error: updateError } = await supabase
+      .from('users')
+      .update({ telegram_id: newTelegramId })
+      .eq('id', 76)
+      .select();
       
-      // Генерируем новый уникальный telegram_id для user 75
-      const newTelegramId = 999975; // Уникальный ID
-      
-      const { data: updateData, error: updateError } = await supabase
-        .from('users')
-        .update({ telegram_id: newTelegramId })
-        .eq('id', 75)
-        .select();
-        
-      if (updateError) {
-        console.error('Ошибка обновления:', updateError);
-      } else {
-        console.log(`\nУспешно обновлено! Новый telegram_id для user 75: ${newTelegramId}`);
-        console.log('Конфликт устранен.');
-      }
+    if (updateError) {
+      console.error('Ошибка обновления user 76:', updateError);
     } else {
-      console.log('\nКонфликт уже устранен или не существует');
+      console.log(`Успешно обновлено! Новый telegram_id для user 76: ${newTelegramId}`);
     }
   }
   
-  // Проверяем user 74
-  const { data: user74, error: error74 } = await supabase
+  // Исправляем любых других пользователей с telegram_id=74 (кроме правильного user 74)
+  const otherConflicts = conflictUsers?.filter(u => u.telegram_id === 74 && u.id !== 74);
+  if (otherConflicts && otherConflicts.length > 0) {
+    for (const user of otherConflicts) {
+      const newTelegramId = 999900 + user.id; // Генерируем уникальный ID
+      console.log(`\nИсправляем user ${user.id} с telegram_id=74 на ${newTelegramId}`);
+      
+      await supabase
+        .from('users')
+        .update({ telegram_id: newTelegramId })
+        .eq('id', user.id);
+    }
+  }
+  
+  console.log('\n=== Финальная проверка ===');
+  
+  // Проверяем финальное состояние
+  const { data: finalCheck } = await supabase
     .from('users')
     .select('id, telegram_id, username')
-    .eq('id', 74)
-    .single();
+    .in('id', [74, 75, 76]);
     
-  if (user74) {
-    console.log('\nТекущее состояние user_id=74:');
-    console.log(`ID: ${user74.id}, Telegram ID: ${user74.telegram_id}, Username: ${user74.username}`);
-  }
+  console.log('Финальное состояние пользователей:');
+  finalCheck?.forEach(user => {
+    console.log(`ID: ${user.id}, Telegram ID: ${user.telegram_id}, Username: ${user.username}`);
+  });
   
   process.exit(0);
 }
