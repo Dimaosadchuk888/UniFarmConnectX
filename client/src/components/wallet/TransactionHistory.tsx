@@ -32,6 +32,9 @@ const TransactionHistory: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   
+  // Состояние для накопления транзакций при пагинации
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  
   // Получаем данные пользователя из контекста
   const { userId } = useUser();
   
@@ -77,12 +80,32 @@ const TransactionHistory: React.FC = () => {
   const transactions = transactionsData?.transactions || [];
   const totalTransactions = transactionsData?.total || 0;
   
+  // Обновляем накопленные транзакции при получении новых данных
+  useEffect(() => {
+    if (transactions.length > 0) {
+      if (page === 1) {
+        // При первой странице или смене фильтра сбрасываем все транзакции
+        setAllTransactions(transactions);
+      } else {
+        // При загрузке следующих страниц добавляем к существующим
+        setAllTransactions(prev => {
+          // Создаем Map для быстрой проверки дубликатов
+          const existingIds = new Set(prev.map(t => t.id));
+          // Добавляем только новые транзакции
+          const newTransactions = transactions.filter((t: Transaction) => !existingIds.has(t.id));
+          return [...prev, ...newTransactions];
+        });
+      }
+    }
+  }, [transactions, page]);
+  
   // Функции форматирования и конфигурации теперь перенесены в StyledTransactionItem
   
   // Обработчик смены фильтра
   const handleFilterChange = (filter: 'ALL' | 'UNI' | 'TON') => {
     setActiveFilter(filter);
     setPage(1); // Сбрасываем пагинацию при смене фильтра
+    setAllTransactions([]); // Очищаем накопленные транзакции
     
     // Уведомление о смене фильтра удалено для упрощения UX
   };
@@ -193,7 +216,7 @@ const TransactionHistory: React.FC = () => {
               </div>
             </div>
           ))
-        ) : transactions.length === 0 ? (
+        ) : allTransactions.length === 0 ? (
           // Пустое состояние
           <div className="text-center py-8">
             <i className="fas fa-inbox text-gray-400 text-3xl mb-3"></i>
@@ -204,7 +227,7 @@ const TransactionHistory: React.FC = () => {
           </div>
         ) : (
           // Список транзакций с новым стилизованным компонентом
-          transactions.map((transaction: any) => (
+          allTransactions.map((transaction: any) => (
             <StyledTransactionItem 
               key={transaction.id}
               transaction={{
@@ -214,8 +237,8 @@ const TransactionHistory: React.FC = () => {
                 currency: transaction.currency,
                 status: transaction.status,
                 description: transaction.description,
-                createdAt: transaction.createdAt,
-                timestamp: transaction.timestamp
+                createdAt: transaction.createdAt || transaction.created_at,
+                timestamp: transaction.timestamp || transaction.created_at
               }}
             />
           ))
@@ -223,7 +246,7 @@ const TransactionHistory: React.FC = () => {
       </div>
       
       {/* Кнопка "Загрузить еще" */}
-      {transactions.length > 0 && transactions.length < totalTransactions && (
+      {allTransactions.length > 0 && allTransactions.length < totalTransactions && (
         <div className="mt-4 text-center relative z-10">
           <button
             onClick={handleLoadMore}
