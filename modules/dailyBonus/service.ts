@@ -139,6 +139,9 @@ export class DailyBonusService {
 
       const bonusAmount = this.calculateBonusAmount(newStreak);
       
+      // Получаем текущий баланс перед обновлением
+      const currentBalance = user.balance_uni || 0;
+      
       // Update balance through centralized BalanceManager
       const { balanceManager } = await import('../../core/BalanceManager');
       const result = await balanceManager.addBalance(
@@ -150,8 +153,11 @@ export class DailyBonusService {
 
       if (!result.success) {
         logger.error('[DailyBonusService] Ошибка обновления баланса:', result.error);
-        return { success: false, message: result.error || 'Ошибка начисления бонуса' };
+        return { success: false, error: result.error || 'Ошибка начисления бонуса' };
       }
+      
+      // Вычисляем новый баланс
+      const newBalance = currentBalance + parseFloat(bonusAmount);
 
       // Update streak and last claim date separately
       const { error: updateError } = await supabase
@@ -177,7 +183,7 @@ export class DailyBonusService {
       try {
         await transactionService.createTransaction({
           user_id: userIdNumber,
-          type: 'DAILY_BONUS',
+          type: 'daily_bonus',  // Исправлен тип согласно модели
           amount_uni: parseFloat(bonusAmount),
           amount_ton: 0,
           currency: 'UNI',
@@ -236,7 +242,7 @@ export class DailyBonusService {
         .from(DAILY_BONUS_TABLES.TRANSACTIONS)
         .select('*')
         .eq('user_id', parseInt(userId))
-        .eq('type', 'DAILY_BONUS')
+        .eq('type', 'daily_bonus')  // Исправлен тип согласно модели
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -288,7 +294,7 @@ export class DailyBonusService {
         .from(DAILY_BONUS_TABLES.TRANSACTIONS)
         .select('amount_uni')
         .eq('user_id', parseInt(userId))
-        .eq('type', 'DAILY_BONUS');
+        .eq('type', 'daily_bonus');  // Исправлен тип согласно модели
 
       if (txError) {
         logger.error('[DailyBonusService] Ошибка получения транзакций:', txError.message);
