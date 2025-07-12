@@ -120,7 +120,7 @@ export class WalletController extends BaseController {
       
       // Автоматическая регистрация пользователя если нужно
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,
         username: telegram.user.username,
         first_name: telegram.user.first_name
       });
@@ -239,7 +239,7 @@ export class WalletController extends BaseController {
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string

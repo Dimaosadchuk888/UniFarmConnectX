@@ -17,9 +17,9 @@ export class TransactionsController extends BaseController {
 
       const { page = 1, limit = 20, currency } = req.query;
       
-      // Сначала получаем пользователя по telegram_id
+      // Получаем пользователя по ID из JWT токена (не по telegram_id!)
       const userRepository = new SupabaseUserRepository();
-      const user = await userRepository.getUserByTelegramId(telegram.user.id);
+      const user = await userRepository.getUserById(telegram.user.id);
       
       if (!user) {
         return this.sendError(res, 'Пользователь не найден', 404);
@@ -60,9 +60,9 @@ export class TransactionsController extends BaseController {
         const telegram = this.validateTelegramAuth(req, res);
         if (!telegram) return; // 401 уже отправлен
 
-        // Получаем пользователя по telegram_id
+        // Получаем пользователя по ID из JWT токена
         const userRepository = new SupabaseUserRepository();
-        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        const user = await userRepository.getUserById(telegram.user.id);
         
         if (!user) {
           return this.sendError(res, 'Пользователь не найден', 404);
