@@ -5,21 +5,39 @@ import { logger } from '../../core/logger';
 const userRepository = new SupabaseUserRepository();
 
 /**
- * Обработчик для получения баланса пользователя без авторизации
- * Принимает user_id через query параметр
+ * Обработчик для получения баланса пользователя с обязательной авторизацией
+ * Принимает user_id через query параметр или использует ID из JWT токена
  */
 export const getDirectBalance = async (req: Request, res: Response) => {
   try {
-    const userId = req.query.user_id as string;
+    // Получаем ID авторизованного пользователя из JWT
+    const authenticatedUserId = (req as any).user?.id;
     
-    if (!userId) {
-      return res.status(400).json({
+    if (!authenticatedUserId) {
+      return res.status(401).json({
         success: false,
-        error: 'Отсутствует параметр user_id'
+        error: 'Требуется авторизация'
+      });
+    }
+    
+    // Получаем запрошенный user_id из параметров или используем ID из JWT
+    const requestedUserId = req.query.user_id as string;
+    const userId = requestedUserId || authenticatedUserId.toString();
+    
+    // КРИТИЧЕСКАЯ ПРОВЕРКА: пользователь может получать только свой баланс
+    if (userId !== authenticatedUserId.toString()) {
+      logger.warn('[Wallet] Попытка несанкционированного доступа к балансу', {
+        authenticated_user_id: authenticatedUserId,
+        requested_user_id: userId,
+        ip: req.ip
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'Доступ запрещен. Вы можете просматривать только свой баланс'
       });
     }
 
-    // Получаем данные пользователя напрямую из базы
+    // Получаем данные пользователя из базы
     const user = await userRepository.getUserById(parseInt(userId));
     
     if (!user) {

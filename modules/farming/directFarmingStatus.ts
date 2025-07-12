@@ -8,7 +8,31 @@ import { logger } from '../../core/logger';
  */
 export async function directFarmingStatusHandler(req: Request, res: Response) {
   try {
-    const userId = req.query.user_id || req.user?.id || '62';
+    // БЕЗОПАСНОСТЬ: Используем только ID из JWT токена
+    const authenticatedUserId = (req as any).user?.id;
+    
+    if (!authenticatedUserId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Требуется авторизация'
+      });
+    }
+    
+    // Если передан user_id в параметрах, проверяем что это свой ID
+    const requestedUserId = req.query.user_id as string;
+    if (requestedUserId && requestedUserId !== authenticatedUserId.toString()) {
+      logger.warn('[DirectFarmingStatus] SECURITY: Попытка доступа к чужому статусу фарминга', {
+        authenticated_user_id: authenticatedUserId,
+        requested_user_id: requestedUserId,
+        ip: req.ip
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'Доступ запрещен. Вы можете просматривать только свой статус фарминга'
+      });
+    }
+    
+    const userId = authenticatedUserId;
     
     logger.info('[DirectFarmingStatus] Verificando status do farming', { userId });
     

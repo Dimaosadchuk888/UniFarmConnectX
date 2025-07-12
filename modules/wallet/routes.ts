@@ -65,8 +65,8 @@ const tonDepositSchema = z.object({
   wallet_address: z.string().min(1, 'Wallet address is required')
 });
 
-// Простой обработчик для получения баланса по user_id - используем massOperationsRateLimit для частых обновлений
-router.get('/balance', massOperationsRateLimit, getDirectBalance);
+// Обработчик для получения баланса с обязательной авторизацией
+router.get('/balance', requireTelegramAuth, massOperationsRateLimit, getDirectBalance);
 
 // Маршруты кошелька с обязательной авторизацией, валидацией и оптимизированным rate limiting
 router.get('/', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController));

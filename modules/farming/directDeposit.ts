@@ -36,8 +36,21 @@ export async function directDepositHandler(req: Request, res: Response) {
       });
     }
     
-    // Используем user_id из тела запроса или из JWT
-    const userId = user_id || jwtUserId;
+    // БЕЗОПАСНОСТЬ: Используем ТОЛЬКО user_id из JWT, игнорируем user_id из тела запроса
+    const userId = jwtUserId;
+    
+    // Проверка: если в теле запроса передан user_id, отличный от JWT - это попытка взлома
+    if (user_id && user_id.toString() !== jwtUserId.toString()) {
+      logger.warn('[DirectDeposit] SECURITY: Попытка депозита от чужого имени', {
+        jwt_user_id: jwtUserId,
+        body_user_id: user_id,
+        ip: req.ip
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden: вы можете делать депозит только от своего имени'
+      });
+    }
 
     if (!amount) {
       console.log('[DirectDeposit] CRITICAL: Отсутствует amount в body');
@@ -50,7 +63,6 @@ export async function directDepositHandler(req: Request, res: Response) {
     console.log('[DirectDeposit] CRITICAL: Вызов farmingService.depositUniForFarming', {
       userId,
       amount,
-      requestBodyUserId: user_id,
       jwtUserId
     });
 

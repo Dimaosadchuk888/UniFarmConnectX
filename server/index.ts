@@ -50,6 +50,7 @@ import { adminBotConfig } from '../config/adminBot';
 import { metricsCollector } from '../core/metrics';
 import { setupWebSocketBalanceIntegration } from './websocket-balance-integration';
 import jwt from 'jsonwebtoken';
+import { SupabaseUserRepository } from '../modules/user/service';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
@@ -1182,6 +1183,49 @@ async function startServer() {
       
       // Добавляем webhook на корневом уровне
       app.use('/', apiRoutes);
+      
+      // ОБРАТНАЯ СОВМЕСТИМОСТЬ: Создаем прямые эндпоинты для старых путей
+      console.log('[ROUTES] Adding backward compatibility endpoints...');
+      
+      // /api/me → данные текущего пользователя
+      app.get('/api/me', requireTelegramAuth, async (req: Request, res: Response) => {
+        try {
+          const userId = (req as any).user?.id;
+          if (!userId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+          }
+          
+          console.log('[BACKWARD COMPAT] /api/me for user:', userId);
+          
+          const userRepository = new SupabaseUserRepository();
+          const user = await userRepository.getUserById(userId);
+          
+          if (!user) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+          }
+          
+          return res.json({
+            success: true,
+            data: {
+              id: user.id,
+              telegram_id: user.telegram_id,
+              username: user.username,
+              first_name: user.first_name,
+              last_name: user.last_name,
+              ref_code: user.ref_code,
+              balance_uni: user.balance_uni,
+              balance_ton: user.balance_ton,
+              uni_farming_active: user.uni_farming_active,
+              ton_farming_active: user.ton_farming_active
+            }
+          });
+        } catch (error) {
+          console.error('[/api/me] Error:', error);
+          return res.status(500).json({ success: false, error: 'Internal server error' });
+        }
+      });
+      
+      console.log('[ROUTES] Backward compatibility endpoints added');
       
     } catch (routesError: unknown) {
       console.error('[ROUTES] CRITICAL ERROR: Failed to import routes:', routesError);
