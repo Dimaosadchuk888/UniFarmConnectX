@@ -116,7 +116,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const farmingDeposits = React.useMemo(() => {
     if (!transactionsResponse?.data?.transactions) return [];
     return transactionsResponse.data.transactions.filter(
-      (tx: any) => tx.type === 'deposit' && tx.currency === 'UNI' && tx.source === 'uni_farming'
+      (tx: any) => tx.type === 'FARMING_DEPOSIT' && tx.currency === 'UNI'
     );
   }, [transactionsResponse?.data?.transactions]);
 
