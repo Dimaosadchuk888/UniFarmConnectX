@@ -1,0 +1,13 @@
+=== ПОИСК СЕРВИСОВ БЕЗ ЗАПИСИ В БД ===
+
+## Missions Service
+Файл: modules/missions/service.ts
+❌ НЕ делает запись в БД
+
+## Referral Service
+Файл: modules/referral/service.ts
+✅ Делает запись в БД
+
+## Daily Bonus Service
+Файл: modules/dailyBonus/service.ts
+❌ НЕ делает запись в БД

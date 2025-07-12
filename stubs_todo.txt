@@ -1,0 +1,20 @@
+=== ПОИСК TODO/FIXME/ЗАГЛУШЕК ===
+
+## TODO/FIXME комментарии
+modules/auth/types.ts:43:  | 'TOO_MANY_ATTEMPTS'
+modules/dailyBonus/service.ts:305:        max_streak: user?.checkin_streak || 0 // TODO: Track max streak separately
+modules/monitor/service.ts:376:          lastProcessed: 0 // TODO: добавить счетчик в scheduler
+modules/monitor/service.ts:383:          lastProcessed: 0 // TODO: добавить счетчик в scheduler
+modules/adminBot/service.ts:356:      // TODO: Here you would integrate with actual TON wallet to send transaction
+
+## Заглушки (return null/empty)
+modules/auth/service.ts:59:        return null;
+modules/auth/service.ts:65:      return null;
+modules/auth/service.ts:93:        return null;
+modules/auth/service.ts:99:      return null;
+modules/user/model.ts:46:      return null;
+modules/user/model.ts:71:      return null;
+modules/user/model.ts:96:      return null;
+modules/user/model.ts:121:      return null;
+modules/user/model.ts:147:      return null;
+modules/user/model.ts:180:          return null;

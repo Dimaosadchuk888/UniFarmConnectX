@@ -1,88 +1,68 @@
 #!/bin/bash
 
-echo "🔍 Анализ расхождений API между фронтендом и бэкендом"
-echo "======================================================="
+echo "=== АНАЛИЗ РАСХОЖДЕНИЙ МЕЖДУ FRONTEND И BACKEND ==="
 echo ""
 
-# Функция для извлечения эндпоинтов из файла роутов с префиксом
-extract_module_endpoints() {
-    local module=$1
-    local prefix=$2
-    local file="modules/${module}/routes.ts"
+# Список frontend вызовов из файла
+mapfile -t frontend_calls < front_endpoints.txt
+
+# Функция для проверки существования роута
+check_route_exists() {
+    local route=$1
+    local clean_route=$(echo "$route" | sed "s|^'||;s|'$||")
     
-    if [ -f "$file" ]; then
-        rg "router\.(get|post|put|delete|patch)\(" "$file" | while read -r line; do
-            endpoint=$(echo "$line" | grep -oE "'[^']*'" | head -1 | sed "s/'//g")
-            if [ ! -z "$endpoint" ]; then
-                echo "/api/v2${prefix}${endpoint}"
-            fi
-        done
+    # Убираем префиксы для поиска
+    local search_pattern=""
+    
+    if [[ $clean_route == /api/v2/* ]]; then
+        # Убираем /api/v2/ префикс
+        search_pattern=$(echo "$clean_route" | sed 's|^/api/v2/||')
+    elif [[ $clean_route == /api/* ]]; then
+        # Убираем /api/ префикс  
+        search_pattern=$(echo "$clean_route" | sed 's|^/api/||')
+    fi
+    
+    # Проверяем наличие роута в modules и server
+    if grep -r "router\.\(get\|post\|put\|delete\|patch\).*['\"]/$search_pattern['\"]" modules/ server/ --include="*.ts" --include="*.js" > /dev/null 2>&1; then
+        echo "✅ FOUND: $clean_route"
+        return 0
+    else
+        # Пробуем альтернативные варианты
+        local alt_pattern=$(echo "$search_pattern" | sed 's|/.*||')
+        if grep -r "router\.\(get\|post\|put\|delete\|patch\).*['\"]/$alt_pattern" modules/ server/ --include="*.ts" --include="*.js" > /dev/null 2>&1; then
+            echo "⚠️  PARTIAL: $clean_route (found base route /$alt_pattern)"
+            return 1
+        else
+            echo "❌ MISSING: $clean_route"
+            return 2
+        fi
     fi
 }
 
-# Собираем все бэкенд эндпоинты
-echo "📋 Сбор бэкенд эндпоинтов..."
-{
-    # Эндпоинты из server/index.ts
-    echo "/health"
-    echo "/api/v2/debug/jwt"
-    echo "/api/v2/debug/generate-jwt-74"
-    echo "/api/v2/test/balance-notification"
-    echo "/api/v2/daily-bonus-fixed"
-    echo "/api/v2/debug/env"
-    echo "/api/v2/ref-debug-test"
-    echo "/api/v2/uni-farming/status"
-    echo "/api/v2/wallet/ton-deposit"
-    echo "/api/v2/wallet/balance"
-    echo "/api/v2/wallet/withdraw"
-    echo "/api/v2/wallet/transfer"
-    echo "/api/v2/wallet/transactions"
-    echo "/api/v2/metrics"
-    echo "/manifest.json"
-    echo "/tonconnect-manifest.json"
-    echo "/webhook"
+# Анализ всех frontend вызовов
+missing_count=0
+partial_count=0
+found_count=0
+
+echo "### Проверка frontend API вызовов ###"
+echo ""
+
+for call in "${frontend_calls[@]}"; do
+    result=$(check_route_exists "$call")
+    echo "$result"
     
-    # Модули с их префиксами
-    extract_module_endpoints "auth" "/auth"
-    extract_module_endpoints "farming" "/farming"
-    extract_module_endpoints "farming" "/uni-farming"
-    extract_module_endpoints "user" "/users"
-    extract_module_endpoints "wallet" "/wallet"
-    extract_module_endpoints "boost" "/boost"
-    extract_module_endpoints "boost" "/boosts"
-    extract_module_endpoints "boost" "/ton-boost"
-    extract_module_endpoints "missions" "/missions"
-    extract_module_endpoints "missions" "/user-missions"
-    extract_module_endpoints "referral" "/referral"
-    extract_module_endpoints "referral" "/referrals"
-    extract_module_endpoints "dailyBonus" "/daily-bonus"
-    extract_module_endpoints "telegram" "/telegram"
-    extract_module_endpoints "tonFarming" "/ton-farming"
-    extract_module_endpoints "transactions" "/transactions"
-    extract_module_endpoints "airdrop" "/airdrop"
-    extract_module_endpoints "admin" "/admin"
-    extract_module_endpoints "monitor" "/monitor"
-} | sort | uniq > /tmp/backend_endpoints_complete.txt
-
-echo "✅ Найдено бэкенд эндпоинтов: $(wc -l < /tmp/backend_endpoints_complete.txt)"
-echo ""
-
-# Сравниваем с фронтендом
-echo "📊 Анализ расхождений..."
-echo ""
-
-echo "🚨 Эндпоинты, вызываемые с фронтенда, но отсутствующие на бэкенде:"
-echo "================================================================"
-comm -23 /tmp/front_endpoints.txt /tmp/backend_endpoints_complete.txt | while read -r endpoint; do
-    # Находим где используется на фронтенде
-    location=$(rg -n "$endpoint" client/ -g "*.ts" -g "*.tsx" | head -1)
-    echo "❌ $endpoint"
-    echo "   Используется в: $location"
-    echo ""
+    if [[ $result == *"MISSING"* ]]; then
+        ((missing_count++))
+    elif [[ $result == *"PARTIAL"* ]]; then
+        ((partial_count++))
+    else
+        ((found_count++))
+    fi
 done
 
 echo ""
-echo "📝 Сохранение отчета..."
-comm -23 /tmp/front_endpoints.txt /tmp/backend_endpoints_complete.txt > /tmp/missing_endpoints.txt
-
-echo "✅ Анализ завершен. Найдено $(wc -l < /tmp/missing_endpoints.txt) отсутствующих эндпоинтов."
+echo "### ИТОГОВАЯ СТАТИСТИКА ###"
+echo "Найдено: $found_count"
+echo "Частично найдено: $partial_count"
+echo "Отсутствует: $missing_count"
+echo "Всего проверено: ${#frontend_calls[@]}"

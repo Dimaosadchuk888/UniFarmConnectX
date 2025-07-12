@@ -1,0 +1,10 @@
+=== ПРОВЕРКА РЕАЛИЗАЦИИ В server/index.ts ===
+
+1. uni-farming/direct-deposit:
+
+2. wallet/ton-deposit:
+740:    app.post(`${apiPrefix}/wallet/ton-deposit`, requireTelegramAuth, async (req: Request, res: Response) => {
+
+3. wallet/withdraw:
+858:    app.post(`${apiPrefix}/wallet/withdraw`, requireTelegramAuth, async (req: Request, res: Response) => {
+

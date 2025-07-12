@@ -1,0 +1,62 @@
+=== АНАЛИЗ РАСХОЖДЕНИЙ МЕЖДУ FRONTEND И BACKEND ===
+
+### Проверка frontend API вызовов ###
+
+✅ FOUND: /api/me
+⚠️  PARTIAL: /api/missions (found base route /missions)
+⚠️  PARTIAL: /api/missions/active (found base route /missions)
+❌ MISSING: /api/referrals
+⚠️  PARTIAL: /api/route (found base route /route)
+✅ FOUND: /api/transactions
+❌ MISSING: /api/uni-farming/info
+❌ MISSING: /api/user-boosts
+❌ MISSING: /api/user-missions
+❌ MISSING: /api/user_missions
+⚠️  PARTIAL: /api/user/profile (found base route /user)
+✅ FOUND: /api/users
+❌ MISSING: /api/v2/airdrop/register
+❌ MISSING: /api/v2/auth/refresh
+❌ MISSING: /api/v2/auth/telegram
+❌ MISSING: /api/v2/boost
+❌ MISSING: /api/v2/boost/check-payment
+❌ MISSING: /api/v2/boost/farming-status
+❌ MISSING: /api/v2/boost/packages
+❌ MISSING: /api/v2/boost/purchase
+❌ MISSING: /api/v2/boost/verify-ton-payment
+❌ MISSING: /api/v2/daily-bonus/claim
+❌ MISSING: /api/v2/daily-bonus/status
+⚠️  PARTIAL: /api/v2/farming/status (found base route /farming)
+✅ FOUND: /api/v2/me
+⚠️  PARTIAL: /api/v2/missions/active (found base route /missions)
+⚠️  PARTIAL: /api/v2/missions/complete (found base route /missions)
+⚠️  PARTIAL: /api/v2/missions/list (found base route /missions)
+⚠️  PARTIAL: /api/v2/missions/stats (found base route /missions)
+⚠️  PARTIAL: /api/v2/missions/user (found base route /missions)
+⚠️  PARTIAL: /api/v2/missions/user-completed (found base route /missions)
+❌ MISSING: /api/v2/referrals/stats
+❌ MISSING: /api/v2/referrals/stats?user_id=48
+❌ MISSING: /api/v2/ton-farming/active
+❌ MISSING: /api/v2/ton-farming/boosts
+✅ FOUND: /api/v2/transactions
+❌ MISSING: /api/v2/transactions?user_id=
+❌ MISSING: /api/v2/uni-farming/direct-deposit
+❌ MISSING: /api/v2/uni-farming/harvest
+❌ MISSING: /api/v2/uni-farming/status
+❌ MISSING: /api/v2/user-missions
+✅ FOUND: /api/v2/users
+⚠️  PARTIAL: /api/v2/users/1 (found base route /users)
+⚠️  PARTIAL: /api/v2/users/generate-refcode (found base route /users)
+⚠️  PARTIAL: /api/v2/users/profile (found base route /users)
+⚠️  PARTIAL: /api/v2/users/profile?user_id=48 (found base route /users)
+⚠️  PARTIAL: /api/v2/wallet/balance (found base route /wallet)
+⚠️  PARTIAL: /api/v2/wallet/connect-ton (found base route /wallet)
+⚠️  PARTIAL: /api/v2/wallet/save-ton-address (found base route /wallet)
+⚠️  PARTIAL: /api/v2/wallet/ton-deposit (found base route /wallet)
+⚠️  PARTIAL: /api/v2/wallet/withdraw (found base route /wallet)
+⚠️  PARTIAL: /api/wallet/balance (found base route /wallet)
+
+### ИТОГОВАЯ СТАТИСТИКА ###
+Найдено: 6
+Частично найдено: 21
+Отсутствует: 25
+Всего проверено: 52

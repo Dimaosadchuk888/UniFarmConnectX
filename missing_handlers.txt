@@ -1,0 +1,11 @@
+# ОТСУТСТВУЮЩИЕ API ENDPOINTS
+# Frontend вызывает, но backend не реализует
+
+/api/v2/uni-farming/direct-deposit
+/api/v2/uni-farming/harvest
+/api/v2/boost/verify-ton-payment
+/api/v2/airdrop/register
+/api/referrals (старый формат, должен быть /api/v2/referral/stats)
+/api/uni-farming/info (старый формат, должен быть /api/v2/uni-farming/status)
+/api/user-boosts (старый формат, должен быть /api/v2/boost/user/[id])
+/api/user-missions (старый формат, должен быть /api/v2/missions/user)

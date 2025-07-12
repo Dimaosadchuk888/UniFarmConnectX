@@ -1,0 +1,13 @@
+=== ПРОВЕРКА FRONTEND ФАЙЛОВ С API ВЫЗОВАМИ ===
+
+1. /api/v2/uni-farming/direct-deposit:
+client/src/components/farming/UniFarmingCard.tsx:254:      return correctApiRequest('/api/v2/uni-farming/direct-deposit', 'POST', requestBody);
+
+2. /api/v2/uni-farming/harvest:
+client/src/components/farming/UniFarmingCard.tsx:193:        const response = await correctApiRequest('/api/v2/uni-farming/harvest', 'POST', requestBody);
+
+3. /api/v2/boost/verify-ton-payment:
+client/src/components/ton-boost/BoostPackagesCard.tsx:219:              const verifyResponse = await fetch('/api/v2/boost/verify-ton-payment', {
+
+4. /api/v2/airdrop/register:
+client/src/services/userService.ts:89:      const url = apiConfig.getFullUrl('/api/v2/airdrop/register');

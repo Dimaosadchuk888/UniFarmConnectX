@@ -1,0 +1,24 @@
+=== ДЕТАЛЬНЫЙ АНАЛИЗ ОТСУТСТВУЮЩИХ ENDPOINTS ===
+
+1. /api/v2/uni-farming/status
+35:router.get('/status', requireTelegramAuth, massOperationsRateLimit, farmingController.getFarmingInfoByUserId.bind(farmingController)); // Используем massOperationsRateLimit для частых обновлений статуса
+37:router.get('/start', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingInfo.bind(farmingController)); // GET endpoint for start status
+54:// Endpoint de diagnóstico para verificar status real do farming
+
+2. /api/v2/boost/packages
+53:// GET /api/boosts/packages - Получить доступные пакеты бустов
+54:router.get('/packages', requireTelegramAuth, liberalRateLimit, boostController.getPackages.bind(boostController));
+
+3. /api/v2/auth/telegram
+11:const telegramAuthSchema = z.object({
+16:  telegram_id: z.number().optional(),
+22:  // Либо есть initData, либо это прямая авторизация с telegram_id
+
+4. /api/v2/wallet/withdraw
+17:const withdrawSchema = z.object({
+78:router.post('/withdraw', requireTelegramAuth, strictRateLimit, validateBody(withdrawSchema), walletController.withdraw.bind(walletController)); // Оставляем строгий лимит для выводов
+87:router.post('/withdraw-internal', requireTelegramAuth, massOperationsRateLimit, walletController.withdrawInternal.bind(walletController));
+
+5. /api/v2/missions/complete
+30:router.post('/complete', requireTelegramAuth, strictRateLimit, validateBody(missionCompleteSchema), missionsController.completeMission.bind(missionsController));
+31:router.post('/:missionId/complete', requireTelegramAuth, strictRateLimit, missionsController.completeMissionById.bind(missionsController));
