@@ -491,6 +491,21 @@ export class WalletService {
         commission = Math.ceil(withdrawAmount / 1000) * 0.1;
         const tonBalance = parseFloat(user.balance_ton || "0");
         
+        // Добавляем детальное логирование для отладки
+        logger.info('[WalletService] Проверка комиссии для вывода UNI', {
+          userId,
+          withdrawAmount,
+          commission,
+          tonBalance,
+          userBalanceTonRaw: user.balance_ton,
+          comparisonResult: tonBalance < commission,
+          userObject: {
+            id: user.id,
+            balance_uni: user.balance_uni,
+            balance_ton: user.balance_ton
+          }
+        });
+        
         if (tonBalance < commission) {
           logger.warn('[WalletService] Недостаточно TON для оплаты комиссии', { 
             userId, 

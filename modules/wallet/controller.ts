@@ -129,6 +129,16 @@ export class WalletController extends BaseController {
         return this.sendError(res, 'Не удалось создать или найти пользователя', 500);
       }
       
+      // Детальное логирование для отладки
+      logger.info('[Withdraw] Найден пользователь для вывода', {
+        userId: user.id,
+        telegramId: telegram.user.id,
+        amount,
+        currency,
+        userBalanceUni: user.balance_uni,
+        userBalanceTon: user.balance_ton
+      });
+      
       const result = await walletService.processWithdrawal(
         user.id.toString(), 
         amount, 

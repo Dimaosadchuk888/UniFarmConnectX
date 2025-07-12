@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест системы вывода UniFarm</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏦 Тест системы вывода UniFarm</h1>
+        
+        <h2>Информация о балансе</h2>
+        <div id="balanceInfo" class="result info">Загрузка...</div>
+        
+        <h2>Тест вывода UNI</h2>
+        <button onclick="testUniWithdrawal(1000)">Вывести 1000 UNI (комиссия 0.1 TON)</button>
+        <button onclick="testUniWithdrawal(5000)">Вывести 5000 UNI (комиссия 0.5 TON)</button>
+        <button onclick="testUniWithdrawal(10000)">Вывести 10000 UNI (комиссия 1 TON)</button>
+        <div id="uniResult" class="result"></div>
+        
+        <h2>Тест вывода TON</h2>
+        <button onclick="testTonWithdrawal(10)">Вывести 10 TON</button>
+        <button onclick="testTonWithdrawal(50)">Вывести 50 TON</button>
+        <button onclick="testTonWithdrawal(100)">Вывести 100 TON</button>
+        <div id="tonResult" class="result"></div>
+        
+        <h2>История заявок на вывод</h2>
+        <button onclick="getWithdrawHistory()">Получить историю</button>
+        <div id="historyResult" class="result"></div>
+    </div>
+
+    <script>
+        const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ1c2VyX2lkIjo3NCwidXNlcm5hbWUiOiJ0ZXN0X3VzZXJfMTc1MjEyOTg0MDkwNSIsInRlbGVncmFtX2lkIjo5OTk0ODksInJlZl9jb2RlIjoiVEVTVF8xNzUyMTI5ODQwOTA1X2Rva3h2MCIsImlhdCI6MTc1MjMyNjcyMSwiZXhwIjoxNzUyOTMxNTIxfQ.ImUYgY3qOjF089TGh2O6zsxOtbRGZWYRbW_QV0X6Q1o';
+        const API_BASE = 'http://localhost:3000/api/v2';
+        
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = {
+                method,
+                headers: {
+                    'Authorization': `Bearer ${JWT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const data = await response.json();
+                return { ok: response.ok, status: response.status, data };
+            } catch (error) {
+                return { ok: false, error: error.message };
+            }
+        }
+        
+        async function getBalance() {
+            const result = await apiRequest('/wallet/balance');
+            const div = document.getElementById('balanceInfo');
+            
+            if (result.ok && result.data.success) {
+                const data = result.data.data;
+                div.innerHTML = `
+                    <strong>Баланс пользователя ID 74:</strong><br>
+                    💰 UNI: ${data.balanceUni || data.balance_uni || 0}<br>
+                    💎 TON: ${data.balanceTon || data.balance_ton || 0}
+                `;
+            } else {
+                div.innerHTML = `<strong>Ошибка:</strong> ${JSON.stringify(result.data)}`;
+                div.className = 'result error';
+            }
+        }
+        
+        async function testUniWithdrawal(amount) {
+            const result = await apiRequest('/wallet/withdraw', 'POST', {
+                amount: amount,
+                currency: 'UNI',
+                wallet_address: 'EQTestWalletAddressForUNI1234567890'
+            });
+            
+            const div = document.getElementById('uniResult');
+            if (result.ok && result.data.success) {
+                div.innerHTML = `<strong>✅ Успех!</strong><br>
+                    Заявка на вывод ${amount} UNI создана<br>
+                    ID заявки: ${result.data.data.withdrawId}<br>
+                    Комиссия: ${amount / 10000} TON`;
+                div.className = 'result success';
+                
+                // Обновляем баланс
+                setTimeout(getBalance, 1000);
+            } else {
+                div.innerHTML = `<strong>❌ Ошибка:</strong><br>${result.data.error || JSON.stringify(result.data)}`;
+                div.className = 'result error';
+            }
+        }
+        
+        async function testTonWithdrawal(amount) {
+            const result = await apiRequest('/wallet/withdraw', 'POST', {
+                amount: amount,
+                currency: 'TON',
+                wallet_address: 'EQTestWalletAddressForTON1234567890'
+            });
+            
+            const div = document.getElementById('tonResult');
+            if (result.ok && result.data.success) {
+                div.innerHTML = `<strong>✅ Успех!</strong><br>
+                    Заявка на вывод ${amount} TON создана<br>
+                    ID заявки: ${result.data.data.withdrawId}`;
+                div.className = 'result success';
+                
+                // Обновляем баланс
+                setTimeout(getBalance, 1000);
+            } else {
+                div.innerHTML = `<strong>❌ Ошибка:</strong><br>${result.data.error || JSON.stringify(result.data)}`;
+                div.className = 'result error';
+            }
+        }
+        
+        async function getWithdrawHistory() {
+            const result = await apiRequest('/withdraw/history?user_id=74');
+            const div = document.getElementById('historyResult');
+            
+            if (result.ok && result.data.success) {
+                const withdrawals = result.data.data;
+                if (withdrawals.length === 0) {
+                    div.innerHTML = '<strong>История пуста</strong>';
+                } else {
+                    let html = '<strong>История заявок:</strong><br>';
+                    withdrawals.forEach(w => {
+                        html += `<div style="margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 5px;">
+                            ID: ${w.id}<br>
+                            Сумма: ${w.amount_ton || w.amount} ${w.currency || 'TON'}<br>
+                            Статус: ${w.status}<br>
+                            Адрес: ${w.wallet_address}<br>
+                            Дата: ${new Date(w.created_at).toLocaleString('ru-RU')}<br>
+                            ${w.admin_comment ? `Комментарий: ${w.admin_comment}<br>` : ''}
+                        </div>`;
+                    });
+                    div.innerHTML = html;
+                }
+                div.className = 'result info';
+            } else {
+                div.innerHTML = `<strong>Ошибка:</strong> ${JSON.stringify(result.data)}`;
+                div.className = 'result error';
+            }
+        }
+        
+        // Загружаем баланс при старте
+        getBalance();
+    </script>
+</div>
+</body>
+</html>
