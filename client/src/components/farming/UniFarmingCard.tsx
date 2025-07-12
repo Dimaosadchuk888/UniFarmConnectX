@@ -970,7 +970,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
 
           {/* Кнопки быстрого выбора суммы */}
           <div className="mb-4 grid grid-cols-4 gap-2">
-            {[5, 10, 25, 50].map((amount) => (
+            {[1000, 5000, 10000, 25000].map((amount) => (
               <button
                 key={amount}
                 type="button"
