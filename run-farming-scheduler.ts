@@ -1,26 +1,34 @@
-import { farmingScheduler } from './core/scheduler/farmingScheduler';
+import { FarmingScheduler } from './core/scheduler/farmingScheduler';
+import { logger } from './core/logger';
 
-console.log('Запуск планировщика UNI farming...');
-
-// Запускаем планировщик
-farmingScheduler.start();
-
-// Запускаем одну итерацию вручную для немедленного эффекта
-console.log('Выполняем одну итерацию планировщика...');
-farmingScheduler['processSchedule']().then(() => {
-  console.log('Итерация завершена');
+async function runFarmingScheduler() {
+  console.log('\n=== ЗАПУСК ПЛАНИРОВЩИКА UNI FARMING ===\n');
   
-  // Проверяем статус
-  const status = farmingScheduler.getStatus();
-  console.log('Статус планировщика:', status);
+  try {
+    // Создаем экземпляр планировщика
+    const scheduler = new FarmingScheduler();
+    
+    // Запускаем планировщик
+    console.log('Запускаем планировщик...');
+    scheduler.start();
+    
+    // Ждем 10 секунд чтобы дать планировщику отработать
+    console.log('Ожидаем выполнения планировщика (10 секунд)...');
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    
+    // Останавливаем планировщик
+    console.log('Останавливаем планировщик...');
+    scheduler.stop();
+    
+    console.log('\n=== ПЛАНИРОВЩИК ЗАВЕРШИЛ РАБОТУ ===\n');
+    
+  } catch (error) {
+    console.error('Ошибка при запуске планировщика:', error);
+  }
   
-  // Останавливаем после одной итерации
-  setTimeout(() => {
-    farmingScheduler.stop();
-    console.log('Планировщик остановлен');
-    process.exit(0);
-  }, 2000);
-}).catch(error => {
-  console.error('Ошибка планировщика:', error);
-  process.exit(1);
-});
+  // Даем время на завершение всех асинхронных операций
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  process.exit(0);
+}
+
+runFarmingScheduler();
