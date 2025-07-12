@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регрессионный тест после миграции</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        h1 { color: #4CAF50; }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background: #222;
+        }
+        .pass { color: #4CAF50; }
+        .fail { color: #f44336; }
+        .info { color: #2196F3; }
+        .warn { color: #ff9800; }
+        pre {
+            background: #111;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Регрессионный тест миграции маршрутов</h1>
+    <p>Дата: 12.07.2025 | Проверка всех мигрированных endpoints</p>
+    
+    <button onclick="runAllTests()">▶️ Запустить все тесты</button>
+    <button onclick="clearResults()">🗑️ Очистить</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NzQsInRlbGVncmFtX2lkIjoxMjM0NTY3ODksInVzZXJuYW1lIjoidGVzdF91c2VyXzE3NTIxMjk4NDA5MDUiLCJmaXJzdF9uYW1lIjoiVGVzdCIsImxhc3RfbmFtZSI6IlVzZXIiLCJyZWZfY29kZSI6IlJFRl8xNzUyMTI5ODQwOTA1X3Q5Mzh2cyIsImlhdCI6MTc1MjEyOTg0MCwiZXhwIjoxNzUyNzM0NjQwfQ.JxAC5u79LcXU0HQsEP_9GsLTc_Qnk0xBGLhJIQ0bE-4';
+        
+        let allResults = [];
+        
+        async function testEndpoint(name, method, url, body = null, expectedCodes = [200]) {
+            const result = {
+                name,
+                method,
+                url,
+                startTime: Date.now()
+            };
+            
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${JWT_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                };
+                
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+                
+                const response = await fetch(url, options);
+                result.responseTime = Date.now() - result.startTime;
+                result.status = response.status;
+                result.success = expectedCodes.includes(response.status);
+                
+                try {
+                    result.data = await response.json();
+                } catch (e) {
+                    result.data = await response.text();
+                }
+                
+            } catch (error) {
+                result.responseTime = Date.now() - result.startTime;
+                result.error = error.message;
+                result.success = false;
+            }
+            
+            return result;
+        }
+        
+        async function runAllTests() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h2>⏳ Выполнение тестов...</h2>';
+            allResults = [];
+            
+            // 1. GET /api/v2/wallet/balance
+            const balanceTest = await testEndpoint(
+                'Wallet Balance',
+                'GET',
+                '/api/v2/wallet/balance'
+            );
+            displayResult(balanceTest);
+            allResults.push(balanceTest);
+            
+            // 2. GET /api/v2/wallet/transactions
+            const transactionsTest = await testEndpoint(
+                'Wallet Transactions',
+                'GET',
+                '/api/v2/wallet/transactions?page=1&limit=10'
+            );
+            displayResult(transactionsTest);
+            allResults.push(transactionsTest);
+            
+            // 3. GET /api/v2/uni-farming/status
+            const farmingTest = await testEndpoint(
+                'UNI Farming Status',
+                'GET',
+                '/api/v2/uni-farming/status?user_id=74'
+            );
+            displayResult(farmingTest);
+            allResults.push(farmingTest);
+            
+            // 4. POST /api/v2/wallet/ton-deposit
+            const tonDepositTest = await testEndpoint(
+                'TON Deposit',
+                'POST',
+                '/api/v2/wallet/ton-deposit',
+                {
+                    ton_tx_hash: `test_tx_${Date.now()}`,
+                    amount: 0.1,
+                    wallet_address: 'test_wallet_' + Date.now()
+                },
+                [200, 201]
+            );
+            displayResult(tonDepositTest);
+            allResults.push(tonDepositTest);
+            
+            // 5. POST /api/v2/wallet/withdraw
+            const withdrawTest = await testEndpoint(
+                'Wallet Withdraw',
+                'POST',
+                '/api/v2/wallet/withdraw',
+                {
+                    amount: 100,
+                    currency: 'UNI',
+                    wallet_address: 'test_withdraw_' + Date.now()
+                },
+                [200, 201, 400]
+            );
+            displayResult(withdrawTest);
+            allResults.push(withdrawTest);
+            
+            // 6. POST /api/v2/wallet/transfer
+            const transferTest = await testEndpoint(
+                'Wallet Transfer',
+                'POST',
+                '/api/v2/wallet/transfer',
+                {
+                    recipient_id: 75,
+                    amount: 10,
+                    currency: 'UNI'
+                },
+                [200, 400]
+            );
+            displayResult(transferTest);
+            allResults.push(transferTest);
+            
+            // 7. Проверка авторизации
+            const authTest = await testEndpoint(
+                'Authorization Check (без токена)',
+                'GET',
+                '/api/v2/wallet/balance',
+                null,
+                [401]
+            );
+            // Убираем токен для этого теста
+            delete authTest.headers;
+            const authResponse = await fetch('/api/v2/wallet/balance');
+            authTest.status = authResponse.status;
+            authTest.success = authResponse.status === 401;
+            displayResult(authTest);
+            allResults.push(authTest);
+            
+            // Генерация отчета
+            generateReport();
+        }
+        
+        function displayResult(result) {
+            const resultsDiv = document.getElementById('results');
+            
+            if (resultsDiv.innerHTML.includes('Выполнение тестов...')) {
+                resultsDiv.innerHTML = '';
+            }
+            
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            
+            const statusClass = result.success ? 'pass' : 'fail';
+            const statusIcon = result.success ? '✅' : '❌';
+            
+            let html = `
+                <h3>${statusIcon} ${result.name}</h3>
+                <p>
+                    <span class="${statusClass}">Статус: ${result.status || 'ERROR'}</span> | 
+                    Метод: ${result.method} | 
+                    URL: ${result.url} | 
+                    Время: ${result.responseTime}ms
+                </p>
+            `;
+            
+            if (result.error) {
+                html += `<p class="fail">Ошибка: ${result.error}</p>`;
+            }
+            
+            if (result.data) {
+                const dataStr = typeof result.data === 'string' 
+                    ? result.data 
+                    : JSON.stringify(result.data, null, 2);
+                    
+                // Сокращаем вывод для читаемости
+                const truncated = dataStr.length > 500 
+                    ? dataStr.substring(0, 500) + '...'
+                    : dataStr;
+                    
+                html += `<pre>${truncated}</pre>`;
+            }
+            
+            section.innerHTML = html;
+            resultsDiv.appendChild(section);
+        }
+        
+        function generateReport() {
+            const resultsDiv = document.getElementById('results');
+            const summary = document.createElement('div');
+            summary.className = 'test-section';
+            
+            const passed = allResults.filter(r => r.success).length;
+            const failed = allResults.filter(r => !r.success).length;
+            const successRate = ((passed / allResults.length) * 100).toFixed(1);
+            
+            let reportHtml = `
+                <h2>📊 Итоговый отчет</h2>
+                <p>
+                    <span class="pass">✅ Успешно: ${passed}</span> | 
+                    <span class="fail">❌ Провалено: ${failed}</span> | 
+                    <span class="info">📈 Успешность: ${successRate}%</span>
+                </p>
+            `;
+            
+            // Анализ результатов
+            if (successRate === 100) {
+                reportHtml += `<p class="pass"><strong>🎉 Все тесты пройдены успешно! Миграция завершена без ошибок.</strong></p>`;
+            } else if (successRate >= 80) {
+                reportHtml += `<p class="warn"><strong>⚠️ Миграция в основном успешна, но есть проблемы:</strong></p>`;
+                allResults.filter(r => !r.success).forEach(r => {
+                    reportHtml += `<p>- ${r.name}: HTTP ${r.status || 'ERROR'}</p>`;
+                });
+            } else {
+                reportHtml += `<p class="fail"><strong>❌ Миграция требует внимания - много неудачных тестов.</strong></p>`;
+            }
+            
+            // Производительность
+            const avgTime = allResults
+                .filter(r => r.responseTime)
+                .reduce((sum, r) => sum + r.responseTime, 0) / allResults.length;
+                
+            reportHtml += `<p>⚡ Средняя скорость ответа: ${avgTime.toFixed(1)}ms</p>`;
+            
+            summary.innerHTML = reportHtml;
+            resultsDiv.appendChild(summary);
+            
+            // Сохранение результатов для отчета
+            console.log('Результаты тестирования:', allResults);
+            
+            // Создание текстового отчета
+            createMarkdownReport();
+        }
+        
+        function createMarkdownReport() {
+            const passed = allResults.filter(r => r.success).length;
+            const failed = allResults.filter(r => !r.success).length;
+            const successRate = ((passed / allResults.length) * 100).toFixed(1);
+            
+            let report = `# Regression Test Results - Migration Completed
+Date: ${new Date().toLocaleString('ru-RU')}
+
+## Summary
+- ✅ Passed: ${passed}
+- ❌ Failed: ${failed}
+- 📊 Success Rate: ${successRate}%
+
+## Detailed Results
+
+| Endpoint | Method | Status | Response Time | Result |
+|----------|--------|--------|---------------|--------|
+`;
+
+            allResults.forEach(result => {
+                const icon = result.success ? '✅' : '❌';
+                const status = result.status || 'ERROR';
+                const time = result.responseTime ? `${result.responseTime}ms` : 'N/A';
+                
+                report += `| ${result.url} | ${result.method} | ${status} | ${time} | ${icon} |\n`;
+            });
+            
+            report += `\n## Key Findings\n\n`;
+            
+            if (successRate === 100) {
+                report += `### ✅ Migration Status: SUCCESS
+All migrated endpoints are functioning correctly.\n`;
+            } else {
+                report += `### ⚠️ Migration Status: NEEDS ATTENTION\n`;
+                allResults.filter(r => !r.success).forEach(r => {
+                    report += `- ${r.name} (${r.url}): HTTP ${r.status || 'ERROR'}\n`;
+                });
+            }
+            
+            console.log('=== MARKDOWN REPORT ===');
+            console.log(report);
+            console.log('======================');
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            allResults = [];
+        }
+    </script>
+</body>
+</html>
