@@ -104,13 +104,26 @@ function App() {
     console.log('[App] Telegram initData:', window.Telegram?.WebApp?.initData ? 'Есть' : 'Нет');
     
     try {
-      // Get referral code from URL
+      // Get referral code from Telegram start_param or URL
       const urlParams = new URLSearchParams(window.location.search);
-      const refCode = urlParams.get('ref_code') || urlParams.get('refCode') || 
+      const telegramStartParam = window.Telegram?.WebApp?.startParam;
+      const refCode = telegramStartParam || 
+                     urlParams.get('ref_code') || 
+                     urlParams.get('refCode') || 
                      sessionStorage.getItem('referrer_code');
 
       if (refCode) {
         sessionStorage.setItem('referrer_code', refCode);
+        
+        // Логируем источник реферального кода для отладки
+        console.log('[App] Referral code sources:', {
+          telegram: telegramStartParam,
+          url: urlParams.get('ref_code') || urlParams.get('refCode'),
+          saved: sessionStorage.getItem('referrer_code'),
+          selected: refCode,
+          source: telegramStartParam ? 'telegram' : 
+                 (urlParams.get('ref_code') || urlParams.get('refCode')) ? 'url' : 'saved'
+        });
       }
 
       // Get or create guest ID
