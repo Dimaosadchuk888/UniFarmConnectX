@@ -66,9 +66,14 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
                 balance_ton: fullUser.balance_ton
               });
               
+              // ВАЖНО: Архитектурная проблема - поле id содержит database user ID, а не telegram_id!
+              // В контроллерах используйте:
+              // - telegram.user.telegram_id для получения telegram_id
+              // - telegram.user.id для получения database user ID
+              // Не путайте эти поля! См. TELEGRAM_AUTH_ARCHITECTURE_INVESTIGATION.md
               const user = {
-                id: fullUser.id,
-                telegram_id: fullUser.telegram_id,
+                id: fullUser.id,  // Это database user ID!
+                telegram_id: fullUser.telegram_id,  // Это настоящий telegram_id
                 username: fullUser.username,
                 first_name: fullUser.first_name,
                 ref_code: fullUser.ref_code,

@@ -16,18 +16,19 @@ export class MissionsController extends BaseController {
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
       });
 
       const missions = await missionsService.getActiveMissionsByTelegramId(
-        telegram.user.id.toString()
+        telegram.user.telegram_id.toString()  // Используем правильное поле telegram_id
       );
 
       logger.info('[Missions] Получены миссии для пользователя', {
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Логируем правильный telegram_id
+        database_user_id: telegram.user.id,  // И database ID для отладки
         missions_count: missions.length
       });
 
@@ -46,7 +47,7 @@ export class MissionsController extends BaseController {
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
@@ -57,7 +58,7 @@ export class MissionsController extends BaseController {
       this.validateRequiredFields(req.body, ['missionId']);
       
       const result = await missionsService.completeMission(
-        telegram.user.id.toString(),
+        telegram.user.telegram_id.toString(),  // Используем правильное поле telegram_id
         missionId
       );
 
@@ -76,7 +77,7 @@ export class MissionsController extends BaseController {
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
@@ -86,7 +87,7 @@ export class MissionsController extends BaseController {
       this.validateRequiredFields(req.body, ['missionId']);
       
       const result = await missionsService.claimMissionReward(
-        telegram.user.id.toString(),
+        telegram.user.telegram_id.toString(),  // Используем правильное поле telegram_id
         missionId
       );
 
@@ -105,13 +106,13 @@ export class MissionsController extends BaseController {
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
       });
 
-      const stats = await missionsService.getMissionStatsByTelegramId(telegram.user.id.toString());
+      const stats = await missionsService.getMissionStatsByTelegramId(telegram.user.telegram_id.toString());  // Используем правильное поле telegram_id
       this.sendSuccess(res, stats);
     }, 'получения статистики миссий');
     } catch (error) {
@@ -127,13 +128,13 @@ export class MissionsController extends BaseController {
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
       });
 
-      const missions = await missionsService.getUserCompletedMissions(telegram.user.id.toString());
+      const missions = await missionsService.getUserCompletedMissions(telegram.user.telegram_id.toString());  // Используем правильное поле telegram_id
       this.sendSuccess(res, missions);
     }, 'получения миссий пользователя');
     } catch (error) {
@@ -148,7 +149,7 @@ export class MissionsController extends BaseController {
         if (!telegram) return;
 
         const user = await userRepository.getOrCreateUserFromTelegram({
-          telegram_id: telegram.user.id,
+          telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
           username: telegram.user.username,
           first_name: telegram.user.first_name,
           ref_by: req.query.start_param as string
@@ -160,7 +161,7 @@ export class MissionsController extends BaseController {
         }
 
         const result = await missionsService.completeMission(
-          telegram.user.id.toString(),
+          telegram.user.telegram_id.toString(),  // Используем правильное поле telegram_id
           missionId
         );
 
@@ -178,7 +179,7 @@ export class MissionsController extends BaseController {
         if (!telegram) return;
 
         const user = await userRepository.getOrCreateUserFromTelegram({
-          telegram_id: telegram.user.id,
+          telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
           username: telegram.user.username,
           first_name: telegram.user.first_name,
           ref_by: req.query.start_param as string
@@ -190,7 +191,7 @@ export class MissionsController extends BaseController {
         }
 
         const result = await missionsService.claimMissionReward(
-          telegram.user.id.toString(),
+          telegram.user.telegram_id.toString(),  // Используем правильное поле telegram_id
           missionId
         );
 
@@ -208,13 +209,13 @@ export class MissionsController extends BaseController {
         if (!telegram) return;
 
         const user = await userRepository.getOrCreateUserFromTelegram({
-          telegram_id: telegram.user.id,
+          telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
           username: telegram.user.username,
           first_name: telegram.user.first_name,
           ref_by: req.query.start_param as string
         });
 
-        const missions = await missionsService.getUserCompletedMissions(telegram.user.id.toString());
+        const missions = await missionsService.getUserCompletedMissions(telegram.user.telegram_id.toString());  // Используем правильное поле telegram_id
         this.sendSuccess(res, missions);
       }, 'получения миссий текущего пользователя');
     } catch (error) {

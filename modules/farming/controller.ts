@@ -16,18 +16,19 @@ export class FarmingController extends BaseController {
       
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
       });
       
       const farmingData = await farmingService.getFarmingDataByTelegramId(
-        telegram.user.id.toString()
+        telegram.user.telegram_id.toString()  // Используем правильное поле telegram_id
       );
 
       logger.info('[Farming] Данные фарминга для пользователя', {
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Логируем правильный telegram_id
+        database_user_id: telegram.user.id,  // И database ID для отладки
         farming_data: farmingData
       });
 
@@ -162,7 +163,7 @@ export class FarmingController extends BaseController {
       
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
@@ -171,7 +172,7 @@ export class FarmingController extends BaseController {
       const { amount } = req.body;
       
       const result = await farmingService.depositUniForFarming(
-        telegram.user.id.toString(),
+        user.id.toString(),  // Используем database ID из найденного пользователя
         amount
       );
 
@@ -190,14 +191,14 @@ export class FarmingController extends BaseController {
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
       });
 
       const result = await farmingService.claimRewards(
-        telegram.user.id.toString()
+        user.id.toString()  // Используем database ID из найденного пользователя
       );
 
       this.sendSuccess(res, result);
@@ -223,13 +224,14 @@ export class FarmingController extends BaseController {
       }
 
       console.log('[FarmingController] CRITICAL DEBUG: telegram user data', {
-        telegram_id: telegram.user.id,
+        database_user_id: telegram.user.id,  // Логируем database ID
+        telegram_id: telegram.user.telegram_id,  // И настоящий telegram_id
         username: telegram.user.username
       });
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
@@ -244,8 +246,8 @@ export class FarmingController extends BaseController {
       this.validateRequiredFields(req.body, ['amount']);
 
       console.log('[FarmingController] CRITICAL DEBUG: calling depositUniForFarming', {
-        telegram_id: telegram.user.id,
-        user_id: user.id,
+        database_user_id: user.id,
+        telegram_id: user.telegram_id,
         amount
       });
 
@@ -273,14 +275,14 @@ export class FarmingController extends BaseController {
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
       });
 
       const result = await farmingService.harvestUniFarming(
-        telegram.user.id.toString()
+        user.id.toString()  // Используем database ID из найденного пользователя
       );
 
       this.sendSuccess(res, result);
@@ -298,18 +300,19 @@ export class FarmingController extends BaseController {
 
         // Автоматическая регистрация пользователя
         const user = await userRepository.getOrCreateUserFromTelegram({
-          telegram_id: telegram.user.id,
+          telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
           username: telegram.user.username,
           first_name: telegram.user.first_name,
           ref_by: req.query.start_param as string
         });
 
         const result = await farmingService.stopFarming(
-          telegram.user.id.toString()
+          user.id.toString()  // Используем database ID из найденного пользователя
         );
 
         logger.info('[Farming] Остановка фарминга для пользователя', {
-          telegram_id: telegram.user.id,
+          telegram_id: telegram.user.telegram_id,  // Логируем правильный telegram_id
+          database_user_id: telegram.user.id,  // И database ID для отладки
           result: result
         });
 
@@ -328,18 +331,19 @@ export class FarmingController extends BaseController {
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
       });
 
       const history = await farmingService.getFarmingHistory(
-        telegram.user.id.toString()
+        user.id.toString()  // Используем database ID из найденного пользователя
       );
 
       logger.info('[Farming] История фарминга для пользователя', {
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,  // Логируем правильный telegram_id
+        database_user_id: telegram.user.id,  // И database ID для отладки
         history_count: history.length
       });
 

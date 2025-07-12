@@ -203,7 +203,7 @@ export class UserController extends BaseController {
       // Убрано: принудительное получение user_id=48
       // Теперь используем только правильную Telegram авторизацию
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegramUser.user.id,
+        telegram_id: telegramUser.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegramUser.user.username,
         first_name: telegramUser.user.first_name,
         ref_by: req.query.start_param as string
@@ -254,7 +254,7 @@ export class UserController extends BaseController {
 
       // Используем getOrCreateUserFromTelegram для гарантированной регистрации
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegramUser.user.id,
+        telegram_id: telegramUser.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegramUser.user.username,
         first_name: telegramUser.user.first_name,
         ref_by: req.query.start_param as string
