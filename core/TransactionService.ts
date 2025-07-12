@@ -10,6 +10,7 @@ import type { TransactionsTransactionType, TransactionsTransactionStatus, Extend
 // Маппинг расширенных типов на поддерживаемые базой данных
 const TRANSACTION_TYPE_MAPPING: Record<ExtendedTransactionType, TransactionsTransactionType> = {
   'FARMING_REWARD': 'FARMING_REWARD',
+  'FARMING_DEPOSIT': 'FARMING_DEPOSIT',   // Добавлен прямой маппинг для депозитов
   'REFERRAL_REWARD': 'REFERRAL_REWARD', 
   'MISSION_REWARD': 'MISSION_REWARD',
   'DAILY_BONUS': 'DAILY_BONUS',

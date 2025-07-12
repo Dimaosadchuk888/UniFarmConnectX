@@ -2,12 +2,13 @@
 // Унифицированные типы транзакций для всех модулей системы
 // Поддерживаются в текущей схеме базы данных
 export type TransactionsTransactionType = 
-  | 'FARMING_REWARD'     // UNI фарминг доходы + TON Boost доходы + депозиты
+  | 'FARMING_REWARD'     // UNI фарминг доходы + TON Boost доходы
+  | 'FARMING_DEPOSIT'    // UNI фарминг депозиты
   | 'REFERRAL_REWARD'    // Реферальные бонусы
   | 'MISSION_REWARD'     // Награды за миссии
   | 'DAILY_BONUS';       // Ежедневные бонусы + airdrop награды
 
-// Расширенные типы транзакций (будут добавлены при обновлении схемы БД)
+// Расширенные типы транзакций
 export type ExtendedTransactionType = TransactionsTransactionType
   | 'TON_BOOST_INCOME'   // Доходы от TON Boost
   | 'UNI_DEPOSIT'        // Пополнение UNI
