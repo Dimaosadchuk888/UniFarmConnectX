@@ -780,16 +780,12 @@ export type DailyBonusLog = typeof dailyBonusLogs.$inferSelect;
 export const withdrawRequests = pgTable("withdraw_requests", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   user_id: integer("user_id").references(() => users.id).notNull(),
-  amount_uni: numeric("amount_uni", { precision: 18, scale: 6 }).default("0"),
-  amount_ton: numeric("amount_ton", { precision: 18, scale: 6 }).default("0"),
-  wallet_address: text("wallet_address").notNull(),
-  status: text("status").default("pending"), // pending, approved, rejected, completed, cancelled
-  admin_id: integer("admin_id").references(() => users.id), // Админ, обработавший заявку
-  admin_comment: text("admin_comment"),
-  tx_hash: text("tx_hash"), // Хеш транзакции для completed
+  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(), // Сумма TON к выводу
+  wallet_address: text("wallet_address").notNull(), // TON-адрес пользователя
+  status: text("status").default("pending"), // pending, completed, rejected
+  admin_tx_hash: text("admin_tx_hash"), // Хэш фактической выплаты (TON)
   created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
-  processed_at: timestamp("processed_at")
+  completed_at: timestamp("completed_at") // Дата подтверждения
 });
 
 // Схемы для таблицы withdraw_requests
