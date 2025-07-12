@@ -270,6 +270,88 @@ export class WalletController extends BaseController {
     }
   }
 
+  async tonDeposit(req: Request, res: Response, next: NextFunction) {
+    try {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return; // 401 уже отправлен
+      
+      const { ton_tx_hash, amount, wallet_address } = req.body;
+      const userId = (req as any).user?.id;
+      
+      // Валидация
+      if (!ton_tx_hash || !amount || !wallet_address) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required fields: ton_tx_hash, amount, wallet_address' 
+        });
+      }
+      
+      if (typeof amount !== 'number' || amount <= 0) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Amount must be a positive number' 
+        });
+      }
+      
+      // Проверка на дубликаты транзакций
+      const { supabase } = await import('../../core/supabase');
+      const { data: existingTx } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('tx_hash', ton_tx_hash)
+        .single();
+        
+      if (existingTx) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Transaction already processed' 
+        });
+      }
+      
+      // Импортируем необходимые модули
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const { UnifiedTransactionService } = await import('../transactions/UnifiedTransactionService');
+      
+      // Начисляем TON на баланс
+      await balanceManager.addBalance(userId, 0, amount, 'TON deposit');
+      
+      // Создаем запись транзакции
+      await UnifiedTransactionService.createTransaction({
+        user_id: userId,
+        type: 'DEPOSIT',
+        amount_ton: amount,
+        amount_uni: 0,
+        status: 'COMPLETED',
+        description: `TON deposit from ${wallet_address}`,
+        tx_hash: ton_tx_hash,
+        metadata: {
+          wallet_address,
+          source: 'ton_connect',
+          deposit_type: 'ton'
+        }
+      });
+      
+      logger.info('[Wallet] TON deposit successful', { userId, amount, ton_tx_hash });
+      
+      return res.status(200).json({ 
+        success: true, 
+        message: 'TON deposit successful',
+        data: {
+          amount,
+          tx_hash: ton_tx_hash
+        }
+      });
+      
+    } catch (error) {
+      logger.error('[Wallet] TON deposit error', { error });
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
   async getTransactionsList(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {

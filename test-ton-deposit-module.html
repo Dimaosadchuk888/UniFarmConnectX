@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест TON Deposit (Module)</title>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            background-color: #0a0a0a;
+        }
+        .log {
+            padding: 5px;
+            margin: 5px 0;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff0000; }
+        .info { color: #00aaff; }
+        button {
+            background-color: #333;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #444;
+        }
+        input {
+            background-color: #222;
+            color: #00ff00;
+            border: 1px solid #333;
+            padding: 8px;
+            margin: 5px;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тест TON Deposit через модуль</h1>
+        
+        <div class="section">
+            <h2>Конфигурация</h2>
+            <p>JWT токен для user ID 74 (автоматически)</p>
+        </div>
+
+        <div class="section">
+            <h2>Тест нового endpoint</h2>
+            <input type="text" id="tx_hash" placeholder="Transaction hash" value="test_tx_${Date.now()}">
+            <input type="number" id="amount" placeholder="Amount TON" value="10">
+            <input type="text" id="wallet" placeholder="Wallet address" value="EQBvI0aFLnw2QbZgjMPCLRdtRHxhUyinQudg6sdiohIwg5jL">
+            <br>
+            <button onclick="testModuleEndpoint()">Тест через модуль</button>
+            <button onclick="testDirectEndpoint()">Тест через server/index.ts</button>
+        </div>
+
+        <div class="section">
+            <h2>Результаты</h2>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const jwtToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwiZmlyc3RfbmFtZSI6IlRlc3QiLCJyZWZfY29kZSI6IlRFU1RfMTc1MjEyOTg0MDkwNV9kb2t4djAiLCJpYXQiOjE3NTIxMjk4NjcsImV4cCI6MTc1MjczNDY2N30.LSsVJLvLhXy6IABO1rKKZL6G5gtD9lP59HsZNWve8L8';
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function testModuleEndpoint() {
+            log('=== ТЕСТ ЧЕРЕЗ МОДУЛЬ ===', 'info');
+            
+            const data = {
+                ton_tx_hash: document.getElementById('tx_hash').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                wallet_address: document.getElementById('wallet').value
+            };
+            
+            log(`Отправка запроса на /api/v2/wallet/ton-deposit`, 'info');
+            log(`Данные: ${JSON.stringify(data)}`, 'info');
+            
+            try {
+                const response = await fetch('/api/v2/wallet/ton-deposit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwtToken}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('✅ УСПЕХ: Депозит обработан через модуль!', 'success');
+                    log(`Ответ: ${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    log(`❌ ОШИБКА: ${result.error}`, 'error');
+                    if (result.details) log(`Детали: ${result.details}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Критическая ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDirectEndpoint() {
+            log('=== ТЕСТ ЧЕРЕЗ SERVER/INDEX.TS ===', 'info');
+            
+            // Изменяем tx_hash чтобы избежать дубликата
+            const data = {
+                ton_tx_hash: document.getElementById('tx_hash').value + '_direct',
+                amount: parseFloat(document.getElementById('amount').value),
+                wallet_address: document.getElementById('wallet').value
+            };
+            
+            log(`Отправка запроса на /api/v2/wallet/ton-deposit (direct)`, 'info');
+            log(`Данные: ${JSON.stringify(data)}`, 'info');
+            
+            try {
+                const response = await fetch('/api/v2/wallet/ton-deposit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwtToken}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('✅ УСПЕХ: Депозит обработан через direct endpoint!', 'success');
+                    log(`Ответ: ${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    log(`❌ ОШИБКА: ${result.error}`, 'error');
+                    if (result.details) log(`Детали: ${result.details}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Критическая ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // Автогенерация уникального hash при загрузке
+        window.onload = () => {
+            document.getElementById('tx_hash').value = `test_tx_${Date.now()}`;
+            log('Тест готов к запуску', 'info');
+        };
+    </script>
+</body>
+</html>

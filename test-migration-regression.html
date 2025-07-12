@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регрессионное тестирование миграции</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a0a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #0d2818;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+        .error {
+            background-color: #2d0d0d;
+            border: 1px solid #ff0000;
+            color: #ff0000;
+        }
+        .warning {
+            background-color: #2d2d0d;
+            border: 1px solid #ffff00;
+            color: #ffff00;
+        }
+        .info {
+            background-color: #0d1d2d;
+            border: 1px solid #00aaff;
+            color: #00aaff;
+        }
+        button {
+            background-color: #1a1a1a;
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 16px;
+            margin: 5px;
+            border-radius: 3px;
+        }
+        button:hover {
+            background-color: #2a2a2a;
+        }
+        .code {
+            background-color: #000;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        h1, h2 {
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .stat-box {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            text-align: center;
+            min-width: 150px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Регрессионное тестирование миграции API</h1>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div>Всего тестов</div>
+                <div class="stat-value" id="total-tests">0</div>
+            </div>
+            <div class="stat-box">
+                <div>Успешно</div>
+                <div class="stat-value" id="success-tests" style="color: #00ff00;">0</div>
+            </div>
+            <div class="stat-box">
+                <div>Ошибок</div>
+                <div class="stat-value" id="error-tests" style="color: #ff0000;">0</div>
+            </div>
+            <div class="stat-box">
+                <div>Предупреждений</div>
+                <div class="stat-value" id="warning-tests" style="color: #ffff00;">0</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 Тестирование мигрированных маршрутов</h2>
+            <button onclick="runAllTests()">Запустить все тесты</button>
+            <button onclick="clearResults()">Очистить результаты</button>
+            <div id="test-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Итоговый отчет</h2>
+            <div id="final-report"></div>
+        </div>
+    </div>
+
+    <script>
+        const jwtToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjc0LCJ0ZWxlZ3JhbV9pZCI6OTk5NDg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl8xNzUyMTI5ODQwOTA1IiwiZmlyc3RfbmFtZSI6IlRlc3QiLCJyZWZfY29kZSI6IlRFU1RfMTc1MjEyOTg0MDkwNV9kb2t4djAiLCJpYXQiOjE3NTIxMjk4NjcsImV4cCI6MTc1MjczNDY2N30.LSsVJLvLhXy6IABO1rKKZL6G5gtD9lP59HsZNWve8L8';
+        
+        let stats = {
+            total: 0,
+            success: 0,
+            error: 0,
+            warning: 0
+        };
+
+        let testResults = [];
+
+        function updateStats() {
+            document.getElementById('total-tests').textContent = stats.total;
+            document.getElementById('success-tests').textContent = stats.success;
+            document.getElementById('error-tests').textContent = stats.error;
+            document.getElementById('warning-tests').textContent = stats.warning;
+        }
+
+        function log(message, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultsDiv.appendChild(div);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('final-report').innerHTML = '';
+            stats = { total: 0, success: 0, error: 0, warning: 0 };
+            testResults = [];
+            updateStats();
+        }
+
+        async function testEndpoint(name, method, url, options = {}) {
+            stats.total++;
+            updateStats();
+            
+            const startTime = Date.now();
+            const testResult = {
+                name,
+                method,
+                url,
+                status: 'pending',
+                responseTime: 0,
+                details: {}
+            };
+            
+            log(`🔄 Тестирование <span class="code">${method} ${url}</span>...`, 'info');
+            
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwtToken}`,
+                        ...(options.headers || {})
+                    },
+                    body: options.body ? JSON.stringify(options.body) : undefined
+                });
+                
+                const responseTime = Date.now() - startTime;
+                testResult.responseTime = responseTime;
+                
+                const data = await response.json();
+                testResult.httpStatus = response.status;
+                testResult.response = data;
+                
+                // Анализ результата
+                if (response.ok && data.success) {
+                    stats.success++;
+                    testResult.status = 'success';
+                    log(`✅ <strong>${name}</strong> - Успешно (${responseTime}ms)`, 'success');
+                    
+                    // Специфические проверки для разных endpoints
+                    if (url.includes('uni-farming/status') && data.data) {
+                        log(`   → user_id: ${data.data.user_id}, активен: ${data.data.uni_farming_active}`, 'info');
+                    }
+                } else if (response.status === 401) {
+                    stats.error++;
+                    testResult.status = 'error';
+                    log(`❌ <strong>${name}</strong> - Ошибка авторизации (401)`, 'error');
+                } else {
+                    stats.warning++;
+                    testResult.status = 'warning';
+                    log(`⚠️ <strong>${name}</strong> - HTTP ${response.status}: ${data.error || 'Unknown error'}`, 'warning');
+                }
+                
+            } catch (error) {
+                stats.error++;
+                testResult.status = 'error';
+                testResult.error = error.message;
+                log(`❌ <strong>${name}</strong> - Критическая ошибка: ${error.message}`, 'error');
+            }
+            
+            testResults.push(testResult);
+            updateStats();
+            return testResult;
+        }
+
+        async function runAllTests() {
+            clearResults();
+            log('🚀 Начинаем регрессионное тестирование...', 'info');
+            
+            // Тест 1: uni-farming/status (мигрированный)
+            await testEndpoint(
+                'UNI Farming Status (через модуль)',
+                'GET',
+                '/api/v2/uni-farming/status?user_id=74'
+            );
+            
+            // Тест 2: wallet/balance (еще не мигрирован)
+            await testEndpoint(
+                'Wallet Balance',
+                'GET',
+                '/api/v2/wallet/balance'
+            );
+            
+            // Тест 3: wallet/transactions (еще не мигрирован)
+            await testEndpoint(
+                'Wallet Transactions',
+                'GET',
+                '/api/v2/wallet/transactions?page=1&limit=10'
+            );
+            
+            // Тест 4: wallet/ton-deposit (проверка нового метода)
+            await testEndpoint(
+                'TON Deposit (новый метод в модуле)',
+                'POST',
+                '/api/v2/wallet/ton-deposit',
+                {
+                    body: {
+                        ton_tx_hash: `test_regression_${Date.now()}`,
+                        amount: 5,
+                        wallet_address: 'EQBvI0aFLnw2QbZgjMPCLRdtRHxhUyinQudg6sdiohIwg5jL'
+                    }
+                }
+            );
+            
+            // Тест 5: проверка авторизации
+            await testEndpoint(
+                'Проверка авторизации (без токена)',
+                'GET',
+                '/api/v2/uni-farming/status',
+                {
+                    headers: {
+                        'Authorization': '' // Пустой токен
+                    }
+                }
+            );
+            
+            generateFinalReport();
+        }
+
+        function generateFinalReport() {
+            const report = document.getElementById('final-report');
+            const successRate = stats.total > 0 ? ((stats.success / stats.total) * 100).toFixed(1) : 0;
+            
+            let html = `
+                <h3>📈 Результаты тестирования</h3>
+                <div class="test-result info">
+                    <strong>Общая статистика:</strong><br>
+                    • Всего тестов: ${stats.total}<br>
+                    • Успешно: ${stats.success} (${successRate}%)<br>
+                    • Ошибок: ${stats.error}<br>
+                    • Предупреждений: ${stats.warning}<br>
+                    • Время выполнения: ${testResults.reduce((sum, t) => sum + (t.responseTime || 0), 0)}ms
+                </div>
+            `;
+            
+            if (stats.error > 0 || stats.warning > 0) {
+                html += `
+                    <h4>⚠️ Требуют внимания:</h4>
+                `;
+                testResults.filter(t => t.status !== 'success').forEach(test => {
+                    html += `
+                        <div class="test-result ${test.status}">
+                            <strong>${test.name}</strong><br>
+                            ${test.method} ${test.url}<br>
+                            ${test.error || test.response?.error || 'Unknown issue'}
+                        </div>
+                    `;
+                });
+            }
+            
+            if (stats.success === stats.total) {
+                html += `
+                    <div class="test-result success">
+                        <strong>✅ Все тесты пройдены успешно!</strong><br>
+                        Миграция прошла без проблем.
+                    </div>
+                `;
+            }
+            
+            report.innerHTML = html;
+        }
+
+        // Автозапуск при загрузке
+        window.onload = () => {
+            log('Регрессионное тестирование готово к запуску', 'info');
+        };
+    </script>
+</body>
+</html>
