@@ -145,21 +145,8 @@ export class TONBoostIncomeScheduler {
 
           logger.info(`[TON_BOOST_SCHEDULER] User ${user.user_id} (${user.boost_package_id}): +${fiveMinuteIncome.toFixed(6)} TON`);
 
-          // Обновляем баланс пользователя
+          // Получаем текущий баланс для WebSocket уведомления
           const userCurrentBalance = parseFloat(userBalance.balance_ton || '0');
-          // Обновляем баланс через BalanceManager
-          const addBalanceResult = await BalanceManager.addBalance(
-            userId,  // Используем числовой ID
-            0,
-            fiveMinuteIncome,
-            'TON Boost income'
-          );
-
-          if (!addBalanceResult.success) {
-            logger.error(`[TON_BOOST_SCHEDULER] Ошибка обновления баланса User ${user.user_id}:`, addBalanceResult.error);
-            continue;
-          }
-
           const userNewBalance = userCurrentBalance + fiveMinuteIncome;
 
           // Создаем транзакцию через UnifiedTransactionService
