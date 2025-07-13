@@ -105,7 +105,7 @@ export class UnifiedTransactionService {
           currency: currency || transactionCurrency,  // Используем переданную валюту или определяем автоматически
           status,
           description: enhancedDescription,
-          metadata: { ...metadata, original_type: type },  // Сохраняем оригинальный тип в metadata
+          metadata: { original_type: type, ...metadata },  // Сохраняем оригинальный тип в metadata, но позволяем его перезаписать
           source_user_id: source_user_id || user_id,
           created_at: new Date().toISOString()
         })
