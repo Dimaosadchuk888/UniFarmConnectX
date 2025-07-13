@@ -7,6 +7,7 @@ import { logger } from '../../core/logger';
 import { ReferralService } from '../referral/service';
 import { BalanceNotificationService } from '../../core/balanceNotificationService';
 import { BalanceManager } from '../../core/BalanceManager';
+import { supabase } from '../../core/supabase';
 
 export class TONBoostIncomeScheduler {
   private intervalId: NodeJS.Timeout | null = null;
@@ -65,19 +66,58 @@ export class TONBoostIncomeScheduler {
 
       logger.info(`[TON_BOOST_SCHEDULER] Найдено ${activeBoostUsers.length} активных TON Boost пользователей`);
 
+      // Получаем балансы пользователей из таблицы users
+      // Важно: user_id в ton_farming_data хранится как строка, а id в users как число
+      const userIds = activeBoostUsers.map(u => parseInt(u.user_id.toString()));
+      const { data: userBalances, error: balanceError } = await supabase
+        .from('users')
+        .select('id, balance_ton, balance_uni')
+        .in('id', userIds);
+      
+      if (balanceError) {
+        logger.error('[TON_BOOST_SCHEDULER] Ошибка получения балансов пользователей:', balanceError);
+        return;
+      }
+      
+      // Создаем мапу для быстрого доступа к балансам
+      const balanceMap = new Map(userBalances?.map(u => [u.id, u]) || []);
+
       let totalProcessed = 0;
       let totalEarned = 0;
 
       // Обрабатываем каждого пользователя с активным TON Boost
       for (const user of activeBoostUsers) {
         try {
+          // Получаем актуальные балансы пользователя
+          // Конвертируем user_id в число для поиска в мапе
+          const userId = parseInt(user.user_id.toString());
+          const userBalance = balanceMap.get(userId);
+          if (!userBalance) {
+            logger.warn(`[TON_BOOST_SCHEDULER] Баланс не найден для пользователя ${user.user_id}`);
+            continue;
+          }
+          
+          // Логируем данные для диагностики
+          logger.info(`[TON_BOOST_SCHEDULER] Обработка пользователя ${user.user_id}:`, {
+            boost_data: {
+              farming_balance: user.farming_balance,
+              farming_rate: user.farming_rate,
+              boost_package_id: user.boost_package_id,
+              ton_boost_rate: user.ton_boost_rate
+            },
+            user_balances: {
+              balance_ton: userBalance.balance_ton,
+              balance_uni: userBalance.balance_uni
+            }
+          });
+          
           // Определяем параметры boost пакета пользователя
           let dailyRate = user.ton_boost_rate || 0.01; // Используем ton_boost_rate из базы данных
           // Используем баланс TON как депозит (минус 10 TON базовый баланс)
-          const userDeposit = Math.max(0, parseFloat(user.balance_ton || '0') - 10);
+          const userDeposit = Math.max(0, parseFloat(userBalance.balance_ton || '0') - 10);
           
           // Дополнительная проверка по ID пакета (для совместимости)
-          switch (parseInt(user.ton_boost_package)) {
+          switch (parseInt(user.boost_package_id)) {
             case 1: // Starter Boost
               dailyRate = user.ton_boost_rate || 0.01;
               break;
@@ -103,20 +143,20 @@ export class TONBoostIncomeScheduler {
             continue;
           }
 
-          logger.info(`[TON_BOOST_SCHEDULER] User ${user.id} (${user.ton_boost_package}): +${fiveMinuteIncome.toFixed(6)} TON`);
+          logger.info(`[TON_BOOST_SCHEDULER] User ${user.user_id} (${user.boost_package_id}): +${fiveMinuteIncome.toFixed(6)} TON`);
 
           // Обновляем баланс пользователя
-          const userCurrentBalance = parseFloat(user.balance_ton || '0');
+          const userCurrentBalance = parseFloat(userBalance.balance_ton || '0');
           // Обновляем баланс через BalanceManager
           const addBalanceResult = await BalanceManager.addBalance(
-            user.id,
+            userId,  // Используем числовой ID
             0,
             fiveMinuteIncome,
             'TON Boost income'
           );
 
           if (!addBalanceResult.success) {
-            logger.error(`[TON_BOOST_SCHEDULER] Ошибка обновления баланса User ${user.id}:`, addBalanceResult.error);
+            logger.error(`[TON_BOOST_SCHEDULER] Ошибка обновления баланса User ${user.user_id}:`, addBalanceResult.error);
             continue;
           }
 
@@ -127,30 +167,30 @@ export class TONBoostIncomeScheduler {
           const transactionService = UnifiedTransactionService.getInstance();
           
           const transactionResult = await transactionService.createTransaction({
-            user_id: user.id,
+            user_id: userId,  // Используем числовой ID
             type: 'TON_BOOST_INCOME',  // Используем специфичный тип (будет преобразован в FARMING_REWARD)
             amount_uni: 0,
             amount_ton: fiveMinuteIncome,
             currency: 'TON',
             status: 'completed',
-            description: `TON Boost доход (${user.ton_boost_package}): ${fiveMinuteIncome.toFixed(6)} TON`,
+            description: `TON Boost доход (пакет ${user.boost_package_id}): ${fiveMinuteIncome.toFixed(6)} TON`,
             metadata: {
-              boost_package_id: user.ton_boost_package,
+              boost_package_id: user.boost_package_id,
               daily_rate: dailyRate,
               user_deposit: userDeposit
             }
           });
 
           if (!transactionResult.success) {
-            logger.error(`[TON_BOOST_SCHEDULER] Ошибка создания транзакции User ${user.id}:`, transactionResult.error);
+            logger.error(`[TON_BOOST_SCHEDULER] Ошибка создания транзакции User ${user.user_id}:`, transactionResult.error);
             continue;
           }
 
           // Отправляем WebSocket уведомление об обновлении баланса
           const balanceService = BalanceNotificationService.getInstance();
           balanceService.notifyBalanceUpdate({
-            userId: user.id,
-            balanceUni: parseFloat(user.balance_uni || '0'),
+            userId: userId,  // Используем числовой ID
+            balanceUni: parseFloat(userBalance.balance_uni || '0'),
             balanceTon: userNewBalance,
             changeAmount: fiveMinuteIncome,
             currency: 'TON',
@@ -161,24 +201,24 @@ export class TONBoostIncomeScheduler {
           // Распределяем реферальные награды
           try {
             await this.referralService.distributeReferralRewards(
-              user.id,
+              userId,  // Используем числовой ID
               fiveMinuteIncome.toFixed(8),
               'TON',
               'boost'
             );
           } catch (referralError) {
-            logger.error(`[TON_BOOST_SCHEDULER] Ошибка реферальных наград User ${user.id}:`, referralError);
+            logger.error(`[TON_BOOST_SCHEDULER] Ошибка реферальных наград User ${user.user_id}:`, referralError);
           }
 
           totalProcessed++;
           totalEarned += fiveMinuteIncome;
 
         } catch (boostError) {
-          logger.error(`[TON_BOOST_SCHEDULER] Ошибка обработки TON Boost пользователя ${user.id}:`, {
+          logger.error(`[TON_BOOST_SCHEDULER] Ошибка обработки TON Boost пользователя ${user.user_id}:`, {
             error: boostError instanceof Error ? boostError.message : String(boostError),
             stack: boostError instanceof Error ? boostError.stack : undefined,
-            userId: user.id,
-            packageId: user.ton_boost_package,
+            userId: user.user_id,
+            packageId: user.boost_package_id,
             deposit: userDeposit
           });
         }
