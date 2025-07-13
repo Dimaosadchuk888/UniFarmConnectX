@@ -5,7 +5,7 @@
 
 import { logger } from '../../core/logger';
 import { ReferralService } from '../referral/service';
-import { BalanceNotificationService } from '../../core/BalanceNotificationService';
+import { BalanceNotificationService } from '../../core/balanceNotificationService';
 import { BalanceManager } from '../../core/BalanceManager';
 
 export class TONBoostIncomeScheduler {
