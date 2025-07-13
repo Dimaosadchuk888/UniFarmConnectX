@@ -1,0 +1,431 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.airdrop_claims (
+  id integer NOT NULL DEFAULT nextval('airdrop_claims_id_seq'::regclass),
+  telegram_id bigint NOT NULL,
+  user_id integer NOT NULL,
+  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'inactive'::text, 'completed'::text])),
+  reward_amount text DEFAULT '0'::text,
+  reward_currency text DEFAULT 'UNI'::text CHECK (reward_currency = ANY (ARRAY['UNI'::text, 'TON'::text])),
+  distribution_date timestamp with time zone,
+  claimed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT airdrop_claims_pkey PRIMARY KEY (id),
+  CONSTRAINT airdrop_claims_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.airdrop_missions (
+  id integer NOT NULL DEFAULT nextval('airdrop_missions_id_seq'::regclass),
+  type text NOT NULL,
+  title text NOT NULL,
+  description text,
+  reward_uni numeric DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT now(),
+  requirements jsonb,
+  completion_count integer DEFAULT 0,
+  CONSTRAINT airdrop_missions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.airdrops (
+  id integer NOT NULL DEFAULT nextval('airdrops_id_seq'::regclass),
+  title character varying NOT NULL,
+  description text,
+  total_amount numeric NOT NULL,
+  participants_count integer DEFAULT 0,
+  start_date timestamp without time zone NOT NULL,
+  end_date timestamp without time zone NOT NULL,
+  status character varying DEFAULT 'pending'::character varying,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT airdrops_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.auth_logs (
+  id integer NOT NULL DEFAULT nextval('auth_logs_id_seq'::regclass),
+  user_id integer,
+  telegram_id bigint,
+  event_type text NOT NULL,
+  ip_address inet,
+  user_agent text,
+  metadata jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT auth_logs_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.boost_purchases (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id integer NOT NULL,
+  boost_id text NOT NULL,
+  amount text NOT NULL,
+  daily_rate text,
+  source text NOT NULL CHECK (source = ANY (ARRAY['wallet'::text, 'ton'::text])),
+  tx_hash text,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'failed'::text])),
+  start_date timestamp with time zone DEFAULT now(),
+  end_date timestamp with time zone,
+  last_claim timestamp with time zone,
+  total_earned text DEFAULT '0'::text,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  type character varying DEFAULT 'ton_boost'::character varying,
+  currency character varying DEFAULT 'TON'::character varying,
+  CONSTRAINT boost_purchases_pkey PRIMARY KEY (id),
+  CONSTRAINT boost_purchases_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.boosts (
+  id integer NOT NULL DEFAULT nextval('boosts_id_seq'::regclass),
+  user_id integer,
+  type text NOT NULL,
+  value numeric NOT NULL,
+  expires_at timestamp without time zone,
+  created_at timestamp without time zone DEFAULT now(),
+  is_active boolean DEFAULT true,
+  description text,
+  CONSTRAINT boosts_pkey PRIMARY KEY (id),
+  CONSTRAINT boosts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.daily_bonus_history (
+  id integer NOT NULL DEFAULT nextval('daily_bonus_history_id_seq'::regclass),
+  user_id integer NOT NULL,
+  day_number integer NOT NULL,
+  claimed_amount text NOT NULL,
+  bonus_type text NOT NULL CHECK (bonus_type = ANY (ARRAY['UNI'::text, 'TON'::text, 'MULTIPLIER'::text])),
+  streak_count integer NOT NULL,
+  claimed_date date NOT NULL,
+  claimed_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT daily_bonus_history_pkey PRIMARY KEY (id),
+  CONSTRAINT daily_bonus_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.daily_bonus_logs (
+  id integer NOT NULL DEFAULT nextval('daily_bonus_logs_id_seq'::regclass),
+  user_id integer NOT NULL,
+  bonus_amount numeric NOT NULL,
+  day_number integer NOT NULL,
+  streak_bonus numeric DEFAULT 0,
+  claimed_at timestamp without time zone DEFAULT now(),
+  bonus_type character varying DEFAULT 'daily_checkin'::character varying,
+  previous_balance numeric DEFAULT 0,
+  new_balance numeric DEFAULT 0,
+  CONSTRAINT daily_bonus_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT daily_bonus_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.farming_deposits (
+  id bigint NOT NULL DEFAULT nextval('farming_deposits_id_seq'::regclass),
+  user_id bigint NOT NULL,
+  amount numeric NOT NULL DEFAULT 0,
+  deposit_date timestamp without time zone DEFAULT now(),
+  last_claim timestamp without time zone,
+  total_earned numeric DEFAULT 0,
+  daily_rate numeric DEFAULT 0.001,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT farming_deposits_pkey PRIMARY KEY (id),
+  CONSTRAINT farming_deposits_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.farming_sessions (
+  id integer NOT NULL DEFAULT nextval('farming_sessions_id_seq'::regclass),
+  user_id integer NOT NULL,
+  deposit_amount numeric NOT NULL,
+  start_time timestamp with time zone NOT NULL,
+  end_time timestamp with time zone,
+  earned_uni numeric DEFAULT 0,
+  earned_ton numeric DEFAULT 0,
+  session_type text DEFAULT 'uni_farming'::text,
+  status text DEFAULT 'active'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT farming_sessions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.mission_progress (
+  id integer NOT NULL DEFAULT nextval('mission_progress_id_seq'::regclass),
+  user_id integer NOT NULL,
+  mission_id integer NOT NULL,
+  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'completed'::text, 'claimed'::text])),
+  progress integer DEFAULT 0,
+  target_value integer,
+  progress_percentage integer DEFAULT 0,
+  completed_at timestamp with time zone,
+  claimed_at timestamp with time zone,
+  reward_claimed text DEFAULT '0'::text,
+  can_claim boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT mission_progress_pkey PRIMARY KEY (id),
+  CONSTRAINT mission_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT mission_progress_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.missions(id)
+);
+CREATE TABLE public.mission_templates (
+  id integer NOT NULL DEFAULT nextval('mission_templates_id_seq'::regclass),
+  title text NOT NULL,
+  description text,
+  mission_type text NOT NULL,
+  reward_uni numeric DEFAULT 0,
+  reward_ton numeric DEFAULT 0,
+  requirements jsonb,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT mission_templates_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.missions (
+  id integer NOT NULL DEFAULT nextval('missions_id_seq'::regclass),
+  title text NOT NULL,
+  description text,
+  mission_type text NOT NULL CHECK (mission_type = ANY (ARRAY['daily'::text, 'weekly'::text, 'one_time'::text, 'referral'::text])),
+  target_value integer,
+  reward_amount text NOT NULL,
+  reward_type text NOT NULL CHECK (reward_type = ANY (ARRAY['UNI'::text, 'TON'::text, 'BOOST'::text])),
+  requirements text,
+  start_date timestamp with time zone,
+  end_date timestamp with time zone,
+  is_active boolean DEFAULT true,
+  is_repeatable boolean DEFAULT false,
+  sort_order integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  reward_uni numeric DEFAULT 0,
+  reward_ton numeric DEFAULT 0,
+  status character varying DEFAULT 'active'::character varying,
+  CONSTRAINT missions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.referral_analytics (
+  id integer NOT NULL DEFAULT nextval('referral_analytics_id_seq'::regclass),
+  user_id integer NOT NULL,
+  referral_code text NOT NULL UNIQUE,
+  clicks_count integer DEFAULT 0,
+  successful_registrations integer DEFAULT 0,
+  total_earnings_uni numeric DEFAULT 0,
+  total_earnings_ton numeric DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT referral_analytics_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.referral_earnings (
+  id bigint NOT NULL DEFAULT nextval('referral_earnings_id_seq'::regclass),
+  user_id bigint NOT NULL,
+  referrer_id bigint NOT NULL,
+  amount numeric NOT NULL,
+  currency character varying NOT NULL DEFAULT 'UNI'::character varying,
+  source_action character varying,
+  level integer DEFAULT 1,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT referral_earnings_pkey PRIMARY KEY (id),
+  CONSTRAINT referral_earnings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT referral_earnings_referrer_id_fkey FOREIGN KEY (referrer_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.referrals (
+  id integer NOT NULL DEFAULT nextval('referrals_id_seq'::regclass),
+  user_id integer NOT NULL,
+  referred_user_id integer NOT NULL,
+  level integer DEFAULT 1,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT referrals_pkey PRIMARY KEY (id),
+  CONSTRAINT referrals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT referrals_referred_user_id_fkey FOREIGN KEY (referred_user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.system_metrics (
+  id integer NOT NULL DEFAULT nextval('system_metrics_id_seq'::regclass),
+  metric_name text NOT NULL,
+  metric_value numeric NOT NULL,
+  metric_type text DEFAULT 'counter'::text,
+  tags jsonb,
+  recorded_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT system_metrics_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.ton_boost_schedules (
+  id integer NOT NULL DEFAULT nextval('ton_boost_schedules_id_seq'::regclass),
+  user_id integer NOT NULL,
+  boost_package_id integer NOT NULL,
+  total_amount numeric NOT NULL,
+  amount_per_payout numeric NOT NULL,
+  next_payout timestamp with time zone NOT NULL,
+  payouts_remaining integer NOT NULL,
+  frequency_hours integer DEFAULT 24,
+  status text DEFAULT 'active'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT ton_boost_schedules_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.ton_farming_data (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id text NOT NULL UNIQUE,
+  boost_active boolean DEFAULT false,
+  boost_package_id integer,
+  boost_expires_at timestamp with time zone,
+  farming_balance numeric DEFAULT 0,
+  total_earned numeric DEFAULT 0,
+  last_claim_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  farming_rate numeric DEFAULT 0.01,
+  farming_start_timestamp timestamp with time zone,
+  farming_last_update timestamp with time zone DEFAULT now(),
+  CONSTRAINT ton_farming_data_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.transactions (
+  id integer NOT NULL DEFAULT nextval('transactions_id_seq'::regclass),
+  user_id integer,
+  type USER-DEFINED NOT NULL,
+  amount_uni numeric DEFAULT 0,
+  amount_ton numeric DEFAULT 0,
+  description text,
+  created_at timestamp without time zone DEFAULT now(),
+  metadata jsonb,
+  status text DEFAULT 'confirmed'::text,
+  source text,
+  tx_hash text,
+  source_user_id integer,
+  action character varying,
+  currency character varying,
+  amount numeric NOT NULL DEFAULT 0,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.uni_farming_data (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id integer NOT NULL UNIQUE,
+  deposit_amount numeric DEFAULT 0,
+  farming_balance numeric DEFAULT 0,
+  total_earned numeric DEFAULT 0,
+  last_claim_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  is_active boolean DEFAULT false,
+  farming_start timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  farming_rate numeric DEFAULT 0.01,
+  farming_start_timestamp timestamp with time zone,
+  farming_last_update timestamp with time zone DEFAULT now(),
+  farming_deposit numeric DEFAULT 0,
+  CONSTRAINT uni_farming_data_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.user_mission_claims (
+  id integer NOT NULL DEFAULT nextval('user_mission_claims_id_seq'::regclass),
+  user_id integer NOT NULL,
+  mission_template_id integer NOT NULL,
+  claimed_at timestamp with time zone DEFAULT now(),
+  reward_uni numeric DEFAULT 0,
+  reward_ton numeric DEFAULT 0,
+  metadata jsonb,
+  CONSTRAINT user_mission_claims_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.user_mission_completions (
+  id integer NOT NULL DEFAULT nextval('user_mission_completions_id_seq'::regclass),
+  user_id integer,
+  mission_id integer,
+  completed_at timestamp without time zone DEFAULT now(),
+  reward_claimed boolean DEFAULT false,
+  CONSTRAINT user_mission_completions_pkey PRIMARY KEY (id),
+  CONSTRAINT user_mission_completions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_mission_completions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.airdrop_missions(id)
+);
+CREATE TABLE public.user_missions (
+  id integer NOT NULL DEFAULT nextval('user_missions_id_seq'::regclass),
+  user_id integer NOT NULL,
+  mission_id integer NOT NULL,
+  completed boolean DEFAULT false,
+  progress integer DEFAULT 0,
+  completed_at timestamp without time zone,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT user_missions_pkey PRIMARY KEY (id),
+  CONSTRAINT user_missions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_sessions (
+  id integer NOT NULL DEFAULT nextval('user_sessions_id_seq'::regclass),
+  user_id integer NOT NULL,
+  session_token text NOT NULL UNIQUE,
+  expires_at timestamp without time zone NOT NULL,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT user_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT user_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.users (
+  id integer NOT NULL DEFAULT nextval('users_id_seq'::regclass),
+  telegram_id bigint UNIQUE,
+  username text,
+  first_name text,
+  wallet text,
+  ref_code text UNIQUE,
+  referred_by integer,
+  balance_uni numeric DEFAULT 0,
+  balance_ton numeric DEFAULT 0,
+  uni_deposit_amount numeric DEFAULT 0,
+  uni_farming_start_timestamp timestamp without time zone,
+  uni_farming_balance numeric DEFAULT 0,
+  uni_farming_rate numeric DEFAULT 0,
+  uni_farming_last_update timestamp without time zone,
+  uni_farming_deposit numeric DEFAULT 0,
+  created_at timestamp without time zone DEFAULT now(),
+  checkin_last_date timestamp without time zone,
+  checkin_streak integer DEFAULT 0,
+  is_admin boolean DEFAULT false,
+  ton_boost_package integer DEFAULT 0,
+  ton_farming_balance numeric DEFAULT 0,
+  ton_farming_rate numeric DEFAULT 0.001,
+  ton_farming_start_timestamp timestamp without time zone,
+  ton_farming_last_update timestamp without time zone,
+  ton_farming_accumulated numeric DEFAULT 0,
+  ton_farming_last_claim timestamp without time zone,
+  ton_boost_active boolean DEFAULT false,
+  ton_boost_package_id character varying DEFAULT NULL::character varying,
+  ton_boost_rate numeric DEFAULT 0,
+  ton_boost_expires_at timestamp without time zone,
+  uni_farming_active boolean DEFAULT false,
+  last_active timestamp without time zone,
+  referrer_id integer,
+  ton_wallet_address text,
+  ton_wallet_verified boolean DEFAULT false,
+  ton_wallet_linked_at timestamp without time zone,
+  status character varying DEFAULT 'active'::character varying,
+  processed_at timestamp without time zone,
+  processed_by integer,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.wallet (
+  id integer NOT NULL DEFAULT nextval('wallet_id_seq'::regclass),
+  user_id integer UNIQUE,
+  last_updated timestamp without time zone DEFAULT now(),
+  CONSTRAINT wallet_pkey PRIMARY KEY (id),
+  CONSTRAINT wallet_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.wallet_logs (
+  id integer NOT NULL DEFAULT nextval('wallet_logs_id_seq'::regclass),
+  user_id integer NOT NULL,
+  transaction_type text NOT NULL,
+  amount text NOT NULL,
+  currency text NOT NULL CHECK (currency = ANY (ARRAY['UNI'::text, 'TON'::text])),
+  status text NOT NULL,
+  description text,
+  reference_id text,
+  wallet_address text,
+  network text,
+  source text,
+  transaction_hash text,
+  created_at timestamp with time zone DEFAULT now(),
+  processed_at timestamp with time zone,
+  CONSTRAINT wallet_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT wallet_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.webhook_logs (
+  id integer NOT NULL DEFAULT nextval('webhook_logs_id_seq'::regclass),
+  endpoint text NOT NULL,
+  method text DEFAULT 'POST'::text,
+  status_code integer,
+  response_time_ms integer,
+  request_body jsonb,
+  response_body jsonb,
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT webhook_logs_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.withdraw_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id bigint NOT NULL,
+  telegram_id text,
+  username text,
+  amount_ton numeric NOT NULL CHECK (amount_ton > 0::numeric),
+  ton_wallet text NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  processed_at timestamp with time zone,
+  processed_by text,
+  CONSTRAINT withdraw_requests_pkey PRIMARY KEY (id)
+);
