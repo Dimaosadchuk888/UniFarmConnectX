@@ -111,6 +111,7 @@ Each business domain is organized as a self-contained module:
 - **Schema**: Complete 11-table structure (users, user_sessions, transactions, referrals, farming_sessions, boost_purchases, missions, user_missions, airdrops, daily_bonus_logs, withdraw_requests)
 - **API**: All database operations converted from drizzle-orm to Supabase API methods
 - **Migration Status**: 100% complete - все 11 таблиц существуют, missions заполнена 5 оригинальными заданиями
+- **Transaction Types**: Enum в БД содержит FARMING_REWARD, FARMING_DEPOSIT, REFERRAL_REWARD, MISSION_REWARD, DAILY_BONUS. Тип BOOST_PURCHASE ожидает добавления через ALTER TYPE
 
 ### Performance Optimizations
 - **Frontend**: Code splitting with React.lazy for reduced bundle size
