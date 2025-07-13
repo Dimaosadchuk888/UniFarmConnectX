@@ -339,7 +339,7 @@ export class FarmingService {
           amount_uni: depositAmount.toString(),  // ИСПРАВЛЕНО: Положительная сумма для депозита
           amount_ton: '0',  // Правильное поле для TON
           currency: 'UNI',  // ДОБАВЛЕНО: поле currency
-          status: 'confirmed',  // Используем confirmed как в существующей транзакции
+          status: 'completed',  // Используем completed для завершенных операций
           description: `UNI farming deposit: ${amount}`
         };
 

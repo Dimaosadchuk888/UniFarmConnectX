@@ -8,9 +8,17 @@ import { supabase } from '../supabase';
 import { logger } from '../logger';
 import { BalanceNotificationService } from '../balanceNotificationService';
 import { batchBalanceProcessor } from '../BatchBalanceProcessor';
+import { BalanceManager } from '../BalanceManager';
 
 export class FarmingScheduler {
   private isRunning: boolean = false;
+  private balanceManager: BalanceManager;
+  private batchProcessor: typeof batchBalanceProcessor;
+
+  constructor() {
+    this.balanceManager = new BalanceManager();
+    this.batchProcessor = batchBalanceProcessor;
+  }
 
   /**
    * Запускает автоматическое начисление фарминг дохода каждые 5 минут
@@ -130,15 +138,25 @@ export class FarmingScheduler {
         }
         */
         
-        // Update balances directly using BalanceManager for each farmer
-        for (const income of farmerIncomes) {
-          try {
-            const { BalanceManager } = await import('../BalanceManager');
-            const balanceManager = new BalanceManager();
-            await balanceManager.addBalance(income.userId, income.income, income.currency);
-            logger.info(`[UNI Farming] Updated balance for user ${income.userId}: +${income.income} ${income.currency}`);
-          } catch (error) {
-            logger.error(`[UNI Farming] Failed to update balance for user ${income.userId}:`, error);
+        // Batch update balances for all farmers at once
+        const batchResult = await this.batchProcessor.processFarmingIncome(farmerIncomes);
+        
+        logger.info('[UNI Farming] Batch обновление завершено', {
+          processed: batchResult.processed,
+          failed: batchResult.failed,
+          duration: batchResult.duration
+        });
+        
+        // Обновляем временные метки для всех обработанных фармеров
+        if (batchResult.success && farmerIncomes.length > 0) {
+          const userIds = farmerIncomes.map(f => f.userId);
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ uni_farming_last_update: new Date().toISOString() })
+            .in('id', userIds);
+            
+          if (updateError) {
+            logger.error('[FarmingScheduler] Ошибка обновления временных меток', { error: updateError });
           }
         }
         
