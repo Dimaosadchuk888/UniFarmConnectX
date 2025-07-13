@@ -91,13 +91,13 @@ export class FarmingScheduler {
           
           if (parseFloat(income) > 0) {
             farmerIncomes.push({
-              userId: farmer.id,
+              userId: farmer.user_id,
               income: parseFloat(income),
               currency: 'UNI'
             });
           }
         } catch (error) {
-          logger.error(`[UNI Farming] Ошибка расчета дохода для пользователя ${farmer.id}:`, error);
+          logger.error(`[UNI Farming] Ошибка расчета дохода для пользователя ${farmer.user_id}:`, error);
         }
       }
       
@@ -105,80 +105,123 @@ export class FarmingScheduler {
       if (farmerIncomes.length > 0) {
         logger.info(`[UNI Farming] Начинаем batch обновление для ${farmerIncomes.length} пользователей`);
         
-        const batchResult = await batchBalanceProcessor.processFarmingIncome(farmerIncomes);
+        // TEMPORARY: Skip batch update to test transaction creation
+        logger.info('[UNI Farming] TEMPORARY: Skipping batch update to test transaction creation');
+        /*
+        try {
+          // Add timeout to batch processing
+          const batchPromise = batchBalanceProcessor.processFarmingIncome(farmerIncomes);
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Batch processing timeout')), 30000)
+          );
+          
+          const batchResult = await Promise.race([batchPromise, timeoutPromise]) as any;
+          
+          logger.info('[UNI Farming] Batch обновление завершено', {
+            processed: batchResult.processed,
+            failed: batchResult.failed,
+            duration: batchResult.duration
+          });
+        } catch (error) {
+          logger.error('[UNI Farming] Ошибка batch обновления, продолжаем с созданием транзакций', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+          // Continue with transaction creation even if batch update fails
+        }
+        */
         
-        logger.info('[UNI Farming] Batch обновление завершено', {
-          processed: batchResult.processed,
-          failed: batchResult.failed,
-          duration: batchResult.duration
-        });
+        // Update balances directly using BalanceManager for each farmer
+        for (const income of farmerIncomes) {
+          try {
+            const { BalanceManager } = await import('../BalanceManager');
+            const balanceManager = new BalanceManager();
+            await balanceManager.addBalance(income.userId, income.income, income.currency);
+            logger.info(`[UNI Farming] Updated balance for user ${income.userId}: +${income.income} ${income.currency}`);
+          } catch (error) {
+            logger.error(`[UNI Farming] Failed to update balance for user ${income.userId}:`, error);
+          }
+        }
+        
+      } else {
+        logger.info('[UNI Farming] No farmers with income to process');
+        return;
       }
       
       // Обрабатываем дополнительные операции для каждого фармера
+      logger.info(`[UNI Farming] Starting transaction creation for ${activeFarmers?.length || 0} farmers`);
+      
       for (const farmer of activeFarmers || []) {
         try {
-          const incomeData = farmerIncomes.find(f => f.userId === farmer.id);
-          if (!incomeData) continue;
+          const incomeData = farmerIncomes.find(f => f.userId === farmer.user_id);
+          if (!incomeData) {
+            logger.info(`[UNI Farming] No income data for user ${farmer.user_id}, skipping`);
+            continue;
+          }
           
           const income = incomeData.income.toString();
           const updateError = null; // Batch обработка уже выполнена
 
             if (!updateError) {
-              // Записываем сессию в farming_sessions
+              logger.info(`[UNI Farming] Creating FARMING_REWARD transaction for user ${farmer.user_id}, amount: ${income}`);
+              
+              // TODO: Исправить структуру farming_sessions для записи сессий
+              // Временно отключено из-за несоответствия схемы БД
+              /*
               await supabase
                 .from('farming_sessions')
                 .insert({
-                  user_id: farmer.id,
+                  user_id: farmer.user_id,
                   session_type: 'UNI_FARMING',
                   amount_earned: parseFloat(income),
                   currency: 'UNI',
-                  farming_rate: parseFloat(farmer.uni_farming_rate || '0'),
-                  session_start: farmer.uni_farming_start_timestamp,
+                  farming_rate: parseFloat(farmer.farming_rate || '0'),
+                  session_start: farmer.farming_start || farmer.created_at,
                   session_end: new Date().toISOString(),
                   status: 'completed',
                   created_at: new Date().toISOString()
                 });
+              */
 
               // Создаем транзакцию FARMING_REWARD
-              await supabase
+              const { data: txData, error: txError } = await supabase
                 .from('transactions')
                 .insert({
-                  user_id: farmer.id,
+                  user_id: farmer.user_id,
                   type: 'FARMING_REWARD',
                   amount: income, // Добавляем общее поле amount
                   amount_uni: income,
                   amount_ton: '0',
                   currency: 'UNI', // Добавляем валюту
                   status: 'completed',
-                  description: `UNI farming income: ${parseFloat(income).toFixed(6)} UNI (rate: ${farmer.uni_farming_rate})`,
-                  source_user_id: farmer.id,
+                  description: `UNI farming income: ${parseFloat(income).toFixed(6)} UNI (rate: ${farmer.farming_rate})`,
+                  source_user_id: farmer.user_id,
                   created_at: new Date().toISOString()
+                })
+                .select();
+                
+              if (txError) {
+                logger.error(`[FARMING_SCHEDULER] Failed to create FARMING_REWARD transaction for user ${farmer.user_id}:`, {
+                  error: txError.message,
+                  code: txError.code,
+                  details: txError.details
                 });
+                continue;
+              }
 
-              logger.info(`[FARMING_SCHEDULER] Successfully processed UNI farming for user ${farmer.id}`, {
-                userId: farmer.id,
+              logger.info(`[FARMING_SCHEDULER] Successfully processed UNI farming for user ${farmer.user_id}`, {
+                userId: farmer.user_id,
                 amount: income,
                 currency: 'UNI'
               });
 
-              // Отправляем WebSocket уведомление об обновлении баланса
-              const balanceService = BalanceNotificationService.getInstance();
-              balanceService.notifyBalanceUpdate({
-                userId: farmer.id,
-                balanceUni: parseFloat(farmer.balance_uni || '0') + parseFloat(income),
-                balanceTon: parseFloat(farmer.balance_ton || '0'),
-                changeAmount: parseFloat(income),
-                currency: 'UNI',
-                source: 'farming',
-                timestamp: new Date().toISOString()
-              });
+              // Отправляем WebSocket уведомление через BalanceManager (уже происходит в addBalance)
 
               // Распределяем реферальные награды от UNI фарминга
               try {
                 const { ReferralService } = await import('../../modules/referral/service');
                 const referralService = new ReferralService();
                 const referralResult = await referralService.distributeReferralRewards(
-                  farmer.id.toString(),
+                  farmer.user_id.toString(),
                   income,
                   'UNI',
                   'farming'
@@ -186,7 +229,7 @@ export class FarmingScheduler {
 
                 if (referralResult.distributed > 0) {
                   logger.info(`[FARMING_SCHEDULER] Реферальные награды распределены для UNI фарминга`, {
-                    farmerId: farmer.id,
+                    farmerId: farmer.user_id,
                     income,
                     distributed: referralResult.distributed,
                     totalAmount: referralResult.totalAmount
@@ -194,14 +237,14 @@ export class FarmingScheduler {
                 }
               } catch (referralError) {
                 logger.error(`[FARMING_SCHEDULER] Ошибка распределения реферальных наград UNI`, {
-                  farmerId: farmer.id,
+                  farmerId: farmer.user_id,
                   income,
                   error: referralError instanceof Error ? referralError.message : String(referralError)
                 });
               }
             }
         } catch (error) {
-          logger.error(`[UNI Farming] Error processing farmer ${farmer.id}:`, error instanceof Error ? error.message : String(error));
+          logger.error(`[UNI Farming] Error processing farmer ${farmer.user_id}:`, error instanceof Error ? error.message : String(error));
         } finally {
           // Continue processing other farmers
         }
@@ -273,18 +316,18 @@ export class FarmingScheduler {
    */
   private async calculateUniFarmingIncome(farmer: any): Promise<string> {
     const now = new Date();
-    const lastUpdate = farmer.uni_farming_last_update ? new Date(farmer.uni_farming_last_update) : new Date(farmer.uni_farming_start_timestamp);
+    const lastUpdate = farmer.farming_last_update ? new Date(farmer.farming_last_update) : new Date(farmer.farming_start || farmer.created_at);
     const hoursSinceLastUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
     
     // rate - это процент в день (например, 0.01 для 1% в день)
-    const rate = parseFloat(farmer.uni_farming_rate || '0');
-    const depositAmount = parseFloat(farmer.uni_deposit_amount || '0');
+    const rate = parseFloat(farmer.farming_rate || '0');
+    const depositAmount = parseFloat(farmer.deposit_amount || '0');
     
     // Рассчитываем доход: депозит * ставка * время_в_днях
     const daysElapsed = hoursSinceLastUpdate / 24;
     const income = depositAmount * rate * daysElapsed;
     
-    logger.info(`[calculateUniFarmingIncome] Расчет дохода для пользователя ${farmer.id}:`, {
+    logger.info(`[calculateUniFarmingIncome] Расчет дохода для пользователя ${farmer.user_id}:`, {
       depositAmount,
       rate,
       hoursSinceLastUpdate,
