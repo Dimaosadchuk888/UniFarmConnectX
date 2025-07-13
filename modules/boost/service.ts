@@ -326,7 +326,8 @@ export class BoostService {
         parseInt(userId),
         boostPackage.id,
         boostPackage.daily_rate / 100, // Конвертируем процент в десятичное число
-        boostPackage.duration_days
+        boostPackage.duration_days,
+        requiredAmount // Передаем сумму депозита для обновления farming_balance
       );
         
       if (!immediateActivation) {

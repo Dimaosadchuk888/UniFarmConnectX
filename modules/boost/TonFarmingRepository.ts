@@ -240,7 +240,7 @@ export class TonFarmingRepository {
   /**
    * Активировать boost пакет
    */
-  async activateBoost(userId: string, packageId: number, rate: number, expiresAt?: string): Promise<boolean> {
+  async activateBoost(userId: string, packageId: number, rate: number, expiresAt?: string, depositAmount?: number): Promise<boolean> {
     try {
       const { error } = await supabase
         .from(this.tableName)
@@ -249,6 +249,7 @@ export class TonFarmingRepository {
           boost_active: true,
           boost_package_id: packageId,
           farming_rate: rate.toString(),
+          farming_balance: depositAmount ? depositAmount.toString() : '0',
           boost_expires_at: expiresAt || null,
           farming_start_timestamp: new Date().toISOString(),
           farming_last_update: new Date().toISOString(),
@@ -265,6 +266,7 @@ export class TonFarmingRepository {
               ton_boost_active: true,
               ton_boost_package_id: packageId,
               ton_farming_rate: rate.toString(),
+              ton_farming_balance: depositAmount ? depositAmount.toString() : '0',
               ton_boost_expires_at: expiresAt || null,
               ton_farming_start_timestamp: new Date().toISOString(),
               ton_farming_last_update: new Date().toISOString()

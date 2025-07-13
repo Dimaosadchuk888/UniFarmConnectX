@@ -113,8 +113,8 @@ export class TONBoostIncomeScheduler {
           
           // Определяем параметры boost пакета пользователя
           let dailyRate = user.ton_boost_rate || 0.01; // Используем ton_boost_rate из базы данных
-          // Используем баланс TON как депозит (минус 10 TON базовый баланс)
-          const userDeposit = Math.max(0, parseFloat(userBalance.balance_ton || '0') - 10);
+          // Используем farming_balance из ton_farming_data
+          const userDeposit = Math.max(0, parseFloat(user.farming_balance || '0'));
           
           // Дополнительная проверка по ID пакета (для совместимости)
           switch (parseInt(user.boost_package_id)) {
@@ -143,7 +143,7 @@ export class TONBoostIncomeScheduler {
             continue;
           }
 
-          logger.info(`[TON_BOOST_SCHEDULER] User ${user.user_id} (${user.boost_package_id}): +${fiveMinuteIncome.toFixed(6)} TON`);
+          logger.info(`[TON_BOOST_SCHEDULER] User ${user.user_id} (${user.boost_package_id}): +${fiveMinuteIncome.toFixed(6)} TON (депозит: ${userDeposit} TON)`);
 
           // Получаем текущий баланс для WebSocket уведомления
           const userCurrentBalance = parseFloat(userBalance.balance_ton || '0');
