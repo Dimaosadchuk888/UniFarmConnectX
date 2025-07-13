@@ -52,20 +52,12 @@ DROP TABLE IF EXISTS _archived_farming_sessions CASCADE;
 
 ### 1. Добавить отсутствующие поля:
 ```sql
--- Эти поля используются в коде но отсутствуют в БД
+-- Только эти поля действительно отсутствуют в БД
 ALTER TABLE users 
-  ADD COLUMN IF NOT EXISTS last_active timestamp without time zone,
   ADD COLUMN IF NOT EXISTS guest_id text,
   ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
 
--- Поле amount используется в коде
-ALTER TABLE transactions 
-  ADD COLUMN IF NOT EXISTS amount numeric NOT NULL DEFAULT 0;
-
--- Обновить amount из существующих данных
-UPDATE transactions 
-SET amount = COALESCE(amount_uni, 0) + COALESCE(amount_ton, 0)
-WHERE amount = 0;
+-- Поля last_active и amount УЖЕ СУЩЕСТВУЮТ в БД!
 ```
 
 ## 📊 ПОЧЕМУ БЕЗОПАСНЫЙ ПОДХОД ЛУЧШЕ
