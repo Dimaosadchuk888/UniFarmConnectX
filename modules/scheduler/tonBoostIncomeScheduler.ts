@@ -155,7 +155,7 @@ export class TONBoostIncomeScheduler {
           
           const transactionResult = await transactionService.createTransaction({
             user_id: userId,  // Используем числовой ID
-            type: 'TON_BOOST_INCOME',  // Теперь используем специфичный тип для TON Boost
+            type: 'FARMING_REWARD',  // Используем существующий тип из БД
             amount_uni: 0,
             amount_ton: fiveMinuteIncome,
             currency: 'TON',
@@ -165,7 +165,8 @@ export class TONBoostIncomeScheduler {
               boost_package_id: user.boost_package_id,
               daily_rate: dailyRate,
               user_deposit: userDeposit,
-              original_type: 'TON_BOOST_INCOME'  // Сохраняем информацию об оригинальном типе
+              original_type: 'TON_BOOST_INCOME',  // Метка для различения TON Boost транзакций
+              transaction_source: 'ton_boost_scheduler'
             }
           });
 
