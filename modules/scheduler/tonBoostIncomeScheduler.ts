@@ -155,7 +155,7 @@ export class TONBoostIncomeScheduler {
           
           const transactionResult = await transactionService.createTransaction({
             user_id: userId,  // Используем числовой ID
-            type: 'FARMING_REWARD',  // Используем существующий тип в БД
+            type: 'TON_BOOST_INCOME',  // Теперь используем специфичный тип для TON Boost
             amount_uni: 0,
             amount_ton: fiveMinuteIncome,
             currency: 'TON',
