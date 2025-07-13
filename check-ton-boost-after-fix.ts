@@ -1,102 +1,98 @@
 import { supabase } from './core/supabase';
 
 async function checkTonBoostAfterFix() {
-  console.log('=== Проверка TON Boost после исправления ===\n');
+  console.log('=== ПРОВЕРКА TON BOOST ПОСЛЕ ИСПРАВЛЕНИЯ ===\n');
+  console.log(`Время: ${new Date().toLocaleString()}\n`);
+  
+  // Ждем 30 секунд для полного запуска сервера
+  console.log('⏳ Ожидание запуска сервера (30 секунд)...\n');
+  await new Promise(resolve => setTimeout(resolve, 30000));
 
   try {
-    // 1. Проверяем активных пользователей ton_farming_data
-    const { data: tonFarmingUsers, error: tfError } = await supabase
-      .from('ton_farming_data')
-      .select('*')
-      .eq('boost_active', true);
+    // 1. Проверяем новые транзакции TON Boost
+    console.log('📊 1. НОВЫЕ ТРАНЗАКЦИИ TON BOOST:\n');
+    
+    const fiveMinutesAgo = new Date();
+    fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
 
-    if (tfError) {
-      console.log('❌ Ошибка при получении ton_farming_data:', tfError.message);
-      // Проверяем fallback на users
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select('id, telegram_id, balance_ton, ton_boost_active, ton_boost_package_id, ton_farming_rate, ton_farming_balance')
-        .eq('ton_boost_active', true);
-
-      if (usersError) {
-        console.error('❌ Ошибка при получении данных из users:', usersError.message);
-        return;
-      }
-
-      console.log(`\n📊 Активные TON Boost пользователи (из таблицы users):`);
-      console.log(`Найдено: ${usersData?.length || 0} пользователей\n`);
-
-      if (usersData && usersData.length > 0) {
-        for (const user of usersData) {
-          console.log(`User ID: ${user.id}`);
-          console.log(`  Balance TON: ${user.balance_ton}`);
-          console.log(`  TON Farming Balance: ${user.ton_farming_balance || '0'} ⚠️`);
-          console.log(`  Package ID: ${user.ton_boost_package_id}`);
-          console.log(`  Rate: ${user.ton_farming_rate}%`);
-          
-          const depositAmount = parseFloat(user.ton_farming_balance || '0');
-          const rate = parseFloat(user.ton_farming_rate || '0');
-          const dailyIncome = depositAmount * rate;
-          
-          console.log(`  📈 Ожидаемый доход: ${dailyIncome.toFixed(6)} TON/день`);
-          console.log(`  ${depositAmount === 0 ? '❌ ВНИМАНИЕ: farming_balance = 0, доход не будет начислен!' : '✅ farming_balance установлен'}`);
-          console.log('---');
-        }
-      }
-    } else {
-      console.log(`\n📊 Активные TON Boost пользователи (из таблицы ton_farming_data):`);
-      console.log(`Найдено: ${tonFarmingUsers?.length || 0} пользователей\n`);
-
-      if (tonFarmingUsers && tonFarmingUsers.length > 0) {
-        for (const user of tonFarmingUsers) {
-          console.log(`User ID: ${user.user_id}`);
-          console.log(`  Farming Balance: ${user.farming_balance || '0'} TON`);
-          console.log(`  Package ID: ${user.boost_package_id}`);
-          console.log(`  Rate: ${user.farming_rate}%`);
-          
-          const depositAmount = parseFloat(user.farming_balance || '0');
-          const rate = parseFloat(user.farming_rate || '0');
-          const dailyIncome = depositAmount * rate;
-          
-          console.log(`  📈 Ожидаемый доход: ${dailyIncome.toFixed(6)} TON/день`);
-          console.log(`  ${depositAmount === 0 ? '❌ ВНИМАНИЕ: farming_balance = 0, доход не будет начислен!' : '✅ farming_balance установлен'}`);
-          console.log('---');
-        }
-      }
-    }
-
-    // 2. Проверяем последние транзакции TON Boost
-    console.log('\n📝 Последние транзакции TON Boost:');
-    const { data: transactions, error: txError } = await supabase
+    const { data: tonTransactions, error: txError } = await supabase
       .from('transactions')
       .select('*')
-      .eq('type', 'FARMING_REWARD')
       .eq('currency', 'TON')
-      .order('created_at', { ascending: false })
-      .limit(5);
+      .eq('type', 'FARMING_REWARD')
+      .gt('created_at', fiveMinutesAgo.toISOString())
+      .order('created_at', { ascending: false });
 
-    if (txError) {
-      console.error('❌ Ошибка при получении транзакций:', txError.message);
-    } else if (transactions && transactions.length > 0) {
-      for (const tx of transactions) {
-        const metadata = tx.metadata ? (typeof tx.metadata === 'string' ? JSON.parse(tx.metadata) : tx.metadata) : {};
-        console.log(`  ${new Date(tx.created_at).toLocaleString()}: User ${tx.user_id} +${tx.amount} TON`);
-        if (metadata.deposit_amount) {
-          console.log(`    Депозит: ${metadata.deposit_amount} TON`);
-        }
+    if (!txError && tonTransactions) {
+      console.log(`Найдено новых TON транзакций: ${tonTransactions.length}`);
+      
+      if (tonTransactions.length > 0) {
+        console.log('✅ TON BOOST РАБОТАЕТ!');
+        console.log('\nПримеры транзакций:');
+        tonTransactions.slice(0, 3).forEach(tx => {
+          console.log(`  User ${tx.user_id}: +${tx.amount} TON в ${new Date(tx.created_at).toLocaleTimeString()}`);
+        });
+      } else {
+        console.log('❌ Новых транзакций пока нет');
       }
-    } else {
-      console.log('  Транзакции не найдены');
     }
 
-    console.log('\n✨ Рекомендации:');
-    console.log('1. Существующие активные пакеты имеют farming_balance = 0');
-    console.log('2. Они не будут давать доход до новой покупки');
-    console.log('3. Рекомендуется создать миграцию для установки farming_balance');
-    console.log('4. Или попросить пользователей перекупить пакеты');
+    // 2. Проверяем farming_balance
+    console.log('\n💰 2. ПРОВЕРКА farming_balance:\n');
+    
+    const { data: farmingData, error: farmingError } = await supabase
+      .from('ton_farming_data')
+      .select('user_id, farming_balance, boost_package_id')
+      .eq('boost_active', true)
+      .order('farming_balance', { ascending: false })
+      .limit(5);
+
+    if (!farmingError && farmingData) {
+      console.log('Топ-5 пользователей по farming_balance:');
+      farmingData.forEach(user => {
+        const balance = parseFloat(user.farming_balance);
+        console.log(`  User ${user.user_id}: ${balance} TON (пакет #${user.boost_package_id}) ${balance > 0 ? '✅' : '❌'}`);
+      });
+    }
+
+    // 3. Проверяем активность планировщика
+    console.log('\n⚙️ 3. АКТИВНОСТЬ ПЛАНИРОВЩИКА:\n');
+    
+    const { data: recentActivity, error: actError } = await supabase
+      .from('ton_farming_data')
+      .select('user_id, updated_at')
+      .eq('boost_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(5);
+
+    if (!actError && recentActivity) {
+      console.log('Последние обновления:');
+      recentActivity.forEach(user => {
+        const updatedAt = new Date(user.updated_at);
+        const minutesAgo = (new Date().getTime() - updatedAt.getTime()) / 60000;
+        console.log(`  User ${user.user_id}: обновлен ${minutesAgo.toFixed(1)} мин назад ${minutesAgo < 10 ? '✅' : '⚠️'}`);
+      });
+    }
+
+    // 4. Итоговый статус
+    console.log('\n📈 4. ИТОГОВЫЙ СТАТУС:\n');
+    
+    const hasNewTransactions = tonTransactions && tonTransactions.length > 0;
+    const hasPositiveBalances = farmingData && farmingData.some(u => parseFloat(u.farming_balance) > 0);
+    
+    if (hasNewTransactions) {
+      console.log('🎉 УСПЕХ! TON Boost планировщик работает!');
+      console.log('   Транзакции создаются, пользователи получают доход.');
+    } else if (hasPositiveBalances) {
+      console.log('⏳ Частичный успех: farming_balance обновляется');
+      console.log('   Ждем первого цикла начисления (каждые 5 минут)');
+    } else {
+      console.log('⚠️ Требуется больше времени для проверки');
+      console.log('   Запустите скрипт через 5-10 минут');
+    }
 
   } catch (error) {
-    console.error('❌ Ошибка при проверке:', error);
+    console.error('❌ Ошибка проверки:', error);
   }
 }
 

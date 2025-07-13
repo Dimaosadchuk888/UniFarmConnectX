@@ -21,8 +21,9 @@ export class TonFarmingRepository {
   private useFallback: boolean = false;
   
   constructor() {
-    // Проверяем существование таблицы при инициализации
-    this.checkTableExists();
+    // Таблица ton_farming_data существует, fallback не нужен
+    // this.checkTableExists();
+    logger.info('[TonFarmingRepository] Using ton_farming_data table directly');
   }
   
   private async checkTableExists(): Promise<void> {

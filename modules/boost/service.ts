@@ -420,10 +420,11 @@ export class BoostService {
       
       // Используем TonFarmingRepository для финальной активации boost
       const finalActivation = await tonFarmingRepo.activateBoost(
-        parseInt(userId),
+        userId, // Передаем как строку, метод сам конвертирует
         boostPackage.id,
         boostPackage.daily_rate / 100, // Конвертируем процент в десятичное число
-        boostPackage.duration_days
+        undefined, // expiresAt - будет рассчитано автоматически
+        requiredAmount // КРИТИЧНО: передаем сумму депозита для farming_balance
       );
         
       if (!finalActivation) {
