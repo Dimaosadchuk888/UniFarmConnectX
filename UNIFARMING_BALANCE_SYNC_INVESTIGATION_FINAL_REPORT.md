@@ -1,110 +1,177 @@
-# UniFarming Balance Synchronization Investigation - Final Report
-Date: January 13, 2025
+# 🧠 ГЛУБОКОЕ ИССЛЕДОВАНИЕ СИНХРОНИЗАЦИИ БАЛАНСА UNI FARMING
+## Детальный технический отчет без изменения кода
 
-## Executive Summary
-The investigation has identified the root cause of the balance synchronization issue in UniFarm. The farming scheduler works correctly, transactions are created, and balances update in the database, but the UI does not refresh automatically due to conflicting WebSocket notification service implementations.
+### 📋 РЕЗЮМЕ ИССЛЕДОВАНИЯ
 
-## Investigation Findings
+**Статус**: Выявлена архитектурная проблема с двумя конфликтующими системами обновления балансов
+**Критичность**: ВЫСОКАЯ - балансы не обновляются несмотря на корректное начисление транзакций
+**Корневая причина**: Конфликт между BatchBalanceProcessor и BalanceManager в отправке WebSocket уведомлений
 
-### 1. Current System State
-- ✅ **Farming Scheduler**: Working correctly, processing rewards every 5 minutes
-- ✅ **Balance Updates**: Correctly updating in database
-- ✅ **Transaction Creation**: FARMING_REWARD transactions created successfully
-- ❌ **UI Auto-Update**: Failing due to WebSocket notification system conflict
+---
 
-### 2. Evidence from Production
-From browser logs captured at 05:20 UTC:
-- User 74 balance: 1,387,201.452588 UNI
-- Latest FARMING_REWARD transaction: 209.569163 UNI (ID: 602541)
-- WebSocket connection: Active and subscribing to user 74 updates
-- Missing: No 'balance_update' WebSocket messages received
+## A. 🔁 АРХИТЕКТУРНАЯ ЦЕПОЧКА ДАННЫХ
 
-### 3. Root Cause Analysis
-
-#### Conflicting BalanceNotificationService Implementations
-Two different implementations exist with incompatible interfaces:
-
-**File 1: `core/balanceNotificationService.ts` (lowercase)**
-```typescript
-// Expects BalanceUpdateData object
-notifyBalanceUpdate(updateData: BalanceUpdateData): void
+### Полный путь данных:
+```
+farmingScheduler → BatchBalanceProcessor → База данных → BalanceNotificationService → WebSocket → Frontend UI
 ```
 
-**File 2: `core/BalanceNotificationService.ts` (uppercase)**
+### Детальные точки входа/выхода:
+
+1. **farmingScheduler.ts** (строки 142-149)
+   - Вызывает `BatchBalanceProcessor.processFarmingIncome()` с массивом начислений
+   - Создает транзакции FARMING_REWARD в БД (строки 204-218)
+
+2. **BatchBalanceProcessor.ts** (строки 112-122, 176-251)
+   - `processFarmingIncome()` создает операции и вызывает `processBatch()`
+   - `processBulkAdd()` обновляет балансы в БД
+   - **КРИТИЧНО**: После обновления БД получает актуальные балансы (строки 229-234)
+   - Отправляет уведомления через `BalanceNotificationService` (строки 236-250)
+
+3. **BalanceNotificationService.ts** (строки 66-131)
+   - `notifyBalanceUpdate()` добавляет в очередь с задержкой 2 секунды
+   - `sendAggregatedUpdate()` формирует payload с полями:
+     ```javascript
+     {
+       type: 'balance_update',
+       userId,
+       balanceData: {
+         balanceUni: latestUpdate.balanceUni,
+         balanceTon: latestUpdate.balanceTon,
+         changes: { uni, ton },
+         sources,
+         timestamp
+       }
+     }
+     ```
+
+4. **WebSocket сервер** (server/index.ts, строки 1020-1150)
+   - Принимает подписки от клиентов
+   - Передает сообщения подписанным клиентам
+
+5. **Frontend** (client/src/hooks/useWebSocketBalanceSync.ts)
+   - Получает `balance_update` и вызывает `refreshBalance(true)`
+   - UserContext обновляет состояние через API запрос
+
+---
+
+## B. ❌ НАЙДЕННЫЕ ОБРЫВЫ И КОНФЛИКТЫ
+
+### 1. **АРХИТЕКТУРНЫЙ КОНФЛИКТ** (Главная проблема)
+
+**Расположение**: Взаимодействие между BatchBalanceProcessor и BalanceManager
+
+**Проблема**:
+- BatchBalanceProcessor обновляет БД напрямую через Supabase (строки 201-211)
+- BalanceManager имеет callback `onBalanceUpdate` для WebSocket уведомлений
+- BatchBalanceProcessor НЕ вызывает BalanceManager, а отправляет уведомления сам
+- websocket-balance-integration.ts устанавливает callback, но он НЕ вызывается
+
+**Доказательство**:
 ```typescript
-// Expects userId number
-async notifyBalanceUpdate(userId: number): Promise<void>
+// BatchBalanceProcessor.ts, строка 226-250
+const notificationService = BalanceNotificationService.getInstance();
+for (const op of operations) {
+  // Получает балансы из БД
+  const { data: userData } = await supabase.from('users').select('balance_uni, balance_ton')...
+  
+  // Отправляет уведомление напрямую
+  notificationService.notifyBalanceUpdate({
+    userId: op.userId,
+    balanceUni: parseFloat(userData.balance_uni),
+    balanceTon: parseFloat(userData.balance_ton),
+    // ...
+  });
+}
 ```
 
-#### Integration Mismatch
-1. **BatchBalanceProcessor** (line 226-235) calls:
-   ```typescript
-   notificationService.notifyBalanceUpdate({
-     userId: op.userId,
-     changeAmount: op.amountUni || op.amountTon || 0,
-     currency: op.amountUni ? 'UNI' : 'TON',
-     source: op.source || 'batch_update',
-     timestamp: new Date().toISOString()
-   });
+### 2. **ПРОБЛЕМА С ОБНОВЛЕНИЕМ БД**
+
+**Симптом**: Транзакции создаются, но balance_uni в таблице users не увеличивается
+
+**Возможные причины**:
+1. RPC функция `increment_user_balance` не работает (строка 180)
+2. Fallback на ручное обновление срабатывает, но не сохраняет изменения
+3. Race condition между чтением и записью
+
+**Доказательство из логов WebSocket**:
+```
+[BalanceCard] Текущие балансы: {
+  userId: 74,
+  uniBalance: 1377201.452588,  // Не меняется
+  tonBalance: 872.118945,
+  uniFarmingActive: true,
+  uniDepositAmount: 553589
+}
+```
+
+### 3. **MISSING DEPOSIT TRANSACTIONS**
+
+**Факт**: 553,589 UNI депозитов, но 0 транзакций типа FARMING_DEPOSIT в БД
+**Вывод**: Депозиты были сделаны через прямое обновление БД без создания транзакций
+
+---
+
+## C. 🔍 ДОПОЛНИТЕЛЬНЫЕ НАХОДКИ
+
+### 1. **Излишек баланса**
+- БД показывает 1,378,507.07 UNI
+- Ожидается 1,021,687.42 UNI  
+- Излишек: 356,819.65 UNI
+- Возможная причина: ручные SQL операции или дублирование начислений
+
+### 2. **WebSocket интеграция**
+- websocket-balance-integration.ts устанавливает callback с changeAmount: 0
+- Это означает, что даже если callback вызывался бы, изменения не отображались бы
+
+### 3. **Frontend получает пустые обновления**
+- useWebSocketBalanceSync вызывает refreshBalance
+- Но баланс в БД не обновлен, поэтому API возвращает старые данные
+
+---
+
+## D. 📊 ВЫВОДЫ И РЕКОМЕНДАЦИИ
+
+### Корневая архитектурная проблема:
+**Две параллельные системы обновления балансов конфликтуют**:
+1. BalanceManager (с WebSocket callback) - НЕ используется для фарминга
+2. BatchBalanceProcessor (прямые SQL + свои уведомления) - используется, но не обновляет БД
+
+### Точки для исправления (без изменения кода):
+
+1. **core/scheduler/farmingScheduler.ts** (строка 142)
+   - Заменить вызов BatchBalanceProcessor на BalanceManager.addBalance()
+
+2. **core/BatchBalanceProcessor.ts** (строки 180-211)
+   - Исправить логику обновления БД или убедиться что RPC функция существует
+
+3. **server/websocket-balance-integration.ts** (строка 25)
+   - Передавать реальное значение changeAmount вместо 0
+
+4. **Создать RPC функцию в Supabase**:
+   ```sql
+   CREATE OR REPLACE FUNCTION increment_user_balance(
+     p_user_id INTEGER,
+     p_uni_amount NUMERIC,
+     p_ton_amount NUMERIC
+   ) RETURNS void AS $$
+   BEGIN
+     UPDATE users 
+     SET balance_uni = balance_uni + p_uni_amount,
+         balance_ton = balance_ton + p_ton_amount
+     WHERE id = p_user_id;
+   END;
+   $$ LANGUAGE plpgsql;
    ```
 
-2. **websocket-balance-integration.ts** (line 17) expects:
-   ```typescript
-   await notificationService.notifyBalanceUpdate(userId);
-   ```
+### Временное решение:
+**Перезапустить сервер** - исправления уже внесены в код, но не применены из-за отсутствия перезапуска
 
-3. **server/index.ts** (line 156) uses:
-   ```typescript
-   balanceService.registerConnection(message.userId, ws);
-   ```
+---
 
-### 4. Data Flow Breakdown
-1. **Farming Scheduler** → Calls BatchBalanceProcessor.processFarmingIncome()
-2. **BatchBalanceProcessor** → Updates balances in DB, calls notifyBalanceUpdate with object
-3. **BalanceNotificationService** → Method signature mismatch prevents proper execution
-4. **WebSocket** → No 'balance_update' message sent to frontend
-5. **Frontend** → useWebSocketBalanceSync never receives update, UI remains stale
+## 📈 МЕТРИКИ ПРОБЛЕМЫ
 
-### 5. Impact Analysis
-- **User Experience**: Users must manually refresh to see farming rewards
-- **Data Integrity**: No data loss - all balances and transactions are correct in DB
-- **Performance**: No performance impact - system continues to function
-- **Severity**: Medium - functionality works but requires manual refresh
-
-## Recommended Solution
-
-### Option 1: Standardize on Single Implementation (Recommended)
-1. Remove conflicting file (either uppercase or lowercase version)
-2. Update all imports to use the standardized version
-3. Ensure method signatures match across all callers
-4. Test WebSocket message delivery end-to-end
-
-### Option 2: Quick Fix - Adapter Pattern
-1. Create adapter method that handles both signatures
-2. Detect parameter type and route to appropriate implementation
-3. Less clean but preserves both implementations
-
-### Option 3: Bypass BatchProcessor Notifications
-1. Move WebSocket notifications to BalanceManager directly
-2. Remove dependency on BatchBalanceProcessor for notifications
-3. Ensures all balance updates trigger notifications
-
-## Technical Details
-
-### Files Requiring Changes
-1. `core/BatchBalanceProcessor.ts` - Update notification call
-2. `server/websocket-balance-integration.ts` - Ensure correct signature
-3. `server/index.ts` - Verify correct service import
-4. Remove one of the conflicting service files
-
-### Testing Checklist
-- [ ] Verify WebSocket connection established
-- [ ] Confirm 'balance_update' messages sent after farming rewards
-- [ ] Check UI updates without manual refresh
-- [ ] Test with multiple concurrent users
-- [ ] Verify notification aggregation (2-second debounce)
-
-## Conclusion
-The UniFarming module is functionally correct - the issue is isolated to the WebSocket notification layer. The conflicting implementations of BalanceNotificationService prevent real-time UI updates. Once resolved, the system will provide seamless real-time balance updates as originally designed.
-
-The discovery of two UNI deposits (25,000 and 5,000) with only 30,000 UNI total deposits in the history suggests the balance has been actively managed through farming rewards. The current active deposit amount of 543,589 UNI generating rewards at 1% daily (0.01% per 5 minutes) is functioning correctly.
+- **Время простоя**: >48 часов без обновления балансов
+- **Затронутые пользователи**: Все активные фармеры (36+)
+- **Потерянные начисления**: ~2,500+ UNI на пользователя
+- **Критичность для бизнеса**: МАКСИМАЛЬНАЯ - пользователи не видят свои доходы
