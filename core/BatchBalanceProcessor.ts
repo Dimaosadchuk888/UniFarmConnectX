@@ -225,13 +225,29 @@ export class BatchBalanceProcessor {
     // Отправляем массовые уведомления
     const notificationService = BalanceNotificationService.getInstance();
     for (const op of operations) {
-      notificationService.notifyBalanceUpdate({
-        userId: op.userId,
-        changeAmount: op.amountUni || op.amountTon || 0,
-        currency: op.amountUni ? 'UNI' : 'TON',
-        source: op.source || 'batch_update',
-        timestamp: new Date().toISOString()
-      });
+      // Получаем актуальные балансы после обновления
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('balance_uni, balance_ton')
+        .eq('id', op.userId)
+        .single();
+        
+      if (userData) {
+        notificationService.notifyBalanceUpdate({
+          userId: op.userId,
+          balanceUni: parseFloat(userData.balance_uni),
+          balanceTon: parseFloat(userData.balance_ton),
+          changeAmount: op.amountUni || op.amountTon || 0,
+          currency: op.amountUni ? 'UNI' : 'TON',
+          source: op.source || 'batch_update',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        logger.error('[BatchBalanceProcessor] Не удалось получить балансы для уведомления', {
+          userId: op.userId,
+          error: error?.message
+        });
+      }
     }
   }
 
@@ -279,6 +295,8 @@ export class BatchBalanceProcessor {
         const notificationService = BalanceNotificationService.getInstance();
         notificationService.notifyBalanceUpdate({
           userId: op.userId,
+          balanceUni: newUniBalance,
+          balanceTon: newTonBalance,
           changeAmount: -(op.amountUni || op.amountTon || 0),
           currency: op.amountUni ? 'UNI' : 'TON',
           source: op.source || 'batch_subtract',
