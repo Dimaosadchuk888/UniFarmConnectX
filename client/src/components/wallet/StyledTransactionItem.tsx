@@ -31,6 +31,7 @@ interface StyledTransactionItemProps {
 type TransactionConfigType = 
   | 'UNI_FARMING' 
   | 'FARMING_REWARD'
+  | 'FARMING_DEPOSIT'
   | 'TON_BOOST_INCOME'
   | 'DAILY_BONUS'
   | 'MISSION_REWARD'
@@ -99,6 +100,19 @@ const getTransactionConfig = (type: string, description?: string) => {
       iconBg: 'bg-green-500/20',
       textColor: 'text-green-300',
       amountColor: 'text-green-400'
+    },
+    
+    // Farming Deposit - Фиолетовый брендовый
+    'FARMING_DEPOSIT': {
+      icon: Coins,
+      label: 'UNI Farming Депозит',
+      emoji: '💎',
+      bgGradient: 'from-purple-500/20 to-violet-600/20',
+      borderColor: 'border-purple-500/40',
+      iconColor: 'text-purple-400',
+      iconBg: 'bg-purple-500/20',
+      textColor: 'text-purple-300',
+      amountColor: 'text-purple-400'
     },
     
     // TON Boost - Синий технологичный
@@ -247,6 +261,7 @@ const formatAmount = (amount: number, currency: string): string => {
 const getAmountSign = (type: string, description?: string): '+' | '-' => {
   if (type.includes('WITHDRAWAL') || 
       type.includes('PURCHASE') || 
+      type === 'FARMING_DEPOSIT' ||
       description?.includes('Вывод') ||
       description?.includes('Покупка')) {
     return '-';

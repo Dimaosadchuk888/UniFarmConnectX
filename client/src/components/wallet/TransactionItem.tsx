@@ -39,7 +39,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
   }
   
   // Определение типа для иконки
-  const isIncoming = type.includes('deposit') || 
+  const isIncoming = (type.includes('deposit') && type !== 'FARMING_DEPOSIT') || 
                     type.includes('reward') || 
                     type.includes('bonus') ||
                     type.includes('harvest');
@@ -66,10 +66,16 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
   if (isTonBoostRelated) {
     iconColorClass = 'text-blue-500 bg-blue-500/10';
   }
+  
+  // Для FARMING_DEPOSIT используем фиолетовый цвет
+  if (type === 'FARMING_DEPOSIT') {
+    iconColorClass = 'text-purple-500 bg-purple-500/10';
+  }
 
   // Определяем классы для карточки транзакции
   const cardClasses = `flex items-start space-x-4 rounded-md border p-4 bg-card/60 backdrop-blur-sm transition-all hover:bg-card
-                      ${isTonBoostRelated ? 'border-blue-500/20 hover:border-blue-500/40' : ''}`;
+                      ${isTonBoostRelated ? 'border-blue-500/20 hover:border-blue-500/40' : ''}
+                      ${type === 'FARMING_DEPOSIT' ? 'border-purple-500/20 hover:border-purple-500/40' : ''}`;
 
   return (
     <div className={cardClasses}>
