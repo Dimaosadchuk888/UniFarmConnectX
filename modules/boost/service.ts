@@ -358,7 +358,7 @@ export class BoostService {
           .from('transactions')
           .insert({
             user_id: parseInt(userId),
-            type: 'FARMING_REWARD', // Используем существующий тип из схемы базы данных
+            type: 'BOOST_PURCHASE', // Новый тип для покупок TON Boost
             amount: requiredAmount.toString(),
             currency: 'TON',
             status: 'completed',
