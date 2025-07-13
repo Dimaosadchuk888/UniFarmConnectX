@@ -1,4 +1,4 @@
-import { BalanceManager } from '../core/BalanceManager';
+import { BalanceManager, BalanceChangeData } from '../core/BalanceManager';
 import { BalanceNotificationService } from '../core/balanceNotificationService';
 import { logger } from '../core/logger';
 
@@ -12,26 +12,37 @@ export function setupWebSocketBalanceIntegration(): void {
     const notificationService = BalanceNotificationService.getInstance();
     
     // Устанавливаем callback для отправки WebSocket уведомлений при изменении баланса
-    balanceManager.onBalanceUpdate = async (userId: number) => {
+    balanceManager.onBalanceUpdate = async (changeData: BalanceChangeData) => {
       try {
-        // Получаем актуальный баланс
-        const balance = await balanceManager.getUserBalance(userId);
+        // Определяем основную валюту и сумму изменения
+        const changeAmount = changeData.currency === 'UNI' ? changeData.changeAmountUni : 
+                            changeData.currency === 'TON' ? changeData.changeAmountTon :
+                            Math.max(changeData.changeAmountUni, changeData.changeAmountTon);
         
-        // Формируем объект для уведомления
+        const primaryCurrency = changeData.currency === 'BOTH' ? 
+                               (changeData.changeAmountUni >= changeData.changeAmountTon ? 'UNI' : 'TON') :
+                               changeData.currency;
+        
+        // Формируем объект для уведомления с актуальными данными
         notificationService.notifyBalanceUpdate({
-          userId,
-          balanceUni: balance.balance_uni,
-          balanceTon: balance.balance_ton,
-          changeAmount: 0, // Значение изменения будет агрегировано в notificationService
-          currency: 'UNI', // По умолчанию, т.к. не знаем какая валюта изменилась
-          source: 'balance_update',
+          userId: changeData.userId,
+          balanceUni: changeData.newBalanceUni,
+          balanceTon: changeData.newBalanceTon,
+          changeAmount: changeAmount,
+          currency: primaryCurrency,
+          source: changeData.source as any,
           timestamp: new Date().toISOString()
         });
         
-        logger.info('[WebSocketBalanceIntegration] Уведомление о балансе отправлено', { userId });
+        logger.info('[WebSocketBalanceIntegration] Уведомление о балансе отправлено', { 
+          userId: changeData.userId,
+          changeUni: changeData.changeAmountUni,
+          changeTon: changeData.changeAmountTon,
+          source: changeData.source
+        });
       } catch (error) {
         logger.error('[WebSocketBalanceIntegration] Ошибка отправки уведомления о балансе', {
-          userId,
+          userId: changeData.userId,
           error: error instanceof Error ? error.message : String(error)
         });
       }

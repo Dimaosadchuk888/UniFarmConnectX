@@ -32,11 +32,23 @@ export interface UserBalance {
   last_updated: string;
 }
 
+export interface BalanceChangeData {
+  userId: number;
+  changeAmountUni: number;
+  changeAmountTon: number;
+  currency: 'UNI' | 'TON' | 'BOTH';
+  source: string;
+  oldBalanceUni: number;
+  oldBalanceTon: number;
+  newBalanceUni: number;
+  newBalanceTon: number;
+}
+
 export class BalanceManager {
   private static instance: BalanceManager;
   
   // Callback для уведомлений об изменении баланса (для WebSocket)
-  public onBalanceUpdate?: (userId: number) => Promise<void>;
+  public onBalanceUpdate?: (changeData: BalanceChangeData) => Promise<void>;
 
   public static getInstance(): BalanceManager {
     if (!BalanceManager.instance) {
@@ -168,7 +180,19 @@ export class BalanceManager {
 
       // Отправляем WebSocket уведомление об обновлении баланса
       if (this.onBalanceUpdate) {
-        this.onBalanceUpdate(user_id).catch(error => {
+        const changeData: BalanceChangeData = {
+          userId: user_id,
+          changeAmountUni: amount_uni || 0,
+          changeAmountTon: amount_ton || 0,
+          currency: amount_uni && amount_ton ? 'BOTH' : (amount_uni ? 'UNI' : 'TON'),
+          source: source || 'unknown',
+          oldBalanceUni: current.balance_uni,
+          oldBalanceTon: current.balance_ton,
+          newBalanceUni: newBalance.balance_uni,
+          newBalanceTon: newBalance.balance_ton
+        };
+        
+        this.onBalanceUpdate(changeData).catch(error => {
           logger.error('[BalanceManager] Ошибка при отправке WebSocket уведомления:', {
             user_id,
             error: error instanceof Error ? error.message : String(error)

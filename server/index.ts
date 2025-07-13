@@ -954,10 +954,10 @@ async function startServer() {
         logger.error('❌ Ошибка запуска TON Boost планировщика', { error });
       }
       
-      // Настройка интеграции WebSocket с BalanceManager
+      // Настройка интеграции WebSocket с BalanceManager (с исправленными уведомлениями)
       try {
         setupWebSocketBalanceIntegration();
-        logger.info('✅ WebSocket интеграция с BalanceManager настроена');
+        logger.info('✅ WebSocket интеграция с BalanceManager настроена (v2 with changeAmount fix)');
       } catch (error) {
         logger.error('❌ Ошибка настройки WebSocket интеграции', { error });
       }
