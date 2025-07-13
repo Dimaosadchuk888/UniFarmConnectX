@@ -6,7 +6,7 @@
 import { supabase } from './supabase';
 import { logger } from './logger';
 import { balanceCache } from './BalanceCache';
-import { BalanceNotificationService } from './BalanceNotificationService';
+import { BalanceNotificationService } from './balanceNotificationService';
 
 interface BatchOperation {
   userId: number;
