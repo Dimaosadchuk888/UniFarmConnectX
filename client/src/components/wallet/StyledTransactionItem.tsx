@@ -21,6 +21,12 @@ interface Transaction {
   description?: string;
   createdAt: string;
   timestamp?: number;
+  metadata?: {
+    original_type?: string;
+    transaction_source?: string;
+    boost_package_id?: number;
+    [key: string]: any;
+  };
 }
 
 interface StyledTransactionItemProps {
@@ -43,12 +49,16 @@ type TransactionConfigType =
   | 'AIRDROP_REWARD';
 
 // Конфигурация стилей для каждого типа транзакции
-const getTransactionConfig = (type: string, description?: string) => {
-  // Определяем тип транзакции на основе type и description
+const getTransactionConfig = (type: string, description?: string, metadata?: any) => {
+  // Определяем тип транзакции на основе metadata, type и description (в порядке приоритета)
   let transactionType: TransactionConfigType = type as TransactionConfigType;
   
-  // Парсинг расширенных типов из description для FARMING_REWARD
-  if (type === 'FARMING_REWARD' && description) {
+  // Приоритет 1: Используем metadata.original_type если доступен
+  if (metadata?.original_type) {
+    transactionType = metadata.original_type as TransactionConfigType;
+  }
+  // Приоритет 2: Парсинг расширенных типов из description для FARMING_REWARD
+  else if (type === 'FARMING_REWARD' && description) {
     if (description.includes('TON Boost') || description.includes('🚀')) {
       transactionType = 'TON_BOOST_INCOME';
     } else if (description.includes('Deposit') || description.includes('💳')) {
@@ -272,7 +282,7 @@ const getAmountSign = (type: string, description?: string): '+' | '-' => {
 const StyledTransactionItem: React.FC<StyledTransactionItemProps> = ({ 
   transaction 
 }) => {
-  const config = getTransactionConfig(transaction.type, transaction.description);
+  const config = getTransactionConfig(transaction.type, transaction.description, transaction.metadata);
   const IconComponent = config.icon;
   const sign = getAmountSign(transaction.type, transaction.description);
   

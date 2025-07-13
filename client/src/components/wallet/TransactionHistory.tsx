@@ -18,6 +18,12 @@ interface Transaction {
   description?: string;
   created_at: string;
   updated_at?: string;
+  metadata?: {
+    original_type?: string;
+    transaction_source?: string;
+    boost_package_id?: number;
+    [key: string]: any;
+  };
 }
 
 /**
