@@ -273,7 +273,8 @@ export class BoostService {
 
       // Получаем данные кошелька пользователя по ID
       const walletData = await walletService.getWalletDataByUserId(userId);
-      const requiredAmount = parseFloat(boostPackage.min_amount || "0");
+      // ИСПРАВЛЕНИЕ: убираем лишний parseFloat, так как min_amount уже число
+      const requiredAmount = boostPackage.min_amount || 0;
       
       logger.info('[BoostService] Данные кошелька получены', {
         userId,

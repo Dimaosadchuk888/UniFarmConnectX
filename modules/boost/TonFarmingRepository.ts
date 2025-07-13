@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
+import { UnifiedTransactionService } from '../../core/TransactionService';
 
 export interface TonFarmingData {
   user_id: number;
@@ -278,10 +279,59 @@ export class TonFarmingRepository {
             logger.error('[TonFarmingRepository] Error activating boost in users table:', fallbackError);
             return false;
           }
+          
+          // ИСПРАВЛЕНИЕ: Создаем транзакцию депозита TON для прозрачности (fallback случай)
+          if (depositAmount && depositAmount > 0) {
+            const transactionService = new UnifiedTransactionService();
+            await transactionService.createTransaction({
+              user_id: parseInt(userId),
+              type: 'BOOST_PURCHASE', // Используем существующий тип
+              amount_ton: depositAmount,
+              currency: 'TON',
+              status: 'completed',
+              description: `TON Boost deposit (Package ${packageId})`,
+              metadata: {
+                original_type: 'TON_BOOST_DEPOSIT',
+                boost_package_id: packageId,
+                transaction_source: 'ton_farming_repository'
+              }
+            });
+            
+            logger.info('[TonFarmingRepository] TON deposit transaction created (fallback)', {
+              userId,
+              amount: depositAmount,
+              packageId
+            });
+          }
+          
           return true;
         }
         logger.error('[TonFarmingRepository] Error activating boost:', error);
         return false;
+      }
+
+      // ИСПРАВЛЕНИЕ: Создаем транзакцию депозита TON для прозрачности
+      if (depositAmount && depositAmount > 0) {
+        const transactionService = new UnifiedTransactionService();
+        await transactionService.createTransaction({
+          user_id: parseInt(userId),
+          type: 'BOOST_PURCHASE', // Используем существующий тип
+          amount_ton: depositAmount,
+          currency: 'TON',
+          status: 'completed',
+          description: `TON Boost deposit (Package ${packageId})`,
+          metadata: {
+            original_type: 'TON_BOOST_DEPOSIT',
+            boost_package_id: packageId,
+            transaction_source: 'ton_farming_repository'
+          }
+        });
+        
+        logger.info('[TonFarmingRepository] TON deposit transaction created', {
+          userId,
+          amount: depositAmount,
+          packageId
+        });
       }
 
       return true;
