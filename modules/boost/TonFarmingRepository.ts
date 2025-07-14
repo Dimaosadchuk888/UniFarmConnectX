@@ -253,9 +253,21 @@ export class TonFarmingRepository {
         const currentBalance = parseFloat(existingRecord.farming_balance) || 0;
         const depositToAdd = depositAmount || 0;
         newFarmingBalance = (currentBalance + depositToAdd).toString();
+        
+        logger.info('[TonFarmingRepository] Накопление депозита:', {
+          userId,
+          currentBalance,
+          depositToAdd,
+          newFarmingBalance
+        });
       } else {
         // Первый депозит
         newFarmingBalance = depositAmount ? depositAmount.toString() : '0';
+        logger.info('[TonFarmingRepository] Первый депозит:', {
+          userId,
+          depositAmount,
+          newFarmingBalance
+        });
       }
       
       const { error } = await supabase
