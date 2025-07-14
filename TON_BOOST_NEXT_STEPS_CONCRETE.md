@@ -1,183 +1,97 @@
-# 🎯 КОНКРЕТНЫЙ ПЛАН ДЕЙСТВИЙ: TON Boost
+# 🚨 TON BOOST: КОНКРЕТНЫЕ ШАГИ ДЛЯ РЕШЕНИЯ
 
-**Приоритет:** Унификация с UNI Farming для исправления потери средств  
-**Время:** 1-2 часа на реализацию  
+**Статус:** Код с накоплением внедрен, но НЕ работает после перезапуска  
+**Проблема:** farming_balance = 25 TON вместо 119 TON (потеря 79%)
 
 ---
 
-## 📋 ШАГ 1: Изменить логику накопления (30 минут)
+## ПРОБЛЕМА НАЙДЕНА
 
-### Файл: `modules/boost/TonFarmingRepository.ts`
-
-**Найти метод:** `activateBoost()` (строка ~243)
-
-**Изменить:**
+В `modules/boost/service.ts` строка 330 передается неправильный тип данных:
 ```typescript
-// БЫЛО: просто обновление записи
-// СТАЛО: накопление суммы
-async activateBoost(userId: number, depositAmount: number, boostPackageId: number) {
-  const existing = await this.getByUserId(userId);
-  
-  if (existing) {
-    // Накопление вместо замены
-    const newBalance = existing.farming_balance + depositAmount;
-    
-    const { error } = await supabase
-      .from('ton_farming_data')
-      .update({
-        farming_balance: newBalance,  // Суммируем!
-        boost_package_id: boostPackageId,
-        farming_rate: this.getPackageRate(boostPackageId),
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId);
-  } else {
-    // Первая покупка - создаем запись
-    await this.create({
-      user_id: userId,
-      farming_balance: depositAmount,
-      boost_package_id: boostPackageId,
-      farming_rate: this.getPackageRate(boostPackageId)
-    });
-  }
-}
+boostPackage.duration_days,  // Это число (30), а ожидается строка даты!
+```
+
+Метод `activateBoost` ожидает:
+```typescript
+async activateBoost(userId: string, packageId: number, rate: number, expiresAt?: string, depositAmount?: number)
 ```
 
 ---
 
-## 📋 ШАГ 2: Передать сумму депозита (15 минут)
+## РЕШЕНИЕ #1: ИСПРАВИТЬ ТИП ДАННЫХ (1 строка)
 
-### Файл: `modules/boost/service.ts`
-
-**Найти:** `purchaseWithInternalWallet()` (строка ~350)
-
-**Изменить:**
+**Файл:** `modules/boost/service.ts`  
+**Строка:** 330  
+**Заменить:**
 ```typescript
-// Передаем сумму депозита в activateBoost
-const result = await TonFarmingRepository.activateBoost(
-  user.id,
-  requiredAmount,  // <-- ДОБАВИТЬ этот параметр
-  boost_package_id
+boostPackage.duration_days,
+```
+**На:**
+```typescript
+undefined, // или null
+```
+
+Полный вызов должен быть:
+```typescript
+const immediateActivation = await tonFarmingRepo.activateBoost(
+  userId,
+  boostPackage.id,
+  boostPackage.daily_rate / 100,
+  undefined,        // expiresAt - необязательный параметр
+  requiredAmount    // depositAmount - сумма депозита
 );
 ```
 
 ---
 
-## 📋 ШАГ 3: Решить вопрос со ставками (15 минут)
+## РЕШЕНИЕ #2: КОМПЕНСАЦИЯ ПОТЕРЬ (SQL)
 
-### Вариант A: Фиксированная ставка (ПРОСТОЙ)
-```typescript
-// Всегда использовать максимальную ставку последнего пакета
-farming_rate: this.getPackageRate(boostPackageId)
-```
+Для пользователя 74 потеряно 94 TON. Восстановить правильный баланс:
 
-### Вариант B: Средневзвешенная ставка (СПРАВЕДЛИВЫЙ)
-```typescript
-// Рассчитать среднюю ставку
-const oldAmount = existing.farming_balance;
-const oldRate = existing.farming_rate;
-const newAmount = depositAmount;
-const newRate = this.getPackageRate(boostPackageId);
-
-const weightedRate = (oldAmount * oldRate + newAmount * newRate) / 
-                    (oldAmount + newAmount);
-```
-
-**Рекомендую:** Вариант A для простоты
-
----
-
-## 📋 ШАГ 4: Добавить metadata в транзакции (15 минут)
-
-### Файл: `modules/boost/service.ts`
-
-**Найти:** создание транзакции BOOST_PURCHASE (строка ~361)
-
-**Добавить:**
-```typescript
-metadata: {
-  original_type: 'TON_BOOST_PURCHASE',
-  boost_package_id: boost_package_id,
-  package_name: boostPackage.name,
-  daily_rate: boostPackage.daily_rate,
-  cumulative_balance: user.farming_balance + requiredAmount  // Новый баланс
-}
-```
-
----
-
-## 📋 ШАГ 5: UI индикатор накопления (30 минут)
-
-### Файл: `client/src/components/ton-boost/TonBoostStatus.tsx`
-
-**Добавить отображение:**
-```tsx
-// Показать историю депозитов
-<div className="mt-4 p-3 bg-gray-50 rounded">
-  <h4 className="font-medium">Ваши депозиты TON Boost:</h4>
-  <div className="text-sm text-gray-600 mt-2">
-    <p>Всего внесено: {totalDeposited} TON</p>
-    <p>Активный баланс: {farmingBalance} TON</p>
-    <p>Текущая ставка: {currentRate * 100}% в день</p>
-  </div>
-</div>
-```
-
----
-
-## 📋 ШАГ 6: Тестирование (15 минут)
-
-### Тестовый сценарий:
-1. Купить пакет за 5 TON → `farming_balance = 5`
-2. Купить пакет за 10 TON → `farming_balance = 15`
-3. Проверить начисления → доход от 15 TON
-
-### SQL для проверки:
 ```sql
--- Проверить накопление
-SELECT user_id, farming_balance, boost_package_id, farming_rate
-FROM ton_farming_data 
+-- Установить правильный накопленный баланс
+UPDATE ton_farming_data 
+SET farming_balance = '119' 
 WHERE user_id = 74;
 
--- Проверить транзакции
-SELECT type, amount, metadata
-FROM transactions
-WHERE user_id = 74 
-AND type = 'BOOST_PURCHASE'
-ORDER BY created_at DESC;
+-- Или если используется fallback (таблица users)
+UPDATE users 
+SET ton_farming_balance = '119' 
+WHERE id = 74;
 ```
 
 ---
 
-## ⚠️ ВАЖНЫЕ МОМЕНТЫ:
+## ПРОВЕРКА ПОСЛЕ ИСПРАВЛЕНИЯ
 
-1. **НЕ ТРОГАТЬ** существующие балансы пользователей
-2. **НЕ СОЗДАВАТЬ** миграции для возврата средств
-3. **ПРОТЕСТИРОВАТЬ** на новом тестовом пользователе
-4. **БЭКАП** таблицы ton_farming_data перед изменениями
+1. **Применить исправление** в service.ts
+2. **Перезапустить сервер**
+3. **Сделать тестовую покупку** (например, 1 TON)
+4. **Проверить баланс:**
+   - Должен стать 120 TON (119 + 1)
+   - А не 1 TON (замена)
 
 ---
 
-## 🔥 АЛЬТЕРНАТИВА (если нужна гибкость):
+## АЛЬТЕРНАТИВА: РУЧНОЕ НАКОПЛЕНИЕ
 
-Добавить флаг выбора при покупке:
+Если исправление не поможет, можно добавить логирование в `TonFarmingRepository.activateBoost()`:
+
 ```typescript
-// В UI добавить checkbox
-[ ] Добавить к существующему балансу
-[ ] Заменить текущий пакет
-
-// В коде
-if (addToExisting) {
-  // Накопление
-  newBalance = existing.farming_balance + amount;
-} else {
-  // Замена
-  newBalance = amount;
-}
+logger.info('[TonFarmingRepository] activateBoost вызван', {
+  userId,
+  packageId,
+  rate,
+  expiresAt,
+  depositAmount,
+  existingRecord,
+  newFarmingBalance
+});
 ```
+
+Это покажет, почему накопление не работает.
 
 ---
 
-**Итого времени:** ~1.5 часа  
-**Сложность:** Низкая  
-**Риск:** Минимальный (только для новых покупок)
+**Рекомендация:** Сначала попробовать Решение #1 (исправить передачу параметра).
