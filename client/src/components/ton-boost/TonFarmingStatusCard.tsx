@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { formatNumberWithPrecision, getUserIdFromURL } from '@/lib/utils';
+import { formatNumberWithPrecision } from '@/lib/utils';
+import { getUserIdFromJWT } from '@/lib/getUserIdFromJWT';
 import { Progress } from "@/components/ui/progress"
 
 interface TonFarmingInfo {
@@ -23,8 +24,9 @@ interface TonFarmingInfo {
 }
 
 const TonFarmingStatusCard: React.FC = () => {
-  // Получаем ID пользователя
-  const userId = getUserIdFromURL() || '1';
+  // Получаем ID пользователя из JWT токена
+  const userId = getUserIdFromJWT() || '1';
+  console.log('[TonFarmingStatusCard] Получен userId:', userId);
 
   // Анимация числовых значений
   const [dailyYield, setDailyYield] = useState(0);
