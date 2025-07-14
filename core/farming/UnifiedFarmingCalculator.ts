@@ -18,7 +18,7 @@ export interface FarmingIncome {
 
 export class UnifiedFarmingCalculator {
   private static MAX_ALLOWED_PERIODS = 288; // Максимум 24 часа (288 * 5 минут)
-  private static MAX_SINGLE_TRANSACTION = 10000; // Максимум 10k UNI за раз
+  private static MAX_SINGLE_TRANSACTION = 1000000; // Максимум 1M UNI за раз (для больших инфлюенсеров)
   
   /**
    * ЕДИНСТВЕННОЕ место расчета farming income
