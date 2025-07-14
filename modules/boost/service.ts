@@ -966,7 +966,7 @@ export class BoostService {
       // Рассчитываем доход на основе ставки пакета
       const dailyRate = parseFloat(boostPackage.daily_rate) * 100; // 1%, 1.5%, 2%, 2.5%, 3%
       const ratePerSecond = (dailyRate / 100) / 86400; // Процент в секунду
-      const dailyIncome = (tonBalance * dailyRate) / 100; // Дневной доход в TON
+      const dailyIncome = (farmingBalance * dailyRate) / 100; // Дневной доход в TON
 
       logger.info('[BoostService] Рассчитан статус TON Boost фарминга', {
         userId,

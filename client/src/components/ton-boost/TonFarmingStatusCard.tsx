@@ -288,8 +288,8 @@ const TonFarmingStatusCard: React.FC = () => {
                       const deposits = farmingInfo?.data?.deposits || [];
                       if (Array.isArray(deposits) && deposits.length > 0) {
                         amount = deposits.reduce((sum, deposit) => {
-                          const depositAmount = typeof deposit.ton_amount === 'string' ? 
-                            parseFloat(deposit.ton_amount) : (deposit.ton_amount || 0);
+                          const depositAmount = typeof deposit.amount === 'string' ? 
+                            parseFloat(deposit.amount) : (deposit.amount || 0);
                           return sum + (isNaN(depositAmount) ? 0 : depositAmount);
                         }, 0);
                       }
