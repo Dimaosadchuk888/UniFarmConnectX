@@ -947,6 +947,22 @@ export class BoostService {
         };
       }
 
+      // Получаем farming_balance из ton_farming_data для корректного отображения
+      let farmingBalance = tonBalance; // По умолчанию используем balance_ton
+      try {
+        const { data: farmingData } = await supabase
+          .from('ton_farming_data')
+          .select('farming_balance')
+          .eq('user_id', parseInt(userId))
+          .single();
+        
+        if (farmingData && farmingData.farming_balance) {
+          farmingBalance = parseFloat(farmingData.farming_balance);
+        }
+      } catch (e) {
+        // Используем tonBalance как fallback
+      }
+
       // Рассчитываем доход на основе ставки пакета
       const dailyRate = parseFloat(boostPackage.daily_rate) * 100; // 1%, 1.5%, 2%, 2.5%, 3%
       const ratePerSecond = (dailyRate / 100) / 86400; // Процент в секунду
@@ -956,6 +972,7 @@ export class BoostService {
         userId,
         activeBoostId,
         tonBalance,
+        farmingBalance,
         dailyRate,
         dailyIncome
       });
@@ -968,7 +985,7 @@ export class BoostService {
         deposits: [{
           id: activeBoostId,
           package_name: boostPackage.name,
-          amount: tonBalance.toString(),
+          amount: farmingBalance.toString(), // Используем farming_balance для отображения
           rate: dailyRate.toString(),
           status: 'active'
         }]
