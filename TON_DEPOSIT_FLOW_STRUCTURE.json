@@ -1,0 +1,275 @@
+{
+  "ton_deposit_flow": {
+    "step_1": {
+      "name": "User opens Wallet section",
+      "action": "Navigate to Wallet page",
+      "components": ["client/src/pages/Wallet.tsx"],
+      "description": "Пользователь заходит в раздел 'Кошелек' через главное меню"
+    },
+    "step_2": {
+      "name": "TonDepositCard displayed",
+      "action": "Show deposit form",
+      "components": ["client/src/components/wallet/TonDepositCard.tsx"],
+      "description": "Отображается карточка для пополнения через TON Wallet"
+    },
+    "step_3": {
+      "name": "Check wallet connection",
+      "action": "Verify TON Connect status",
+      "frontend": {
+        "components": ["TonDepositCard.tsx"],
+        "hooks": ["useTonConnectUI()"],
+        "functions": ["isTonWalletConnected()"]
+      },
+      "description": "Проверяется статус подключения TON кошелька"
+    },
+    "step_4": {
+      "name": "Connect TON Wallet",
+      "action": "Initialize wallet connection",
+      "frontend": {
+        "components": ["TonDepositCard.tsx"],
+        "service": "client/src/services/tonConnectService.ts",
+        "functions": [
+          "connectTonWallet(tonConnectUI)",
+          "saveTonWalletAddress(address)"
+        ]
+      },
+      "backend": {
+        "endpoints": [
+          "POST /api/v2/wallet/connect-ton",
+          "POST /api/v2/wallet/save-ton-address"
+        ],
+        "controller": "modules/wallet/controller.ts",
+        "methods": ["connectTonWallet()", "saveTonAddress()"]
+      },
+      "database": {
+        "table": "users",
+        "fields_updated": [
+          "ton_wallet_address",
+          "ton_wallet_verified",
+          "ton_wallet_linked_at"
+        ]
+      },
+      "description": "Пользователь подключает TON кошелек через TON Connect UI"
+    },
+    "step_5": {
+      "name": "Enter deposit amount",
+      "action": "User inputs TON amount",
+      "frontend": {
+        "components": ["TonDepositCard.tsx"],
+        "validation": {
+          "min_amount": 0.1,
+          "input_type": "number",
+          "decimal_places": 9
+        }
+      },
+      "description": "Пользователь вводит сумму для пополнения (минимум 0.1 TON)"
+    },
+    "step_6": {
+      "name": "Send TON transaction",
+      "action": "Execute blockchain transaction",
+      "frontend": {
+        "service": "client/src/services/tonConnectService.ts",
+        "function": "sendTonTransaction(tonConnectUI, amount, comment)",
+        "parameters": {
+          "tonConnectUI": "TonConnectUI instance",
+          "amount": "string (TON amount)",
+          "comment": "string ('UniFarm Deposit')"
+        },
+        "process": [
+          "Convert TON to nanoTON (1 TON = 10^9 nanoTON)",
+          "Create BOC payload with comment",
+          "Build transaction object",
+          "Call tonConnectUI.sendTransaction()"
+        ]
+      },
+      "blockchain": {
+        "recipient_address": "TON_PROJECT_ADDRESS (from env VITE_TON_BOOST_RECEIVER_ADDRESS)",
+        "default_address": "UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8",
+        "transaction_lifetime": "10 minutes (600 seconds)",
+        "network": "TON mainnet"
+      },
+      "errors": [
+        "UserRejectsError - пользователь отменил транзакцию",
+        "WalletNotConnectedError - кошелек не подключен"
+      ],
+      "description": "Отправка транзакции через TON Connect в блокчейн"
+    },
+    "step_7": {
+      "name": "Process deposit on backend",
+      "action": "Register deposit in system",
+      "frontend": {
+        "endpoint": "POST /api/v2/wallet/ton-deposit",
+        "payload": {
+          "user_id": "number",
+          "ton_tx_hash": "string (transaction hash)",
+          "amount": "number (TON amount)",
+          "wallet_address": "string (sender address)"
+        },
+        "headers": {
+          "Authorization": "Bearer [JWT_TOKEN]",
+          "Content-Type": "application/json"
+        }
+      },
+      "backend": {
+        "route": "modules/wallet/routes.ts:82",
+        "validation": "tonDepositSchema (zod)",
+        "controller": "modules/wallet/controller.ts:440",
+        "method": "tonDeposit()",
+        "service": "modules/wallet/service.ts:357",
+        "method_service": "processTonDeposit()",
+        "process": [
+          "Validate JWT auth via requireTelegramAuth middleware",
+          "Validate request body with zod schema",
+          "Get user by telegram_id",
+          "Check for duplicate transactions by tx_hash",
+          "Add balance via BalanceManager",
+          "Create transaction record via UnifiedTransactionService"
+        ]
+      },
+      "database": {
+        "operations": [
+          {
+            "check_duplicate": {
+              "table": "transactions",
+              "query": "SELECT * WHERE description = tx_hash AND type = 'DEPOSIT'",
+              "purpose": "Предотвращение двойного начисления"
+            }
+          },
+          {
+            "update_balance": {
+              "table": "users",
+              "fields": ["balance_ton"],
+              "operation": "balance_ton = balance_ton + amount",
+              "service": "BalanceManager.addBalance()"
+            }
+          },
+          {
+            "create_transaction": {
+              "table": "transactions",
+              "fields": {
+                "user_id": "number",
+                "amount": "number",
+                "type": "DEPOSIT",
+                "currency": "TON",
+                "status": "completed",
+                "description": "tx_hash",
+                "metadata": {
+                  "source": "ton_deposit",
+                  "wallet_address": "sender address",
+                  "tx_hash": "transaction hash"
+                }
+              },
+              "service": "UnifiedTransactionService.createTransaction()"
+            }
+          }
+        ]
+      },
+      "error_handling": {
+        "duplicate_transaction": "Return 400 with error message",
+        "balance_update_failed": "Rollback transaction, return error",
+        "transaction_creation_failed": "Rollback balance, return error"
+      },
+      "description": "Backend обрабатывает депозит и обновляет баланс"
+    },
+    "step_8": {
+      "name": "Update UI",
+      "action": "Refresh balance and show success",
+      "frontend": {
+        "components": ["TonDepositCard.tsx"],
+        "actions": [
+          "Show success notification",
+          "Clear amount input",
+          "Call refreshBalance() after 1 second delay"
+        ]
+      },
+      "websocket": {
+        "event": "balance_update",
+        "payload": {
+          "userId": "number",
+          "balanceUni": "number",
+          "balanceTon": "number (updated)",
+          "changeAmount": "number"
+        },
+        "description": "WebSocket отправляет обновление баланса всем подключенным клиентам"
+      },
+      "description": "UI обновляется, показывая новый баланс"
+    }
+  },
+  "error_scenarios": {
+    "wallet_not_connected": {
+      "description": "Кошелек не подключен при попытке отправить транзакцию",
+      "handling": "Показать ошибку 'Сначала подключите кошелек'",
+      "recovery": "Пользователь должен сначала подключить кошелек"
+    },
+    "transaction_rejected": {
+      "description": "Пользователь отменил транзакцию в кошельке",
+      "handling": "Показать ошибку 'Транзакция отменена'",
+      "recovery": "Пользователь может повторить попытку"
+    },
+    "duplicate_transaction": {
+      "description": "Попытка обработать уже существующую транзакцию",
+      "handling": "Backend возвращает ошибку 'Этот депозит уже был обработан'",
+      "recovery": "Проверить историю транзакций"
+    },
+    "network_error": {
+      "description": "Ошибка сети при отправке на backend",
+      "handling": "Показать ошибку 'Ошибка при отправке транзакции'",
+      "recovery": "Повторить запрос или обратиться в поддержку"
+    },
+    "insufficient_balance": {
+      "description": "Недостаточно TON на кошельке для транзакции",
+      "handling": "TON Connect покажет ошибку в интерфейсе кошелька",
+      "recovery": "Пополнить баланс кошелька"
+    }
+  },
+  "security_measures": {
+    "jwt_authentication": {
+      "middleware": "requireTelegramAuth",
+      "validation": "JWT token в header Authorization",
+      "purpose": "Защита от неавторизованного доступа"
+    },
+    "duplicate_prevention": {
+      "method": "Check tx_hash in database",
+      "purpose": "Предотвращение двойного начисления средств"
+    },
+    "input_validation": {
+      "frontend": "Min amount 0.1 TON",
+      "backend": "Zod schema validation",
+      "purpose": "Защита от некорректных данных"
+    },
+    "transaction_atomicity": {
+      "method": "Rollback balance on transaction creation failure",
+      "purpose": "Обеспечение целостности данных"
+    }
+  },
+  "technical_notes": {
+    "issues_found": {
+      "sendTonTransaction_signature": {
+        "problem": "TonDepositCard вызывает sendTonTransaction с 4 параметрами, но функция принимает только 3",
+        "location": "client/src/components/wallet/TonDepositCard.tsx:100-105",
+        "correct_usage": "sendTonTransaction(tonConnectUI, amount, comment)",
+        "incorrect_usage": "sendTonTransaction(tonConnectUI, address, amount, comment)"
+      },
+      "address_parameter": {
+        "note": "Адрес получателя захардкожен в tonConnectService как TON_PROJECT_ADDRESS",
+        "value": "UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8"
+      }
+    },
+    "websocket_integration": {
+      "service": "BalanceNotificationService",
+      "trigger": "BalanceManager operations",
+      "purpose": "Real-time balance updates"
+    },
+    "database_fields": {
+      "transactions_table": [
+        "id", "user_id", "type", "amount", "currency",
+        "status", "description", "metadata", "created_at",
+        "updated_at", "tx_hash"
+      ],
+      "users_table_ton_fields": [
+        "balance_ton", "ton_wallet_address",
+        "ton_wallet_verified", "ton_wallet_linked_at"
+      ]
+    }
+  }
+}
