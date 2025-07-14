@@ -93,18 +93,14 @@ const TonDepositCard: React.FC = () => {
     showLoading('Отправка транзакции...');
 
     try {
-      // Адрес кошелька UniFarm для приема депозитов
-      const UNIFARM_WALLET_ADDRESS = process.env.VITE_TON_DEPOSIT_ADDRESS || 'EQBvI0aFLnw2QbZgjMPCLRdtRHxhUyinQudg6sdiohIwg5jL';
-      
       // Отправляем транзакцию через TON Connect
       const result = await sendTonTransaction(
         tonConnectUI,
-        UNIFARM_WALLET_ADDRESS,
         depositAmount.toString(),
         'UniFarm Deposit'
       );
 
-      if (result.success && result.transactionHash) {
+      if (result && result.status === 'success' && result.txHash) {
         // Отправляем информацию о транзакции на backend
         const response = await fetch('/api/v2/wallet/ton-deposit', {
           method: 'POST',
@@ -114,7 +110,7 @@ const TonDepositCard: React.FC = () => {
           },
           body: JSON.stringify({
             user_id: userId,
-            ton_tx_hash: result.transactionHash,
+            ton_tx_hash: result.txHash,
             amount: depositAmount,
             wallet_address: walletAddress
           })
@@ -133,7 +129,7 @@ const TonDepositCard: React.FC = () => {
           showError(data.error || 'Ошибка обработки депозита');
         }
       } else {
-        showError(result.error || 'Транзакция отменена');
+        showError('Транзакция отменена');
       }
     } catch (error) {
       console.error('Ошибка при депозите:', error);
