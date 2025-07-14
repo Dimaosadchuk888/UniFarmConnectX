@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Clock, Coins } from 'lucide-react';
+import { CheckCircle, Clock, Coins, ExternalLink } from 'lucide-react';
 import { useUser } from '@/contexts/userContext';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useToast } from '@/hooks/use-toast';
@@ -196,6 +196,23 @@ const SimpleMissionsList: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-300 mb-4">{mission.description}</p>
+                
+                {/* Добавляем ссылку на ресурс миссии */}
+                {mission.link && (
+                  <a 
+                    href={mission.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 mb-4 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log(`[SimpleMissionsList] Переход по ссылке миссии ${mission.id}: ${mission.link}`);
+                    }}
+                  >
+                    <span>Перейти к заданию</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-yellow-400">
