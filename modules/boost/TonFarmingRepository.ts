@@ -60,7 +60,7 @@ export class TonFarmingRepository {
       const { data, error } = await supabase
         .from(this.tableName)
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', parseInt(userId))
         .single();
 
       if (error) {
@@ -270,21 +270,43 @@ export class TonFarmingRepository {
         });
       }
       
-      const { error } = await supabase
+      // Подготавливаем данные для upsert
+      const upsertData = {
+        user_id: parseInt(userId),
+        boost_active: true,
+        boost_package_id: packageId,
+        farming_rate: rate.toString(),
+        farming_balance: newFarmingBalance, // Используем накопленный баланс
+        boost_expires_at: expiresAt || null,
+        farming_start_timestamp: new Date().toISOString(),
+        farming_last_update: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      logger.info('[TonFarmingRepository] Выполняем upsert с данными:', {
+        userId,
+        upsertData,
+        existingBalance: existingRecord?.farming_balance,
+        depositAmount
+      });
+      
+      const { data: upsertResult, error } = await supabase
         .from(this.tableName)
-        .upsert({
-          user_id: parseInt(userId),
-          boost_active: true,
-          boost_package_id: packageId,
-          farming_rate: rate.toString(),
-          farming_balance: newFarmingBalance, // Используем накопленный баланс
-          boost_expires_at: expiresAt || null,
-          farming_start_timestamp: new Date().toISOString(),
-          farming_last_update: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        .upsert(upsertData, {
+          onConflict: 'user_id'
+        })
+        .select();
 
       if (error) {
+        logger.error('[TonFarmingRepository] Ошибка upsert операции:', {
+          error,
+          errorCode: error.code,
+          errorMessage: error.message,
+          userId,
+          packageId,
+          newFarmingBalance
+        });
+        
         if (error.code === '42P01') {
           // Таблица не существует, используем fallback
           this.useFallback = true;
@@ -354,6 +376,15 @@ export class TonFarmingRepository {
         logger.error('[TonFarmingRepository] Error activating boost:', error);
         return false;
       }
+      
+      // Логируем успешный upsert
+      logger.info('[TonFarmingRepository] Upsert успешно выполнен:', {
+        userId,
+        packageId,
+        newFarmingBalance,
+        farming_rate: rate,
+        upsertResult
+      });
 
       // ИСПРАВЛЕНИЕ: Создаем транзакцию депозита TON для прозрачности
       if (depositAmount && depositAmount > 0) {
