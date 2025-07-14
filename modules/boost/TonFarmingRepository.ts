@@ -244,6 +244,20 @@ export class TonFarmingRepository {
    */
   async activateBoost(userId: string, packageId: number, rate: number, expiresAt?: string, depositAmount?: number): Promise<boolean> {
     try {
+      // Сначала получаем существующую запись
+      const existingRecord = await this.getByUserId(parseInt(userId));
+      
+      let newFarmingBalance: string;
+      if (existingRecord && existingRecord.farming_balance) {
+        // Накапливаем баланс вместо замены
+        const currentBalance = parseFloat(existingRecord.farming_balance) || 0;
+        const depositToAdd = depositAmount || 0;
+        newFarmingBalance = (currentBalance + depositToAdd).toString();
+      } else {
+        // Первый депозит
+        newFarmingBalance = depositAmount ? depositAmount.toString() : '0';
+      }
+      
       const { error } = await supabase
         .from(this.tableName)
         .upsert({
@@ -251,7 +265,7 @@ export class TonFarmingRepository {
           boost_active: true,
           boost_package_id: packageId,
           farming_rate: rate.toString(),
-          farming_balance: depositAmount ? depositAmount.toString() : '0',
+          farming_balance: newFarmingBalance, // Используем накопленный баланс
           boost_expires_at: expiresAt || null,
           farming_start_timestamp: new Date().toISOString(),
           farming_last_update: new Date().toISOString(),
@@ -262,13 +276,32 @@ export class TonFarmingRepository {
         if (error.code === '42P01') {
           // Таблица не существует, используем fallback
           this.useFallback = true;
+          
+          // Получаем текущий баланс из таблицы users для накопления
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('ton_farming_balance')
+            .eq('id', userId)
+            .single();
+          
+          let newFallbackBalance: string;
+          if (userData && userData.ton_farming_balance) {
+            // Накапливаем баланс
+            const currentBalance = parseFloat(userData.ton_farming_balance) || 0;
+            const depositToAdd = depositAmount || 0;
+            newFallbackBalance = (currentBalance + depositToAdd).toString();
+          } else {
+            // Первый депозит
+            newFallbackBalance = depositAmount ? depositAmount.toString() : '0';
+          }
+          
           const { error: fallbackError } = await supabase
             .from('users')
             .update({
               ton_boost_active: true,
               ton_boost_package_id: packageId,
               ton_farming_rate: rate.toString(),
-              ton_farming_balance: depositAmount ? depositAmount.toString() : '0',
+              ton_farming_balance: newFallbackBalance, // Используем накопленный баланс
               ton_boost_expires_at: expiresAt || null,
               ton_farming_start_timestamp: new Date().toISOString(),
               ton_farming_last_update: new Date().toISOString()

@@ -324,7 +324,7 @@ export class BoostService {
       const tonFarmingRepo = new TonFarmingRepository();
       
       const immediateActivation = await tonFarmingRepo.activateBoost(
-        parseInt(userId),
+        userId,
         boostPackage.id,
         boostPackage.daily_rate / 100, // Конвертируем процент в десятичное число
         boostPackage.duration_days,
@@ -365,7 +365,13 @@ export class BoostService {
             currency: 'TON',
             status: 'completed',
             description: `Покупка TON Boost "${boostPackage.name}" (-${requiredAmount} TON)`,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            metadata: {
+              original_type: 'TON_BOOST_PURCHASE',
+              boost_package_id: boostPackage.id,
+              package_name: boostPackage.name,
+              daily_rate: boostPackage.daily_rate
+            }
           });
 
         if (transactionError) {
