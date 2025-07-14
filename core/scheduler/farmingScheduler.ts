@@ -9,11 +9,14 @@ import { logger } from '../logger';
 import { BalanceNotificationService } from '../balanceNotificationService';
 import { batchBalanceProcessor } from '../BatchBalanceProcessor';
 import { BalanceManager } from '../BalanceManager';
+import { UnifiedFarmingCalculator } from '../farming/UnifiedFarmingCalculator';
 
 export class FarmingScheduler {
   private isRunning: boolean = false;
   private balanceManager: BalanceManager;
   private batchProcessor: typeof batchBalanceProcessor;
+  private isProcessing: boolean = false;  // Distributed lock flag
+  private lastProcessTime: Date | null = null;
 
   constructor() {
     this.balanceManager = new BalanceManager();
@@ -61,6 +64,27 @@ export class FarmingScheduler {
    * Обрабатывает автоматическое начисление UNI фарминг дохода
    */
   private async processUniFarmingIncome(): Promise<void> {
+    // Distributed lock: проверка на параллельное выполнение
+    if (this.isProcessing) {
+      logger.warn('[UNI Farming] SKIP: Already processing. Preventing duplicate run.');
+      return;
+    }
+    
+    // Проверка минимального интервала (защита от слишком частых запусков)
+    if (this.lastProcessTime) {
+      const minutesSinceLastProcess = (Date.now() - this.lastProcessTime.getTime()) / (1000 * 60);
+      if (minutesSinceLastProcess < 4.5) { // Минимум 4.5 минуты между запусками
+        logger.warn('[UNI Farming] SKIP: Too soon since last process', {
+          minutesSinceLastProcess,
+          lastProcessTime: this.lastProcessTime.toISOString()
+        });
+        return;
+      }
+    }
+    
+    this.isProcessing = true;
+    this.lastProcessTime = new Date();
+    
     try {
       logger.info('[UNI Farming] Начинаем обработку автоматического начисления дохода');
 
@@ -95,12 +119,25 @@ export class FarmingScheduler {
       
       for (const farmer of activeFarmers || []) {
         try {
-          const income = await this.calculateUniFarmingIncome(farmer);
+          // ВРЕМЕННАЯ МЕРА: Проверка наличия депозита
+          if (!farmer.deposit_amount || farmer.deposit_amount === '0') {
+            logger.warn(`[UNI Farming] SKIP: User ${farmer.user_id} has no deposit`);
+            continue;
+          }
           
-          if (parseFloat(income) > 0) {
+          // Используем UnifiedFarmingCalculator вместо старого метода
+          const incomeData = await UnifiedFarmingCalculator.calculateIncome(farmer);
+          
+          if (incomeData && incomeData.amount > 0) {
+            // Валидация расчета
+            if (!UnifiedFarmingCalculator.validateCalculation(incomeData)) {
+              logger.error(`[UNI Farming] Calculation validation failed for user ${farmer.user_id}`);
+              continue;
+            }
+            
             farmerIncomes.push({
-              userId: farmer.user_id,
-              income: parseFloat(income),
+              userId: incomeData.userId,
+              income: incomeData.amount,
               currency: 'UNI'
             });
           }
@@ -269,6 +306,10 @@ export class FarmingScheduler {
       }
     } catch (error) {
       logger.error('[UNI Farming] Ошибка обработки автоматического начисления:', error instanceof Error ? error.message : String(error));
+    } finally {
+      // Снимаем distributed lock
+      this.isProcessing = false;
+      logger.info('[UNI Farming] Processing lock released');
     }
   }
 

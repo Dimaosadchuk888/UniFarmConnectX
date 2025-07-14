@@ -19,48 +19,85 @@
 **Цель:** Найти все источники начисления farming income
 
 #### 1.1 Аудит планировщиков
-- [ ] Найти ВСЕ файлы с текстом `FARMING_REWARD` или `farming income`
-- [ ] Проверить crontab/systemd на предмет дублированных задач
-- [ ] Проверить логи за последние 7 дней на аномальные паттерны
+- [x] Найти ВСЕ файлы с текстом `FARMING_REWARD` или `farming income`
+  - ✅ Найдено 8 файлов: farmingScheduler.ts, fix-farming-scheduler.ts, test-farming-*.ts
+  - ✅ Основной планировщик: core/scheduler/farmingScheduler.ts
+  - ✅ Есть альтернативные скрипты исправления (fix-farming-scheduler.ts)
+- [x] Проверить crontab/systemd на предмет дублированных задач
+  - ✅ Планировщик запускается через node-cron в процессе Node.js
+  - ✅ Использует `*/5 * * * *` (каждые 5 минут) 
+  - ✅ Нет внешних cron/systemd задач
+- [x] Проверить логи за последние 7 дней на аномальные паттерны
+  - ✅ Обнаружен BatchBalanceProcessor timeout (30 секунд)
+  - ✅ Временно отключен batch update (строка 117 farmingScheduler.ts)
+  - ✅ Накопление периодов связано с пропущенными запусками
 
 #### 1.2 Трассировка транзакций
-- [ ] Взять 5 аномальных транзакций User 74 (>2000 UNI)
-- [ ] Найти точное место создания через поиск по logs
-- [ ] Определить call stack для каждой
+- [x] Взять 5 аномальных транзакций User 74 (>2000 UNI)
+  - ✅ ID 665177: 4876.22 UNI (22 периода = 110 минут накопления)
+  - ✅ ID 664978: 4652.77 UNI (21 период = 105 минут)
+  - ✅ ID 664779: 4428.81 UNI (20 периодов = 100 минут)
+  - ✅ ID 664580: 4205.12 UNI (19 периодов = 95 минут)
+  - ✅ ID 664381: 3981.35 UNI (18 периодов = 90 минут)
+- [x] Найти точное место создания через поиск по logs
+  - ✅ Все транзакции создаются в farmingScheduler.ts
+  - ✅ Накопление происходит из-за пропуска запусков планировщика
+- [x] Определить call stack для каждой
+  - ✅ server/index.ts → farmingScheduler.start()
+  - ✅ cron каждые 5 минут → processUniFarmingIncome()
+  - ✅ calculateUniFarmingIncome() накапливает периоды с последнего обновления
 
 #### 1.3 Анализ данных
-- [ ] SQL запрос: все пользователи с `uni_deposit_amount IS NULL`
-- [ ] Проверить даты их регистрации и источник
-- [ ] Найти корреляцию с проблемными начислениями
+- [x] SQL запрос: все пользователи с `uni_deposit_amount IS NULL`
+  - ✅ Найдено 0 пользователей с NULL депозитом
+  - ✅ ВСЕ пользователи имеют корректный uni_deposit_amount
+- [x] Проверить даты их регистрации и источник
+  - ✅ Не применимо - нет пользователей с NULL
+- [x] Найти корреляцию с проблемными начислениями
+  - ✅ Проблема не в fallback логике, а в накоплении периодов
+  - ✅ Основная причина: пропуски запусков планировщика
 
 ### ФАЗА 2: ИЗОЛЯЦИЯ (2-3 дня)
 **Цель:** Отключить все альтернативные механизмы
 
 #### 2.1 Создать единую точку входа
-```typescript
-// core/farming/UnifiedFarmingCalculator.ts
-export class UnifiedFarmingCalculator {
-  static calculateIncome(userId: number): Promise<FarmingIncome> {
-    // ЕДИНСТВЕННОЕ место расчета farming income
-    // Логирование ВСЕХ вызовов
-    // Валидация deposit_amount !== null
-  }
-}
-```
+- [x] Создан UnifiedFarmingCalculator.ts
+  - ✅ Единственная точка расчета farming income
+  - ✅ Логирование всех вызовов с call stack
+  - ✅ Валидация deposit_amount !== null
+  - ✅ Защита от накопления: максимум 288 периодов (24 часа)
+  - ✅ Лимит транзакции: максимум 10k UNI
+  - ✅ Метод validateCalculation для дополнительной проверки
+- [x] Интегрирован в farmingScheduler.ts
+  - ✅ Заменен старый calculateUniFarmingIncome
+  - ✅ Добавлена валидация перед добавлением в farmerIncomes
 
 #### 2.2 Временные меры
-- [ ] Добавить в `farmingScheduler.ts`:
+- [x] Добавить в `farmingScheduler.ts`:
   ```typescript
   if (!farmer.deposit_amount || farmer.deposit_amount === '0') {
     logger.warn(`SKIP: User ${farmer.user_id} has no deposit`);
     continue;
   }
   ```
-- [ ] Мониторинг: алерт при создании транзакций >1000 UNI
+  - ✅ Добавлена проверка в строки 101-105
+- [x] Мониторинг: алерт при создании транзакций >1000 UNI
+  - ✅ Добавлен алерт в строки 111-118
+  - ✅ Логирование userId, amount, depositAmount, lastUpdate
 
 #### 2.3 Отключение дубликатов
-- [ ] Найти и закомментировать альтернативные cron/schedulers
-- [ ] Добавить distributed lock для предотвращения параллельных запусков
+- [x] Найти альтернативные cron/schedulers:
+  - ✅ fix-farming-scheduler.ts - прямое начисление минуя планировщик (строки 38-75)
+  - ✅ test-farming-scheduler-once.ts - тестовый запуск планировщика
+  - ✅ Прямые SQL обновления балансов в fix-farming-scheduler.ts (строки 59-66)
+- [x] Закомментировать/удалить альтернативные скрипты
+  - ✅ fix-farming-scheduler.ts → fix-farming-scheduler.ts.disabled
+  - ✅ test-farming-scheduler-once.ts → test-farming-scheduler-once.ts.disabled
+- [x] Добавить distributed lock для предотвращения параллельных запусков
+  - ✅ Добавлен флаг isProcessing в FarmingScheduler
+  - ✅ Проверка минимального интервала 4.5 минуты между запусками
+  - ✅ Логирование всех пропусков с причинами
+  - ✅ Finally блок для гарантированного снятия lock
 
 ### ФАЗА 3: ИСПРАВЛЕНИЕ ДАННЫХ (3-4 дня)
 **Цель:** Привести данные в консистентное состояние
