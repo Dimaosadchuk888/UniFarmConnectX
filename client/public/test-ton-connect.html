@@ -1,175 +1,159 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест TON Connect - UniFarm</title>
+    <title>TON Connect Test</title>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
             padding: 20px;
-            background-color: #1a1a1a;
-            color: #fff;
+            background: #1a1a1a;
+            color: white;
         }
-        .test-section {
-            background-color: #2a2a2a;
+        #info {
+            background: #2a2a2a;
             padding: 20px;
-            margin: 20px 0;
             border-radius: 8px;
-        }
-        .status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-        }
-        .success {
-            background-color: #22c55e20;
-            border: 1px solid #22c55e;
-            color: #22c55e;
-        }
-        .error {
-            background-color: #ef444420;
-            border: 1px solid #ef4444;
-            color: #ef4444;
-        }
-        .info {
-            background-color: #3b82f620;
-            border: 1px solid #3b82f6;
-            color: #3b82f6;
+            margin: 20px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
         button {
-            background-color: #6366f1;
+            background: #0088cc;
             color: white;
             border: none;
             padding: 10px 20px;
-            border-radius: 6px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 16px;
             margin: 5px;
         }
         button:hover {
-            background-color: #5558e3;
+            background: #0066aa;
         }
-        pre {
-            background-color: #1a1a1a;
-            padding: 10px;
-            border-radius: 4px;
-            overflow-x: auto;
+        .error {
+            color: #ff6666;
+        }
+        .success {
+            color: #66ff66;
         }
     </style>
 </head>
 <body>
-    <h1>🔍 Тест TON Connect - UniFarm</h1>
+    <h1>TON Connect Test Page</h1>
     
-    <div class="test-section">
-        <h2>1. Проверка манифеста</h2>
-        <button onclick="testManifest()">Проверить манифест</button>
-        <div id="manifest-result"></div>
+    <div>
+        <button onclick="checkManifest()">Check Manifest</button>
+        <button onclick="initTonConnect()">Initialize TON Connect</button>
+        <button onclick="connectWallet()">Connect Wallet</button>
+        <button onclick="disconnectWallet()">Disconnect</button>
     </div>
-
-    <div class="test-section">
-        <h2>2. Проверка доступности ресурсов</h2>
-        <button onclick="testResources()">Проверить ресурсы</button>
-        <div id="resources-result"></div>
-    </div>
-
-    <div class="test-section">
-        <h2>3. Текущий домен</h2>
-        <div class="status info">
-            <strong>Домен:</strong> <span id="current-domain"></span><br>
-            <strong>Протокол:</strong> <span id="current-protocol"></span>
-        </div>
-    </div>
-
-    <div class="test-section">
-        <h2>4. Рекомендации</h2>
-        <div id="recommendations"></div>
-    </div>
-
+    
+    <div id="info">Ready for testing...</div>
+    
     <script>
-        // Показываем текущий домен
-        document.getElementById('current-domain').textContent = window.location.hostname;
-        document.getElementById('current-protocol').textContent = window.location.protocol;
-
-        async function testManifest() {
-            const resultDiv = document.getElementById('manifest-result');
-            resultDiv.innerHTML = '<div class="status info">Проверяем манифест...</div>';
+        let tonConnectUI = null;
+        const manifestUrl = window.location.origin + '/tonconnect-manifest.json';
+        
+        function log(message, type = 'info') {
+            const info = document.getElementById('info');
+            const timestamp = new Date().toISOString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            info.innerHTML += `\n<span class="${className}">[${timestamp}] ${message}</span>`;
+            console.log(`[TON Connect Test] ${message}`);
+        }
+        
+        async function checkManifest() {
+            log(`Checking manifest at: ${manifestUrl}`);
             
             try {
-                const response = await fetch('/tonconnect-manifest.json');
-                const manifest = await response.json();
+                const response = await fetch(manifestUrl);
+                log(`Response status: ${response.status} ${response.statusText}`);
                 
-                let html = '<div class="status success">✅ Манифест загружен успешно!</div>';
-                html += '<pre>' + JSON.stringify(manifest, null, 2) + '</pre>';
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key] = value;
+                });
+                log(`Headers: ${JSON.stringify(headers, null, 2)}`);
                 
-                // Проверяем соответствие домена
-                const expectedDomain = `${window.location.protocol}//${window.location.hostname}`;
-                if (manifest.url !== expectedDomain && manifest.url !== `https://${window.location.hostname}`) {
-                    html += `<div class="status error">⚠️ Домен в манифесте (${manifest.url}) не совпадает с текущим (${expectedDomain})</div>`;
-                } else {
-                    html += '<div class="status success">✅ Домен в манифесте корректный</div>';
-                }
-                
-                resultDiv.innerHTML = html;
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="status error">❌ Ошибка загрузки манифеста: ${error.message}</div>`;
-            }
-        }
-
-        async function testResources() {
-            const resultDiv = document.getElementById('resources-result');
-            resultDiv.innerHTML = '<div class="status info">Проверяем ресурсы...</div>';
-            
-            const resources = [
-                { name: 'Основной манифест', url: '/tonconnect-manifest.json' },
-                { name: 'Well-known манифест', url: '/.well-known/tonconnect-manifest.json' },
-                { name: 'SVG иконка', url: '/assets/unifarm-icon.svg' },
-                { name: 'Старая иконка', url: '/tonconnect-icon.svg' },
-                { name: 'Favicon', url: '/assets/favicon.ico' }
-            ];
-            
-            let html = '';
-            
-            for (const resource of resources) {
-                try {
-                    const response = await fetch(resource.url);
-                    if (response.ok) {
-                        html += `<div class="status success">✅ ${resource.name}: ${response.status} OK</div>`;
-                    } else {
-                        html += `<div class="status error">❌ ${resource.name}: ${response.status} ${response.statusText}</div>`;
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`Manifest data: ${JSON.stringify(data, null, 2)}`, 'success');
+                    
+                    // Check icon
+                    if (data.iconUrl) {
+                        const iconResponse = await fetch(data.iconUrl, { method: 'HEAD' });
+                        log(`Icon check (${data.iconUrl}): ${iconResponse.status}`);
                     }
-                } catch (error) {
-                    html += `<div class="status error">❌ ${resource.name}: Ошибка запроса</div>`;
+                } else {
+                    const text = await response.text();
+                    log(`Error response: ${text}`, 'error');
                 }
+            } catch (error) {
+                log(`Fetch error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function initTonConnect() {
+            try {
+                log('Initializing TON Connect UI...');
+                
+                tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+                    manifestUrl: manifestUrl,
+                    buttonRootId: null
+                });
+                
+                log('TON Connect UI initialized successfully', 'success');
+                
+                // Subscribe to connection status changes
+                tonConnectUI.onStatusChange((walletInfo) => {
+                    if (walletInfo) {
+                        log(`Wallet connected: ${JSON.stringify(walletInfo, null, 2)}`, 'success');
+                    } else {
+                        log('Wallet disconnected');
+                    }
+                });
+                
+            } catch (error) {
+                log(`Init error: ${error.message}\nStack: ${error.stack}`, 'error');
+            }
+        }
+        
+        async function connectWallet() {
+            if (!tonConnectUI) {
+                log('Please initialize TON Connect first', 'error');
+                return;
             }
             
-            resultDiv.innerHTML = html;
+            try {
+                log('Opening wallet connection modal...');
+                const result = await tonConnectUI.openModal();
+                log(`Modal result: ${JSON.stringify(result)}`, 'success');
+            } catch (error) {
+                log(`Connect error: ${error.message}\nStack: ${error.stack}`, 'error');
+            }
         }
-
-        // Автоматически проверяем манифест при загрузке
-        window.addEventListener('load', () => {
-            testManifest();
+        
+        async function disconnectWallet() {
+            if (!tonConnectUI) {
+                log('Please initialize TON Connect first', 'error');
+                return;
+            }
             
-            // Показываем рекомендации
-            const recommendations = document.getElementById('recommendations');
-            recommendations.innerHTML = `
-                <div class="status info">
-                    <h3>📌 Для тестирования TON Connect:</h3>
-                    <ol>
-                        <li>Откройте приложение UniFarm</li>
-                        <li>Перейдите на страницу "Кошелек"</li>
-                        <li>Найдите блок "Пополнение через TON Wallet"</li>
-                        <li>Нажмите кнопку "Подключить кошелек"</li>
-                        <li>Выберите кошелек из списка (Tonkeeper, MyTonWallet и др.)</li>
-                        <li>Подтвердите подключение в кошельке</li>
-                    </ol>
-                </div>
-                <div class="status info">
-                    <strong>Примечание:</strong> Если при подключении возникает ошибка, проверьте консоль браузера (F12) для получения подробной информации.
-                </div>
-            `;
+            try {
+                await tonConnectUI.disconnect();
+                log('Wallet disconnected', 'success');
+            } catch (error) {
+                log(`Disconnect error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-check manifest on load
+        window.addEventListener('load', () => {
+            log(`Test page loaded. Origin: ${window.location.origin}`);
+            checkManifest();
         });
     </script>
 </body>

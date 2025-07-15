@@ -22,21 +22,31 @@ export function TonConnectDebug() {
     walletConnected: false
   });
 
+  console.log('[TonConnectDebug] Component rendered', {
+    tonConnectUI: !!tonConnectUI,
+    userFriendlyAddress,
+    connected: tonConnectUI?.connected
+  });
+
   useEffect(() => {
+    console.log('[TonConnectDebug] useEffect called');
     // Проверяем манифест
     checkManifest();
     
     // Проверяем состояние кошелька
     const checkWallet = setInterval(() => {
+      const connected = tonConnectUI?.connected || false;
+      console.log('[TonConnectDebug] Wallet check:', { connected, userFriendlyAddress });
+      
       setDebugInfo(prev => ({
         ...prev,
-        walletConnected: tonConnectUI.connected,
+        walletConnected: connected,
         walletAddress: userFriendlyAddress
       }));
     }, 1000);
 
     return () => clearInterval(checkWallet);
-  }, [tonConnectUI.connected, userFriendlyAddress]);
+  }, [tonConnectUI?.connected, userFriendlyAddress]);
 
   const checkManifest = async () => {
     try {
@@ -67,8 +77,17 @@ export function TonConnectDebug() {
 
   const handleConnect = async () => {
     try {
-      console.log('[TonConnectDebug] Начинаем подключение кошелька...');
-      await tonConnectUI.openModal();
+      console.log('[TonConnectDebug] Начинаем подключение кошелька...', {
+        tonConnectUI: !!tonConnectUI,
+        connected: tonConnectUI?.connected
+      });
+      
+      if (!tonConnectUI) {
+        throw new Error('TonConnectUI не инициализирован');
+      }
+      
+      const result = await tonConnectUI.openModal();
+      console.log('[TonConnectDebug] Результат openModal:', result);
     } catch (error) {
       console.error('[TonConnectDebug] Ошибка подключения:', error);
       setDebugInfo(prev => ({
