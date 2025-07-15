@@ -342,7 +342,7 @@ async function startServer() {
     const initPollingFallback = async () => {
       try {
         // Проверяем доступность webhook через внешний домен
-        const webhookUrl = process.env.APP_DOMAIN || process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-x-ab245275.replit.app';
+        const webhookUrl = process.env.APP_DOMAIN || process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-x-elizabethstone1.replit.app';
         const testResponse = await fetch(`${webhookUrl}/webhook`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

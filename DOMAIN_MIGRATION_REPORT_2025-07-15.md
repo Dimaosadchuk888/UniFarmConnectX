@@ -1,82 +1,57 @@
 # Отчет о миграции домена UniFarm
-**Дата:** 15 июля 2025  
-**Исполнитель:** Технический специалист  
+**Дата:** 15 января 2025  
 **Статус:** ✅ Завершено
 
-## Резюме
+## Описание задачи
+Обновление всех ссылок со старого домена `uni-farm-connect-x-ab245275.replit.app` на новый домен `uni-farm-connect-x-elizabethstone1.replit.app` для восстановления работы TON Connect.
 
-Успешно завершена миграция всех ссылок и конфигураций проекта UniFarm с устаревших доменов на новый домен `elizabethstone1.replit.app`.
+## Проблема
+TON Connect не мог подключиться к кошелькам из-за того, что в манифесте был указан старый домен, который больше не существует.
 
-## Детали миграции
+## Выполненные изменения
 
-### Старые домены:
-- `uni-farm-connect-x-ab245275.replit.app`
-- `uni-farm-connect-x-alinabndrnk99.replit.app`
+### 1. ✅ TON Connect Manifest
+**Файл:** `client/public/tonconnect-manifest.json`  
+**Статус:** Уже был обновлен  
+Все URL в манифесте уже содержали правильный домен `uni-farm-connect-x-elizabethstone1.replit.app`
 
-### Новый домен:
-- `uni-farm-connect-x-elizabethstone1.replit.app`
-
-## Обновленные файлы
-
-### 1. Конфигурационные файлы ✅
-- **core/middleware/cors.ts** - обновлен массив разрешенных доменов
-- **core/config/security.ts** - обновлен CORS_CONFIG.origin
-- **config/app.ts** - обновлены baseUrl и appDomain
-- **production.config.ts** - обновлен fallback URL для production
-
-### 2. TON Connect Manifest ✅
-- **client/public/tonconnect-manifest.json** - все URL обновлены на новый домен
-- Проверено через API: `curl http://localhost:3000/tonconnect-manifest.json`
-- Результат: манифест корректно возвращает обновленные ссылки
-
-### 3. Тестовые скрипты ✅
-- **scripts/test-admin-bot-webhook.ts** - обновлен webhookUrl
-- **scripts/test-all-routes.ts** - обновлен baseUrl
-
-### 4. Документация ✅
-- **ton_connect_regression_audit_report.md** - обновлен пример manifest
-
-## Динамические конфигурации
-
-Следующие элементы используют динамическое определение URL и не требуют изменений:
-
-### 1. Admin Bot Webhook
+### 2. ✅ Серверная конфигурация  
+**Файл:** `server/index.ts`  
+**Строка:** 345  
+**Изменение:** Обновлен fallback URL для Telegram webhook  
 ```typescript
-const appUrl = process.env.APP_DOMAIN || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-const webhookUrl = `${appUrl}/api/v2/admin-bot/webhook`;
+// Было:
+const webhookUrl = process.env.APP_DOMAIN || process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-x-ab245275.replit.app';
+
+// Стало:
+const webhookUrl = process.env.APP_DOMAIN || process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-x-elizabethstone1.replit.app';
 ```
-✅ Автоматически адаптируется к новому домену
 
-### 2. Client Config
-```typescript
-BASE_URL: typeof window !== 'undefined' 
-  ? `${window.location.protocol}//${window.location.host}`
-  : ''
-```
-✅ Использует текущий host браузера
+### 3. ✅ Тестовые файлы
+Обновлены все тестовые скрипты:
+- `tests/debug/debug-balance-issue.js` (строка 10)
+- `tests/test-all-routes.js` (строка 45)
+- `tests/test-deposit-api.js` (строка 9)
+- `tests/test-health.js` (строка 16)
 
-## Проверки после миграции
+## Результаты проверки TON Connect
 
-### 1. TON Connect Manifest ✅
-```bash
-curl -s "http://localhost:3000/tonconnect-manifest.json" | jq '.'
-```
-Результат: Все ссылки обновлены на elizabethstone1.replit.app
+### ✅ Манифест настроен корректно:
+- Файл доступен по пути `/tonconnect-manifest.json`
+- Серверный обработчик настроен с правильными CORS заголовками
+- Манифест содержит актуальный домен
 
-### 2. CORS Headers ✅
-- Разрешенные домены включают новый host
-- Поддержка wildcard для всех Replit доменов: `/^https:\/\/.*\.replit\.app$/`
+### ✅ Клиентская часть:
+- `TonConnectUIProvider` в `App.tsx` использует правильный путь к манифесту
+- Конфигурация в `config/tonConnect.ts` корректна
 
-### 3. API Endpoints ✅
-- Все API используют относительные пути
-- Нет жестко закодированных абсолютных URL в клиентском коде
+## Следующие шаги
+1. Сервер перезапущен для применения изменений
+2. TON Connect должен теперь корректно подключаться к кошелькам
+3. Пользователь может проверить работу, нажав кнопку "Connect Wallet"
 
-## Рекомендации
-
-1. **Environment Variables**: Рекомендуется установить переменную окружения `APP_DOMAIN` с новым доменом для production
-2. **Monitoring**: Следить за логами CORS ошибок в первые 24 часа после миграции
-3. **Cache**: Очистить браузерный кеш у пользователей при возникновении проблем
-
-## Заключение
-
-Миграция домена выполнена успешно. Все критические компоненты обновлены, динамические конфигурации автоматически адаптируются к новому домену. Система готова к работе на новом домене `uni-farm-connect-x-elizabethstone1.replit.app`.
+## Примечание
+Если проблема с подключением сохраняется после обновления домена, возможные причины:
+- Кэш браузера (рекомендуется очистить)
+- Блокировка со стороны прокси/CDN
+- Необходимость ждать обновления DNS записей (до 5 минут)
