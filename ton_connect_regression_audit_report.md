@@ -35,11 +35,11 @@
 **Файл:** `client/public/tonconnect-manifest.json`
 ```json
 {
-  "url": "https://uni-farm-connect-x-ab245275.replit.app",
+  "url": "https://uni-farm-connect-x-elizabethstone1.replit.app",
   "name": "UniFarm",
-  "iconUrl": "https://uni-farm-connect-x-ab245275.replit.app/assets/favicon.ico",
-  "termsOfUseUrl": "https://uni-farm-connect-x-ab245275.replit.app/terms",
-  "privacyPolicyUrl": "https://uni-farm-connect-x-ab245275.replit.app/privacy"
+  "iconUrl": "https://uni-farm-connect-x-elizabethstone1.replit.app/assets/favicon.ico",
+  "termsOfUseUrl": "https://uni-farm-connect-x-elizabethstone1.replit.app/terms",
+  "privacyPolicyUrl": "https://uni-farm-connect-x-elizabethstone1.replit.app/privacy"
 }
 ```
 ✅ Манифест корректно настроен для production
