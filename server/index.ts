@@ -413,6 +413,12 @@ async function startServer() {
 
     // TON Connect manifest endpoint - обрабатываем ДО глобального CORS middleware
     app.get('/tonconnect-manifest.json', (req: Request, res: Response) => {
+      logger.info('[TonConnect] Запрос манифеста получен', { 
+        url: req.url,
+        host: req.headers.host,
+        userAgent: req.headers['user-agent']
+      });
+      
       // Специальные CORS заголовки для TON Connect
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -420,7 +426,17 @@ async function startServer() {
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       res.setHeader('Cache-Control', 'public, max-age=3600');
       
-      res.sendFile(path.resolve('client/public/tonconnect-manifest.json'));
+      const manifestPath = path.resolve(process.cwd(), 'client/public/tonconnect-manifest.json');
+      logger.info('[TonConnect] Путь к манифесту:', manifestPath);
+      
+      res.sendFile(manifestPath, (err) => {
+        if (err) {
+          logger.error('[TonConnect] Ошибка отправки манифеста:', err);
+          res.status(404).json({ error: 'Manifest not found' });
+        } else {
+          logger.info('[TonConnect] Манифест успешно отправлен');
+        }
+      });
     });
 
     // Middleware
@@ -797,6 +813,21 @@ async function startServer() {
       res.setHeader('Content-Type', 'application/json');
       res.sendFile(path.resolve('client/public/manifest.json'));
     });
+    
+    // Serve static files from client/public in all environments
+    app.use('/assets', express.static(path.resolve(process.cwd(), 'client/public/assets'), {
+      maxAge: '1d',
+      etag: true
+    }));
+    
+    // Additional route for .well-known
+    app.use('/.well-known', express.static(path.resolve(process.cwd(), 'client/public/.well-known'), {
+      maxAge: '1d',
+      etag: true,
+      setHeaders: (res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
+    }));
     
 
 
