@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UniFarm API Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>UniFarm API Deep Test</h1>
+    
+    <div class="section">
+        <h2>1. Проверка окружения</h2>
+        <div id="environment"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. Проверка JWT токена</h2>
+        <div id="jwt-check"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. Проверка TON манифеста</h2>
+        <div id="manifest-check"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Проверка API endpoints</h2>
+        <div id="api-check"></div>
+    </div>
+    
+    <div class="section">
+        <h2>5. Проверка Telegram WebApp</h2>
+        <div id="telegram-check"></div>
+    </div>
+
+    <script>
+        const log = (target, message, type = 'info') => {
+            const div = document.getElementById(target);
+            const p = document.createElement('p');
+            p.className = type;
+            p.innerHTML = message;
+            div.appendChild(p);
+        };
+
+        // 1. Проверка окружения
+        const checkEnvironment = () => {
+            log('environment', `<b>window.location.origin:</b> ${window.location.origin}`);
+            log('environment', `<b>window.location.href:</b> ${window.location.href}`);
+            log('environment', `<b>Replit domain:</b> ${window.location.hostname.includes('replit') ? 'YES' : 'NO'}`);
+            
+            // Проверка localStorage
+            const jwtToken = localStorage.getItem('unifarm_jwt_token');
+            log('environment', `<b>JWT token в localStorage:</b> ${jwtToken ? 'Найден' : 'Отсутствует'}`);
+            if (jwtToken) {
+                try {
+                    const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+                    log('environment', `<b>JWT user ID:</b> ${payload.userId}`);
+                    log('environment', `<b>JWT exp:</b> ${new Date(payload.exp * 1000).toLocaleString()}`);
+                } catch (e) {
+                    log('environment', 'Ошибка парсинга JWT', 'error');
+                }
+            }
+        };
+
+        // 2. Проверка JWT токена
+        const checkJWT = async () => {
+            const token = localStorage.getItem('unifarm_jwt_token');
+            if (!token) {
+                log('jwt-check', 'JWT токен отсутствует в localStorage', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/v2/wallet/balance', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('jwt-check', `✅ JWT работает: UNI=${data.data?.balanceUni}, TON=${data.data?.balanceTon}`, 'success');
+                } else {
+                    log('jwt-check', `❌ JWT ошибка: ${JSON.stringify(data)}`, 'error');
+                }
+            } catch (e) {
+                log('jwt-check', `❌ Ошибка запроса: ${e.message}`, 'error');
+            }
+        };
+
+        // 3. Проверка TON манифеста
+        const checkManifest = async () => {
+            const urls = [
+                '/tonconnect-manifest.json',
+                '/.well-known/tonconnect-manifest.json',
+                `${window.location.origin}/tonconnect-manifest.json`
+            ];
+            
+            for (const url of urls) {
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        log('manifest-check', `✅ Манифест доступен по: ${url}`, 'success');
+                        log('manifest-check', `<pre>${JSON.stringify(data, null, 2)}</pre>`);
+                        
+                        // Проверка URL в манифесте
+                        if (data.url !== window.location.origin) {
+                            log('manifest-check', `⚠️ URL в манифесте (${data.url}) не совпадает с текущим (${window.location.origin})`, 'error');
+                        }
+                    } else {
+                        log('manifest-check', `❌ ${url}: ${response.status} ${response.statusText}`, 'error');
+                    }
+                } catch (e) {
+                    log('manifest-check', `❌ ${url}: ${e.message}`, 'error');
+                }
+            }
+        };
+
+        // 4. Проверка API endpoints
+        const checkAPI = async () => {
+            const endpoints = [
+                { url: '/api/v2/auth/telegram', method: 'GET', name: 'Auth check' },
+                { url: '/api/v2/uni-farming/status?user_id=74', method: 'GET', name: 'Farming status' },
+                { url: '/api/v2/boost/packages', method: 'GET', name: 'Boost packages' },
+                { url: '/api/v2/missions', method: 'GET', name: 'Missions' }
+            ];
+            
+            const token = localStorage.getItem('unifarm_jwt_token');
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint.url, {
+                        method: endpoint.method,
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                    });
+                    
+                    const text = await response.text();
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        data = text;
+                    }
+                    
+                    if (response.ok) {
+                        log('api-check', `✅ ${endpoint.name}: ${response.status}`, 'success');
+                    } else {
+                        log('api-check', `❌ ${endpoint.name}: ${response.status} - ${JSON.stringify(data)}`, 'error');
+                    }
+                } catch (e) {
+                    log('api-check', `❌ ${endpoint.name}: ${e.message}`, 'error');
+                }
+            }
+        };
+
+        // 5. Проверка Telegram WebApp
+        const checkTelegram = () => {
+            if (window.Telegram && window.Telegram.WebApp) {
+                const webApp = window.Telegram.WebApp;
+                log('telegram-check', `✅ Telegram WebApp доступен`, 'success');
+                log('telegram-check', `<b>initData:</b> ${webApp.initData ? 'Есть' : 'Отсутствует'}`);
+                log('telegram-check', `<b>initDataUnsafe:</b> <pre>${JSON.stringify(webApp.initDataUnsafe, null, 2)}</pre>`);
+                log('telegram-check', `<b>Version:</b> ${webApp.version}`);
+                log('telegram-check', `<b>Platform:</b> ${webApp.platform}`);
+                log('telegram-check', `<b>Theme:</b> ${webApp.colorScheme}`);
+            } else {
+                log('telegram-check', `❌ Telegram WebApp не найден (это нормально вне Telegram)`, 'error');
+            }
+        };
+
+        // Запуск всех проверок
+        (async () => {
+            checkEnvironment();
+            await checkJWT();
+            await checkManifest();
+            await checkAPI();
+            checkTelegram();
+        })();
+    </script>
+</body>
+</html>
