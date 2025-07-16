@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TON Connect - Расширенная диагностика</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .test-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .warning { color: #fbbf24; }
+        .info { color: #60a5fa; }
+        button {
+            background: #4ade80;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #22c55e; }
+        pre {
+            background: #0a0a0a;
+            padding: 10px;
+            overflow-x: auto;
+            border-radius: 5px;
+        }
+        #logs {
+            height: 300px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 TON Connect - Расширенная диагностика</h1>
+    
+    <div class="section">
+        <h2>📍 Текущее окружение</h2>
+        <div id="environment"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🧪 Тесты доступности</h2>
+        <div id="tests"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🔧 Прямой тест подключения</h2>
+        <button onclick="testDirectConnect()">Тест прямого подключения</button>
+        <button onclick="testWithCustomManifest()">Тест с custom manifest URL</button>
+        <button onclick="clearCache()">Очистить кэш TON Connect</button>
+    </div>
+    
+    <div class="section">
+        <h2>📜 Логи</h2>
+        <div id="logs"></div>
+    </div>
+
+    <script>
+        const currentDomain = window.location.origin;
+        const logs = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logs.push({ message: logEntry, type });
+            console.log(`[TON Connect Diagnostics] ${message}`);
+            updateLogs();
+        }
+        
+        function updateLogs() {
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML = logs.map(l => 
+                `<div class="${l.type}">${l.message}</div>`
+            ).join('');
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+        
+        async function runAllTests() {
+            log('🚀 Начинаем расширенную диагностику...', 'info');
+            
+            // Показываем окружение
+            document.getElementById('environment').innerHTML = `
+                <div class="test-row">
+                    <span>Текущий домен:</span>
+                    <span class="info">${currentDomain}</span>
+                </div>
+                <div class="test-row">
+                    <span>User-Agent:</span>
+                    <span class="info">${navigator.userAgent}</span>
+                </div>
+                <div class="test-row">
+                    <span>Telegram WebApp:</span>
+                    <span class="${window.Telegram?.WebApp ? 'success' : 'warning'}">${window.Telegram?.WebApp ? 'Да' : 'Нет'}</span>
+                </div>
+            `;
+            
+            const tests = [
+                {
+                    name: 'Манифест (основной путь)',
+                    url: '/tonconnect-manifest.json',
+                    check: 'json'
+                },
+                {
+                    name: 'Манифест (альтернативный)',
+                    url: '/.well-known/tonconnect-manifest.json',
+                    check: 'json'
+                },
+                {
+                    name: 'Иконка UniFarm',
+                    url: '/assets/unifarm-icon.svg',
+                    check: 'status'
+                },
+                {
+                    name: 'CORS политика',
+                    url: '/tonconnect-manifest.json',
+                    check: 'cors'
+                },
+                {
+                    name: 'Внешняя доступность',
+                    url: `${currentDomain}/tonconnect-manifest.json`,
+                    check: 'external'
+                }
+            ];
+            
+            const results = [];
+            
+            for (const test of tests) {
+                log(`Тестируем: ${test.name}...`);
+                try {
+                    const response = await fetch(test.url, {
+                        method: 'GET',
+                        mode: 'cors',
+                        cache: 'no-cache'
+                    });
+                    
+                    let status = 'error';
+                    let details = '';
+                    
+                    if (response.ok) {
+                        if (test.check === 'json') {
+                            const data = await response.json();
+                            if (data.url && data.name) {
+                                status = 'success';
+                                details = `URL: ${data.url}`;
+                                
+                                // Проверяем соответствие домена
+                                if (data.url !== currentDomain) {
+                                    status = 'warning';
+                                    details += ` (не совпадает с текущим доменом!)`;
+                                    log(`⚠️ ВАЖНО: Домен в манифесте (${data.url}) не совпадает с текущим (${currentDomain})`, 'warning');
+                                }
+                            }
+                        } else if (test.check === 'cors') {
+                            const corsHeader = response.headers.get('Access-Control-Allow-Origin');
+                            if (corsHeader) {
+                                status = 'success';
+                                details = `CORS: ${corsHeader}`;
+                            } else {
+                                status = 'warning';
+                                details = 'CORS заголовки отсутствуют';
+                            }
+                        } else {
+                            status = 'success';
+                            details = `HTTP ${response.status}`;
+                        }
+                    } else {
+                        details = `HTTP ${response.status}`;
+                    }
+                    
+                    results.push({
+                        name: test.name,
+                        status,
+                        details
+                    });
+                    
+                    log(`${test.name}: ${status} - ${details}`, status);
+                    
+                } catch (error) {
+                    results.push({
+                        name: test.name,
+                        status: 'error',
+                        details: error.message
+                    });
+                    log(`${test.name}: ОШИБКА - ${error.message}`, 'error');
+                }
+            }
+            
+            // Отображаем результаты
+            document.getElementById('tests').innerHTML = results.map(r => `
+                <div class="test-row">
+                    <span>${r.name}</span>
+                    <span class="${r.status}">${r.details}</span>
+                </div>
+            `).join('');
+            
+            log('✅ Диагностика завершена', 'success');
+        }
+        
+        async function testDirectConnect() {
+            log('🔌 Тестируем прямое подключение TON Connect...', 'info');
+            
+            try {
+                // Загружаем SDK если еще не загружен
+                if (!window.TON_CONNECT_UI) {
+                    log('Загружаем TON Connect SDK...', 'info');
+                    const script = document.createElement('script');
+                    script.src = 'https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js';
+                    document.head.appendChild(script);
+                    
+                    await new Promise((resolve) => {
+                        script.onload = resolve;
+                    });
+                }
+                
+                log('Инициализируем TON Connect UI...', 'info');
+                
+                const manifestUrl = `${currentDomain}/tonconnect-manifest.json`;
+                log(`Используем манифест: ${manifestUrl}`, 'info');
+                
+                const tonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
+                    manifestUrl: manifestUrl,
+                    buttonRootId: null
+                });
+                
+                log('TON Connect UI инициализирован', 'success');
+                
+                // Добавляем обработчики событий
+                tonConnectUI.onStatusChange((walletInfo) => {
+                    if (walletInfo) {
+                        log(`✅ Кошелек подключен: ${JSON.stringify(walletInfo, null, 2)}`, 'success');
+                    } else {
+                        log('Кошелек отключен', 'warning');
+                    }
+                });
+                
+                // Открываем модальное окно
+                log('Открываем модальное окно подключения...', 'info');
+                const result = await tonConnectUI.openModal();
+                log(`Результат: ${JSON.stringify(result)}`, 'info');
+                
+            } catch (error) {
+                log(`❌ Ошибка подключения: ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+            }
+        }
+        
+        async function testWithCustomManifest() {
+            const customUrl = prompt('Введите custom URL манифеста:', 'https://raw.githubusercontent.com/ton-connect/demo-dapp-backend/master/tonconnect-manifest.json');
+            if (!customUrl) return;
+            
+            log(`🔧 Тестируем с custom манифестом: ${customUrl}`, 'info');
+            
+            try {
+                const tonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
+                    manifestUrl: customUrl,
+                    buttonRootId: null
+                });
+                
+                log('Custom манифест загружен успешно', 'success');
+                await tonConnectUI.openModal();
+                
+            } catch (error) {
+                log(`❌ Ошибка с custom манифестом: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearCache() {
+            log('🧹 Очищаем кэш TON Connect...', 'info');
+            
+            // Очищаем localStorage
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('ton') || key.includes('TON'))) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                log(`Удален ключ: ${key}`, 'info');
+            });
+            
+            log(`✅ Очищено ${keysToRemove.length} ключей из localStorage`, 'success');
+        }
+        
+        // Запускаем тесты при загрузке
+        window.onload = () => {
+            runAllTests();
+        };
+    </script>
+</body>
+</html>
