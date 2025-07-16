@@ -128,7 +128,23 @@ Each business domain is organized as a self-contained module:
 - **Reports**: JSON, HTML, and log file outputs with detailed analysis
 - **Commands**: `node tests/pre_test_check.js`, `node tests/full_e2e_check.js`, `node tests/demo_test_run.js`
 
+## TON Connect Configuration
+### Manifest Management
+- **Manifest files location**: `client/public/tonconnect-manifest.json` and `client/public/.well-known/tonconnect-manifest.json`
+- **Domain configuration**: Manifests must contain the correct domain URL matching the app domain
+- **Environment variables**: `TELEGRAM_WEBAPP_URL` or `VITE_APP_URL` should be set in Replit Secrets
+- **Automatic generation**: Run `node scripts/generate-manifests.js` to automatically update manifests based on environment variables
+- **Important**: When domain changes (e.g., new deployment), manifests must be regenerated
+
+### Secrets Configuration
+Required in Replit Secrets:
+- `TELEGRAM_WEBAPP_URL` - Primary app URL (e.g., `https://uni-farm-connect-x-ab245275.replit.app`)
+- `VITE_APP_URL` - Alternative app URL (fallback)
+- `TELEGRAM_BOT_TOKEN` - Bot token for authentication
+- `JWT_SECRET` - Secret for JWT token generation
+
 ## Changelog
+- January 16, 2025. TON CONNECT DOMAIN MISMATCH FIXED - Исправлено критическое несоответствие доменов в манифестах TON Connect. Проблема: манифесты содержали устаревший домен `elizabethstone1`, в то время как приложение работает на `ab245275`. Решение: 1) Обновлены оба манифеста с правильным доменом; 2) Создан скрипт автоматической генерации манифестов `scripts/generate-manifests.js` на основе переменных окружения; 3) Создана тестовая страница `ton-connect-test-standalone.html` для диагностики. Манифест НЕ нужно хранить в секретах - только переменные окружения TELEGRAM_WEBAPP_URL и VITE_APP_URL.
 - January 15, 2025. TON CONNECT DEBUGGING TOOLS ADDED - Добавлены инструменты диагностики для решения проблем с подключением TON Connect. Изменения: 1) Добавлено детальное логирование запросов манифеста в server/index.ts; 2) Настроена правильная отдача статических файлов из client/public/assets и .well-known; 3) Создан компонент TonConnectDebug.tsx для визуальной отладки состояния подключения; 4) Проверено и подтверждено - манифест доступен по всем путям и возвращает 200 OK с правильными CORS заголовками. Компонент отладки добавлен на страницу кошелька для упрощения диагностики. Отчет: TON_CONNECT_FIXED_REPORT_2025-01-15.md.
 - January 15, 2025. CRITICAL SECURITY VULNERABILITY FIXED - Обнаружена и исправлена критическая уязвимость безопасности с hardcoded JWT токеном пользователя ID 74 в client/index.html. Проблема: все новые пользователи в Preview режиме Replit автоматически получали доступ к данным пользователя 74 (балансы, транзакции, фарминг депозиты). Решение: удален hardcoded JWT токен, система теперь использует только реальную аутентификацию. Backend API защищен корректно через requireTelegramAuth middleware. Frontend компоненты используют userId из JWT токена. Отчет: SECURITY_FIX_USER_74_REPORT_2025-07-15.md.
 - January 14, 2025. UNI FARMING NEW DEPOSIT PROCESS VERIFIED - Проведено полное исследование процесса открытия новых UNI депозитов. Подтверждено: 1) Депозиты корректно накапливаются (старые + новые); 2) Доход рассчитывается от uni_deposit_amount, НЕ от balance_uni; 3) Защитный лимит 10,000 UNI работает для предотвращения катастрофических начислений; 4) User 74 имеет депозит 6,475,941 UNI (увеличен на 35,000 UNI через тестовые депозиты 10k + 25k). Транзакции по 10,000 UNI - это нормальное поведение защитного механизма при накоплении периодов. Отчет: UNI_DEPOSIT_PROCESS_INVESTIGATION_REPORT.md.
