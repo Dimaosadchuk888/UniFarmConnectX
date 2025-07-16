@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TON Connect - Детальная отладка</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        button {
+            background: #0088cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0066aa; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .warning { color: #fbbf24; }
+        pre {
+            background: #1a1a1a;
+            padding: 10px;
+            overflow-x: auto;
+            border-radius: 5px;
+        }
+        #logs {
+            background: #0a0a0a;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 TON Connect - Детальная отладка</h1>
+    
+    <div class="section">
+        <h2>1. Базовый тест манифеста</h2>
+        <button onclick="testManifest()">Проверить манифест</button>
+        <div id="manifestResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. Тест React конфигурации</h2>
+        <button onclick="testReactConfig()">Тест с window.location.origin</button>
+        <button onclick="testAbsoluteUrl()">Тест с полным URL</button>
+        <button onclick="testRelativeUrl()">Тест с относительным URL</button>
+    </div>
+    
+    <div class="section">
+        <h2>3. Прямой тест SDK</h2>
+        <button onclick="testDirectSDK()">Инициализировать SDK напрямую</button>
+        <button onclick="testOpenModal()">Открыть модальное окно</button>
+    </div>
+    
+    <div class="section">
+        <h2>4. Проверка localStorage</h2>
+        <button onclick="checkLocalStorage()">Проверить localStorage</button>
+        <button onclick="clearTonConnectData()">Очистить данные TON Connect</button>
+    </div>
+    
+    <div class="section">
+        <h2>📜 Логи</h2>
+        <div id="logs"></div>
+    </div>
+
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <script>
+        let tonConnectUI = null;
+        const logs = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString().substring(11, 19);
+            const logEntry = { timestamp, message, type };
+            logs.push(logEntry);
+            updateLogs();
+            console.log(`[TON Debug] ${message}`);
+        }
+        
+        function updateLogs() {
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML = logs.map(l => 
+                `<div class="${l.type}">[${l.timestamp}] ${l.message}</div>`
+            ).join('');
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+        
+        async function testManifest() {
+            log('🧪 Тестируем манифест...', 'info');
+            const manifestUrl = window.location.origin + '/tonconnect-manifest.json';
+            
+            try {
+                log(`Загружаем: ${manifestUrl}`, 'info');
+                const response = await fetch(manifestUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                log('✅ Манифест загружен успешно', 'success');
+                log(`Содержимое: ${JSON.stringify(data, null, 2)}`, 'info');
+                
+                // Проверяем поля
+                if (data.url !== window.location.origin) {
+                    log(`⚠️ URL в манифесте (${data.url}) не совпадает с текущим (${window.location.origin})`, 'warning');
+                }
+                
+                document.getElementById('manifestResult').innerHTML = `
+                    <pre class="success">${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                log(`❌ Ошибка загрузки манифеста: ${error.message}`, 'error');
+                document.getElementById('manifestResult').innerHTML = `
+                    <pre class="error">Ошибка: ${error.message}</pre>
+                `;
+            }
+        }
+        
+        async function testReactConfig() {
+            log('🧪 Тест с window.location.origin...', 'info');
+            const manifestUrl = `${window.location.origin}/tonconnect-manifest.json`;
+            await initTonConnect(manifestUrl);
+        }
+        
+        async function testAbsoluteUrl() {
+            log('🧪 Тест с полным URL...', 'info');
+            const manifestUrl = 'https://uni-farm-connect-x-ab245275.replit.app/tonconnect-manifest.json';
+            await initTonConnect(manifestUrl);
+        }
+        
+        async function testRelativeUrl() {
+            log('🧪 Тест с относительным URL...', 'info');
+            const manifestUrl = '/tonconnect-manifest.json';
+            await initTonConnect(manifestUrl);
+        }
+        
+        async function initTonConnect(manifestUrl) {
+            try {
+                log(`Инициализируем TON Connect с manifestUrl: ${manifestUrl}`, 'info');
+                
+                // Уничтожаем предыдущий экземпляр
+                if (tonConnectUI) {
+                    log('Уничтожаем предыдущий экземпляр...', 'info');
+                    tonConnectUI = null;
+                }
+                
+                // Создаем новый экземпляр
+                tonConnectUI = new window.TON_CONNECT_UI.TonConnectUI({
+                    manifestUrl: manifestUrl,
+                    buttonRootId: null
+                });
+                
+                log('✅ TON Connect UI инициализирован', 'success');
+                
+                // Добавляем обработчики
+                tonConnectUI.onStatusChange((wallet) => {
+                    if (wallet) {
+                        log(`✅ Кошелек подключен: ${wallet.account.address}`, 'success');
+                    } else {
+                        log('⚠️ Кошелек отключен', 'warning');
+                    }
+                });
+                
+                // Проверяем текущий статус
+                const isConnected = await tonConnectUI.connectionRestored;
+                log(`Статус подключения: ${isConnected ? 'подключен' : 'не подключен'}`, 'info');
+                
+            } catch (error) {
+                log(`❌ Ошибка инициализации: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        async function testDirectSDK() {
+            log('🧪 Тест прямой инициализации SDK...', 'info');
+            
+            try {
+                // Проверяем доступность SDK
+                if (!window.TON_CONNECT_UI) {
+                    throw new Error('SDK не загружен');
+                }
+                
+                log('SDK доступен, версия: ' + (window.TON_CONNECT_UI.version || 'неизвестно'), 'info');
+                
+                // Инициализируем с текущим origin
+                const manifestUrl = window.location.origin + '/tonconnect-manifest.json';
+                await initTonConnect(manifestUrl);
+                
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testOpenModal() {
+            if (!tonConnectUI) {
+                log('❌ Сначала инициализируйте SDK', 'error');
+                return;
+            }
+            
+            try {
+                log('Открываем модальное окно...', 'info');
+                const result = await tonConnectUI.openModal();
+                log('Модальное окно закрыто', 'info');
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        function checkLocalStorage() {
+            log('🔍 Проверяем localStorage...', 'info');
+            
+            const tonKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('ton') || key.includes('TON'))) {
+                    tonKeys.push(key);
+                    const value = localStorage.getItem(key);
+                    log(`${key}: ${value?.substring(0, 50)}...`, 'info');
+                }
+            }
+            
+            if (tonKeys.length === 0) {
+                log('TON Connect данные не найдены в localStorage', 'warning');
+            } else {
+                log(`Найдено ${tonKeys.length} ключей`, 'success');
+            }
+        }
+        
+        function clearTonConnectData() {
+            log('🧹 Очищаем данные TON Connect...', 'info');
+            
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('ton') || key.includes('TON'))) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                log(`Удален: ${key}`, 'info');
+            });
+            
+            log(`✅ Очищено ${keysToRemove.length} ключей`, 'success');
+        }
+        
+        // Автоматический тест при загрузке
+        window.onload = () => {
+            log('🚀 Страница загружена', 'info');
+            log(`Текущий домен: ${window.location.origin}`, 'info');
+            testManifest();
+        };
+    </script>
+</body>
+</html>
