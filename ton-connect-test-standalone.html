@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TON Connect Test - Domain Check</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .test-results {
+            margin-top: 20px;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 TON Connect Domain Test</h1>
+        
+        <div class="info">
+            <strong>Текущий домен:</strong> <span id="current-domain"></span>
+        </div>
+        
+        <div class="test-results">
+            <h2>Результаты проверки:</h2>
+            <div id="results"></div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="runTests()">🚀 Запустить проверку</button>
+            <button onclick="clearCache()">🗑️ Очистить кэш и проверить</button>
+        </div>
+        
+        <h3>Ручная проверка URL:</h3>
+        <div id="manual-links"></div>
+    </div>
+
+    <script>
+        const currentDomain = window.location.origin;
+        document.getElementById('current-domain').textContent = currentDomain;
+        
+        const results = document.getElementById('results');
+        const manualLinks = document.getElementById('manual-links');
+        
+        // Создаем ссылки для ручной проверки
+        manualLinks.innerHTML = `
+            <p>Откройте эти ссылки в новой вкладке:</p>
+            <ul>
+                <li><a href="${currentDomain}/tonconnect-manifest.json" target="_blank">${currentDomain}/tonconnect-manifest.json</a></li>
+                <li><a href="${currentDomain}/.well-known/tonconnect-manifest.json" target="_blank">${currentDomain}/.well-known/tonconnect-manifest.json</a></li>
+                <li><a href="${currentDomain}/assets/unifarm-icon.svg" target="_blank">${currentDomain}/assets/unifarm-icon.svg</a></li>
+            </ul>
+        `;
+        
+        async function runTests() {
+            results.innerHTML = '<div class="info">🔄 Выполняется проверка...</div>';
+            const testResults = [];
+            
+            // Test 1: Manifest availability
+            try {
+                const response = await fetch('/tonconnect-manifest.json');
+                const manifest = await response.json();
+                
+                if (response.ok) {
+                    testResults.push({
+                        test: 'Манифест доступен',
+                        status: 'success',
+                        details: `✅ HTTP ${response.status} - Манифест загружен успешно`
+                    });
+                    
+                    // Check domain match
+                    if (manifest.url === currentDomain) {
+                        testResults.push({
+                            test: 'Домен в манифесте',
+                            status: 'success',
+                            details: `✅ Домен совпадает: ${manifest.url}`
+                        });
+                    } else {
+                        testResults.push({
+                            test: 'Домен в манифесте',
+                            status: 'error',
+                            details: `❌ Несоответствие доменов!<br>
+                                     В манифесте: ${manifest.url}<br>
+                                     Текущий: ${currentDomain}`
+                        });
+                    }
+                    
+                    // Show manifest content
+                    testResults.push({
+                        test: 'Содержимое манифеста',
+                        status: 'info',
+                        details: `<pre>${JSON.stringify(manifest, null, 2)}</pre>`
+                    });
+                } else {
+                    testResults.push({
+                        test: 'Манифест доступен',
+                        status: 'error',
+                        details: `❌ HTTP ${response.status} - Ошибка загрузки манифеста`
+                    });
+                }
+            } catch (error) {
+                testResults.push({
+                    test: 'Манифест доступен',
+                    status: 'error',
+                    details: `❌ Ошибка сети: ${error.message}`
+                });
+            }
+            
+            // Test 2: Icon availability
+            try {
+                const iconResponse = await fetch('/assets/unifarm-icon.svg');
+                if (iconResponse.ok) {
+                    testResults.push({
+                        test: 'Иконка доступна',
+                        status: 'success',
+                        details: `✅ /assets/unifarm-icon.svg - HTTP ${iconResponse.status}`
+                    });
+                } else {
+                    testResults.push({
+                        test: 'Иконка доступна',
+                        status: 'error',
+                        details: `❌ /assets/unifarm-icon.svg - HTTP ${iconResponse.status}`
+                    });
+                }
+            } catch (error) {
+                testResults.push({
+                    test: 'Иконка доступна',
+                    status: 'error',
+                    details: `❌ Ошибка загрузки иконки: ${error.message}`
+                });
+            }
+            
+            // Test 3: Alternative manifest path
+            try {
+                const altResponse = await fetch('/.well-known/tonconnect-manifest.json');
+                if (altResponse.ok) {
+                    testResults.push({
+                        test: 'Альтернативный путь',
+                        status: 'success',
+                        details: `✅ /.well-known/tonconnect-manifest.json - HTTP ${altResponse.status}`
+                    });
+                } else {
+                    testResults.push({
+                        test: 'Альтернативный путь',
+                        status: 'warning',
+                        details: `⚠️ /.well-known/tonconnect-manifest.json - HTTP ${altResponse.status}`
+                    });
+                }
+            } catch (error) {
+                testResults.push({
+                    test: 'Альтернативный путь',
+                    status: 'warning',
+                    details: `⚠️ Альтернативный путь недоступен: ${error.message}`
+                });
+            }
+            
+            // Display results
+            results.innerHTML = testResults.map(result => {
+                const className = result.status === 'success' ? 'success' : 
+                                result.status === 'error' ? 'error' : 'info';
+                return `
+                    <div class="${className}">
+                        <strong>${result.test}:</strong><br>
+                        ${result.details}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function clearCache() {
+            // Clear cache and reload
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                });
+            }
+            
+            // Force reload without cache
+            window.location.reload(true);
+        }
+        
+        // Run tests on load
+        runTests();
+    </script>
+</body>
+</html>
