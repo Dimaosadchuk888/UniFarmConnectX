@@ -829,6 +829,18 @@ async function startServer() {
       etag: true
     }));
     
+    // Serve public files directly (для манифестов и других публичных файлов)
+    app.use(express.static(path.resolve(process.cwd(), 'client/public'), {
+      dotfiles: 'allow',
+      index: false,
+      setHeaders: (res, path) => {
+        if (path.endsWith('.json')) {
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
+      }
+    }));
+    
     // Additional route for .well-known
     app.use('/.well-known', express.static(path.resolve(process.cwd(), 'client/public/.well-known'), {
       maxAge: '1d',
