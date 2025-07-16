@@ -814,6 +814,15 @@ async function startServer() {
       res.sendFile(path.resolve('client/public/manifest.json'));
     });
     
+    // TON Connect manifest - serve directly
+    app.get('/tonconnect-manifest.json', (req: Request, res: Response) => {
+      const manifestPath = path.resolve(process.cwd(), 'client/public/tonconnect-manifest.json');
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.sendFile(manifestPath);
+    });
+    
     // Serve static files from client/public in all environments
     app.use('/assets', express.static(path.resolve(process.cwd(), 'client/public/assets'), {
       maxAge: '1d',
