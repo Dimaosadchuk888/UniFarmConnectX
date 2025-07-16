@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UniFarm Telegram Diagnostic</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            margin: 0;
+            background: #f5f5f5;
+        }
+        .section { 
+            margin: 10px 0; 
+            padding: 15px; 
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h1 { font-size: 24px; margin: 0 0 20px 0; color: #333; }
+        h2 { font-size: 18px; margin: 0 0 10px 0; color: #666; }
+        .success { color: #4caf50; font-weight: bold; }
+        .error { color: #f44336; font-weight: bold; }
+        .warning { color: #ff9800; font-weight: bold; }
+        .info { color: #2196f3; }
+        pre { 
+            background: #f5f5f5; 
+            padding: 10px; 
+            overflow-x: auto; 
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+        .status { 
+            padding: 5px 10px; 
+            border-radius: 4px; 
+            display: inline-block;
+            margin: 2px 0;
+        }
+        .status.ok { background: #e8f5e9; color: #2e7d32; }
+        .status.fail { background: #ffebee; color: #c62828; }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        button:hover { background: #1976d2; }
+        .log-entry {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>UniFarm Telegram Diagnostic</h1>
+    
+    <div class="section">
+        <h2>1. Telegram WebApp Environment</h2>
+        <div id="telegram-env"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. Storage & Cookies</h2>
+        <div id="storage-check"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. Network & CORS</h2>
+        <div id="network-check"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Authorization Flow</h2>
+        <div id="auth-flow"></div>
+        <button onclick="testAuth()">Test Authorization</button>
+    </div>
+    
+    <div class="section">
+        <h2>5. API Endpoints</h2>
+        <div id="api-test"></div>
+        <button onclick="testAPI()">Test API</button>
+    </div>
+    
+    <div class="section">
+        <h2>6. Console Logs</h2>
+        <div id="console-logs" style="max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <script>
+        const log = (message, type = 'info') => {
+            const logsDiv = document.getElementById('console-logs');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsDiv.appendChild(entry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        };
+
+        const addStatus = (target, label, value, isOk) => {
+            const div = document.getElementById(target);
+            const p = document.createElement('p');
+            p.innerHTML = `<strong>${label}:</strong> <span class="status ${isOk ? 'ok' : 'fail'}">${value}</span>`;
+            div.appendChild(p);
+        };
+
+        // 1. Check Telegram Environment
+        const checkTelegramEnv = () => {
+            const div = document.getElementById('telegram-env');
+            
+            // Telegram WebApp object
+            if (window.Telegram && window.Telegram.WebApp) {
+                const webapp = window.Telegram.WebApp;
+                addStatus('telegram-env', 'Telegram WebApp', 'Available', true);
+                addStatus('telegram-env', 'Version', webapp.version || 'Unknown', true);
+                addStatus('telegram-env', 'Platform', webapp.platform || 'Unknown', true);
+                addStatus('telegram-env', 'Theme', webapp.colorScheme || 'Unknown', true);
+                
+                // InitData
+                const hasInitData = !!webapp.initData;
+                addStatus('telegram-env', 'InitData', hasInitData ? 'Present' : 'Missing', hasInitData);
+                
+                if (hasInitData) {
+                    log(`InitData length: ${webapp.initData.length} chars`, 'success');
+                    
+                    // Parse initData
+                    try {
+                        const params = new URLSearchParams(webapp.initData);
+                        const user = params.get('user');
+                        if (user) {
+                            const userData = JSON.parse(decodeURIComponent(user));
+                            div.innerHTML += `<pre>User: ${JSON.stringify(userData, null, 2)}</pre>`;
+                        }
+                        
+                        // Show all params
+                        const initDataObj = {};
+                        params.forEach((value, key) => {
+                            if (key !== 'hash') { // Don't show hash for security
+                                initDataObj[key] = key === 'user' ? JSON.parse(decodeURIComponent(value)) : value;
+                            }
+                        });
+                        div.innerHTML += `<pre>InitData: ${JSON.stringify(initDataObj, null, 2)}</pre>`;
+                    } catch (e) {
+                        log(`Error parsing initData: ${e.message}`, 'error');
+                    }
+                }
+                
+                // Start param
+                addStatus('telegram-env', 'Start Param', webapp.startParam || 'None', !!webapp.startParam);
+            } else {
+                addStatus('telegram-env', 'Telegram WebApp', 'Not Available', false);
+                log('Running outside Telegram', 'warning');
+            }
+            
+            // Domain info
+            addStatus('telegram-env', 'Domain', window.location.hostname, true);
+            addStatus('telegram-env', 'Protocol', window.location.protocol, window.location.protocol === 'https:');
+        };
+
+        // 2. Check Storage
+        const checkStorage = () => {
+            const div = document.getElementById('storage-check');
+            
+            // LocalStorage
+            try {
+                localStorage.setItem('test', '1');
+                localStorage.removeItem('test');
+                addStatus('storage-check', 'LocalStorage', 'Available', true);
+                
+                // Check for JWT token
+                const jwtToken = localStorage.getItem('unifarm_jwt_token');
+                addStatus('storage-check', 'JWT Token', jwtToken ? 'Found' : 'Not Found', !!jwtToken);
+                
+                if (jwtToken) {
+                    try {
+                        const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+                        div.innerHTML += `<pre>JWT Payload: ${JSON.stringify(payload, null, 2)}</pre>`;
+                    } catch (e) {
+                        log('Invalid JWT format', 'error');
+                    }
+                }
+            } catch (e) {
+                addStatus('storage-check', 'LocalStorage', 'Blocked', false);
+                log(`LocalStorage error: ${e.message}`, 'error');
+            }
+            
+            // SessionStorage
+            try {
+                sessionStorage.setItem('test', '1');
+                sessionStorage.removeItem('test');
+                addStatus('storage-check', 'SessionStorage', 'Available', true);
+            } catch (e) {
+                addStatus('storage-check', 'SessionStorage', 'Blocked', false);
+            }
+            
+            // Cookies
+            try {
+                document.cookie = 'test=1; path=/';
+                const hasCookies = document.cookie.includes('test=1');
+                addStatus('storage-check', 'Cookies', hasCookies ? 'Available' : 'Blocked', hasCookies);
+                if (hasCookies) {
+                    document.cookie = 'test=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+                }
+            } catch (e) {
+                addStatus('storage-check', 'Cookies', 'Error', false);
+            }
+        };
+
+        // 3. Test Network
+        const checkNetwork = async () => {
+            const div = document.getElementById('network-check');
+            
+            // Test manifest
+            try {
+                const response = await fetch('/tonconnect-manifest.json');
+                addStatus('network-check', 'TON Manifest', `${response.status} ${response.statusText}`, response.ok);
+                
+                if (response.ok) {
+                    const manifest = await response.json();
+                    div.innerHTML += `<pre>Manifest: ${JSON.stringify(manifest, null, 2)}</pre>`;
+                }
+            } catch (e) {
+                addStatus('network-check', 'TON Manifest', `Error: ${e.message}`, false);
+            }
+            
+            // Test API endpoint
+            try {
+                const response = await fetch('/api/v2/auth/telegram', { method: 'GET' });
+                addStatus('network-check', 'API Endpoint', `${response.status} ${response.statusText}`, true);
+            } catch (e) {
+                addStatus('network-check', 'API Endpoint', `Error: ${e.message}`, false);
+            }
+        };
+
+        // 4. Test Authorization
+        const testAuth = async () => {
+            const div = document.getElementById('auth-flow');
+            div.innerHTML = '<p>Testing authorization...</p>';
+            
+            if (!window.Telegram?.WebApp?.initData) {
+                div.innerHTML += '<p class="error">Cannot test - No Telegram initData</p>';
+                return;
+            }
+            
+            try {
+                log('Sending auth request...', 'info');
+                
+                const response = await fetch('/api/v2/auth/telegram', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-Init-Data': window.Telegram.WebApp.initData
+                    },
+                    body: JSON.stringify({
+                        initData: window.Telegram.WebApp.initData
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    div.innerHTML += '<p class="success">✅ Authorization successful!</p>';
+                    if (data.data?.token) {
+                        localStorage.setItem('unifarm_jwt_token', data.data.token);
+                        div.innerHTML += '<p class="success">JWT token saved</p>';
+                        div.innerHTML += `<pre>User: ${JSON.stringify(data.data.user, null, 2)}</pre>`;
+                    }
+                } else {
+                    div.innerHTML += `<p class="error">❌ Authorization failed: ${data.error || 'Unknown error'}</p>`;
+                    div.innerHTML += `<pre>Response: ${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (e) {
+                div.innerHTML += `<p class="error">❌ Network error: ${e.message}</p>`;
+                log(`Auth error: ${e.message}`, 'error');
+            }
+        };
+
+        // 5. Test API
+        const testAPI = async () => {
+            const div = document.getElementById('api-test');
+            div.innerHTML = '<p>Testing API endpoints...</p>';
+            
+            const token = localStorage.getItem('unifarm_jwt_token');
+            if (!token) {
+                div.innerHTML += '<p class="warning">No JWT token - authorize first</p>';
+                return;
+            }
+            
+            const endpoints = [
+                { name: 'Wallet Balance', url: '/api/v2/wallet/balance' },
+                { name: 'Farming Status', url: '/api/v2/uni-farming/status?user_id=74' },
+                { name: 'Missions', url: '/api/v2/missions' }
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint.url, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        div.innerHTML += `<p class="success">✅ ${endpoint.name}: OK</p>`;
+                    } else {
+                        div.innerHTML += `<p class="error">❌ ${endpoint.name}: ${data.error || response.statusText}</p>`;
+                    }
+                } catch (e) {
+                    div.innerHTML += `<p class="error">❌ ${endpoint.name}: ${e.message}</p>`;
+                }
+            }
+        };
+
+        // Run all checks
+        window.addEventListener('load', () => {
+            checkTelegramEnv();
+            checkStorage();
+            checkNetwork();
+        });
+
+        // Intercept console logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = function(...args) {
+            log(args.join(' '), 'info');
+            originalLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            log(args.join(' '), 'error');
+            originalError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            log(args.join(' '), 'warning');
+            originalWarn.apply(console, args);
+        };
+    </script>
+</body>
+</html>
