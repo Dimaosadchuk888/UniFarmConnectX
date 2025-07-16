@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TON Connect Simple Test</title>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+</head>
+<body>
+    <h1>TON Connect Simple Test</h1>
+    <div id="status">Loading...</div>
+    <button onclick="connect()">Connect Wallet</button>
+    <div id="logs" style="background: #f0f0f0; padding: 10px; margin-top: 20px; font-family: monospace; font-size: 12px;"></div>
+    
+    <script>
+        let tonConnectUI = null;
+        const logs = [];
+        
+        function log(msg) {
+            logs.push(new Date().toISOString() + ' - ' + msg);
+            document.getElementById('logs').innerHTML = logs.join('<br>');
+            console.log(msg);
+        }
+        
+        async function init() {
+            try {
+                log('Initializing TON Connect...');
+                log('Current URL: ' + window.location.href);
+                
+                // Пробуем разные варианты manifestUrl
+                const manifestUrls = [
+                    'https://uni-farm-connect-x-ab245275.replit.app/tonconnect-manifest.json',
+                    window.location.origin + '/tonconnect-manifest.json',
+                    '/tonconnect-manifest.json'
+                ];
+                
+                for (const url of manifestUrls) {
+                    log('Trying manifestUrl: ' + url);
+                    
+                    try {
+                        // Сначала проверяем доступность манифеста
+                        const response = await fetch(url);
+                        if (response.ok) {
+                            const data = await response.json();
+                            log('Manifest loaded successfully: ' + JSON.stringify(data));
+                            
+                            // Пробуем инициализировать
+                            tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+                                manifestUrl: url
+                            });
+                            
+                            log('TON Connect UI initialized with: ' + url);
+                            document.getElementById('status').textContent = 'Ready';
+                            
+                            // Подписываемся на изменения
+                            tonConnectUI.onStatusChange((wallet) => {
+                                log('Status changed: ' + JSON.stringify(wallet));
+                            });
+                            
+                            break;
+                        } else {
+                            log('Failed to load manifest from: ' + url + ' (HTTP ' + response.status + ')');
+                        }
+                    } catch (e) {
+                        log('Error with ' + url + ': ' + e.message);
+                    }
+                }
+                
+                if (!tonConnectUI) {
+                    throw new Error('Failed to initialize with any manifestUrl');
+                }
+                
+            } catch (error) {
+                log('ERROR: ' + error.message);
+                document.getElementById('status').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function connect() {
+            if (!tonConnectUI) {
+                log('TON Connect UI not initialized');
+                return;
+            }
+            
+            try {
+                log('Opening modal...');
+                await tonConnectUI.openModal();
+                log('Modal closed');
+            } catch (error) {
+                log('Error opening modal: ' + error.message);
+            }
+        }
+        
+        // Инициализация при загрузке
+        window.onload = init;
+    </script>
+</body>
+</html>

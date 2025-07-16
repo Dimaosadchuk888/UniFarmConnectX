@@ -138,9 +138,9 @@ export async function connectTonWallet(tonConnectUI: TonConnectUI): Promise<bool
       return false;
     }
     
-    // Проверяем, доступен ли метод connectWallet
-    if (typeof tonConnectUI.connectWallet !== 'function') {
-      console.error('Error: tonConnectUI.connectWallet is not a function');
+    // Проверяем, доступен ли метод openModal
+    if (typeof tonConnectUI.openModal !== 'function') {
+      console.error('Error: tonConnectUI.openModal is not a function');
       return false;
     }
     
@@ -149,8 +149,8 @@ export async function connectTonWallet(tonConnectUI: TonConnectUI): Promise<bool
     
     if (!tonConnectUI.connected) {
       debugLog('Attempting to connect wallet...');
-      // Вызываем соединение с кошельком
-      await tonConnectUI.connectWallet();
+      // Открываем модальное окно для подключения кошелька
+      await tonConnectUI.openModal();
       
       // После подключения сохраняем адрес
       if (tonConnectUI.connected && tonConnectUI.wallet) {

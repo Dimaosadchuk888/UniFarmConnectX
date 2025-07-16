@@ -1,66 +1,64 @@
 # TON Connect Final Fix Report
 **Дата**: 16 января 2025
-**Статус**: ✅ Применено окончательное решение
+**Статус**: ✅ Применено фундаментальное решение
 
-## Найденная проблема
+## Найденные критические проблемы
 
-### Корневая причина
-Согласно официальной документации TON Connect, `manifestUrl` должен быть **полным публичным URL**, а не динамически генерируемым.
+### 1. TON Connect UI был ОТКЛЮЧЕН в UserContext
+```javascript
+// Было:
+// Временно отключаем TonConnect до исправления порядка провайдеров
+// const [tonConnectUI] = useTonConnectUI();
+const tonConnectUI = null;  // ❌ Это делало все функции неработающими!
 
-### Почему предыдущие исправления не работали:
-1. `manifestUrl="/tonconnect-manifest.json"` - относительный путь не поддерживается в production
-2. `manifestUrl={${window.location.origin}/tonconnect-manifest.json}` - динамическая генерация URL может вызывать проблемы с инициализацией
-
-### Официальная документация говорит:
-```jsx
-<TonConnectUIProvider manifestUrl="https://<YOUR_APP_URL>/tonconnect-manifest.json">
+// Исправлено:
+const [tonConnectUI] = useTonConnectUI(); // ✅ Включен обратно
 ```
 
-## Окончательное решение
+### 2. Использовался несуществующий метод API
+```javascript
+// Было в tonConnectService.ts:
+await tonConnectUI.connectWallet(); // ❌ Этот метод НЕ СУЩЕСТВУЕТ в API!
 
-### Изменен App.tsx:
+// Исправлено:
+await tonConnectUI.openModal(); // ✅ Правильный метод из документации
+```
+
+### 3. Конфигурация manifestUrl
 ```jsx
-// Было (попытки исправления):
-<TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
-<TonConnectUIProvider manifestUrl={`${window.location.origin}/tonconnect-manifest.json`}>
-
-// Стало (правильное решение):
+// Изменено в App.tsx:
 <TonConnectUIProvider manifestUrl="https://uni-farm-connect-x-ab245275.replit.app/tonconnect-manifest.json">
 ```
 
-## Почему это работает
+## Почему предыдущие попытки не работали
 
-1. **Статический URL** - SDK может надежно загрузить манифест при инициализации
-2. **Полный путь** - избегаем проблем с относительными путями и прокси
-3. **Соответствие документации** - именно так рекомендует официальная документация
+1. **Функциональность была намеренно отключена** с комментарием "временно отключаем до исправления порядка провайдеров"
+2. **Неправильное использование API** - метод `connectWallet()` не существует в TonConnect UI SDK
+3. Все диагностические страницы показывали, что SDK инициализирован, но не могли обнаружить, что в основном приложении он отключен
 
-## Дополнительные проверки
+## Что было исправлено
 
-### Манифест корректен:
-```json
-{
-  "url": "https://uni-farm-connect-x-ab245275.replit.app",
-  "name": "UniFarm",
-  "iconUrl": "https://uni-farm-connect-x-ab245275.replit.app/assets/unifarm-icon.svg",
-  "termsOfUseUrl": "https://uni-farm-connect-x-ab245275.replit.app/terms",
-  "privacyPolicyUrl": "https://uni-farm-connect-x-ab245275.replit.app/privacy"
-}
-```
+### В tonConnectService.ts (строки 144-156):
+- Заменен вызов несуществующего `connectWallet()` на правильный `openModal()`
+- Обновлена проверка доступности метода
 
-### Версии пакетов корректны:
-- @tonconnect/ui-react@2.2.0 ✅
-- @tonconnect/ui@2.2.0 ✅
-- @tonconnect/sdk@3.2.0 ✅
+### В userContext.tsx (строка 180):
+- Включен обратно `useTonConnectUI()` хук
+- Убран `tonConnectUI = null`
 
-## Инструменты для проверки
+## Проверка работоспособности
 
-1. **Основная диагностика**: `/ton-connect-diagnostics.html`
-2. **Детальная отладка**: `/ton-connect-deep-debug.html`
-3. **Компонент отладки**: На странице кошелька
+1. Перезагрузите страницу приложения (Ctrl+F5)
+2. Перейдите на страницу "Кошелек"
+3. Нажмите кнопку "Подключить кошелек" в карточке "Пополнение через TON"
+4. Должно открыться модальное окно TON Connect
+
+## Инструменты для отладки
+
+- `/ton-connect-diagnostics.html` - базовая диагностика
+- `/ton-connect-deep-debug.html` - детальная отладка
+- `/test-ton-connect-simple.html` - простой тест подключения
 
 ## Важное примечание
 
-При смене домена приложения (например, при новом деплое):
-1. Обновите URL в `App.tsx`
-2. Запустите `node scripts/generate-manifests.js`
-3. Проверьте работу через диагностическую страницу
+Эта проблема показывает важность глубокого исследования кода. Поверхностные проверки (манифесты, конфигурация) не выявили, что сама функциональность была намеренно отключена в коде с комментарием о временном характере.
