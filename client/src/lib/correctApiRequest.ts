@@ -117,13 +117,9 @@ export async function correctApiRequest(
           return correctApiRequest(url, method, body, headers, retryCount + 1);
         } else {
           console.error('[correctApiRequest] ❌ Не удалось обновить токен:', refreshResult.error);
-          // Показываем уведомление пользователю
-          toast({
-            title: "Ошибка авторизации",
-            description: "Пожалуйста, перезагрузите страницу и войдите снова",
-            variant: "destructive",
-            duration: 5000
-          });
+          console.log('[correctApiRequest] Автоматическая перезагрузка страницы...');
+          // Автоматически перезагружаем страницу при ошибке аутентификации
+          window.location.reload();
         }
       }
       
