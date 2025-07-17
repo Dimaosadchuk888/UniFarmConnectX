@@ -1,73 +1,125 @@
 import { supabase } from '../core/supabase.js';
 
 async function checkFarmingTiming() {
-  console.log('=== ТОЧНЫЙ РАСЧЕТ ВРЕМЕНИ РЕФЕРАЛЬНЫХ НАЧИСЛЕНИЙ ===\n');
+  console.log('=== ДЕТАЛЬНАЯ ПРОВЕРКА ФАРМИНГ НАЧИСЛЕНИЙ ===\n');
+  
+  const referralIds = [186, 187, 188, 189, 190]; // ID ваших рефералов
   
   try {
-    // 1. Проверяем последние запуски планировщика
-    console.log('📅 ПОСЛЕДНИЕ ЗАПУСКИ ПЛАНИРОВЩИКА:\n');
-    
-    const { data: recentTx, error } = await supabase
-      .from('transactions')
-      .select('created_at, user_id')
-      .eq('type', 'FARMING_REWARD')
-      .eq('currency', 'UNI')
-      .order('created_at', { ascending: false })
-      .limit(5);
-      
-    if (recentTx && recentTx.length > 0) {
-      const lastRun = new Date(recentTx[0].created_at);
-      const now = new Date();
-      const timeSinceLastRun = Math.floor((now.getTime() - lastRun.getTime()) / 1000 / 60);
-      
-      console.log(`Последний запуск: ${lastRun.toLocaleString('ru-RU')}`);
-      console.log(`Прошло времени: ${timeSinceLastRun} минут`);
-      console.log(`Следующий запуск: через ${5 - (timeSinceLastRun % 5)} минут\n`);
-    }
-    
-    // 2. Проверяем статус рефералов
-    console.log('⏱️ СТАТУС ОБРАБОТКИ РЕФЕРАЛОВ:\n');
-    
-    const { data: referrals } = await supabase
+    // 1. Проверяем данные фарминга рефералов
+    console.log('📊 ДАННЫЕ ФАРМИНГА РЕФЕРАЛОВ:');
+    const { data: users, error } = await supabase
       .from('users')
-      .select('id, username, uni_farming_last_update, created_at')
-      .eq('referred_by', 74)
-      .order('created_at', { ascending: false })
-      .limit(3);
+      .select('*')
+      .in('id', referralIds);
       
-    for (const ref of referrals || []) {
-      const createdAt = new Date(ref.created_at);
-      const now = new Date();
-      const minutesSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / 1000 / 60);
-      
-      console.log(`${ref.username} (ID: ${ref.id}):`);
-      console.log(`- Создан: ${minutesSinceCreation} минут назад`);
-      
-      if (ref.uni_farming_last_update) {
-        const lastUpdate = new Date(ref.uni_farming_last_update);
-        const minutesSinceUpdate = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000 / 60);
-        console.log(`- Последнее обновление: ${minutesSinceUpdate} минут назад`);
-        console.log(`- Статус: ✅ Уже обрабатывается планировщиком`);
-      } else {
-        console.log(`- Статус: ⏳ Ожидает первой обработки`);
-        console.log(`- Примерное время до обработки: ${Math.max(0, 5 - (minutesSinceCreation % 5))} минут`);
-      }
-      console.log('');
+    if (error) {
+      console.error('Ошибка:', error);
+      return;
     }
     
-    // 3. Расчет времени
-    console.log('⏰ ТОЧНОЕ ВРЕМЯ НАЧИСЛЕНИЙ:\n');
-    console.log('1. Фарминг доход рефералам: в течение следующих 5 минут');
-    console.log('2. Реферальные комиссии User 74: сразу после начисления дохода рефералам');
-    console.log('3. Общее время ожидания: максимум 5-10 минут\n');
+    users?.forEach(user => {
+      console.log(`\n👤 ${user.username} (ID: ${user.id})`);
+      console.log(`   - UNI farming активен: ${user.uni_farming_active ? 'ДА' : 'НЕТ'}`);
+      console.log(`   - UNI депозит: ${user.uni_deposit_amount || 0} UNI`);
+      console.log(`   - UNI баланс: ${user.balance_uni}`);
+      console.log(`   - Ставка: ${user.uni_farming_rate || 0}% в день`);
+      console.log(`   - Начало фарминга: ${user.uni_farming_start_timestamp ? new Date(user.uni_farming_start_timestamp).toLocaleString('ru-RU') : 'НЕ УСТАНОВЛЕНО'}`);
+      console.log(`   - Последнее обновление: ${user.uni_farming_last_update ? new Date(user.uni_farming_last_update).toLocaleString('ru-RU') : 'НЕ ОБНОВЛЯЛОСЬ'}`);
+      
+      if (user.uni_farming_last_update) {
+        const minutesAgo = Math.floor((Date.now() - new Date(user.uni_farming_last_update).getTime()) / 1000 / 60);
+        console.log(`   - Минут с последнего обновления: ${minutesAgo}`);
+      }
+    });
     
-    console.log('📝 ВАЖНО:');
-    console.log('- Планировщик обрабатывает всех пользователей пакетами');
-    console.log('- Новые пользователи попадают в обработку при следующем запуске');
-    console.log('- Реферальные комиссии начисляются автоматически в том же цикле');
+    // 2. Проверяем все транзакции этих пользователей
+    console.log('\n\n📈 ВСЕ ТРАНЗАКЦИИ РЕФЕРАЛОВ:');
+    const { data: transactions, error: txError } = await supabase
+      .from('transactions')
+      .select('*')
+      .in('user_id', referralIds)
+      .order('created_at', { ascending: false });
+      
+    if (txError) {
+      console.error('Ошибка:', txError);
+      return;
+    }
+    
+    console.log(`\nВсего транзакций: ${transactions?.length || 0}`);
+    
+    const txByType = {};
+    transactions?.forEach(tx => {
+      if (!txByType[tx.type]) txByType[tx.type] = 0;
+      txByType[tx.type]++;
+    });
+    
+    console.log('\nТранзакции по типам:');
+    Object.entries(txByType).forEach(([type, count]) => {
+      console.log(`- ${type}: ${count}`);
+    });
+    
+    // 3. Проверяем последние FARMING_REWARD транзакции в системе
+    console.log('\n\n🔄 ПОСЛЕДНИЕ FARMING_REWARD В СИСТЕМЕ:');
+    const { data: recentFarming, error: farmError } = await supabase
+      .from('transactions')
+      .select('user_id, amount, currency, created_at')
+      .eq('type', 'FARMING_REWARD')
+      .order('created_at', { ascending: false })
+      .limit(10);
+      
+    if (recentFarming && recentFarming.length > 0) {
+      console.log(`\nПоследние ${recentFarming.length} начислений:`);
+      recentFarming.forEach(tx => {
+        const isReferral = referralIds.includes(tx.user_id);
+        const marker = isReferral ? '⭐' : '';
+        console.log(`${marker} User ${tx.user_id}: +${tx.amount} ${tx.currency} (${new Date(tx.created_at).toLocaleString('ru-RU')})`);
+      });
+    } else {
+      console.log('❌ Нет недавних FARMING_REWARD транзакций');
+    }
+    
+    // 4. Проверяем uni_farming_data таблицу
+    console.log('\n\n📋 ПРОВЕРКА ТАБЛИЦЫ uni_farming_data:');
+    const { data: farmingData, error: farmingDataError } = await supabase
+      .from('uni_farming_data')
+      .select('*')
+      .in('user_id', referralIds);
+      
+    if (farmingDataError) {
+      console.log('⚠️ Таблица uni_farming_data не существует или недоступна');
+      console.log('   Это может быть причиной проблемы!');
+    } else if (farmingData && farmingData.length > 0) {
+      console.log(`Найдено записей: ${farmingData.length}`);
+      farmingData.forEach(fd => {
+        console.log(`- User ${fd.user_id}: депозит ${fd.farming_balance}, ставка ${fd.farming_rate}`);
+      });
+    } else {
+      console.log('❌ Нет данных в uni_farming_data для рефералов');
+    }
+    
+    // 5. Итоговый анализ
+    console.log('\n\n🔍 АНАЛИЗ ПРОБЛЕМЫ:');
+    const hasActiveDeposits = users?.some(u => u.uni_farming_active && u.uni_deposit_amount > 0);
+    const hasOldUpdates = users?.every(u => {
+      if (!u.uni_farming_last_update) return true;
+      const minutesAgo = (Date.now() - new Date(u.uni_farming_last_update).getTime()) / 1000 / 60;
+      return minutesAgo > 10;
+    });
+    
+    if (hasActiveDeposits && hasOldUpdates) {
+      console.log('❌ Проблема подтверждена:');
+      console.log('   - У рефералов есть активные депозиты');
+      console.log('   - Но фарминг не обновляется более 10 минут');
+      console.log('   - Планировщик фарминга не обрабатывает этих пользователей');
+      console.log('\n💡 Возможные причины:');
+      console.log('   1. Планировщик пропускает новых пользователей');
+      console.log('   2. Проблема с расчетом времени для новых депозитов');
+      console.log('   3. Ошибка в логике начисления');
+    }
     
   } catch (error) {
-    console.error('❌ Ошибка:', error);
+    console.error('❌ Критическая ошибка:', error);
   }
 }
 
