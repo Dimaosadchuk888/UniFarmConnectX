@@ -18,14 +18,14 @@ export function useWebSocketBalanceSync() {
     }
   }, [userId, connectionStatus, subscribeToUserUpdates]);
   
-  // Добавляем периодическое обновление баланса каждые 30 секунд
+  // Добавляем периодическое обновление баланса каждые 15 секунд
   useEffect(() => {
     if (!userId) return;
     
     const interval = setInterval(() => {
       console.log('[useWebSocketBalanceSync] Автообновление баланса через интервал');
       refreshBalance(true);
-    }, 30000); // 30 секунд
+    }, 15000); // 15 секунд
     
     return () => clearInterval(interval);
   }, [userId, refreshBalance]);
