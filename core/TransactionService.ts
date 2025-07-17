@@ -178,6 +178,11 @@ export class UnifiedTransactionService {
       if (filters?.status) {
         query = query.eq('status', filters.status);
       }
+      
+      // ВАЖНО: Фильтр по валюте на уровне БД для правильной пагинации
+      if (filters?.currency && filters.currency !== 'ALL') {
+        query = query.eq('currency', filters.currency);
+      }
 
       // Пагинация
       const offset = (page - 1) * limit;
@@ -200,16 +205,11 @@ export class UnifiedTransactionService {
       // Преобразование в унифицированный формат
       const unifiedTransactions = transactions?.map(tx => this.formatTransactionResponse(tx)) || [];
 
-      // Фильтрация по валюте на уровне приложения
-      const filteredTransactions = filters?.currency && filters.currency !== 'ALL'
-        ? unifiedTransactions.filter(tx => tx.currency === filters.currency)
-        : unifiedTransactions;
-
       const total = count || 0;
       const totalPages = Math.ceil(total / limit);
 
       return {
-        transactions: filteredTransactions,
+        transactions: unifiedTransactions,
         total,
         page,
         limit,
