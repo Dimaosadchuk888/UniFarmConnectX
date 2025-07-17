@@ -3,9 +3,6 @@ import BalanceCard from '@/components/wallet/BalanceCard';
 import TonDepositCard from '@/components/wallet/TonDepositCard';
 import WithdrawalForm from '@/components/wallet/WithdrawalForm';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
-import { TonConnectDebug } from '@/components/TonConnectDebug';
-import { ErrorBoundary } from 'react-error-boundary';
-import { TonConnectDebug } from '@/components/TonConnectDebug';
 import { ErrorBoundary } from 'react-error-boundary';
 
 /**
@@ -77,14 +74,6 @@ const Wallet: React.FC = () => {
           onReset={() => window.location.reload()}
         >
           <TransactionHistory />
-        </ErrorBoundary>
-        
-        {/* Компонент отладки TON Connect */}
-        <ErrorBoundary
-          FallbackComponent={ErrorFallback}
-          onReset={() => window.location.reload()}
-        >
-          <TonConnectDebug />
         </ErrorBoundary>
         
         {/* Дополнительное пространство внизу для прокрутки */}
