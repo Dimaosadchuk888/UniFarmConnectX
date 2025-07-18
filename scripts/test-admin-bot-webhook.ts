@@ -3,7 +3,7 @@
  */
 
 async function testWebhook() {
-  const webhookUrl = 'https://uni-farm-connect-x-elizabethstone1.replit.app/api/v2/admin-bot/webhook';
+  const webhookUrl = 'https://uni-farm-connect-aab49267.replit.app/api/v2/admin-bot/webhook';
   
   console.log('Testing Admin Bot Webhook...');
   console.log('URL:', webhookUrl);

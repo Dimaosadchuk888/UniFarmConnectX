@@ -12,7 +12,7 @@ const baseUrl = process.env.TELEGRAM_WEBAPP_URL ||
                 process.env.VITE_APP_URL ||
                 (process.env.REPLIT_DEV_DOMAIN 
                   ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-                  : 'https://uni-farm-connect-x-ab245275.replit.app');
+                  : 'https://uni-farm-connect-aab49267.replit.app');
 
 console.log(`🔧 Генерация манифестов для домена: ${baseUrl}`);
 

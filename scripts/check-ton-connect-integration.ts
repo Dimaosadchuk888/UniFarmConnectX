@@ -81,7 +81,7 @@ async function checkTonConnectIntegration() {
     
     // 6. Критические проблемы
     console.log('\n6. ИЗВЕСТНЫЕ ПРОБЛЕМЫ (из changelog):');
-    console.log('  ⚠️  Манифесты содержат hardcoded URL: uni-farm-connect-x-ab245275.replit.app');
+    console.log('  ✅  Манифесты обновлены для нового домена: uni-farm-connect-aab49267.replit.app');
     console.log('  ⚠️  manifestUrl в App.tsx также hardcoded (строка 285)');
     console.log('  ℹ️  При смене домена нужно:');
     console.log('     1. Обновить TELEGRAM_WEBAPP_URL в Replit Secrets');

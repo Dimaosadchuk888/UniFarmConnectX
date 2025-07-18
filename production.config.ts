@@ -83,7 +83,7 @@ export class ProductionConfig {
       process.env.VITE_APP_URL ||
       (process.env.REPLIT_DEV_DOMAIN 
         ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-        : 'https://uni-farm-connect-x-elizabethstone1.replit.app');
+        : 'https://uni-farm-connect-aab49267.replit.app');
     
     // TON Connect manifest
     const tonConnectManifest = {

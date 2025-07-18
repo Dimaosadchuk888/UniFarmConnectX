@@ -34,6 +34,6 @@ export default defineConfig({
     }
   },
   server: {
-    allowedHosts: ['uni-farm-connect-x-ab245275.replit.app', 'uni-farm-connect-x-elizabethstone1.replit.app']
+    allowedHosts: ['uni-farm-connect-aab49267.replit.app']
   }
 });
