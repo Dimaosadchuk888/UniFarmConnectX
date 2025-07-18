@@ -7,7 +7,7 @@ import {
   THEME
 } from '@tonconnect/ui-react';
 import { CHAIN } from '@tonconnect/protocol';
-import { beginCell } from '@ton/core';
+// Динамический импорт @ton/core будет происходить только при необходимости
 
 // Для отладки - логирование операций TonConnect
 const DEBUG_ENABLED = false; // Отключаем debug логи в production
@@ -45,8 +45,23 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
  * @param comment Текст комментария
  * @returns base64-строка для payload
  */
-function createBocWithComment(comment: string): string {
+async function createBocWithComment(comment: string): Promise<string> {
   try {
+    // Добавляем полифилл Buffer для браузера
+    if (typeof window !== 'undefined' && !window.Buffer) {
+      window.Buffer = {
+        from: (data: any, encoding?: string) => {
+          if (typeof data === 'string' && encoding === 'base64') {
+            return Uint8Array.from(atob(data), c => c.charCodeAt(0));
+          }
+          return new Uint8Array(data);
+        }
+      } as any;
+    }
+    
+    // Динамически импортируем @ton/core только при необходимости
+    const { beginCell } = await import('@ton/core');
+    
     // Используем правильную генерацию BOC через @ton/core
     const cell = beginCell()
       .storeUint(0, 32) // Опкод 0 для текстового комментария
@@ -238,7 +253,7 @@ export async function sendTonTransaction(
     const rawPayload = `UniFarmBoost:${userId}:${boostId}`;
     
     // Создаем BOC-payload с комментарием
-    const payload = createBocWithComment(rawPayload);
+    const payload = await createBocWithComment(rawPayload);
     
     // Для дополнительной проверки - в консоли выводим длину payload
     console.log(`✅ BOC-payload длина: ${payload.length} символов`);
