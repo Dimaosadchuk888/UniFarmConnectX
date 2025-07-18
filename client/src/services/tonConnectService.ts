@@ -7,7 +7,7 @@ import {
   THEME
 } from '@tonconnect/ui-react';
 import { CHAIN } from '@tonconnect/protocol';
-// Удалено импорт из @ton/core из-за проблем с Buffer в браузере
+import { beginCell } from '@ton/core';
 
 // Для отладки - логирование операций TonConnect
 const DEBUG_ENABLED = false; // Отключаем debug логи в production
@@ -47,34 +47,23 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
  */
 function createBocWithComment(comment: string): string {
   try {
-    // Убираем проверку на Buffer, так как мы больше не используем его
+    // Используем правильную генерацию BOC через @ton/core
+    const payload = beginCell()
+      .storeUint(0, 32) // Опкод 0 для текстового комментария
+      .storeStringTail(comment) // Сохраняем текст комментария
+      .endCell()
+      .toBoc()
+      .toString('base64');
     
-    // ВНИМАНИЕ: Вместо использования @ton/core beginCell, используем простой base64
-    
-    // Прямое кодирование комментария в base64
-    const bocBytes = new TextEncoder().encode(comment);
-    
-    // Притворяемся, что это BOC для совместимости с остальным кодом
-    
-    // АЛЬТЕРНАТИВНЫЙ ПОДХОД: Если с BOC возникают проблемы, просто кодируем сам комментарий
-    // Это не соответствует стандарту TON, но для тестирования подойдет
-    if (!bocBytes || bocBytes.length === 0) {
-      // Преобразуем комментарий в base64 напрямую
-      return btoa(comment);
-    }
-    
-    // Преобразуем в base64
-    const base64Result = uint8ArrayToBase64(bocBytes);
-    
-    return base64Result;
+    console.log(`✅ BOC-payload создан корректно, длина: ${payload.length} символов`);
+    return payload;
   } catch (error) {
     console.error('Ошибка при создании BOC:', error);
     
-    // В случае ошибки с Buffer, используем альтернативный подход
-    
-    // Просто закодируем комментарий в base64 - это не будет работать как BOC,
-    // но для теста достаточно
+    // Fallback на простое base64 кодирование
+    // ВНИМАНИЕ: Это не будет работать корректно с TON блокчейном!
     try {
+      console.warn('⚠️ Используется fallback на простое base64 кодирование - транзакция может не работать!');
       return btoa(comment);
     } catch (e) {
       console.error('Не удалось даже закодировать комментарий в base64:', e);
