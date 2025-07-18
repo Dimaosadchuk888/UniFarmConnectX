@@ -48,12 +48,14 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
 function createBocWithComment(comment: string): string {
   try {
     // Используем правильную генерацию BOC через @ton/core
-    const payload = beginCell()
+    const cell = beginCell()
       .storeUint(0, 32) // Опкод 0 для текстового комментария
       .storeStringTail(comment) // Сохраняем текст комментария
-      .endCell()
-      .toBoc()
-      .toString('base64');
+      .endCell();
+    
+    // Получаем BOC как Uint8Array и конвертируем в base64
+    const boc = cell.toBoc();
+    const payload = uint8ArrayToBase64(boc);
     
     console.log(`✅ BOC-payload создан корректно, длина: ${payload.length} символов`);
     return payload;
