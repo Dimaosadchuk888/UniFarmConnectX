@@ -109,6 +109,40 @@ export class AuthService {
     
     if (!user) {
       user = await this.createUser(userData);
+      
+      // Обработка реферальной связи СРАЗУ после создания пользователя
+      if (userData.ref_by && user) {
+        try {
+          const { ReferralService } = await import('../referral/service');
+          const referralService = new ReferralService();
+          
+          logger.info('[AuthService] Немедленная обработка реферальной связи', { 
+            newUserId: user.id, 
+            refCode: userData.ref_by 
+          });
+          
+          const referralResult = await referralService.processReferral(userData.ref_by, user.id.toString());
+          
+          if (referralResult.success) {
+            logger.info('[AuthService] Реферальная связь успешно создана в findOrCreateFromTelegram', { 
+              newUserId: user.id, 
+              refCode: userData.ref_by 
+            });
+          } else {
+            logger.warn('[AuthService] Не удалось создать реферальную связь в findOrCreateFromTelegram', { 
+              newUserId: user.id, 
+              refCode: userData.ref_by,
+              error: referralResult.error 
+            });
+          }
+        } catch (error) {
+          logger.error('[AuthService] Ошибка при обработке реферальной связи в findOrCreateFromTelegram', { 
+            error: error instanceof Error ? error.message : String(error),
+            newUserId: user.id,
+            refCode: userData.ref_by
+          });
+        }
+      }
     }
     
     return user;
@@ -164,38 +198,11 @@ export class AuthService {
         isNewUser = true;
         logger.info('[AuthService] Новый пользователь создан', { userId: userInfo?.id });
         
-        // Обработка реферальной связи для нового пользователя
-        if (options.ref_by && userInfo) {
-          try {
-            const referralService = new ReferralService();
-            
-            logger.info('[AuthService] Обработка реферальной связи', { 
-              newUserId: userInfo.id, 
-              refCode: options.ref_by 
-            });
-            
-            const referralResult = await referralService.processReferral(options.ref_by, userInfo.id.toString());
-            
-            if (referralResult.success) {
-              logger.info('[AuthService] Реферальная связь успешно создана', { 
-                newUserId: userInfo.id, 
-                refCode: options.ref_by 
-              });
-            } else {
-              logger.warn('[AuthService] Не удалось создать реферальную связь', { 
-                newUserId: userInfo.id, 
-                refCode: options.ref_by,
-                error: referralResult.error 
-              });
-            }
-          } catch (error) {
-            logger.error('[AuthService] Ошибка при обработке реферальной связи', { 
-              error: error instanceof Error ? error.message : String(error),
-              newUserId: userInfo.id,
-              refCode: options.ref_by
-            });
-          }
-        }
+        // Реферальная связь уже обработана в findOrCreateFromTelegram()
+        logger.info('[AuthService] Реферальная связь уже обработана при создании пользователя', { 
+          newUserId: userInfo.id, 
+          refCode: options.ref_by 
+        });
       }
 
       if (!userInfo) {
