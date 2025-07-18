@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-07-18T06:52:27.988Z",
+  "productionDomain": "https://uni-farm-connect-x-w81846064.replit.app",
+  "totalIssues": 5,
+  "criticalCount": 2,
+  "warningCount": 3,
+  "infoCount": 0,
+  "issues": [
+    {
+      "severity": "critical",
+      "component": "Environment",
+      "issue": "Missing required environment variable: SUPABASE_SERVICE_KEY",
+      "recommendation": "Add SUPABASE_SERVICE_KEY to Replit Secrets"
+    },
+    {
+      "severity": "critical",
+      "component": "Environment",
+      "issue": "Missing required environment variable: DATABASE_URL",
+      "recommendation": "Add DATABASE_URL to Replit Secrets"
+    },
+    {
+      "severity": "warning",
+      "component": "Environment",
+      "issue": "TELEGRAM_WEBAPP_URL (https://uni-farm-connect-x-ab245275.replit.app) doesn't match production domain",
+      "recommendation": "Update TELEGRAM_WEBAPP_URL to https://uni-farm-connect-x-w81846064.replit.app"
+    },
+    {
+      "severity": "warning",
+      "component": "Hardcoded URLs",
+      "issue": "Localhost reference found in server/index.ts",
+      "location": "server/index.ts",
+      "recommendation": "Use environment variables for API URLs"
+    },
+    {
+      "severity": "warning",
+      "component": "Scheduler",
+      "issue": "Non-standard interval in modules/scheduler/tonBoostIncomeScheduler.ts",
+      "location": "modules/scheduler/tonBoostIncomeScheduler.ts"
+    }
+  ]
+}
