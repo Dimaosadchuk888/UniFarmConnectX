@@ -105,7 +105,7 @@ export class SupabaseUserRepository {
           username: userData.username || userData.first_name || `user_${userData.telegram_id}`,
           first_name: userData.first_name || 'User',
           ref_code: refCode,
-          referred_by: userData.ref_by || null,
+          referred_by: null, // Оставляем пустым, заполним в processReferral()
           balance_uni: '0',
           balance_ton: '0'
         })
