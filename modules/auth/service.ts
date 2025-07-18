@@ -333,7 +333,7 @@ export class AuthService {
       if (!userInfo) {
         logger.info('[AuthService] Создание нового пользователя (прямая регистрация)', { telegramId: userData.telegram_id });
         
-        userInfo = await this.createUser({
+        userInfo = await this.findOrCreateFromTelegram({
           telegram_id: userData.telegram_id,
           username: userData.username || userData.first_name,
           first_name: userData.first_name,
@@ -343,91 +343,11 @@ export class AuthService {
         isNewUser = true;
         logger.info('[AuthService] Новый пользователь создан (прямая регистрация)', { userId: userInfo?.id });
         
-        // ПРИНУДИТЕЛЬНАЯ ДИАГНОСТИКА
-        logger.info('[AuthService] ДИАГНОСТИКА - Проверка реферальной логики', {
-          userData_ref_by: userData.ref_by,
-          userData_ref_by_type: typeof userData.ref_by,
-          userData_ref_by_truthy: !!userData.ref_by,
-          userInfo_exists: !!userInfo,
-          userInfo_id: userInfo?.id,
-          will_process_referral: !!(userData.ref_by && userInfo)
+        // Реферальная связь уже обработана в findOrCreateFromTelegram()
+        logger.info('[AuthService] Реферальная связь уже обработана при создании пользователя', { 
+          newUserId: userInfo.id, 
+          refCode: userData.ref_by 
         });
-        
-        // КРИТИЧЕСКАЯ ПРОВЕРКА: ВСЕГДА обрабатываем реферальную связь для нового пользователя
-        if (userData.ref_by && userInfo) {
-          try {
-            logger.info('[AuthService] Обработка реферальной связи (прямая регистрация)', { 
-              newUserId: userInfo.id, 
-              refCode: userData.ref_by 
-            });
-            
-            // Прямая интеграция с базой данных вместо ReferralService
-            const { data: inviter, error: inviterError } = await supabase
-              .from('users')
-              .select('id, telegram_id, username')
-              .eq('ref_code', userData.ref_by)
-              .single();
-            
-            if (inviterError || !inviter) {
-              logger.warn('[AuthService] Реферальный код не найден', {
-                refCode: userData.ref_by,
-                error: inviterError?.message
-              });
-            } else {
-              // Устанавливаем referred_by
-              const { error: updateError } = await supabase
-                .from('users')
-                .update({ referred_by: inviter.id })
-                .eq('id', userInfo.id);
-              
-              if (updateError) {
-                logger.error('[AuthService] Ошибка обновления referred_by', {
-                  newUserId: userInfo.id,
-                  inviterId: inviter.id,
-                  error: updateError.message
-                });
-              } else {
-                logger.info('[AuthService] referred_by установлен успешно', {
-                  newUserId: userInfo.id,
-                  inviterId: inviter.id
-                });
-                
-                // Создаем запись в referrals
-                const { error: referralError } = await supabase
-                  .from('referrals')
-                  .insert({
-                    user_id: userInfo.id,
-                    referred_user_id: userInfo.id,
-                    inviter_id: inviter.id,
-                    level: 1,
-                    reward_uni: '0',
-                    reward_ton: '0',
-                    ref_path: [inviter.id]
-                  });
-                
-                if (referralError) {
-                  logger.warn('[AuthService] Ошибка создания записи в referrals', {
-                    error: referralError.message,
-                    referrerId: inviter.id,
-                    referredId: userInfo.id
-                  });
-                } else {
-                  logger.info('[AuthService] Реферальная связь успешно создана (прямая регистрация)', { 
-                    newUserId: userInfo.id, 
-                    refCode: userData.ref_by,
-                    inviterId: inviter.id
-                  });
-                }
-              }
-            }
-          } catch (error) {
-            logger.error('[AuthService] Ошибка при обработке реферальной связи (прямая регистрация)', { 
-              error: error instanceof Error ? error.message : String(error),
-              newUserId: userInfo.id,
-              refCode: userData.ref_by
-            });
-          }
-        }
       }
 
       if (!userInfo) {
