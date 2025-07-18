@@ -143,7 +143,20 @@ Required in Replit Secrets:
 - `TELEGRAM_BOT_TOKEN` - Bot token for authentication
 - `JWT_SECRET` - Secret for JWT token generation
 
+## Critical Production Deployment Issues
+**ВАЖНО: Проверить перед каждым деплоем в production!**
+
+### Известные проблемы Dev vs Prod (18.01.2025):
+1. **TON Connect URLs захардкожены** - `App.tsx` строка 285 и `tonconnect-manifest.json` содержат Replit-специфичные URL
+2. **CORS настройки** - в production разрешен только `https://t.me`, проверить переменную CORS_ORIGINS
+3. **Множественные WebSocket провайдеры** - 3 разных провайдера могут конфликтовать
+4. **Фантомные записи в БД** - 67 записей в `ton_farming_data` блокируют TON Boost планировщик
+5. **Rate limiting отключен** - намеренно для production, но создает риск DDoS
+
+Детальный отчет: `DEV_VS_PROD_CRITICAL_ISSUES_REPORT.md`
+
 ## Changelog
+- January 18, 2025. DEV VS PROD ANALYSIS COMPLETED - Проведен полный анализ расхождений между Dev и Prod режимами. Найдено 8 критических проблем включая захардкоженные URL для TON Connect, различные CORS настройки, множественные WebSocket провайдеры и фантомные записи в БД блокирующие TON Boost. Создан детальный отчет DEV_VS_PROD_CRITICAL_ISSUES_REPORT.md с чеклистом перед деплоем. Особое внимание: TON Connect не будет работать в production без изменения захардкоженных URL в App.tsx и tonconnect-manifest.json.
 - January 17, 2025. TON TRANSACTION FILTERING BUG FIXED - Исправлена критическая проблема с отображением TON транзакций в истории. Корневая причина: фильтр по валюте применялся ПОСЛЕ пагинации в core/TransactionService.ts (строки 203-206), что приводило к фильтрации уже полученных 20 записей. Решение: добавлен фильтр по валюте на уровне БД перед пагинацией (строка 185). Результат: TON транзакции (включая реферальные начисления) теперь корректно отображаются в истории транзакций. Проблема возникла после 14 января 2025 при рефакторинге.
 - January 17, 2025. AUTO-REFRESH BALANCE INTERVAL ADDED - Добавлено автоматическое обновление баланса каждые 15 секунд в useWebSocketBalanceSync hook. Решает проблему отсутствия WebSocket уведомлений при начислении дохода от фарминга. Временное решение до исправления архитектурного конфликта между BatchBalanceProcessor и BalanceManager. Пользователь предпочел интервал 15 секунд вместо 30.
 - January 17, 2025. AUTHENTICATION ERROR AUTO-RELOAD FIXED - Исправлено поведение при ошибке аутентификации. Вместо отображения JSON сообщения {"success":false,"error":"Authentication required","need_jwt_token":true} страница теперь автоматически перезагружается. Изменен client/src/lib/correctApiRequest.ts - при неудачном обновлении токена вызывается window.location.reload() вместо toast уведомления. Улучшает UX при истечении JWT токена.
