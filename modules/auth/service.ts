@@ -337,7 +337,7 @@ export class AuthService {
           telegram_id: userData.telegram_id,
           username: userData.username || userData.first_name,
           first_name: userData.first_name,
-          ref_by: null  // Убираем ref_by из createUser
+          ref_by: userData.ref_by  // Передаем ref_by для обработки
         });
         
         isNewUser = true;
