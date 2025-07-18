@@ -132,13 +132,14 @@ Each business domain is organized as a self-contained module:
 ### Manifest Management
 - **Manifest files location**: `client/public/tonconnect-manifest.json` and `client/public/.well-known/tonconnect-manifest.json`
 - **Domain configuration**: Manifests must contain the correct domain URL matching the app domain
+- **Production domain**: https://uni-farm-connect-x-w81846064.replit.app (configured on January 18, 2025)
 - **Environment variables**: `TELEGRAM_WEBAPP_URL` or `VITE_APP_URL` should be set in Replit Secrets
 - **Automatic generation**: Run `node scripts/generate-manifests.js` to automatically update manifests based on environment variables
 - **Important**: When domain changes (e.g., new deployment), manifests must be regenerated
 
 ### Secrets Configuration
 Required in Replit Secrets:
-- `TELEGRAM_WEBAPP_URL` - Primary app URL (e.g., `https://uni-farm-connect-x-ab245275.replit.app`)
+- `TELEGRAM_WEBAPP_URL` - Primary app URL (e.g., `https://uni-farm-connect-x-w81846064.replit.app`)
 - `VITE_APP_URL` - Alternative app URL (fallback)
 - `TELEGRAM_BOT_TOKEN` - Bot token for authentication
 - `JWT_SECRET` - Secret for JWT token generation
@@ -156,6 +157,7 @@ Required in Replit Secrets:
 Детальный отчет: `DEV_VS_PROD_CRITICAL_ISSUES_REPORT.md`
 
 ## Changelog
+- January 18, 2025. PRODUCTION DOMAIN CONFIGURED - Настроен production домен https://uni-farm-connect-x-w81846064.replit.app для всех компонентов TON Connect. Обновлены: 1) tonconnect-manifest.json в обоих расположениях (public и .well-known); 2) manifestUrl в App.tsx строка 288; 3) Документация в replit.md и secrets примеры. Важно: перед деплоем в production установить TELEGRAM_WEBAPP_URL в Replit Secrets с правильным доменом. Система готова к деплою и приему TON платежей на новом домене.
 - January 18, 2025. TON BOOST SCHEDULER CRITICAL FIX - Исправлена критическая остановка TON Boost планировщика. Корневая причина: поле boost_active было установлено в FALSE для всех активных фармеров, планировщик искал только записи с boost_active = TRUE. Решение: обновлено boost_active = TRUE для 5 активных рефералов (186-190). Результат: планировщик успешно обработал всех пользователей, создал транзакции доходов (0.000347 TON каждому), начислил реферальные награды User 184 (итого 0.001736 TON). Создан автоматический мониторинг monitor-ton-boost-health.ts для предотвращения будущих остановок. Баланс User 184 увеличен: 0.02083 → 0.0243 TON.
 - January 18, 2025. REFERRAL SYSTEM FULLY VALIDATED - Проведена полная валидация реферальной системы после исправлений. Подтверждено: 1) processReferral() корректно вызывается при создании пользователей; 2) distributeReferralRewards() успешно начисляет награды при ручном тесте; 3) 6 реферальных связей работают (Users 185-190 -> User 184); 4) Автоматические награды будут начисляться когда пользователи с рефералами начнут фарминг; 5) Создано 4 диагностических скрипта для мониторинга. Система полностью готова к production. Детальный отчет: REFERRAL_SYSTEM_SOLUTIONS_2025-01-18.md
 - July 18, 2025. REFERRAL SYSTEM FIXED - Исправлена критическая проблема реферальной системы. 1) Добавлен вызов processReferral() в auth/service.ts после создания пользователя; 2) Исправлено несоответствие структуры таблицы referrals - добавлено дублирование user_id в поле referred_user_id для совместимости с БД Supabase; 3) Успешно мигрированы 6 существующих реферальных связей (Users 185-190 -> User 184); 4) distributeReferralRewards корректно вызывается в farmingScheduler и готов к начислению наград; 5) Реферальные проценты НЕ изменены по требованию пользователя. Система полностью функциональна и готова к начислению реферальных вознаграждений.
