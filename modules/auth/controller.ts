@@ -19,21 +19,38 @@ export class AuthController extends BaseController {
       await this.handleRequest(req, res, async () => {
       // Извлекаем initData из заголовка или тела запроса
       const initDataFromHeaders = req.headers['x-telegram-init-data'] as string;
-      const { initData: initDataFromBody, ref_by, direct_registration, telegram_id } = req.body;
+      const { initData: initDataFromBody, refBy, ref_by, direct_registration, telegram_id } = req.body;
+      
+      // Маппинг refBy -> ref_by для совместимости с валидацией
+      const referralCode = refBy || ref_by;
       
       // Проверяем прямую регистрацию для аутентификации
       if (direct_registration && telegram_id) {
-        logger.info('[AuthController] Прямая аутентификация через Telegram данные пользователя', { 
+        console.log('🔍 [AuthController] Прямая регистрация - данные:', {
           telegram_id,
-          has_ref: !!ref_by
+          username: req.body.username,
+          first_name: req.body.first_name,
+          refBy: req.body.refBy,
+          ref_by: req.body.ref_by,
+          referralCode: referralCode,
+          has_ref: !!referralCode
         });
         
-        const result = await this.authService.registerDirectFromTelegramUser({
+        logger.info('[AuthController] Прямая аутентификация через Telegram данные пользователя', { 
+          telegram_id,
+          has_ref: !!referralCode
+        });
+        
+        const authParams = {
           telegram_id: parseInt(telegram_id.toString()),
           username: req.body.username || '',
           first_name: req.body.first_name || '',
-          ref_by: ref_by
-        });
+          ref_by: referralCode
+        };
+        
+        console.log('🔍 [AuthController] Параметры для registerDirectFromTelegramUser:', authParams);
+        
+        const result = await this.authService.registerDirectFromTelegramUser(authParams);
         
         if (result.success) {
           this.sendSuccess(res, {
@@ -55,13 +72,13 @@ export class AuthController extends BaseController {
       }
       
       logger.info('[AuthController] Аутентификация через Telegram', { 
-        has_ref: !!ref_by,
+        has_ref: !!referralCode,
         initData_source: initDataFromHeaders ? 'headers' : 'body',
         initData_length: initData.length
       });
       console.log('✅ /api/v2/auth/telegram called with initData length:', initData.length);
       
-      const result = await this.authService.authenticateFromTelegram(initData, { ref_by });
+      const result = await this.authService.authenticateFromTelegram(initData, { ref_by: referralCode });
       
       if (result.success) {
         console.log('✅ Authentication successful, returning token and user data');

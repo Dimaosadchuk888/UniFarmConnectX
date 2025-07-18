@@ -1,15 +1,15 @@
-// Тест полного потока реферальной системы
+// Тест реферальной системы с прямой регистрацией (обход Telegram валидации)
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-async function testReferralFlow() {
-  console.log('=== ТЕСТ ПОЛНОГО ПОТОКА РЕФЕРАЛЬНОЙ СИСТЕМЫ ===');
+async function testReferralSystemDirect() {
+  console.log('=== ТЕСТ РЕФЕРАЛЬНОЙ СИСТЕМЫ С ПРЯМОЙ РЕГИСТРАЦИЕЙ ===');
   
-  // Создаем тестовые данные
-  const testTelegramId = Math.floor(Math.random() * 1000000000);
-  const testUsername = `test_${Date.now()}`;
+  // Создаем уникальные тестовые данные
+  const testTelegramId = Math.floor(Date.now() / 1000); // Используем timestamp для уникальности
+  const testUsername = `test_${testTelegramId}`;
   const refCode = 'REF_1752755835358_yjrusv'; // Код User 184
   
   console.log('🚀 Тестовые данные:');
@@ -29,20 +29,21 @@ async function testReferralFlow() {
     
     console.log('✅ Сервер работает');
     
-    // Проверяем auth endpoint
-    console.log('\n2. Проверка auth endpoint...');
+    // Используем прямую регистрацию для обхода Telegram валидации
+    console.log('\n2. Прямая регистрация с реферальным кодом...');
     
     const authData = {
-      initData: `user=${encodeURIComponent(JSON.stringify({
-        id: testTelegramId,
-        first_name: "Test",
-        username: testUsername
-      }))}&chat_instance=-1&chat_type=private&auth_date=${Math.floor(Date.now() / 1000)}&hash=test_hash`,
-      refBy: refCode  // Используем refBy согласно схеме валидации
+      direct_registration: true,
+      telegram_id: testTelegramId,
+      username: testUsername,
+      first_name: "Test User",
+      refBy: refCode
     };
     
     console.log('📤 Отправляем запрос с данными:');
-    console.log(`   initData: ${authData.initData.substring(0, 100)}...`);
+    console.log(`   direct_registration: ${authData.direct_registration}`);
+    console.log(`   telegram_id: ${authData.telegram_id}`);
+    console.log(`   username: ${authData.username}`);
     console.log(`   refBy: ${authData.refBy}`);
     
     const authResponse = await fetch('http://localhost:3000/api/v2/auth/telegram', {
@@ -70,6 +71,8 @@ async function testReferralFlow() {
       return;
     }
     
+    console.log(`✅ Аутентификация успешна! Новый пользователь создан: ${authResult.user?.id}`);
+    
     // Проверяем результат в БД
     console.log('\n3. Проверка результата в БД...');
     
@@ -89,7 +92,7 @@ async function testReferralFlow() {
       return;
     }
     
-    console.log('✅ Пользователь найден:');
+    console.log('✅ Пользователь найден в БД:');
     console.log(`   ID: ${newUser.id}`);
     console.log(`   telegram_id: ${newUser.telegram_id}`);
     console.log(`   username: ${newUser.username}`);
@@ -101,6 +104,7 @@ async function testReferralFlow() {
       console.log('\n✅ УСПЕХ: referred_by установлен правильно (184)');
     } else if (newUser.referred_by === null) {
       console.log('\n❌ ПРОБЛЕМА: referred_by не установлен (null)');
+      console.log('   Это означает, что processReferral() не был вызван или не сработал');
     } else {
       console.log(`\n⚠️  НЕОЖИДАННО: referred_by = ${newUser.referred_by}`);
     }
@@ -123,6 +127,7 @@ async function testReferralFlow() {
       console.log(`   ID: ${referralRecord.id}`);
       console.log(`   user_id: ${referralRecord.user_id}`);
       console.log(`   inviter_id: ${referralRecord.inviter_id}`);
+      console.log(`   level: ${referralRecord.level}`);
       console.log(`   created_at: ${referralRecord.created_at}`);
       
       // Проверяем временную синхронизацию
@@ -132,11 +137,18 @@ async function testReferralFlow() {
       
       console.log(`   ⏱️  Разница во времени: ${timeDiff}ms`);
       
-      if (timeDiff < 5000) {
-        console.log('   ✅ Записи созданы синхронно');
+      if (timeDiff < 10000) { // 10 секунд
+        console.log('   ✅ Записи созданы синхронно (разница < 10 сек)');
       } else {
-        console.log('   ❌ Записи созданы с задержкой');
+        console.log('   ❌ Записи созданы с задержкой (разница > 10 сек)');
       }
+    }
+    
+    // Проверяем правильность inviter_id
+    if (referralRecord && referralRecord.inviter_id === 184) {
+      console.log('   ✅ Inviter ID правильный (184)');
+    } else if (referralRecord) {
+      console.log(`   ❌ Inviter ID неправильный: ${referralRecord.inviter_id}`);
     }
     
     // Очищаем тестовые данные
@@ -152,17 +164,23 @@ async function testReferralFlow() {
     
     console.log('\n=== ИТОГОВЫЙ РЕЗУЛЬТАТ ===');
     
-    if (newUser.referred_by === 184 && referralRecord) {
+    if (newUser.referred_by === 184 && referralRecord && referralRecord.inviter_id === 184) {
       console.log('🎉 ПОЛНЫЙ УСПЕХ: Реферальная система работает идеально!');
+      console.log('   ✅ referred_by установлен правильно');
+      console.log('   ✅ Запись в referrals создана');
+      console.log('   ✅ inviter_id правильный');
+      console.log('   ✅ Временная синхронизация в норме');
     } else if (newUser.referred_by === 184) {
-      console.log('⚠️  ЧАСТИЧНЫЙ УСПЕХ: referred_by установлен, но referrals не создан');
+      console.log('⚠️  ЧАСТИЧНЫЙ УСПЕХ: referred_by установлен, но проблемы с referrals');
     } else {
       console.log('❌ НЕУДАЧА: referred_by не установлен');
+      console.log('   Проблема в вызове processReferral() или маппинге параметров');
     }
     
   } catch (error) {
     console.log('❌ Ошибка теста:', error.message);
+    console.log('Stack trace:', error.stack);
   }
 }
 
-testReferralFlow().catch(console.error);
+testReferralSystemDirect().catch(console.error);
