@@ -1,6 +1,6 @@
 /**
- * Тест исправления реферальной системы в production
- * Проверяет что новые пользователи корректно привязываются к рефералам
+ * ТЕСТ ИСПРАВЛЕННОЙ РЕФЕРАЛЬНОЙ СИСТЕМЫ
+ * Проверка работы реферальных связей после исправления
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -10,112 +10,203 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Симуляция Telegram initData для тестирования
+const createTestInitData = (telegramId, username, refCode) => {
+  const userData = {
+    id: telegramId,
+    username: username,
+    first_name: username,
+    language_code: 'en',
+    start_param: refCode
+  };
+  
+  // Простая симуляция initData (в реальности используется HMAC)
+  const initData = `user=${encodeURIComponent(JSON.stringify(userData))}&start_param=${refCode}`;
+  return initData;
+};
+
 async function testReferralFixProduction() {
-  console.log('=== ТЕСТ ИСПРАВЛЕНИЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ В PRODUCTION ===\n');
+  console.log('=== ТЕСТ ИСПРАВЛЕННОЙ РЕФЕРАЛЬНОЙ СИСТЕМЫ ===\n');
   
   try {
-    // 1. Получаем начальное состояние
-    console.log('📊 1. НАЧАЛЬНОЕ СОСТОЯНИЕ');
+    // 1. Проверяем статус сервера
+    console.log('🔍 1. ПРОВЕРКА СТАТУСА СЕРВЕРА');
     
-    const { data: initialReferrals, error: initialError } = await supabase
-      .from('referrals')
+    try {
+      const healthResponse = await fetch('http://localhost:3000/health');
+      const healthData = await healthResponse.json();
+      console.log('✅ Сервер работает:', healthData.status);
+    } catch (error) {
+      console.log('❌ Сервер не отвечает:', error.message);
+      return;
+    }
+    
+    // 2. Проверяем исходное состояние
+    console.log('\n📊 2. ПРОВЕРКА ИСХОДНОГО СОСТОЯНИЯ');
+    
+    const referrerCode = 'REF_1750079004411_nddfp2';
+    const { data: referrer, error: referrerError } = await supabase
+      .from('users')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5);
-    
-    if (initialError) {
-      console.log('❌ Ошибка получения рефералов:', initialError.message);
-      return;
-    }
-    
-    console.log(`Существующие рефералы в БД: ${initialReferrals.length}`);
-    
-    // 2. Проверяем последние регистрации
-    const { data: recentUsers, error: usersError } = await supabase
-      .from('users')
-      .select('id, telegram_id, username, referred_by, created_at')
-      .order('created_at', { ascending: false })
-      .limit(5);
-    
-    if (usersError) {
-      console.log('❌ Ошибка получения пользователей:', usersError.message);
-      return;
-    }
-    
-    console.log('\nПоследние регистрации:');
-    recentUsers.forEach((user, index) => {
-      const hasReferral = user.referred_by ? '✅ Есть' : '❌ Нет';
-      const time = new Date(user.created_at).toLocaleString('ru-RU');
-      console.log(`${index + 1}. ID: ${user.id}, TG: ${user.telegram_id}, Реферал: ${hasReferral}, Время: ${time}`);
-    });
-    
-    // 3. Проверяем реферальный код пользователя
-    console.log('\n🔗 2. ПРОВЕРКА РЕФЕРАЛЬНОГО КОДА');
-    const { data: referrerUser, error: referrerError } = await supabase
-      .from('users')
-      .select('id, telegram_id, username, ref_code')
-      .eq('ref_code', 'REF_1750079004411_nddfp2')
+      .eq('ref_code', referrerCode)
       .single();
     
     if (referrerError) {
-      console.log('❌ Реферальный код не найден:', referrerError.message);
+      console.log('❌ Реферер не найден:', referrerError.message);
       return;
     }
     
     console.log('✅ Реферер найден:');
-    console.log(`   ID: ${referrerUser.id}`);
-    console.log(`   Telegram ID: ${referrerUser.telegram_id}`);
-    console.log(`   Username: ${referrerUser.username}`);
-    console.log(`   Реферальный код: ${referrerUser.ref_code}`);
+    console.log(`   ID: ${referrer.id}`);
+    console.log(`   Username: ${referrer.username}`);
+    console.log(`   Реферальный код: ${referrer.ref_code}`);
     
-    // 4. Анализируем временные интервалы
-    console.log('\n⏱️ 3. АНАЛИЗ ВРЕМЕННЫХ ИНТЕРВАЛОВ');
-    const now = new Date();
-    const lastUserTime = new Date(recentUsers[0].created_at);
-    const timeDiff = (now - lastUserTime) / (1000 * 60); // в минутах
+    // 3. Считаем текущие рефералы
+    const { data: currentReferrals, error: currentReferralsError } = await supabase
+      .from('referrals')
+      .select('*')
+      .eq('referrer_id', referrer.id);
     
-    console.log(`Последний пользователь зарегистрирован: ${Math.round(timeDiff)} минут назад`);
-    
-    // 5. Статистика успешности
-    console.log('\n📈 4. СТАТИСТИКА УСПЕШНОСТИ');
-    const usersWithReferrals = recentUsers.filter(u => u.referred_by).length;
-    const successRate = (usersWithReferrals / recentUsers.length) * 100;
-    
-    console.log(`Пользователи с реферальными связями: ${usersWithReferrals} из ${recentUsers.length}`);
-    console.log(`Успешность реферальной системы: ${successRate.toFixed(1)}%`);
-    
-    // 6. Проверяем архитектурные изменения
-    console.log('\n🔧 5. ПРОВЕРКА АРХИТЕКТУРНЫХ ИЗМЕНЕНИЙ');
-    console.log('Внесенные изменения:');
-    console.log('✅ processReferral() перенесен в findOrCreateFromTelegram()');
-    console.log('✅ Реферальная связь обрабатывается СРАЗУ после создания пользователя');
-    console.log('✅ Защита от JWT ошибок через try-catch');
-    console.log('✅ Атомарность операций обеспечена');
-    
-    // 7. Рекомендации
-    console.log('\n💡 6. РЕКОМЕНДАЦИИ');
-    
-    if (successRate < 50) {
-      console.log('⚠️ Для проверки исправления необходимо:');
-      console.log('1. Зарегистрировать нового пользователя через реферальную ссылку');
-      console.log('2. Проверить, что appeared referred_by в таблице users');
-      console.log('3. Проверить, что создалась запись в таблице referrals');
-      console.log('4. Убедиться, что JWT ошибки не блокируют процесс');
-    } else {
-      console.log('✅ Реферальная система работает корректно!');
+    if (currentReferralsError) {
+      console.log('❌ Ошибка получения рефералов:', currentReferralsError.message);
+      return;
     }
     
-    // 8. Мониторинг
-    console.log('\n🔍 7. МОНИТОРИНГ');
-    console.log('Для мониторинга работы исправления:');
-    console.log('- Отслеживайте логи AuthService для "Немедленная обработка реферальной связи"');
-    console.log('- Проверяйте создание записей в таблице referrals');
-    console.log('- Контролируйте поле referred_by в таблице users');
+    console.log(`📊 Текущее количество рефералов: ${currentReferrals.length}`);
+    
+    // 4. Создаем тестовый запрос аутентификации
+    console.log('\n🧪 4. ТЕСТ АУТЕНТИФИКАЦИИ С РЕФЕРАЛЬНЫМ КОДОМ');
+    
+    const testTelegramId = 999999224; // Тестовый ID
+    const testUsername = 'TestReferralUser';
+    const testInitData = createTestInitData(testTelegramId, testUsername, referrerCode);
+    
+    console.log('Тестовые данные:');
+    console.log(`   Telegram ID: ${testTelegramId}`);
+    console.log(`   Username: ${testUsername}`);
+    console.log(`   Ref Code: ${referrerCode}`);
+    
+    // 5. Отправляем запрос на аутентификацию
+    try {
+      const authResponse = await fetch('http://localhost:3000/api/v2/auth/telegram', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          initData: testInitData,
+          ref_by: referrerCode
+        })
+      });
+      
+      const authData = await authResponse.json();
+      console.log('\n🔍 5. РЕЗУЛЬТАТ АУТЕНТИФИКАЦИИ:');
+      console.log('Статус:', authResponse.status);
+      console.log('Ответ:', JSON.stringify(authData, null, 2));
+      
+      if (authData.success && authData.user) {
+        const newUserId = authData.user.id;
+        console.log(`✅ Пользователь создан с ID: ${newUserId}`);
+        
+        // 6. Проверяем, создалась ли реферальная связь
+        console.log('\n🔍 6. ПРОВЕРКА РЕФЕРАЛЬНОЙ СВЯЗИ');
+        
+        // Проверяем поле referred_by
+        const { data: createdUser, error: createdUserError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', newUserId)
+          .single();
+        
+        if (createdUserError) {
+          console.log('❌ Ошибка получения созданного пользователя:', createdUserError.message);
+        } else {
+          console.log('Данные созданного пользователя:');
+          console.log(`   ID: ${createdUser.id}`);
+          console.log(`   Telegram ID: ${createdUser.telegram_id}`);
+          console.log(`   Username: ${createdUser.username}`);
+          console.log(`   Referred by: ${createdUser.referred_by || 'НЕТ'}`);
+          
+          if (createdUser.referred_by == referrer.id) {
+            console.log('✅ Поле referred_by заполнено КОРРЕКТНО');
+          } else {
+            console.log('❌ Поле referred_by НЕ заполнено или неверно');
+          }
+        }
+        
+        // Проверяем запись в referrals
+        const { data: referralRecord, error: referralRecordError } = await supabase
+          .from('referrals')
+          .select('*')
+          .eq('user_id', newUserId)
+          .single();
+        
+        if (referralRecordError) {
+          console.log('❌ Запись в referrals НЕ НАЙДЕНА:', referralRecordError.message);
+        } else {
+          console.log('✅ Запись в referrals найдена:');
+          console.log(`   User ID: ${referralRecord.user_id}`);
+          console.log(`   Referrer ID: ${referralRecord.referrer_id}`);
+          console.log(`   Создана: ${new Date(referralRecord.created_at).toLocaleString('ru-RU')}`);
+        }
+        
+        // 7. Считаем новое количество рефералов
+        const { data: newReferrals, error: newReferralsError } = await supabase
+          .from('referrals')
+          .select('*')
+          .eq('referrer_id', referrer.id);
+        
+        if (newReferralsError) {
+          console.log('❌ Ошибка получения обновленных рефералов:', newReferralsError.message);
+        } else {
+          console.log(`📊 Новое количество рефералов: ${newReferrals.length}`);
+          console.log(`📈 Изменение: +${newReferrals.length - currentReferrals.length}`);
+        }
+        
+        // 8. Заключение
+        console.log('\n🎯 8. ЗАКЛЮЧЕНИЕ ТЕСТА');
+        
+        const referralWorking = createdUser?.referred_by == referrer.id && referralRecord;
+        
+        if (referralWorking) {
+          console.log('✅ РЕФЕРАЛЬНАЯ СИСТЕМА РАБОТАЕТ КОРРЕКТНО!');
+          console.log('✅ Исправление успешно применено');
+          console.log('✅ JWT ошибки больше не блокируют создание связей');
+        } else {
+          console.log('❌ РЕФЕРАЛЬНАЯ СИСТЕМА НЕ РАБОТАЕТ');
+          console.log('❌ Требуется дополнительная диагностика');
+        }
+        
+        // 9. Очистка тестовых данных
+        console.log('\n🧹 9. ОЧИСТКА ТЕСТОВЫХ ДАННЫХ');
+        
+        // Удаляем тестового пользователя
+        await supabase
+          .from('users')
+          .delete()
+          .eq('id', newUserId);
+        
+        // Удаляем тестовую реферальную связь
+        if (referralRecord) {
+          await supabase
+            .from('referrals')
+            .delete()
+            .eq('user_id', newUserId);
+        }
+        
+        console.log('✅ Тестовые данные очищены');
+        
+      } else {
+        console.log('❌ Ошибка аутентификации:', authData.error || 'Неизвестная ошибка');
+      }
+      
+    } catch (error) {
+      console.log('❌ Ошибка при отправке запроса аутентификации:', error.message);
+    }
     
   } catch (error) {
-    console.error('❌ Критическая ошибка тестирования:', error);
+    console.error('❌ Критическая ошибка теста:', error);
   }
 }
 
-// Запуск тестирования
 testReferralFixProduction();

@@ -3,7 +3,7 @@ import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
 import type { AuthResponse, AuthValidationResult } from './types';
 import { AUTH_TABLES, AUTH_METHODS, AUTH_STATUS, JWT_CONFIG } from './model';
-import { ReferralService } from '../referral/service';
+// Удален статический импорт ReferralService для избежания циклических зависимостей
 
 // Типы для Supabase API
 interface User {
@@ -42,6 +42,80 @@ export class AuthService {
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 8);
     return `REF_${timestamp}_${randomStr}`;
+  }
+
+  /**
+   * Внутренняя реализация processReferral для избежания циклических зависимостей
+   */
+  private async processReferralInline(refCode: string, newUserId: number): Promise<{success: boolean, error?: string}> {
+    try {
+      // Поиск реферера по коду
+      const { data: referrer, error: referrerError } = await supabase
+        .from(AUTH_TABLES.USERS)
+        .select('id, ref_code')
+        .eq('ref_code', refCode)
+        .single();
+
+      if (referrerError || !referrer) {
+        logger.warn('[AuthService] Реферер не найден', { refCode, error: referrerError?.message });
+        return { success: false, error: 'Реферер не найден' };
+      }
+
+      // Обновляем поле referred_by
+      const { error: updateError } = await supabase
+        .from(AUTH_TABLES.USERS)
+        .update({ referred_by: referrer.id })
+        .eq('id', newUserId);
+
+      if (updateError) {
+        logger.error('[AuthService] Ошибка обновления referred_by', { 
+          newUserId, 
+          referrerId: referrer.id,
+          error: updateError.message 
+        });
+        return { success: false, error: 'Ошибка обновления referred_by' };
+      }
+
+      // Создаем запись в referrals
+      const { error: referralError } = await supabase
+        .from('referrals')
+        .insert({
+          user_id: newUserId,
+          referred_user_id: newUserId,
+          inviter_id: referrer.id,
+          level: 1,
+          ref_path: [referrer.id],
+          reward_uni: 0,
+          reward_ton: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (referralError) {
+        logger.error('[AuthService] Ошибка создания referrals записи', { 
+          newUserId, 
+          referrerId: referrer.id,
+          error: referralError.message 
+        });
+        return { success: false, error: 'Ошибка создания referrals записи' };
+      }
+
+      logger.info('[AuthService] Реферальная связь успешно создана', { 
+        newUserId, 
+        referrerId: referrer.id,
+        refCode 
+      });
+
+      return { success: true };
+
+    } catch (error) {
+      logger.error('[AuthService] Критическая ошибка processReferralInline', { 
+        error: error instanceof Error ? error.message : String(error),
+        refCode,
+        newUserId
+      });
+      return { success: false, error: 'Критическая ошибка создания реферальной связи' };
+    }
   }
 
   /**
@@ -113,15 +187,12 @@ export class AuthService {
       // Обработка реферальной связи СРАЗУ после создания пользователя
       if (userData.ref_by && user) {
         try {
-          const { ReferralService } = await import('../referral/service');
-          const referralService = new ReferralService();
-          
           logger.info('[AuthService] Немедленная обработка реферальной связи', { 
             newUserId: user.id, 
             refCode: userData.ref_by 
           });
           
-          const referralResult = await referralService.processReferral(userData.ref_by, user.id.toString());
+          const referralResult = await this.processReferralInline(userData.ref_by, user.id);
           
           if (referralResult.success) {
             logger.info('[AuthService] Реферальная связь успешно создана в findOrCreateFromTelegram', { 
