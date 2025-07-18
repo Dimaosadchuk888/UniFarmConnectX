@@ -3,6 +3,7 @@ import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
 import type { AuthResponse, AuthValidationResult } from './types';
 import { AUTH_TABLES, AUTH_METHODS, AUTH_STATUS, JWT_CONFIG } from './model';
+import { ReferralService } from '../referral/service';
 
 // Типы для Supabase API
 interface User {
@@ -166,7 +167,6 @@ export class AuthService {
         // Обработка реферальной связи для нового пользователя
         if (options.ref_by && userInfo) {
           try {
-            const { ReferralService } = await import('../referral/service');
             const referralService = new ReferralService();
             
             logger.info('[AuthService] Обработка реферальной связи', { 
