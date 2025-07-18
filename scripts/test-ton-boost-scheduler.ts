@@ -1,80 +1,120 @@
-#!/usr/bin/env tsx
 /**
- * Прямой тест TON Boost планировщика
+ * Тестовый запуск TON Boost планировщика для диагностики проблем
  */
 
-import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler';
+import { logger } from '../core/logger';
 import { supabase } from '../core/supabase';
 
+// Настройка логгера для детального вывода
+logger.level = 'debug';
+
 async function testTonBoostScheduler() {
-  console.log('=== ПРЯМОЙ ТЕСТ TON BOOST ПЛАНИРОВЩИКА ===\n');
+  console.log('\n' + '='.repeat(80));
+  console.log('ТЕСТОВЫЙ ЗАПУСК TON BOOST ПЛАНИРОВЩИКА');
+  console.log('='.repeat(80) + '\n');
   
-  // 1. Проверяем начальное состояние
-  const { data: beforeTx, error: beforeError } = await supabase
-    .from('transactions')
-    .select('id')
-    .or('type.eq.TON_BOOST_INCOME,type.eq.ton_boost_income')
-    .order('created_at', { ascending: false })
-    .limit(1);
-    
-  const lastTxId = beforeTx?.[0]?.id || 0;
-  console.log('Последняя TON транзакция ID:', lastTxId);
-  
-  // 2. Запускаем планировщик
-  console.log('\nЗапускаем TON Boost планировщик...');
   try {
-    tonBoostIncomeScheduler.start();
-    console.log('✅ Планировщик запущен успешно');
+    console.log('1. Загрузка модуля планировщика...');
+    const { TONBoostIncomeScheduler } = await import('../modules/scheduler/tonBoostIncomeScheduler');
+    console.log('✅ Модуль загружен успешно');
+    
+    console.log('\n2. Создание экземпляра планировщика...');
+    const scheduler = new TONBoostIncomeScheduler();
+    console.log('✅ Экземпляр создан');
+    
+    console.log('\n3. Проверка активных TON фармеров перед запуском...');
+    const { data: activeFarmers } = await supabase
+      .from('ton_farming_data')
+      .select('*')
+      .gt('farming_balance', 0);
+    
+    console.log(`Найдено активных фармеров: ${activeFarmers?.length || 0}`);
+    if (activeFarmers && activeFarmers.length > 0) {
+      console.log('Примеры:');
+      activeFarmers.slice(0, 3).forEach(f => {
+        console.log(`  - User ${f.user_id}: ${f.farming_balance} TON, rate ${f.farming_rate}`);
+      });
+    }
+    
+    console.log('\n4. Запуск одного цикла обработки...');
+    console.log('=' + '='.repeat(40));
+    
+    // Прямой вызов processTonBoostIncome для тестирования
+    try {
+      // @ts-ignore - обращаемся к приватному методу для тестирования
+      await scheduler.processTonBoostIncome();
+      console.log('\n✅ Цикл обработки завершен успешно!');
+    } catch (processError) {
+      console.error('\n❌ ОШИБКА при обработке:', processError);
+      if (processError instanceof Error) {
+        console.error('Стек ошибки:', processError.stack);
+      }
+    }
+    
+    console.log('\n5. Проверка созданных транзакций...');
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: newTransactions } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('type', 'FARMING_REWARD')
+      .eq('currency', 'TON')
+      .gte('created_at', fiveMinutesAgo)
+      .order('created_at', { ascending: false });
+    
+    console.log(`Создано новых транзакций: ${newTransactions?.length || 0}`);
+    if (newTransactions && newTransactions.length > 0) {
+      console.log('Новые транзакции:');
+      newTransactions.forEach(tx => {
+        console.log(`  - User ${tx.user_id}: ${tx.amount} TON`);
+      });
+    }
+    
+    console.log('\n6. Проверка обновления farming_last_update...');
+    const { data: updatedFarmers } = await supabase
+      .from('ton_farming_data')
+      .select('user_id, farming_last_update')
+      .gt('farming_balance', 0);
+    
+    if (updatedFarmers) {
+      const recentlyUpdated = updatedFarmers.filter(f => {
+        if (!f.farming_last_update) return false;
+        const lastUpdate = new Date(f.farming_last_update).getTime();
+        const now = Date.now();
+        return (now - lastUpdate) < 60000; // обновлены в последнюю минуту
+      });
+      
+      console.log(`Обновлено записей: ${recentlyUpdated.length} из ${updatedFarmers.length}`);
+    }
+    
+    console.log('\n7. Проверка реферальных наград...');
+    const { data: referralRewards } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('type', 'REFERRAL_REWARD')
+      .eq('currency', 'TON')
+      .gte('created_at', fiveMinutesAgo);
+    
+    console.log(`Создано реферальных наград: ${referralRewards?.length || 0}`);
+    if (referralRewards && referralRewards.length > 0) {
+      console.log('Реферальные награды:');
+      referralRewards.forEach(tx => {
+        console.log(`  - User ${tx.user_id}: ${tx.amount} TON от User ${tx.source_user_id}`);
+      });
+    }
+    
   } catch (error) {
-    console.error('❌ ОШИБКА ЗАПУСКА:', error);
-    process.exit(1);
+    console.error('\n❌ КРИТИЧЕСКАЯ ОШИБКА:', error);
+    if (error instanceof Error) {
+      console.error('Сообщение:', error.message);
+      console.error('Стек:', error.stack);
+    }
   }
   
-  // 3. Ждем обработки
-  console.log('\nОжидаем 15 секунд для обработки...');
-  await new Promise(resolve => setTimeout(resolve, 15000));
-  
-  // 4. Останавливаем планировщик
-  tonBoostIncomeScheduler.stop();
-  console.log('\nПланировщик остановлен.');
-  
-  // 5. Проверяем новые транзакции
-  const { data: afterTx, error: afterError } = await supabase
-    .from('transactions')
-    .select('*')
-    .or('type.eq.TON_BOOST_INCOME,type.eq.ton_boost_income')
-    .gt('id', lastTxId)
-    .order('created_at', { ascending: false });
-    
-  if (afterTx && afterTx.length > 0) {
-    console.log(`\n✅ УСПЕХ! ${afterTx.length} новых TON транзакций создано:`);
-    afterTx.forEach(tx => {
-      console.log(`  - User ${tx.user_id}: ${tx.amount} ${tx.currency}, Тип: ${tx.type}`);
-      console.log(`    Описание: ${tx.description}`);
-    });
-  } else {
-    console.log('\n❌ НЕТ новых TON транзакций');
-  }
-  
-  // 6. Проверяем изменения балансов
-  const { data: user74, error: u74Error } = await supabase
-    .from('users')
-    .select('id, balance_ton, ton_boost_active, ton_boost_package')
-    .eq('id', 74)
-    .single();
-    
-  if (user74) {
-    console.log(`\nПользователь 74:`);
-    console.log(`  Баланс TON: ${user74.balance_ton}`);
-    console.log(`  TON Boost активен: ${user74.ton_boost_active}`);
-    console.log(`  Пакет: ${user74.ton_boost_package}`);
-  }
+  console.log('\n' + '='.repeat(80));
+  console.log('ТЕСТИРОВАНИЕ ЗАВЕРШЕНО');
+  console.log('='.repeat(80) + '\n');
   
   process.exit(0);
 }
 
-// Запускаем тест
-testTonBoostScheduler().catch(error => {
-  console.error('КРИТИЧЕСКАЯ ОШИБКА:', error);
-  process.exit(1);
-});
+testTonBoostScheduler();
