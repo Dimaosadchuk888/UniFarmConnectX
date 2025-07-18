@@ -129,8 +129,9 @@ export class ReferralService {
       const { error: referralError } = await supabase
         .from(REFERRAL_TABLES.REFERRALS)
         .insert({
-          user_id: parseInt(newUserId),
-          inviter_id: inviter.id,
+          user_id: parseInt(newUserId),          // ID приглашенного пользователя
+          referred_user_id: parseInt(newUserId), // Дублируем ID для совместимости с БД
+          inviter_id: inviter.id,                // ID пригласившего
           level: 1,
           reward_uni: '0',
           reward_ton: '0',

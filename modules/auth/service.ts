@@ -162,6 +162,40 @@ export class AuthService {
         
         isNewUser = true;
         logger.info('[AuthService] Новый пользователь создан', { userId: userInfo?.id });
+        
+        // Обработка реферальной связи для нового пользователя
+        if (options.ref_by && userInfo) {
+          try {
+            const { ReferralService } = await import('../referral/service');
+            const referralService = new ReferralService();
+            
+            logger.info('[AuthService] Обработка реферальной связи', { 
+              newUserId: userInfo.id, 
+              refCode: options.ref_by 
+            });
+            
+            const referralResult = await referralService.processReferral(options.ref_by, userInfo.id.toString());
+            
+            if (referralResult.success) {
+              logger.info('[AuthService] Реферальная связь успешно создана', { 
+                newUserId: userInfo.id, 
+                refCode: options.ref_by 
+              });
+            } else {
+              logger.warn('[AuthService] Не удалось создать реферальную связь', { 
+                newUserId: userInfo.id, 
+                refCode: options.ref_by,
+                error: referralResult.error 
+              });
+            }
+          } catch (error) {
+            logger.error('[AuthService] Ошибка при обработке реферальной связи', { 
+              error: error instanceof Error ? error.message : String(error),
+              newUserId: userInfo.id,
+              refCode: options.ref_by
+            });
+          }
+        }
       }
 
       if (!userInfo) {
