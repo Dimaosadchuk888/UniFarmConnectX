@@ -187,32 +187,42 @@ export class AuthService {
       // Обработка реферальной связи СРАЗУ после создания пользователя
       if (userData.ref_by && user) {
         try {
-          logger.info('[AuthService] Немедленная обработка реферальной связи', { 
+          logger.info('[AuthService] НАЧИНАЕТСЯ НЕМЕДЛЕННАЯ ОБРАБОТКА РЕФЕРАЛЬНОЙ СВЯЗИ', { 
             newUserId: user.id, 
-            refCode: userData.ref_by 
+            refCode: userData.ref_by,
+            userDataRefBy: userData.ref_by,
+            userExists: !!user
           });
           
           const referralResult = await this.processReferralInline(userData.ref_by, user.id);
           
           if (referralResult.success) {
-            logger.info('[AuthService] Реферальная связь успешно создана в findOrCreateFromTelegram', { 
+            logger.info('[AuthService] ✅ РЕФЕРАЛЬНАЯ СВЯЗЬ УСПЕШНО СОЗДАНА В findOrCreateFromTelegram', { 
               newUserId: user.id, 
               refCode: userData.ref_by 
             });
           } else {
-            logger.warn('[AuthService] Не удалось создать реферальную связь в findOrCreateFromTelegram', { 
+            logger.error('[AuthService] ❌ НЕ УДАЛОСЬ СОЗДАТЬ РЕФЕРАЛЬНУЮ СВЯЗЬ В findOrCreateFromTelegram', { 
               newUserId: user.id, 
               refCode: userData.ref_by,
               error: referralResult.error 
             });
           }
         } catch (error) {
-          logger.error('[AuthService] Ошибка при обработке реферальной связи в findOrCreateFromTelegram', { 
+          logger.error('[AuthService] ❌ КРИТИЧЕСКАЯ ОШИБКА ПРИ ОБРАБОТКЕ РЕФЕРАЛЬНОЙ СВЯЗИ', { 
             error: error instanceof Error ? error.message : String(error),
             newUserId: user.id,
-            refCode: userData.ref_by
+            refCode: userData.ref_by,
+            stack: error instanceof Error ? error.stack : 'No stack'
           });
         }
+      } else {
+        logger.info('[AuthService] РЕФЕРАЛЬНАЯ СВЯЗЬ НЕ ОБРАБАТЫВАЕТСЯ', {
+          hasRefBy: !!userData.ref_by,
+          refByValue: userData.ref_by,
+          hasUser: !!user,
+          userId: user?.id
+        });
       }
     }
     
