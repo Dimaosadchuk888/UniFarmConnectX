@@ -117,9 +117,13 @@ export async function correctApiRequest(
           return correctApiRequest(url, method, body, headers, retryCount + 1);
         } else {
           console.error('[correctApiRequest] ❌ Не удалось обновить токен:', refreshResult.error);
-          console.log('[correctApiRequest] Автоматическая перезагрузка страницы...');
-          // Автоматически перезагружаем страницу при ошибке аутентификации
-          window.location.reload();
+          console.log('[correctApiRequest] 🚫 ОТМЕНЯЕМ автоматическую перезагрузку для предотвращения цикла');
+          // НЕ перезагружаем страницу - это вызывает бесконечный цикл!
+          // Возвращаем ошибку чтобы компоненты могли обработать
+          const error = new Error('Authentication required');
+          (error as any).status = 401;
+          (error as any).needAuth = true;
+          throw error;
         }
       }
       

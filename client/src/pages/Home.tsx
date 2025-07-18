@@ -37,7 +37,7 @@ const Home: React.FC = () => {
             {error instanceof Error ? error.message : 'Не удалось загрузить данные'}
           </p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={() => window.location.href = window.location.href + '?refresh=' + Date.now()} 
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             Обновить страницу

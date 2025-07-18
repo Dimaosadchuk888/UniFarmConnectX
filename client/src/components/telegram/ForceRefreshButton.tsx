@@ -49,8 +49,8 @@ const ForceRefreshButton: React.FC<ForceRefreshButtonProps> = ({
     } catch (error) {
       console.error('[FORCE REFRESH] Ошибка при принудительном обновлении:', error);
       
-      // Fallback - простая перезагрузка
-      window.location.reload();
+      // Fallback - НЕ перезагружаем чтобы избежать циклов
+      console.warn('[FORCE REFRESH] Fallback перезагрузка отменена для предотвращения циклов');
     }
   };
 

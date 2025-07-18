@@ -163,8 +163,13 @@ function App() {
                 }));
               }
               
-              // Обновляем страницу для применения авторизации
-              window.location.reload();
+              // НЕ обновляем страницу - это вызывает бесконечный цикл!
+              console.log('[App] Авторизация завершена, продолжаем без перезагрузки');
+              setState(prev => ({ 
+                ...prev, 
+                isLoading: false,
+                isAuthenticated: true 
+              }));
             }
           } else {
             console.error('[App] Ошибка авторизации:', response.status, response.statusText);
@@ -210,8 +215,14 @@ function App() {
               if (response.ok && data.success && data.data?.token) {
                 console.log('[App] Preview авторизация успешна, сохраняем токен');
                 localStorage.setItem('unifarm_jwt_token', data.data.token);
-                console.log('[App] Токен сохранен, перезагружаем страницу...');
-                window.location.reload();
+                console.log('[App] Токен сохранен, НЕ перезагружаем страницу для предотвращения цикла');
+                // НЕ перезагружаем - это вызывает бесконечный цикл!
+                // Вместо этого обновляем состояние напрямую
+                setState(prev => ({ 
+                  ...prev, 
+                  isLoading: false,
+                  isAuthenticated: true 
+                }));
               } else {
                 console.error('[App] Preview авторизация не удалась:', data.error || 'Unknown error');
               }

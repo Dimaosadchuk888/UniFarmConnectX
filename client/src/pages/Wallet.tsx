@@ -47,7 +47,7 @@ const Wallet: React.FC = () => {
         {/* Карточка баланса с ErrorBoundary */}
         <ErrorBoundary
           FallbackComponent={ErrorFallback}
-          onReset={() => window.location.reload()}
+          onReset={() => console.log('BalanceCard error boundary reset')}
         >
           <BalanceCard />
         </ErrorBoundary>
@@ -55,7 +55,7 @@ const Wallet: React.FC = () => {
         {/* Форма пополнения через TON Wallet с ErrorBoundary */}
         <ErrorBoundary
           FallbackComponent={ErrorFallback}
-          onReset={() => window.location.reload()}
+          onReset={() => console.log('TonDepositCard error boundary reset')}
         >
           <TonDepositCard />
         </ErrorBoundary>
@@ -63,7 +63,7 @@ const Wallet: React.FC = () => {
         {/* Форма вывода средств с ErrorBoundary */}
         <ErrorBoundary
           FallbackComponent={ErrorFallback}
-          onReset={() => window.location.reload()}
+          onReset={() => console.log('WithdrawalForm error boundary reset')}
         >
           <WithdrawalForm />
         </ErrorBoundary>
@@ -71,7 +71,7 @@ const Wallet: React.FC = () => {
         {/* История транзакций с ErrorBoundary */}
         <ErrorBoundary
           FallbackComponent={ErrorFallback}
-          onReset={() => window.location.reload()}
+          onReset={() => console.log('TransactionHistory error boundary reset')}
         >
           <TransactionHistory />
         </ErrorBoundary>
