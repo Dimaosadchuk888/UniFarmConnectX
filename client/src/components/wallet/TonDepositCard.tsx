@@ -24,7 +24,15 @@ const TonDepositCard: React.FC = () => {
   const { userId, tonBalance, refreshBalance } = useUser();
   const { toast } = useToast();
   const { success, error: showError, loading: showLoading } = useNotification();
-  const [tonConnectUI] = useTonConnectUI();
+  
+  // Безопасная инициализация TonConnect UI с проверкой
+  let tonConnectUI = null;
+  try {
+    const [tonConnectUIValue] = useTonConnectUI();
+    tonConnectUI = tonConnectUIValue;
+  } catch (error) {
+    console.error('[TonDepositCard] Ошибка инициализации TonConnect UI:', error);
+  }
   
   const [amount, setAmount] = useState<string>('');
   const [isConnected, setIsConnected] = useState<boolean>(false);
