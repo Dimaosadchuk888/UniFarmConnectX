@@ -80,30 +80,41 @@ export class AuthService {
       const { error: referralError } = await supabase
         .from('referrals')
         .insert({
-          user_id: newUserId,
-          referred_user_id: newUserId,
+          user_id: parseInt(newUserId),
+          referred_user_id: parseInt(newUserId), 
           inviter_id: referrer.id,
           level: 1,
           ref_path: [referrer.id],
-          reward_uni: 0,
-          reward_ton: 0,
+          reward_uni: '0',
+          reward_ton: '0',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
 
       if (referralError) {
-        logger.error('[AuthService] Ошибка создания referrals записи', { 
+        logger.error('[AuthService] ❌ КРИТИЧЕСКАЯ ОШИБКА создания referrals записи', { 
           newUserId, 
           referrerId: referrer.id,
-          error: referralError.message 
+          error: referralError.message,
+          code: referralError.code,
+          details: referralError.details,
+          hint: referralError.hint,
+          insertData: {
+            user_id: parseInt(newUserId),
+            referred_user_id: parseInt(newUserId),
+            inviter_id: referrer.id,
+            level: 1
+          }
         });
-        return { success: false, error: 'Ошибка создания referrals записи' };
+        return { success: false, error: `Ошибка создания referrals записи: ${referralError.message}` };
       }
 
-      logger.info('[AuthService] Реферальная связь успешно создана', { 
+      logger.info('[AuthService] ✅ РЕФЕРАЛЬНАЯ СВЯЗЬ УСПЕШНО СОЗДАНА', { 
         newUserId, 
         referrerId: referrer.id,
-        refCode 
+        refCode,
+        referredByUpdated: true,
+        referralsTableUpdated: true
       });
 
       return { success: true };
@@ -199,7 +210,9 @@ export class AuthService {
           if (referralResult.success) {
             logger.info('[AuthService] ✅ РЕФЕРАЛЬНАЯ СВЯЗЬ УСПЕШНО СОЗДАНА В findOrCreateFromTelegram', { 
               newUserId: user.id, 
-              refCode: userData.ref_by 
+              refCode: userData.ref_by,
+              processMethod: 'processReferralInline',
+              success: true
             });
           } else {
             logger.error('[AuthService] ❌ НЕ УДАЛОСЬ СОЗДАТЬ РЕФЕРАЛЬНУЮ СВЯЗЬ В findOrCreateFromTelegram', { 
