@@ -494,7 +494,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const checkWalletConnection = async () => {
       try {
         console.log('[UserContext] Проверка статуса подключения кошелька...');
-        const connected = await isWalletConnected(tonConnectUI);
+        const connected = isWalletConnected(tonConnectUI);
         if (connected) {
           const address = await getWalletAddress(tonConnectUI);
           dispatch({

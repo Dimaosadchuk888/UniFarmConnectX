@@ -29,14 +29,22 @@ const WelcomeSection: React.FC = () => {
   
   // Обновляем состояние кошелька при изменении tonConnectUI
   useEffect(() => {
+    const updateWalletState = async () => {
+      if (tonConnectUI) {
+        setWalletConnected(isWalletConnected(tonConnectUI));
+        const address = await getWalletAddress(tonConnectUI);
+        setWalletAddress(address);
+      }
+    };
+
     if (tonConnectUI) {
-      setWalletConnected(isWalletConnected(tonConnectUI));
-      setWalletAddress(getWalletAddress(tonConnectUI));
+      updateWalletState();
       
       // Создаем обработчик событий изменения кошелька
-      const handleWalletUpdate = () => {
+      const handleWalletUpdate = async () => {
         setWalletConnected(isWalletConnected(tonConnectUI));
-        setWalletAddress(getWalletAddress(tonConnectUI));
+        const address = await getWalletAddress(tonConnectUI);
+        setWalletAddress(address);
       };
       
       // Подписываемся на события изменения состояния кошелька

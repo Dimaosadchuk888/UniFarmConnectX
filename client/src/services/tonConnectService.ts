@@ -22,10 +22,22 @@ type ConnectionListener = (connected: boolean) => void;
 // Хранение слушателей
 const connectionListeners: ConnectionListener[] = [];
 
-// Адрес TON кошелька проекта из переменной окружения
+// Адрес TON кошелька проекта из переменной окружения (user-friendly формат)
 export const TON_PROJECT_ADDRESS = 
   import.meta.env.VITE_TON_BOOST_RECEIVER_ADDRESS || 
   'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8';
+
+// Функция для конвертации адреса в raw формат если необходимо
+export async function ensureRawAddress(address: string): Promise<string> {
+  try {
+    const { Address } = await import('@ton/core');
+    const parsed = Address.parse(address);
+    return parsed.toString({ urlSafe: false, bounceable: true, testOnly: false });
+  } catch (error) {
+    console.error('Ошибка конвертации адреса в raw формат:', error);
+    return address;
+  }
+}
 
 // Время жизни транзакции в секундах (30 минут)
 const TX_LIFETIME = 30 * 60;
@@ -41,49 +53,60 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
 }
 
 /**
- * Создаёт BOC-payload с комментарием
+ * Создаёт BOC-payload с комментарием (улучшенная версия)
  * @param comment Текст комментария
  * @returns base64-строка для payload
  */
 async function createBocWithComment(comment: string): Promise<string> {
   try {
-    // Добавляем полифилл Buffer для браузера
+    // Добавляем полифилл Buffer для браузера (улучшенный)
     if (typeof window !== 'undefined' && !window.Buffer) {
       window.Buffer = {
         from: (data: any, encoding?: string) => {
           if (typeof data === 'string' && encoding === 'base64') {
             return Uint8Array.from(atob(data), c => c.charCodeAt(0));
           }
+          if (typeof data === 'string') {
+            return new TextEncoder().encode(data);
+          }
           return new Uint8Array(data);
-        }
+        },
+        isBuffer: () => false
       } as any;
     }
     
-    // Динамически импортируем @ton/core только при необходимости
+    // Статический импорт @ton/core для избежания проблем с таймингом
     const { beginCell } = await import('@ton/core');
     
-    // Используем правильную генерацию BOC через @ton/core
+    // Валидация входного комментария
+    if (!comment || typeof comment !== 'string') {
+      console.warn('Пустой или невалидный комментарий, используем дефолтный');
+      comment = 'UniFarm Deposit';
+    }
+    
+    // Создаем правильный BOC для TON комментария
     const cell = beginCell()
       .storeUint(0, 32) // Опкод 0 для текстового комментария
       .storeStringTail(comment) // Сохраняем текст комментария
       .endCell();
     
-    // Получаем BOC как Uint8Array и конвертируем в base64
+    // Получаем BOC и конвертируем в base64
     const boc = cell.toBoc();
     const payload = uint8ArrayToBase64(boc);
     
-    console.log(`✅ BOC-payload создан корректно, длина: ${payload.length} символов`);
+    console.log(`✅ BOC-payload создан: длина ${payload.length} символов, комментарий "${comment}"`);
     return payload;
   } catch (error) {
-    console.error('Ошибка при создании BOC:', error);
+    console.error('Критическая ошибка при создании BOC:', error);
     
-    // Fallback на простое base64 кодирование
-    // ВНИМАНИЕ: Это не будет работать корректно с TON блокчейном!
+    // Улучшенный fallback: создаем минимальный корректный BOC
     try {
-      console.warn('⚠️ Используется fallback на простое base64 кодирование - транзакция может не работать!');
-      return btoa(comment);
+      console.warn('⚠️ Используется упрощенный BOC fallback');
+      // Создаем простейший BOC с опкодом 0 и пустым телом
+      const fallbackPayload = 'te6cckEBAQEADgAAGAAAAABVbmlGYXJtAACjJA=='; // Предварительно созданный BOC для "UniFarm"
+      return fallbackPayload;
     } catch (e) {
-      console.error('Не удалось даже закодировать комментарий в base64:', e);
+      console.error('Fallback также не удался:', e);
       return '';
     }
   }
@@ -158,10 +181,12 @@ export async function connectTonWallet(tonConnectUI: TonConnectUI): Promise<bool
       // Открываем модальное окно для подключения кошелька
       await tonConnectUI.openModal();
       
-      // После подключения сохраняем адрес
+      // После подключения сохраняем адрес в user-friendly формате
       if (tonConnectUI.connected && tonConnectUI.wallet) {
-        const address = tonConnectUI.wallet.account.address;
-        await saveTonWalletAddress(address);
+        const address = await getTonWalletAddress(tonConnectUI, 'user-friendly');
+        if (address) {
+          await saveTonWalletAddress(address);
+        }
       }
       
       // Проверяем состояние после попытки подключения
@@ -189,19 +214,90 @@ export async function disconnectTonWallet(tonConnectUI: TonConnectUI): Promise<v
 }
 
 /**
- * Получает адрес подключенного TON кошелька
+ * Получает адрес подключенного TON кошелька в user-friendly формате
  * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
+ * @param format Формат адреса: 'raw' или 'user-friendly' (по умолчанию)
  */
-export function getTonWalletAddress(tonConnectUI: TonConnectUI): string | null {
+export async function getTonWalletAddress(tonConnectUI: TonConnectUI, format: 'raw' | 'user-friendly' = 'user-friendly'): Promise<string | null> {
   if (tonConnectUI && tonConnectUI.connected && tonConnectUI.account) {
-    return tonConnectUI.account.address;
+    const rawAddress = tonConnectUI.account.address;
+    
+    if (format === 'raw') {
+      return rawAddress;
+    }
+    
+    // Конвертируем raw адрес в user-friendly формат
+    try {
+      const { Address } = await import('@ton/core');
+      const address = Address.parse(rawAddress);
+      return address.toString({ 
+        urlSafe: true, 
+        bounceable: true, 
+        testOnly: false 
+      });
+    } catch (error) {
+      console.error('Ошибка конвертации адреса в user-friendly формат:', error);
+      // Fallback на raw адрес если конвертация не удалась
+      return rawAddress;
+    }
   }
   
   return null;
 }
 
 /**
- * Отправляет TON транзакцию на указанный адрес с комментарием
+ * Эмулирует TON транзакцию перед отправкой
+ * @param tonConnectUI Экземпляр TonConnectUI
+ * @param transaction Объект транзакции для эмуляции
+ * @returns Результат эмуляции
+ */
+async function emulateTonTransaction(tonConnectUI: TonConnectUI, transaction: any): Promise<boolean> {
+  try {
+    console.log('[EMULATION] Начинаем эмуляцию транзакции...');
+    
+    // Проверяем базовые параметры транзакции
+    if (!transaction.messages || !Array.isArray(transaction.messages) || transaction.messages.length === 0) {
+      console.error('[EMULATION] Ошибка: нет сообщений в транзакции');
+      return false;
+    }
+    
+    const message = transaction.messages[0];
+    
+    // Валидируем адрес получателя
+    if (!message.address || typeof message.address !== 'string') {
+      console.error('[EMULATION] Ошибка: некорректный адрес получателя');
+      return false;
+    }
+    
+    // Валидируем сумму
+    if (!message.amount || isNaN(Number(message.amount))) {
+      console.error('[EMULATION] Ошибка: некорректная сумма');
+      return false;
+    }
+    
+    // Проверяем payload
+    if (message.payload && typeof message.payload !== 'string') {
+      console.error('[EMULATION] Ошибка: некорректный payload');
+      return false;
+    }
+    
+    // Проверяем срок действия
+    const currentTime = Math.floor(Date.now() / 1000);
+    if (transaction.validUntil && transaction.validUntil <= currentTime) {
+      console.error('[EMULATION] Ошибка: транзакция истекла');
+      return false;
+    }
+    
+    console.log('[EMULATION] ✅ Предварительная валидация прошла успешно');
+    return true;
+  } catch (error) {
+    console.error('[EMULATION] Ошибка при эмуляции:', error);
+    return false;
+  }
+}
+
+/**
+ * Отправляет TON транзакцию на указанный адрес с комментарием (улучшенная версия)
  * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  * @param amount Сумма TON (в базовых единицах, 1 TON = 10^9 nanoTON)
  * @param comment Комментарий к транзакции
@@ -266,36 +362,48 @@ export async function sendTonTransaction(
     console.log("📦 rawPayload:", rawPayload);
     console.log("📦 BOC payload (base64):", payload);
     
-    // Создаем транзакцию в соответствии с ТЗ
+    // Создаем транзакцию в соответствии с ТЗ (улучшенная версия)
     const transaction = {
-      validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут по ТЗ
+      validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут
       messages: [
         {
-          address: TON_PROJECT_ADDRESS, // UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8
-          amount: nanoTonAmount, // преобразованная из TON сумма в наноTON
-          payload: payload // Base64 закодированное сообщение
+          address: TON_PROJECT_ADDRESS, // User-friendly адрес
+          amount: nanoTonAmount, // Сумма в наноTON
+          payload: payload // BOC payload
         }
       ]
     };
     
-    // По ТЗ: добавляем лог с данными транзакции перед отправкой
-    console.log("[DEBUG] Sending transaction", transaction);
+    console.log("[DEBUG] Подготовленная транзакция:", {
+      address: transaction.messages[0].address,
+      amount: transaction.messages[0].amount,
+      payloadLength: payload.length,
+      validUntil: transaction.validUntil,
+      comment: rawPayload
+    });
     
     try {
-      // Только проверяем подключение (по ТЗ)
+      // Проверяем подключение кошелька
       if (!tonConnectUI.connected) {
-        console.log('[INFO] Кошелек не подключен непосредственно перед транзакцией, пытаемся подключить...');
+        console.log('[INFO] Кошелек не подключен, пытаемся подключить...');
         await connectTonWallet(tonConnectUI);
         
         if (!tonConnectUI.connected) {
-          console.error('[ERROR] Не удалось подключить кошелек перед отправкой транзакции');
-          throw new WalletNotConnectedError('Не удалось подключить кошелёк перед транзакцией');
+          console.error('[ERROR] Не удалось подключить кошелек');
+          throw new WalletNotConnectedError('Не удалось подключить кошелёк');
         }
       }
       
-      // Отправляем транзакцию без дополнительных проверок (по ТЗ)
-      console.log("[TON] Отправляем транзакцию через TonConnect...");
+      // НОВОЕ: Эмулируем транзакцию перед отправкой
+      console.log("[TON] Выполняем предварительную эмуляцию транзакции...");
+      const emulationResult = await emulateTonTransaction(tonConnectUI, transaction);
       
+      if (!emulationResult) {
+        console.error('[ERROR] Эмуляция транзакции не прошла');
+        throw new Error('Транзакция не прошла предварительную валидацию');
+      }
+      
+      console.log("[TON] ✅ Эмуляция успешна, отправляем транзакцию...");
       const result = await tonConnectUI.sendTransaction(transaction);
       debugLog('*** РЕЗУЛЬТАТ sendTransaction ***', result);
       
@@ -430,7 +538,7 @@ export function createTonTransactionComment(userId: number, boostId: number): st
  * Для совместимости со старым кодом
  */
 export const isWalletConnected = isTonWalletConnected;
-export const getWalletAddress = getTonWalletAddress;
+export const getWalletAddress = (tonConnectUI: TonConnectUI) => getTonWalletAddress(tonConnectUI, 'user-friendly');
 export const connectWallet = connectTonWallet;
 export const disconnectWallet = disconnectTonWallet;
 

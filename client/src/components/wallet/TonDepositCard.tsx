@@ -38,10 +38,15 @@ const TonDepositCard: React.FC = () => {
       setIsConnected(connected);
       
       if (connected && tonConnectUI.account?.address) {
-        const address = tonConnectUI.account.address;
-        setWalletAddress(address);
-        // Сохраняем адрес в БД
-        saveTonWalletAddress(address);
+        const getUserFriendlyAddress = async () => {
+          const userFriendlyAddress = await getWalletAddress(tonConnectUI);
+          if (userFriendlyAddress) {
+            setWalletAddress(userFriendlyAddress);
+            // Сохраняем адрес в БД
+            await saveTonWalletAddress(userFriendlyAddress);
+          }
+        };
+        getUserFriendlyAddress();
       }
     }
   }, [tonConnectUI]);
@@ -59,10 +64,12 @@ const TonDepositCard: React.FC = () => {
       if (connected) {
         setIsConnected(true);
         if (tonConnectUI.account?.address) {
-          const address = tonConnectUI.account.address;
-          setWalletAddress(address);
-          await saveTonWalletAddress(address);
-          success('Кошелек успешно подключен');
+          const userFriendlyAddress = await getWalletAddress(tonConnectUI);
+          if (userFriendlyAddress) {
+            setWalletAddress(userFriendlyAddress);
+            await saveTonWalletAddress(userFriendlyAddress);
+            success('Кошелек успешно подключен');
+          }
         }
       } else {
         showError('Не удалось подключить кошелек');
