@@ -10,7 +10,8 @@ import {
   isTonWalletConnected, 
   connectTonWallet,
   sendTonTransaction,
-  saveTonWalletAddress 
+  saveTonWalletAddress,
+  getTonWalletAddress 
 } from '@/services/tonConnectService';
 import { formatAmount } from '@/utils/formatters';
 import { Wallet, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
@@ -39,7 +40,7 @@ const TonDepositCard: React.FC = () => {
       
       if (connected && tonConnectUI.account?.address) {
         const getUserFriendlyAddress = async () => {
-          const userFriendlyAddress = await getWalletAddress(tonConnectUI);
+          const userFriendlyAddress = await getTonWalletAddress(tonConnectUI);
           if (userFriendlyAddress) {
             setWalletAddress(userFriendlyAddress);
             // Сохраняем адрес в БД
@@ -64,7 +65,7 @@ const TonDepositCard: React.FC = () => {
       if (connected) {
         setIsConnected(true);
         if (tonConnectUI.account?.address) {
-          const userFriendlyAddress = await getWalletAddress(tonConnectUI);
+          const userFriendlyAddress = await getTonWalletAddress(tonConnectUI);
           if (userFriendlyAddress) {
             setWalletAddress(userFriendlyAddress);
             await saveTonWalletAddress(userFriendlyAddress);
