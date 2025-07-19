@@ -18,17 +18,29 @@ export interface TonTransactionResult {
  * @param txHash Хеш транзакции в TON blockchain
  * @returns Результат проверки транзакции
  */
+// Cache for transaction checks to prevent duplicate API calls
+const transactionCache = new Map<string, { result: TonTransactionResult; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export async function checkTonTransaction(txHash: string): Promise<TonTransactionResult> {
   try {
     logger.info('[TON Checker] Начало проверки транзакции', { txHash });
 
-    if (!txHash || txHash.length < 10) {
+    // Input validation
+    if (!txHash || typeof txHash !== 'string' || txHash.length < 10) {
       logger.error('[TON Checker] Невалидный tx_hash', { txHash });
       return {
         success: false,
         confirmed: false,
         error: 'Невалидный хеш транзакции'
       };
+    }
+
+    // Check cache first
+    const cached = transactionCache.get(txHash);
+    if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+      logger.info('[TON Checker] Возвращаем закэшированный результат', { txHash });
+      return cached.result;
     }
 
     // Используем tonapi.io для проверки транзакции

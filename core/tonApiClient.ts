@@ -13,11 +13,31 @@ if (!tonApiKey) {
   logger.warn('[TonAPI] TONAPI_API_KEY not found in environment, using testnet');
 }
 
-// Create TonAPI client instance
+// Create TonAPI client instance with enhanced configuration
 export const tonApi = new TonApiClient({
   baseUrl: 'https://tonapi.io',
   apiKey: tonApiKey || undefined, // Use undefined for testnet if no key
+  timeout: 30000, // 30 second timeout for network requests
 });
+
+// Rate limiting configuration for production stability
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 100; // 100ms between requests
+
+/**
+ * Rate-limited wrapper for TonAPI calls to prevent hitting API limits
+ */
+async function rateLimitedRequest<T>(requestFn: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+  
+  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+    await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest));
+  }
+  
+  lastRequestTime = Date.now();
+  return requestFn();
+}
 
 /**
  * Verify TON transaction by hash with real blockchain data
@@ -34,8 +54,16 @@ export async function verifyTonTransaction(txHash: string): Promise<{
   try {
     logger.info('[TonAPI] Verifying transaction:', { txHash });
 
-    // Get transaction details from TON blockchain
-    const transaction = await tonApi.blockchain.getTransaction(txHash);
+    // Input validation
+    if (!txHash || typeof txHash !== 'string' || txHash.length < 10) {
+      logger.error('[TonAPI] Invalid transaction hash provided:', { txHash });
+      return { isValid: false };
+    }
+
+    // Get transaction details from TON blockchain with rate limiting
+    const transaction = await rateLimitedRequest(() => 
+      tonApi.blockchain.getTransaction(txHash)
+    );
     
     if (!transaction) {
       logger.warn('[TonAPI] Transaction not found:', { txHash });
@@ -84,8 +112,16 @@ export async function checkTonBalance(address: string, minAmount: number = 0.01)
   try {
     logger.info('[TonAPI] Checking balance for address:', { address, minAmount });
 
-    // Get account information from TON blockchain
-    const account = await tonApi.accounts.getAccount(address);
+    // Input validation
+    if (!address || typeof address !== 'string') {
+      logger.error('[TonAPI] Invalid address provided:', { address });
+      return { hasBalance: false, balance: '0', isValid: false };
+    }
+
+    // Get account information from TON blockchain with rate limiting
+    const account = await rateLimitedRequest(() => 
+      tonApi.accounts.getAccount(address)
+    );
     
     if (!account) {
       logger.warn('[TonAPI] Account not found:', { address });
@@ -129,14 +165,23 @@ export async function validateTonAddress(address: string): Promise<{
   try {
     logger.info('[TonAPI] Validating address:', { address });
 
-    // Check address format first
-    if (!/^(UQ|EQ|kQ)[A-Za-z0-9_-]{46}$/.test(address)) {
+    // Input validation
+    if (!address || typeof address !== 'string') {
+      logger.error('[TonAPI] Invalid address provided:', { address });
+      return { isValid: false, isActive: false };
+    }
+
+    // Check address format first (enhanced validation)
+    const tonAddressRegex = /^(UQ|EQ|kQ)[A-Za-z0-9_-]{46}$/;
+    if (!tonAddressRegex.test(address)) {
       logger.warn('[TonAPI] Invalid address format:', { address });
       return { isValid: false, isActive: false };
     }
 
-    // Check if address exists on blockchain
-    const account = await tonApi.accounts.getAccount(address);
+    // Check if address exists on blockchain with rate limiting
+    const account = await rateLimitedRequest(() => 
+      tonApi.accounts.getAccount(address)
+    );
     
     if (!account) {
       logger.warn('[TonAPI] Address not found on blockchain:', { address });

@@ -8,6 +8,10 @@ import { verifyTonTransaction, validateTonAddress, checkTonBalance } from '../..
 import { getTonBoostReceiverAddress } from '../../config/tonBoostPayment';
 
 export class TonApiVerificationService {
+  // Cache for verified transactions to prevent duplicate API calls
+  private static verificationCache = new Map<string, any>();
+  private static readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   /**
    * Comprehensive TON transaction verification with real blockchain data
    */
@@ -25,6 +29,31 @@ export class TonApiVerificationService {
         txHash,
         expectedAmount
       });
+
+      // Input validation
+      if (!txHash || typeof txHash !== 'string' || txHash.length < 10) {
+        logger.error('[TonApiVerification] Invalid transaction hash provided:', { txHash });
+        return {
+          isValid: false,
+          error: 'Invalid transaction hash format'
+        };
+      }
+
+      if (typeof expectedAmount !== 'number' || expectedAmount <= 0) {
+        logger.error('[TonApiVerification] Invalid expected amount:', { expectedAmount });
+        return {
+          isValid: false,
+          error: 'Invalid expected amount'
+        };
+      }
+
+      // Check cache first
+      const cacheKey = `${txHash}-${expectedAmount}`;
+      const cached = this.verificationCache.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp) < this.CACHE_TTL) {
+        logger.info('[TonApiVerification] Returning cached verification result:', { txHash });
+        return cached.result;
+      }
 
       // Step 1: Verify transaction exists and is valid
       const verification = await verifyTonTransaction(txHash);
@@ -100,7 +129,7 @@ export class TonApiVerificationService {
         timestamp: verification.timestamp
       });
 
-      return {
+      const result = {
         isValid: true,
         amount: verification.amount,
         sender: verification.sender,
@@ -111,21 +140,49 @@ export class TonApiVerificationService {
           actualAmount: transactionAmount,
           amountValid: transactionAmount >= expectedAmount,
           recipientValid: verification.recipient === expectedRecipient,
-          statusValid: verification.status === 'success'
+          statusValid: verification.status === 'success',
+          verifiedAt: new Date().toISOString()
         }
       };
+
+      // Cache successful verification
+      this.verificationCache.set(cacheKey, {
+        result,
+        timestamp: Date.now()
+      });
+
+      return result;
 
     } catch (error) {
       logger.error('[TonApiVerification] Critical error during verification', {
         txHash,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       return {
         isValid: false,
-        error: 'Internal verification error'
+        error: `Verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
+  }
+
+  /**
+   * Clear verification cache (useful for testing or manual cache refresh)
+   */
+  static clearCache(): void {
+    this.verificationCache.clear();
+    logger.info('[TonApiVerification] Verification cache cleared');
+  }
+
+  /**
+   * Get cache statistics for monitoring
+   */
+  static getCacheStats(): { size: number; entries: string[] } {
+    return {
+      size: this.verificationCache.size,
+      entries: Array.from(this.verificationCache.keys())
+    };
   }
 
   /**
