@@ -29,6 +29,7 @@ export interface TelegramInitData {
 export interface ValidationResult {
   valid: boolean;
   user?: TelegramUser;
+  start_param?: string;
   error?: string;
 }
 
@@ -136,8 +137,11 @@ export function validateTelegramInitData(initData: string, botToken: string): Va
       return { valid: false, error: 'Required user fields missing' };
     }
 
-    console.log('✅ Telegram initData validation successful');
-    return { valid: true, user };
+    // Извлекаем start_param для реферальной системы
+    const start_param = urlParams.get('start_param');
+    console.log('✅ Telegram initData validation successful', { start_param: start_param || 'none' });
+    
+    return { valid: true, user, start_param };
   } catch (error) {
     console.error('[TelegramValidator] Validation error:', error);
     return { valid: false, error: 'Validation failed' };

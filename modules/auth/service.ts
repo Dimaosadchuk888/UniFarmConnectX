@@ -274,19 +274,25 @@ export class AuthService {
       }
 
       const telegramUser = validation.user;
-      logger.info('[AuthService] Валидные данные Telegram получены', { telegramId: telegramUser.id });
+      // Извлекаем start_param из результата валидации - это и есть реферальный код
+      const referralCode = validation.start_param || options.ref_by;
+      logger.info('[AuthService] Валидные данные Telegram получены', { 
+        telegramId: telegramUser.id, 
+        start_param: validation.start_param,
+        ref_by: referralCode
+      });
 
       let userInfo = await this.findByTelegramId(telegramUser.id);
       let isNewUser = false;
 
       if (!userInfo) {
-        logger.info('[AuthService] Создание нового пользователя', { telegramId: telegramUser.id });
+        logger.info('[AuthService] Создание нового пользователя', { telegramId: telegramUser.id, referralCode });
         
         userInfo = await this.findOrCreateFromTelegram({
           telegram_id: telegramUser.id,
           username: telegramUser.username,
           first_name: telegramUser.first_name,
-          ref_by: options.ref_by
+          ref_by: referralCode
         });
         
         isNewUser = true;
@@ -295,7 +301,8 @@ export class AuthService {
         // Реферальная связь уже обработана в findOrCreateFromTelegram()
         logger.info('[AuthService] Реферальная связь уже обработана при создании пользователя', { 
           newUserId: userInfo.id, 
-          refCode: options.ref_by 
+          refCode: referralCode,
+          source: validation.start_param ? 'telegram_start_param' : 'options_ref_by'
         });
       }
 
@@ -445,6 +452,15 @@ export class AuthService {
       }
 
       const telegramUser = validation.user;
+      // Извлекаем start_param из результата валидации - это и есть реферальный код
+      const referralCode = validation.start_param || refBy;
+      logger.info('[AuthService] registerWithTelegram - получены данные', { 
+        telegramId: telegramUser.id, 
+        start_param: validation.start_param,
+        refBy: refBy,
+        finalReferralCode: referralCode
+      });
+      
       let userInfo = await this.findByTelegramId(telegramUser.id);
       let isNewUser = false;
 
@@ -454,7 +470,7 @@ export class AuthService {
           telegram_id: telegramUser.id,
           username: telegramUser.username || telegramUser.first_name,
           first_name: telegramUser.first_name,
-          ref_by: refBy
+          ref_by: referralCode
         });
         isNewUser = true;
       }

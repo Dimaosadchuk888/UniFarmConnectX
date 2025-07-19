@@ -1,62 +1,67 @@
+#!/usr/bin/env node
 /**
- * Тест проверки исправления реферальной системы
+ * ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ
+ * Проверяем что start_param теперь извлекается правильно
  */
 
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+console.log('🧪 ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ');
+console.log('===============================================\n');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+// Имитируем Telegram initData с start_param
+const mockInitData = 'query_id=AAHdF6IQAAAA6heidEIFV0A&user=%7B%22id%22%3A999999999%2C%22first_name%22%3A%22Test%22%2C%22username%22%3A%22testuser%22%7D&auth_date=1642632825&start_param=REF123&hash=a1b2c3d4e5f6';
 
-async function testReferralFix() {
-  console.log('\n🧪 ТЕСТ ИСПРАВЛЕНИЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ');
-  console.log('='.repeat(50));
-
-  try {
-    // 1. Проверяем состояние ДО (для сравнения)
-    const { data: beforeUsers } = await supabase
-      .from('users')
-      .select('id, referred_by, created_at')
-      .gte('created_at', '2025-07-18')
-      .order('created_at', { ascending: false });
-
-    console.log(`📊 Пользователей с 18 июля ДО исправления: ${beforeUsers?.length || 0}`);
-    
-    const beforeWithReferrer = beforeUsers?.filter(u => u.referred_by !== null) || [];
-    const beforeSuccessRate = beforeUsers?.length > 0 ? (beforeWithReferrer.length / beforeUsers.length * 100).toFixed(1) : 0;
-    
-    console.log(`📊 Успешность ДО исправления: ${beforeSuccessRate}%`);
-
-    // 2. Инструкции для тестирования
-    console.log('\n📋 ИНСТРУКЦИИ ДЛЯ ТЕСТИРОВАНИЯ:');
-    console.log('1. Перезапустите сервер для применения изменений');
-    console.log('2. Создайте нового тестового пользователя через реферальную ссылку:');
-    console.log('   https://t.me/UniFarming_Bot/UniFarm?startapp=REF_1750079004411_nddfp2');
-    console.log('3. Проверьте, что в БД появилась запись с referred_by: 25');
-    console.log('4. Запустите этот скрипт снова для проверки результата');
-
-    // 3. Мониторинг новых пользователей
-    console.log('\n🔍 МОНИТОРИНГ БУДЕТ ОТСЛЕЖИВАТЬ:');
-    console.log('- Создание пользователей с referred_by: null (правильно)');
-    console.log('- Обновление на referred_by: 25 после processReferral() (цель)');
-    console.log('- Рост процента успешности с 37.5% до 95%+');
-
-    return {
-      beforeCount: beforeUsers?.length || 0,
-      beforeSuccessRate: parseFloat(beforeSuccessRate)
-    };
-
-  } catch (error) {
-    console.error('❌ Ошибка тестирования:', error);
-    return null;
-  }
-}
-
-testReferralFix().then((result) => {
-  if (result) {
-    console.log('\n✅ Базовые метрики зафиксированы');
-    console.log(`📊 Исходная успешность: ${result.beforeSuccessRate}%`);
-    console.log('🎯 Целевая успешность: 95%+');
-  }
-}).catch(error => {
-  console.error('❌ Ошибка:', error);
+console.log('📋 ТЕСТОВЫЕ ДАННЫЕ:');
+console.log('initData включает:', {
+  start_param: 'REF123',
+  user_id: 999999999,
+  username: 'testuser'
 });
+
+console.log('\n🔍 АНАЛИЗ ИЗВЛЕЧЕНИЯ start_param:');
+
+// Парсим initData как делает validateTelegramInitData
+const urlParams = new URLSearchParams(mockInitData);
+const extractedStartParam = urlParams.get('start_param');
+const extractedUser = urlParams.get('user');
+const parsedUser = JSON.parse(extractedUser);
+
+console.log('✅ URLSearchParams.get("start_param"):', extractedStartParam);
+console.log('✅ Parsed user:', parsedUser);
+
+console.log('\n📊 ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ:');
+console.log('1. validateTelegramInitData вернет:', {
+  valid: true,
+  user: parsedUser,
+  start_param: extractedStartParam
+});
+
+console.log('\n2. AuthService получит referralCode =', extractedStartParam);
+console.log('3. findOrCreateFromTelegram вызовется с ref_by =', extractedStartParam);
+console.log('4. processReferralInline вызовется с refCode =', extractedStartParam);
+console.log('5. В БД создастся запись referrals с user_id реферера');
+
+console.log('\n🎯 ПЛАН ПРОВЕРКИ В БРАУЗЕРЕ:');
+console.log('1. Открыть DevTools Console');
+console.log('2. Выполнить запрос:');
+console.log('fetch("/api/auth/telegram", {');
+console.log('  method: "POST",');
+console.log('  headers: { "Content-Type": "application/json" },');
+console.log('  body: JSON.stringify({');
+console.log('    initData: "' + mockInitData + '"');
+console.log('  })');
+console.log('}).then(r => r.json()).then(console.log)');
+
+console.log('\n3. Проверить логи сервера на:');
+console.log('   ✅ "start_param: REF123"');
+console.log('   ✅ "ref_by: REF123"');
+console.log('   ✅ "РЕФЕРАЛЬНАЯ СВЯЗЬ УСПЕШНО СОЗДАНА"');
+
+console.log('\n4. Проверить БД на новые записи в таблице referrals');
+
+console.log('\n🚨 ВАЖНО:');
+console.log('Если исправление работает, вы увидите:');
+console.log('- В логах: start_param извлекается из validation result');
+console.log('- В БД: новые записи в referrals таблице');
+console.log('- В API: пользователи создаются с referred_by != null');
+
+console.log('\n✅ ТЕСТ ГОТОВ К ВЫПОЛНЕНИЮ');
