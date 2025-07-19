@@ -12,6 +12,7 @@ import { useAutoAuth } from "@/hooks/useAutoAuth";
 // Components
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import TonConnectErrorBoundary from "@/components/ui/TonConnectErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
 import { WebSocketProvider } from "@/contexts/webSocketContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -285,29 +286,31 @@ function App() {
   // Ошибки будут отображаться в уведомлениях, но не блокируют UI
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <TonConnectUIProvider manifestUrl="https://uni-farm-connect-aab49267.replit.app/tonconnect-manifest.json">
-          <NotificationProvider>
-            <UserProvider>
-              <WebSocketProvider>
-                <WebSocketBalanceSync />
-                <TelegramWebAppCheck>
-                  <MainLayout 
-                    activeTab={state.activeTab} 
-                    onTabChange={handleTabChange}
-                  >
-                    {renderPage()}
-                  </MainLayout>
-                  {/* <NetworkStatusIndicator /> */}
-                  <Toaster />
-                </TelegramWebAppCheck>
-              </WebSocketProvider>
-            </UserProvider>
-          </NotificationProvider>
-        </TonConnectUIProvider>
-      </ErrorBoundary>
-    </QueryClientProvider>
+    <TonConnectErrorBoundary>
+      <TonConnectUIProvider manifestUrl="https://uni-farm-connect-aab49267.replit.app/tonconnect-manifest.json">
+        <QueryClientProvider client={queryClient}>
+          <ErrorBoundary>
+            <NotificationProvider>
+              <UserProvider>
+                <WebSocketProvider>
+                  <WebSocketBalanceSync />
+                  <TelegramWebAppCheck>
+                    <MainLayout 
+                      activeTab={state.activeTab} 
+                      onTabChange={handleTabChange}
+                    >
+                      {renderPage()}
+                    </MainLayout>
+                    {/* <NetworkStatusIndicator /> */}
+                    <Toaster />
+                  </TelegramWebAppCheck>
+                </WebSocketProvider>
+              </UserProvider>
+            </NotificationProvider>
+          </ErrorBoundary>
+        </QueryClientProvider>
+      </TonConnectUIProvider>
+    </TonConnectErrorBoundary>
   );
 }
 
