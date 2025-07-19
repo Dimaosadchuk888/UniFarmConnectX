@@ -1,179 +1,289 @@
 #!/usr/bin/env node
-
 /**
  * КОМПЛЕКСНАЯ ДИАГНОСТИКА РЕФЕРАЛЬНОЙ СИСТЕМЫ
- * Анализирует все аспекты реферальной цепочки без изменения данных
+ * Глубокий анализ без изменения кода
  */
 
-const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
 
-// Настройки Supabase (пользуйтесь реальными учетными данными)
-const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY || 'your-anon-key';
-const supabase = createClient(supabaseUrl, supabaseKey);
+console.log('🔍 КОМПЛЕКСНАЯ ДИАГНОСТИКА РЕФЕРАЛЬНОЙ СИСТЕМЫ');
+console.log('===============================================\n');
 
-console.log('🔍 COMPREHENSIVE ДИАГНОСТИКА РЕФЕРАЛЬНОЙ СИСТЕМЫ');
-console.log('======================================================================\n');
-
-async function comprehensiveReferralDiagnosis() {
+function analyzeAuthServiceCode() {
+  console.log('1️⃣ АНАЛИЗ КОДА AUTH SERVICE:');
+  console.log('----------------------------');
+  
   try {
-    // 1. Проверяем тестовых пользователей 186-190
-    console.log('1️⃣ ПРОВЕРКА ТЕСТОВЫХ ПОЛЬЗОВАТЕЛЕЙ 186-190:');
-    console.log('--------------------------------------------------');
-    console.log('🎯 ГИПОТЕЗА: Тестовые пользователи имеют referred_by = 184');
-    console.log('   Это объясняет, почему distributeReferralRewards() работает\n');
+    const authServicePath = path.join(process.cwd(), 'modules/auth/service.ts');
+    const content = fs.readFileSync(authServicePath, 'utf8');
     
-    const testUsers = [186, 187, 188, 189, 190];
-    let foundUsers = 0;
-    
-    for (const userId of testUsers) {
-      try {
-        const response = await fetch(`/api/v2/wallet/balance?user_id=${userId}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('unifarm_jwt_token') || 'test'}`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log(`✅ User ${userId}: НАЙДЕН - ${JSON.stringify(data.data)}`);
-          foundUsers++;
-        } else {
-          console.log(`❌ User ${userId}: НЕ НАЙДЕН`);
-        }
-      } catch (error) {
-        console.log(`❌ User ${userId}: НЕ НАЙДЕН`);
-      }
+    // Ищем все методы регистрации
+    const registerMethods = [];
+    const methodPattern = /(register\w*|create\w*|findOrCreate\w*)\s*\(/g;
+    let match;
+    while ((match = methodPattern.exec(content)) !== null) {
+      registerMethods.push(match[1]);
     }
     
-    console.log(`\n📊 НАЙДЕНО: ${foundUsers} из ${testUsers.length} тестовых пользователей\n`);
-
-    // 2. Анализируем реферальные транзакции
-    console.log('2️⃣ АНАЛИЗ РЕФЕРАЛЬНЫХ ТРАНЗАКЦИЙ:');
-    console.log('--------------------------------------------------');
+    console.log('📋 Найденные методы регистрации:', registerMethods);
     
-    try {
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('type', 'REFERRAL_REWARD')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        console.log('❌ Ошибка получения транзакций:', error.message);
-        return;
-      }
-
-      console.log(`📊 Найдено ${transactions.length} REFERRAL_REWARD транзакций\n`);
-      
-      if (transactions.length > 0) {
-        // Группируем по источникам из metadata
-        const sourceStats = {};
-        const timeAnalysis = [];
-        
-        for (const tx of transactions) {
-          const sourceUserId = tx.metadata?.source_user_id;
-          if (sourceUserId) {
-            if (!sourceStats[sourceUserId]) {
-              sourceStats[sourceUserId] = {
-                count: 0,
-                totalUni: 0,
-                totalTon: 0
-              };
-            }
-            sourceStats[sourceUserId].count++;
-            sourceStats[sourceUserId].totalUni += tx.amount_uni || 0;
-            sourceStats[sourceUserId].totalTon += tx.amount_ton || 0;
-          }
-          
-          // Добавляем в временной анализ последние 5 транзакций
-          if (timeAnalysis.length < 5) {
-            timeAnalysis.push({
-              time: new Date(tx.created_at).toLocaleTimeString(),
-              description: tx.description || 'N/A',
-              amount_uni: tx.amount_uni || 0,
-              metadata: tx.metadata
-            });
-          }
-        }
-        
-        console.log('📈 СТАТИСТИКА ПО ИСТОЧНИКАМ:');
-        for (const [sourceId, stats] of Object.entries(sourceStats)) {
-          console.log(`  User ${sourceId}: ${stats.count} транзакций`);
-          if (stats.totalUni > 0) console.log(`    UNI: ${stats.totalUni}`);
-          if (stats.totalTon > 0) console.log(`    TON: ${stats.totalTon}`);
-        }
-        
-        console.log('\n⏰ ВРЕМЕННОЙ АНАЛИЗ:');
-        timeAnalysis.forEach((tx, index) => {
-          console.log(`  ${index + 1}. ${tx.time}: ${tx.description}`);
-        });
-      }
-    } catch (error) {
-      console.log('❌ Ошибка анализа транзакций:', error.message);
-    }
-
-    // 3. Анализируем buildReferrerChain()
-    console.log('\n3️⃣ АНАЛИЗ BUILDREFERRERCHAIN():');
-    console.log('--------------------------------------------------');
-    console.log('🔍 buildReferrerChain() ищет пользователей с заполненным referred_by:');
-    console.log('   1. Получает User ID из источника (186-190)');
-    console.log('   2. Ищет в таблице users: SELECT * WHERE id = sourceUserId');
-    console.log('   3. Проверяет поле referred_by');
-    console.log('   4. Если referred_by заполнен, добавляет в цепочку');
-    console.log('   5. Продолжает до 20 уровней\n');
-
-    // 4. Проверяем реальных пользователей
-    console.log('\n4️⃣ ПРОВЕРКА РЕАЛЬНЫХ ПОЛЬЗОВАТЕЛЕЙ:');
-    console.log('--------------------------------------------------');
+    // Проверяем вызовы processReferral
+    const processReferralCalls = content.match(/processReferral\w*\(/g) || [];
+    console.log('📋 Вызовы processReferral:', processReferralCalls.length, processReferralCalls);
     
-    const realUsers = [1, 2, 3, 74, 184];
-    for (const userId of realUsers) {
-      try {
-        const response = await fetch(`/api/v2/wallet/balance?user_id=${userId}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('unifarm_jwt_token') || 'test'}`
-          }
-        });
-        
-        if (response.ok) {
-          console.log(`✅ User ${userId}: НАЙДЕН`);
-        } else {
-          console.log(`❌ User ${userId}: НЕ НАЙДЕН`);
-        }
-      } catch (error) {
-        console.log(`❌ User ${userId}: НЕ НАЙДЕН`);
+    // Проверяем места обработки ref_by
+    const refByUsage = [];
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      if (line.includes('ref_by') || line.includes('refCode')) {
+        refByUsage.push({ line: index + 1, content: line.trim() });
       }
-    }
-
-    // 5. Финальный диагноз
-    console.log('\n5️⃣ ФИНАЛЬНЫЙ ДИАГНОЗ:');
-    console.log('--------------------------------------------------');
-    console.log('🎯 КОРНЕВАЯ ПРИЧИНА:');
-    console.log('   1. Тестовые пользователи 186-190 имеют referred_by = 184');
-    console.log('   2. Реальные пользователи имеют referred_by = null');
-    console.log('   3. buildReferrerChain() работает только с заполненным referred_by');
-    console.log('   4. processReferralInline() не обновляет referred_by при создании');
-    console.log('\n🔧 НЕОБХОДИМЫЕ ИСПРАВЛЕНИЯ:');
-    console.log('   ✅ Исправить ошибку в processReferralInline() (строка 84)');
-    console.log('   ✅ Проверить права доступа Supabase RLS');
-    console.log('   ✅ Добавить детальное логирование ошибок');
-    console.log('   ✅ Протестировать создание новых пользователей');
-
+    });
+    
+    console.log('📋 Использование ref_by/refCode найдено в', refByUsage.length, 'местах:');
+    refByUsage.slice(0, 5).forEach(item => {
+      console.log(`   Строка ${item.line}: ${item.content}`);
+    });
+    
+    // Анализируем цепочку вызовов
+    console.log('\n🔗 АНАЛИЗ ЦЕПОЧКИ ВЫЗОВОВ:');
+    const hasRegisterDirectFromTelegram = content.includes('registerDirectFromTelegramUser');
+    const hasFindOrCreateFromTelegram = content.includes('findOrCreateFromTelegram');
+    const hasCreateUser = content.includes('createUser(');
+    
+    console.log(`   registerDirectFromTelegramUser: ${hasRegisterDirectFromTelegram ? '✅ НАЙДЕН' : '❌ НЕ НАЙДЕН'}`);
+    console.log(`   findOrCreateFromTelegram: ${hasFindOrCreateFromTelegram ? '✅ НАЙДЕН' : '❌ НЕ НАЙДЕН'}`);
+    console.log(`   createUser: ${hasCreateUser ? '✅ НАЙДЕН' : '❌ НЕ НАЙДЕН'}`);
+    
   } catch (error) {
-    console.error('❌ КРИТИЧЕСКАЯ ОШИБКА ДИАГНОСТИКИ:', error);
+    console.log('❌ Ошибка анализа auth service:', error.message);
   }
 }
 
-// Запускаем диагностику
-if (typeof window !== 'undefined') {
-  // Browser environment
-  comprehensiveReferralDiagnosis();
-} else {
-  // Node.js environment
-  console.log('⚠️ Диагностика предназначена для браузерного окружения');
-  console.log('Скопируйте содержимое функции comprehensiveReferralDiagnosis в консоль браузера');
+function analyzeReferralServiceCode() {
+  console.log('\n2️⃣ АНАЛИЗ КОДА REFERRAL SERVICE:');
+  console.log('-------------------------------');
+  
+  try {
+    const referralServicePath = path.join(process.cwd(), 'modules/referral/service.ts');
+    
+    if (!fs.existsSync(referralServicePath)) {
+      console.log('❌ Файл modules/referral/service.ts НЕ НАЙДЕН');
+      return;
+    }
+    
+    const content = fs.readFileSync(referralServicePath, 'utf8');
+    
+    // Проверяем методы обработки реферралов
+    const methods = ['processReferral', 'buildReferrerChain', 'distributeReferralRewards'];
+    methods.forEach(method => {
+      const found = content.includes(method);
+      console.log(`   ${method}: ${found ? '✅ НАЙДЕН' : '❌ НЕ НАЙДЕН'}`);
+    });
+    
+    // Ищем работу с таблицами
+    const tablesUsed = [];
+    if (content.includes('users')) tablesUsed.push('users');
+    if (content.includes('referrals')) tablesUsed.push('referrals');
+    if (content.includes('referral_earnings')) tablesUsed.push('referral_earnings');
+    
+    console.log('📋 Используемые таблицы:', tablesUsed);
+    
+  } catch (error) {
+    console.log('❌ Ошибка анализа referral service:', error.message);
+  }
 }
+
+function analyzeRouterAndControllers() {
+  console.log('\n3️⃣ АНАЛИЗ РОУТЕРОВ И КОНТРОЛЛЕРОВ:');
+  console.log('----------------------------------');
+  
+  try {
+    // Ищем auth routes
+    const authRoutesPath = path.join(process.cwd(), 'modules/auth/routes.ts');
+    const authControllerPath = path.join(process.cwd(), 'modules/auth/controller.ts');
+    
+    [
+      { name: 'Auth Routes', path: authRoutesPath },
+      { name: 'Auth Controller', path: authControllerPath }
+    ].forEach(({ name, path: filePath }) => {
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        
+        // Ищем endpoints связанные с регистрацией
+        const endpoints = content.match(/\.(post|get|put|patch)\s*\(['"`][^'"`]*['"`]/g) || [];
+        console.log(`📋 ${name} endpoints:`, endpoints.slice(0, 3));
+        
+        // Проверяем обработку реферальных параметров
+        const hasRefByHandling = content.includes('ref_by') || content.includes('refCode');
+        console.log(`   Обработка ref_by: ${hasRefByHandling ? '✅ НАЙДЕНА' : '❌ НЕ НАЙДЕНА'}`);
+        
+      } else {
+        console.log(`❌ ${name}: файл не найден`);
+      }
+    });
+    
+  } catch (error) {
+    console.log('❌ Ошибка анализа роутеров:', error.message);
+  }
+}
+
+function analyzeSupabaseConfiguration() {
+  console.log('\n4️⃣ АНАЛИЗ КОНФИГУРАЦИИ SUPABASE:');
+  console.log('--------------------------------');
+  
+  try {
+    // Ищем конфигурацию Supabase
+    const supabaseConfigPaths = [
+      'core/supabase.ts',
+      'config/supabase.ts',
+      'lib/supabase.ts'
+    ];
+    
+    let configFound = false;
+    supabaseConfigPaths.forEach(configPath => {
+      const fullPath = path.join(process.cwd(), configPath);
+      if (fs.existsSync(fullPath)) {
+        console.log(`✅ Supabase config найден: ${configPath}`);
+        configFound = true;
+        
+        const content = fs.readFileSync(fullPath, 'utf8');
+        
+        // Проверяем настройки
+        const hasCreateClient = content.includes('createClient');
+        const hasAuth = content.includes('auth');
+        const hasRLS = content.includes('RLS') || content.includes('row_level_security');
+        
+        console.log(`   createClient: ${hasCreateClient ? '✅' : '❌'}`);
+        console.log(`   Auth setup: ${hasAuth ? '✅' : '❌'}`);
+        console.log(`   RLS references: ${hasRLS ? '✅' : '❌'}`);
+      }
+    });
+    
+    if (!configFound) {
+      console.log('❌ Supabase конфигурация не найдена');
+    }
+    
+  } catch (error) {
+    console.log('❌ Ошибка анализа Supabase:', error.message);
+  }
+}
+
+function analyzeDatabaseSchema() {
+  console.log('\n5️⃣ АНАЛИЗ СХЕМЫ БАЗЫ ДАННЫХ:');
+  console.log('----------------------------');
+  
+  try {
+    // Ищем типы/схемы БД
+    const schemaPaths = [
+      'types/database.ts',
+      'shared/schema.ts',
+      'types/supabase.ts'
+    ];
+    
+    let schemaFound = false;
+    schemaPaths.forEach(schemaPath => {
+      const fullPath = path.join(process.cwd(), schemaPath);
+      if (fs.existsSync(fullPath)) {
+        console.log(`✅ Схема найдена: ${schemaPath}`);
+        schemaFound = true;
+        
+        const content = fs.readFileSync(fullPath, 'utf8');
+        
+        // Проверяем таблицы
+        const tables = ['users', 'referrals', 'referral_earnings'];
+        tables.forEach(table => {
+          const found = content.includes(table);
+          console.log(`   Таблица ${table}: ${found ? '✅' : '❌'}`);
+        });
+        
+        // Проверяем поля для реферралов
+        const fields = ['referred_by', 'ref_code', 'inviter_id', 'user_id'];
+        fields.forEach(field => {
+          const found = content.includes(field);
+          console.log(`   Поле ${field}: ${found ? '✅' : '❌'}`);
+        });
+      }
+    });
+    
+    if (!schemaFound) {
+      console.log('❌ Схема БД не найдена в ожидаемых местах');
+    }
+    
+  } catch (error) {
+    console.log('❌ Ошибка анализа схемы:', error.message);
+  }
+}
+
+function analyzeMiddleware() {
+  console.log('\n6️⃣ АНАЛИЗ MIDDLEWARE:');
+  console.log('--------------------');
+  
+  try {
+    // Ищем middleware для аутентификации
+    const middlewarePaths = [
+      'server/middleware/telegramAuth.ts',
+      'server/middleware/auth.ts',
+      'utils/telegram.ts'
+    ];
+    
+    middlewarePaths.forEach(middlewarePath => {
+      const fullPath = path.join(process.cwd(), middlewarePath);
+      if (fs.existsSync(fullPath)) {
+        console.log(`✅ Middleware найден: ${middlewarePath}`);
+        
+        const content = fs.readFileSync(fullPath, 'utf8');
+        
+        // Проверяем обработку Telegram данных
+        const hasInitData = content.includes('initData');
+        const hasHmac = content.includes('hmac') || content.includes('HMAC');
+        const hasRefBy = content.includes('ref_by');
+        
+        console.log(`   InitData обработка: ${hasInitData ? '✅' : '❌'}`);
+        console.log(`   HMAC валидация: ${hasHmac ? '✅' : '❌'}`);
+        console.log(`   ref_by извлечение: ${hasRefBy ? '✅' : '❌'}`);
+      }
+    });
+    
+  } catch (error) {
+    console.log('❌ Ошибка анализа middleware:', error.message);
+  }
+}
+
+function generateDiagnosticSummary() {
+  console.log('\n7️⃣ ГИПОТЕЗЫ О ПРОБЛЕМАХ:');
+  console.log('------------------------');
+  
+  console.log('🔍 ВОЗМОЖНЫЕ КОРНЕВЫЕ ПРИЧИНЫ:');
+  console.log('1. 🚫 Middleware не извлекает ref_by из Telegram initData');
+  console.log('2. 🔄 Неправильная последовательность вызовов (auth → referral)');
+  console.log('3. 🗄️ Supabase RLS блокирует INSERT в таблицу referrals');
+  console.log('4. 🎭 JWT payload не содержит нужные данные для referral');
+  console.log('5. ⚡ Race condition между созданием user и referral записей');
+  console.log('6. 🔐 Отсутствуют права на запись в referrals для auth пользователя');
+  console.log('7. 📊 Неправильная схема БД - несоответствие типов полей');
+  console.log('8. 🔗 processReferral вызывается, но не доходит до INSERT');
+  
+  console.log('\n🧪 ПЛАН УГЛУБЛЕННОЙ ДИАГНОСТИКИ:');
+  console.log('1. Проверить логи сервера при создании пользователя');
+  console.log('2. Проверить Supabase Dashboard на RLS policies');
+  console.log('3. Протестировать создание referrals записей вручную');
+  console.log('4. Проанализировать Network tab при регистрации');
+  console.log('5. Проверить JWT payload структуру');
+  console.log('6. Тестировать с временно отключенным RLS');
+}
+
+// Запуск диагностики
+console.log('🚀 НАЧАЛО КОМПЛЕКСНОЙ ДИАГНОСТИКИ...\n');
+
+analyzeAuthServiceCode();
+analyzeReferralServiceCode();
+analyzeRouterAndControllers();
+analyzeSupabaseConfiguration();
+analyzeDatabaseSchema();
+analyzeMiddleware();
+generateDiagnosticSummary();
+
+console.log('\n📋 ДИАГНОСТИКА ЗАВЕРШЕНА');
+console.log('Результаты помогут найти реальную корневую причину проблемы');
