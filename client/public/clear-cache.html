@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Очистка кэша UniFarm</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        .status.warning {
+            background: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #ffcc02;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+        .btn-danger:hover {
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+        }
+        .progress {
+            margin: 20px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .details {
+            text-align: left;
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Очистка кэша UniFarm</h1>
+        
+        <div id="status" class="status info">
+            Готов к очистке кэша и данных приложения
+        </div>
+
+        <div class="progress" id="progress" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="progressText">Подготовка...</div>
+        </div>
+
+        <div id="details" class="details" style="display: none;"></div>
+
+        <button class="btn btn-danger" onclick="clearAllCache()" id="clearBtn">
+            Очистить весь кэш
+        </button>
+        
+        <button class="btn" onclick="clearTonConnectOnly()" id="tonBtn">
+            Только TON Connect
+        </button>
+
+        <button class="btn" onclick="clearUserData()" id="userBtn">
+            Данные пользователя
+        </button>
+
+        <a href="/" class="back-link" id="backLink" style="display: none;">
+            ← Вернуться в приложение
+        </a>
+    </div>
+
+    <script>
+        let logDetails = [];
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logDetails.push(`${timestamp}: ${message}`);
+            updateDetails();
+            console.log(`[Cache Clear] ${message}`);
+        }
+
+        function updateDetails() {
+            const detailsEl = document.getElementById('details');
+            detailsEl.style.display = 'block';
+            detailsEl.innerHTML = logDetails.join('<br>');
+            detailsEl.scrollTop = detailsEl.scrollHeight;
+        }
+
+        function updateProgress(percent, text) {
+            const progressEl = document.getElementById('progress');
+            const fillEl = document.getElementById('progressFill');
+            const textEl = document.getElementById('progressText');
+            
+            progressEl.style.display = 'block';
+            fillEl.style.width = `${percent}%`;
+            textEl.textContent = text;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status ${type}`;
+            statusEl.textContent = message;
+        }
+
+        function disableButtons() {
+            document.getElementById('clearBtn').disabled = true;
+            document.getElementById('tonBtn').disabled = true;
+            document.getElementById('userBtn').disabled = true;
+        }
+
+        function enableButtons() {
+            document.getElementById('clearBtn').disabled = false;
+            document.getElementById('tonBtn').disabled = false;
+            document.getElementById('userBtn').disabled = false;
+        }
+
+        function showBackLink() {
+            document.getElementById('backLink').style.display = 'inline-block';
+        }
+
+        async function clearAllCache() {
+            disableButtons();
+            logDetails = [];
+            updateStatus('Выполняется полная очистка...', 'info');
+            
+            try {
+                log('Начинаем полную очистку кэша');
+                updateProgress(10, 'Очищаем localStorage...');
+
+                // 1. Очистка localStorage
+                const lsKeys = Object.keys(localStorage);
+                log(`Найдено ${lsKeys.length} ключей в localStorage`);
+                lsKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                    log(`Удален ключ: ${key}`);
+                });
+                updateProgress(25, 'localStorage очищен');
+
+                // 2. Очистка sessionStorage
+                updateProgress(35, 'Очищаем sessionStorage...');
+                const ssKeys = Object.keys(sessionStorage);
+                log(`Найдено ${ssKeys.length} ключей в sessionStorage`);
+                ssKeys.forEach(key => {
+                    sessionStorage.removeItem(key);
+                    log(`Удален ключ: ${key}`);
+                });
+                updateProgress(45, 'sessionStorage очищен');
+
+                // 3. Очистка IndexedDB
+                updateProgress(55, 'Очищаем IndexedDB...');
+                try {
+                    const databases = await indexedDB.databases();
+                    for (const db of databases) {
+                        if (db.name) {
+                            indexedDB.deleteDatabase(db.name);
+                            log(`Удалена база данных IndexedDB: ${db.name}`);
+                        }
+                    }
+                } catch (e) {
+                    log(`Ошибка очистки IndexedDB: ${e.message}`);
+                }
+                updateProgress(70, 'IndexedDB очищен');
+
+                // 4. Очистка куков для текущего домена
+                updateProgress(80, 'Очищаем куки...');
+                const cookies = document.cookie.split(";");
+                cookies.forEach(cookie => {
+                    const eqPos = cookie.indexOf("=");
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                    if (name) {
+                        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+                        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+                        log(`Удален cookie: ${name}`);
+                    }
+                });
+                updateProgress(90, 'Куки очищены');
+
+                // 5. Попытка очистки кэша через Service Worker
+                updateProgress(95, 'Очищаем Service Worker кэш...');
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        for (const registration of registrations) {
+                            await registration.unregister();
+                            log('Service Worker отключен');
+                        }
+                    } catch (e) {
+                        log(`Service Worker: ${e.message}`);
+                    }
+                }
+
+                if ('caches' in window) {
+                    try {
+                        const cacheNames = await caches.keys();
+                        for (const cacheName of cacheNames) {
+                            await caches.delete(cacheName);
+                            log(`Удален кэш: ${cacheName}`);
+                        }
+                    } catch (e) {
+                        log(`Кэш API: ${e.message}`);
+                    }
+                }
+
+                updateProgress(100, 'Очистка завершена!');
+                updateStatus('✅ Весь кэш успешно очищен!', 'success');
+                log('Полная очистка завершена успешно');
+                
+                showBackLink();
+                
+            } catch (error) {
+                log(`Ошибка при очистке: ${error.message}`);
+                updateStatus('❌ Ошибка при очистке кэша', 'warning');
+            } finally {
+                enableButtons();
+            }
+        }
+
+        async function clearTonConnectOnly() {
+            disableButtons();
+            logDetails = [];
+            updateStatus('Очищаем данные TON Connect...', 'info');
+            
+            try {
+                log('Начинаем очистку TON Connect данных');
+                updateProgress(20, 'Поиск TON Connect данных...');
+
+                // Очистка специфичных для TON Connect ключей
+                const tonKeys = [
+                    'ton-connect-ui_wallet-info',
+                    'ton-connect-ui_preferred-wallet',
+                    'ton-connect-ui_theme',
+                    'tonconnect-storage_bridge',
+                    'tonconnect-storage_http-bridge',
+                    'tonconnect-storage_injected-wallet',
+                    'tonconnect-storage_ton-connect',
+                ];
+
+                let keysFound = 0;
+                Object.keys(localStorage).forEach(key => {
+                    if (key.includes('ton-connect') || key.includes('tonconnect') || 
+                        key.includes('ton_wallet') || key.includes('wallet')) {
+                        localStorage.removeItem(key);
+                        log(`Удален ключ: ${key}`);
+                        keysFound++;
+                    }
+                });
+
+                tonKeys.forEach(key => {
+                    if (localStorage.getItem(key)) {
+                        localStorage.removeItem(key);
+                        log(`Удален TON ключ: ${key}`);
+                        keysFound++;
+                    }
+                });
+
+                updateProgress(60, 'Очищаем sessionStorage...');
+                Object.keys(sessionStorage).forEach(key => {
+                    if (key.includes('ton-connect') || key.includes('tonconnect') || 
+                        key.includes('ton_wallet') || key.includes('wallet')) {
+                        sessionStorage.removeItem(key);
+                        log(`Удален session ключ: ${key}`);
+                        keysFound++;
+                    }
+                });
+
+                updateProgress(100, 'TON Connect очищен!');
+                updateStatus(`✅ TON Connect очищен! Удалено ${keysFound} ключей`, 'success');
+                log(`Очистка TON Connect завершена. Удалено ${keysFound} ключей`);
+                
+                showBackLink();
+                
+            } catch (error) {
+                log(`Ошибка при очистке TON Connect: ${error.message}`);
+                updateStatus('❌ Ошибка при очистке TON Connect', 'warning');
+            } finally {
+                enableButtons();
+            }
+        }
+
+        async function clearUserData() {
+            disableButtons();
+            logDetails = [];
+            updateStatus('Очищаем данные пользователя...', 'info');
+            
+            try {
+                log('Начинаем очистку данных пользователя');
+                updateProgress(25, 'Очищаем токены...');
+
+                const userKeys = [
+                    'unifarm_jwt_token',
+                    'unifarm_last_session', 
+                    'unifarm_guest_id',
+                    'unifarm_user_data',
+                    'user_balance',
+                    'wallet_address'
+                ];
+
+                let keysFound = 0;
+                userKeys.forEach(key => {
+                    if (localStorage.getItem(key)) {
+                        localStorage.removeItem(key);
+                        log(`Удален пользовательский ключ: ${key}`);
+                        keysFound++;
+                    }
+                });
+
+                updateProgress(70, 'Очищаем session данные...');
+                Object.keys(sessionStorage).forEach(key => {
+                    if (key.includes('unifarm') || key.includes('user') || key.includes('balance')) {
+                        sessionStorage.removeItem(key);
+                        log(`Удален session ключ: ${key}`);
+                        keysFound++;
+                    }
+                });
+
+                updateProgress(100, 'Данные пользователя очищены!');
+                updateStatus(`✅ Данные пользователя очищены! Удалено ${keysFound} ключей`, 'success');
+                log(`Очистка пользовательских данных завершена. Удалено ${keysFound} ключей`);
+                
+                showBackLink();
+                
+            } catch (error) {
+                log(`Ошибка при очистке данных пользователя: ${error.message}`);
+                updateStatus('❌ Ошибка при очистке данных пользователя', 'warning');
+            } finally {
+                enableButtons();
+            }
+        }
+
+        // Информация о текущем кэше
+        window.addEventListener('load', () => {
+            const lsCount = Object.keys(localStorage).length;
+            const ssCount = Object.keys(sessionStorage).length;
+            log(`Обнаружено ключей - localStorage: ${lsCount}, sessionStorage: ${ssCount}`);
+        });
+    </script>
+</body>
+</html>
