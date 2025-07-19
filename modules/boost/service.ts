@@ -667,38 +667,40 @@ export class BoostService {
         txHash
       });
 
-      // Проверяем статус транзакции в блокчейне
-      const { checkTonTransaction } = await import('../../utils/checkTonTransaction');
-      const tonResult = await checkTonTransaction(txHash);
+      // Проверяем статус транзакции в блокчейне с реальным TonAPI
+      const { verifyTonTransaction } = await import('../../core/tonApiClient');
+      const tonResult = await verifyTonTransaction(txHash);
 
-      if (!tonResult.success) {
-        logger.error('[BoostService] Ошибка проверки TON транзакции', {
-          txHash,
-          error: tonResult.error
+      if (!tonResult.isValid) {
+        logger.error('[BoostService] Транзакция не найдена в блокчейне', {
+          txHash
         });
         return {
           success: false,
           status: 'error',
-          message: tonResult.error || 'Ошибка проверки блокчейн транзакции'
+          message: 'Транзакция не найдена в блокчейне TON'
         };
       }
 
-      if (!tonResult.confirmed) {
-        logger.info('[BoostService] Транзакция еще не подтверждена', {
+      if (tonResult.status !== 'success') {
+        logger.info('[BoostService] Транзакция не успешна', {
           txHash,
-          tonError: tonResult.error
+          status: tonResult.status
         });
         return {
           success: true,
           status: 'waiting',
-          message: 'Транзакция еще не подтверждена в блокчейне. Попробуйте позже.'
+          message: 'Транзакция не была успешно выполнена в блокчейне'
         };
       }
 
       // Транзакция подтверждена - активируем Boost
-      logger.info('[BoostService] Транзакция подтверждена, активируем Boost', {
+      logger.info('[BoostService] Транзакция подтверждена через TonAPI, активируем Boost', {
         txHash,
         amount: tonResult.amount,
+        sender: tonResult.sender,
+        recipient: tonResult.recipient,
+        timestamp: tonResult.timestamp,
         purchaseId: purchase.id
       });
 
