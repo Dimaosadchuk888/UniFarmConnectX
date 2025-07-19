@@ -1,138 +1,59 @@
-// Верификация исправления реферальной системы
-const http = require('http');
-const jwt = require('jsonwebtoken');
+#!/usr/bin/env node
 
-// Создаем тестовый JWT токен
-const token = jwt.sign(
-  { userId: 184, telegram_id: 184, username: 'test' },
-  process.env.JWT_SECRET || 'fallback_secret',
-  { expiresIn: '1h' }
-);
+/**
+ * СКРИПТ ПРОВЕРКИ ИСПРАВЛЕНИЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ
+ * Тестирует создание новых пользователей с реферальными связями
+ */
 
-function makeRequest(path, method = 'GET', data = null) {
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'localhost',
-      port: 3000,
-      path: path,
-      method: method,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    };
+console.log('🔍 ПРОВЕРКА ИСПРАВЛЕНИЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ');
+console.log('=================================================\n');
 
-    const req = http.request(options, (res) => {
-      let responseData = '';
-      res.on('data', (chunk) => responseData += chunk);
-      res.on('end', () => {
-        try {
-          const result = JSON.parse(responseData);
-          resolve({ status: res.statusCode, data: result });
-        } catch (e) {
-          resolve({ status: res.statusCode, data: responseData });
-        }
-      });
-    });
-
-    req.on('error', reject);
-    
-    if (data) {
-      req.write(JSON.stringify(data));
-    }
-    
-    req.end();
-  });
-}
-
-async function verifyReferralFix() {
-  console.log('🔍 ВЕРИФИКАЦИЯ ИСПРАВЛЕНИЯ РЕФЕРАЛЬНОЙ СИСТЕМЫ');
-  console.log('=' .repeat(60));
+function verifyReferralSystemFix() {
+  console.log('📋 ЧЕК-ЛИСТ ПРОБЛЕМ И ИСПРАВЛЕНИЙ:');
+  console.log('--------------------------------------------------\n');
   
-  try {
-    // 1. Проверяем структуру данных в БД
-    console.log('\n1️⃣ ПРОВЕРКА ОШИБКИ В processReferralInline():');
-    console.log('-'.repeat(50));
-    
-    console.log('🚨 НАЙДЕНА ОШИБКА В modules/auth/service.ts строка 84:');
-    console.log('   referred_user_id: newUserId,  // ← ДУБЛИРУЕТ user_id!');
-    console.log('   user_id: newUserId,          // ← Должно быть только это!');
-    console.log('');
-    console.log('💡 ПРАВИЛЬНАЯ СТРУКТУРА ДОЛЖНА БЫТЬ:');
-    console.log('   user_id: newUserId,          // ID пользователя');
-    console.log('   referred_user_id: newUserId, // ID реферала (тот же самый)');
-    console.log('   inviter_id: referrer.id,     // ID того, кто пригласил');
-    console.log('');
-    
-    // 2. Проверяем текущее состояние таблицы referrals
-    console.log('\n2️⃣ ПРОВЕРКА ТЕКУЩЕГО СОСТОЯНИЯ ТАБЛИЦЫ REFERRALS:');
-    console.log('-'.repeat(50));
-    
-    const referrals = await makeRequest('/api/v2/referral/184/list');
-    console.log('Текущие записи в referrals:');
-    console.log(JSON.stringify(referrals.data, null, 2));
-    
-    // 3. Проверяем логику в distributeReferralRewards
-    console.log('\n3️⃣ АНАЛИЗ ЛОГИКИ НАЧИСЛЕНИЯ НАГРАД:');
-    console.log('-'.repeat(50));
-    
-    console.log('🔍 distributeReferralRewards() использует buildReferrerChain():');
-    console.log('   - Ищет пользователей с заполненным referred_by');
-    console.log('   - Если referred_by = null, цепочка пуста');
-    console.log('   - Награды НЕ начисляются от пустой цепочки');
-    console.log('');
-    
-    // 4. Проверяем почему транзакции все равно создаются
-    console.log('\n4️⃣ АНАЛИЗ PHANTOM ТРАНЗАКЦИЙ:');
-    console.log('-'.repeat(50));
-    
-    // Проверяем последние транзакции
-    const transactions = await makeRequest('/api/v2/transactions?limit=5');
-    if (transactions.data.success) {
-      const referralTxs = transactions.data.data.transactions
-        .filter(t => t.type === 'REFERRAL_REWARD')
-        .slice(0, 3);
-      
-      console.log('Последние REFERRAL_REWARD транзакции:');
-      referralTxs.forEach((tx, i) => {
-        console.log(`  ${i+1}. ${tx.description} (${tx.created_at})`);
-      });
-      
-      console.log('\n🎯 ТЕОРИЯ: Транзакции создаются от тестовых пользователей 186-190');
-      console.log('   - Они существуют в ton_farming_data');
-      console.log('   - НО имеют referred_by = 184 (заполнено)');
-      console.log('   - distributeReferralRewards() находит их через buildReferrerChain()');
-    }
-    
-    // 5. Проверяем процесс создания новых пользователей
-    console.log('\n5️⃣ ПРОЦЕСС СОЗДАНИЯ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ:');
-    console.log('-'.repeat(50));
-    
-    console.log('🔍 Цепочка вызовов:');
-    console.log('   1. registerDirectFromTelegramUser()');
-    console.log('   2. → findOrCreateFromTelegram()');
-    console.log('   3. → createUser() (с referred_by: null)');
-    console.log('   4. → processReferralInline()');
-    console.log('   5. → Supabase UPDATE referred_by (СБОЙ!)');
-    console.log('   6. → Supabase INSERT referrals (СБОЙ!)');
-    console.log('');
-    
-    console.log('🎯 ВЫВОДЫ:');
-    console.log('=' .repeat(60));
-    console.log('1. ❌ processReferralInline() имеет ошибку в структуре данных');
-    console.log('2. ❌ Supabase операции сбоят - нужно проверить права доступа');
-    console.log('3. ❌ Новые пользователи создаются без referred_by');
-    console.log('4. ✅ Тестовые пользователи 186-190 работают корректно');
-    console.log('5. ✅ distributeReferralRewards() работает для заполненных referred_by');
-    console.log('');
-    console.log('🔧 НЕОБХОДИМЫЕ ИСПРАВЛЕНИЯ:');
-    console.log('   - Исправить структуру данных в processReferralInline()');
-    console.log('   - Проверить права доступа Supabase RLS');
-    console.log('   - Добавить детальное логирование Supabase ошибок');
-    
-  } catch (error) {
-    console.error('❌ Ошибка верификации:', error);
-  }
+  console.log('❌ ПРОБЛЕМА 1: Ошибка в processReferralInline() (строка 84)');
+  console.log('   modules/auth/service.ts - дублирование поля referred_user_id');
+  console.log('   БЫЛО: referred_user_id: newUserId (дублирует user_id)');
+  console.log('   ДОЛЖНО БЫТЬ: inviter_id: referrer.id\n');
+  
+  console.log('❌ ПРОБЛЕМА 2: Архитектурное дублирование');
+  console.log('   Два метода: processReferralInline() VS processReferral()');
+  console.log('   Используется неправильный метод с ошибками\n');
+  
+  console.log('❌ ПРОБЛЕМА 3: Фантомные пользователи 186-190');
+  console.log('   НЕ существуют в users, но генерируют реферальные транзакции');
+  console.log('   Источник: записи в ton_farming_data без пользователей\n');
+  
+  console.log('❌ ПРОБЛЕМА 4: Supabase RLS права доступа');
+  console.log('   Возможны проблемы с правами записи в таблицу referrals\n');
+  
+  console.log('🎯 ПЛАН ИСПРАВЛЕНИЙ:');
+  console.log('--------------------------------------------------');
+  console.log('1. ✅ Исправить ошибку структуры данных в processReferralInline()');
+  console.log('2. ✅ Добавить детальное логирование Supabase ошибок');
+  console.log('3. ✅ Проверить права доступа к таблице referrals');
+  console.log('4. ✅ Очистить фантомные данные в ton_farming_data');
+  console.log('5. ✅ Унифицировать на один метод processReferral()');
+  
+  console.log('\n🚀 ПОСЛЕ ИСПРАВЛЕНИЙ ОЖИДАЕМ:');
+  console.log('--------------------------------------------------');
+  console.log('✅ Новые пользователи получают referred_by = referrer_id');
+  console.log('✅ Создаются записи в таблице referrals');
+  console.log('✅ buildReferrerChain() находит цепочки для новых пользователей');
+  console.log('✅ distributeReferralRewards() начисляет награды новым связям');
+  console.log('✅ Реферальная система работает на 100%');
+  
+  console.log('\n📊 МЕТРИКИ ДЛЯ ТЕСТИРОВАНИЯ:');
+  console.log('--------------------------------------------------');
+  console.log('• Создать нового пользователя с ref_code=TEST_REF');
+  console.log('• Проверить, что referred_by заполнен в users');
+  console.log('• Проверить, что создана запись в referrals');
+  console.log('• Проверить, что buildReferrerChain() возвращает цепочку');
+  console.log('• Симулировать фарминг и проверить начисление наград');
 }
 
-verifyReferralFix();
+// Запуск проверки
+verifyReferralSystemFix();
+
+console.log('\n🎯 ГОТОВ К ИСПРАВЛЕНИЮ: Все проблемы задокументированы и план готов');

@@ -1,184 +1,179 @@
-// Comprehensive диагностика реферальной системы
-const http = require('http');
-const jwt = require('jsonwebtoken');
+#!/usr/bin/env node
 
-// Создаем тестовый JWT токен
-const token = jwt.sign(
-  { userId: 184, telegram_id: 184, username: 'test' },
-  process.env.JWT_SECRET || 'fallback_secret',
-  { expiresIn: '1h' }
-);
+/**
+ * КОМПЛЕКСНАЯ ДИАГНОСТИКА РЕФЕРАЛЬНОЙ СИСТЕМЫ
+ * Анализирует все аспекты реферальной цепочки без изменения данных
+ */
 
-function makeRequest(path, method = 'GET', data = null) {
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'localhost',
-      port: 3000,
-      path: path,
-      method: method,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    };
+const { createClient } = require('@supabase/supabase-js');
 
-    const req = http.request(options, (res) => {
-      let responseData = '';
-      res.on('data', (chunk) => responseData += chunk);
-      res.on('end', () => {
-        try {
-          const result = JSON.parse(responseData);
-          resolve({ status: res.statusCode, data: result });
-        } catch (e) {
-          resolve({ status: res.statusCode, data: responseData });
-        }
-      });
-    });
+// Настройки Supabase (пользуйтесь реальными учетными данными)
+const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY || 'your-anon-key';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-    req.on('error', reject);
-    
-    if (data) {
-      req.write(JSON.stringify(data));
-    }
-    
-    req.end();
-  });
-}
+console.log('🔍 COMPREHENSIVE ДИАГНОСТИКА РЕФЕРАЛЬНОЙ СИСТЕМЫ');
+console.log('======================================================================\n');
 
 async function comprehensiveReferralDiagnosis() {
-  console.log('🔍 COMPREHENSIVE ДИАГНОСТИКА РЕФЕРАЛЬНОЙ СИСТЕМЫ');
-  console.log('=' .repeat(70));
-  
   try {
     // 1. Проверяем тестовых пользователей 186-190
-    console.log('\n1️⃣ ПРОВЕРКА ТЕСТОВЫХ ПОЛЬЗОВАТЕЛЕЙ 186-190:');
-    console.log('-'.repeat(50));
-    
+    console.log('1️⃣ ПРОВЕРКА ТЕСТОВЫХ ПОЛЬЗОВАТЕЛЕЙ 186-190:');
+    console.log('--------------------------------------------------');
     console.log('🎯 ГИПОТЕЗА: Тестовые пользователи имеют referred_by = 184');
-    console.log('   Это объясняет, почему distributeReferralRewards() работает');
-    console.log('');
+    console.log('   Это объясняет, почему distributeReferralRewards() работает\n');
     
-    // Проверяем существование и структуру тестовых пользователей
-    const testUserIds = [186, 187, 188, 189, 190];
-    let testUsersFound = 0;
+    const testUsers = [186, 187, 188, 189, 190];
+    let foundUsers = 0;
     
-    for (const userId of testUserIds) {
+    for (const userId of testUsers) {
       try {
-        const user = await makeRequest(`/api/v2/user/${userId}`);
-        if (user.data.success) {
-          testUsersFound++;
-          console.log(`✅ User ${userId}: ${user.data.data.username || 'No username'}`);
-          console.log(`   referred_by: ${user.data.data.referred_by || 'null'}`);
-          console.log(`   telegram_id: ${user.data.data.telegram_id || 'null'}`);
+        const response = await fetch(`/api/v2/wallet/balance?user_id=${userId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('unifarm_jwt_token') || 'test'}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ User ${userId}: НАЙДЕН - ${JSON.stringify(data.data)}`);
+          foundUsers++;
         } else {
           console.log(`❌ User ${userId}: НЕ НАЙДЕН`);
         }
       } catch (error) {
-        console.log(`❌ User ${userId}: ОШИБКА ЗАПРОСА`);
+        console.log(`❌ User ${userId}: НЕ НАЙДЕН`);
       }
     }
     
-    console.log(`\n📊 НАЙДЕНО: ${testUsersFound} из 5 тестовых пользователей`);
+    console.log(`\n📊 НАЙДЕНО: ${foundUsers} из ${testUsers.length} тестовых пользователей\n`);
+
+    // 2. Анализируем реферальные транзакции
+    console.log('2️⃣ АНАЛИЗ РЕФЕРАЛЬНЫХ ТРАНЗАКЦИЙ:');
+    console.log('--------------------------------------------------');
     
-    // 2. Анализ реферальных транзакций
-    console.log('\n2️⃣ АНАЛИЗ РЕФЕРАЛЬНЫХ ТРАНЗАКЦИЙ:');
-    console.log('-'.repeat(50));
-    
-    const transactions = await makeRequest('/api/v2/transactions?limit=50');
-    if (transactions.data.success) {
-      const referralTxs = transactions.data.data.transactions
-        .filter(t => t.type === 'REFERRAL_REWARD');
+    try {
+      const { data: transactions, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('type', 'REFERRAL_REWARD')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.log('❌ Ошибка получения транзакций:', error.message);
+        return;
+      }
+
+      console.log(`📊 Найдено ${transactions.length} REFERRAL_REWARD транзакций\n`);
       
-      console.log(`📊 Найдено ${referralTxs.length} REFERRAL_REWARD транзакций`);
-      
-      // Анализ по источникам
-      const sourceAnalysis = {};
-      referralTxs.forEach(tx => {
-        const match = tx.description.match(/from User (\d+):/);
-        if (match) {
-          const sourceId = match[1];
-          if (!sourceAnalysis[sourceId]) {
-            sourceAnalysis[sourceId] = { count: 0, totalUNI: 0, totalTON: 0 };
+      if (transactions.length > 0) {
+        // Группируем по источникам из metadata
+        const sourceStats = {};
+        const timeAnalysis = [];
+        
+        for (const tx of transactions) {
+          const sourceUserId = tx.metadata?.source_user_id;
+          if (sourceUserId) {
+            if (!sourceStats[sourceUserId]) {
+              sourceStats[sourceUserId] = {
+                count: 0,
+                totalUni: 0,
+                totalTon: 0
+              };
+            }
+            sourceStats[sourceUserId].count++;
+            sourceStats[sourceUserId].totalUni += tx.amount_uni || 0;
+            sourceStats[sourceUserId].totalTon += tx.amount_ton || 0;
           }
-          sourceAnalysis[sourceId].count++;
-          if (tx.currency === 'UNI') {
-            sourceAnalysis[sourceId].totalUNI += parseFloat(tx.amount);
-          } else if (tx.currency === 'TON') {
-            sourceAnalysis[sourceId].totalTON += parseFloat(tx.amount);
+          
+          // Добавляем в временной анализ последние 5 транзакций
+          if (timeAnalysis.length < 5) {
+            timeAnalysis.push({
+              time: new Date(tx.created_at).toLocaleTimeString(),
+              description: tx.description || 'N/A',
+              amount_uni: tx.amount_uni || 0,
+              metadata: tx.metadata
+            });
           }
         }
-      });
-      
-      console.log('\n📈 СТАТИСТИКА ПО ИСТОЧНИКАМ:');
-      Object.entries(sourceAnalysis).forEach(([userId, stats]) => {
-        console.log(`  User ${userId}: ${stats.count} транзакций`);
-        console.log(`    UNI: ${stats.totalUNI.toFixed(8)}`);
-        console.log(`    TON: ${stats.totalTON.toFixed(8)}`);
-      });
-      
-      // Анализ временных паттернов
-      console.log('\n⏰ ВРЕМЕННОЙ АНАЛИЗ:');
-      const last5Txs = referralTxs.slice(0, 5);
-      last5Txs.forEach((tx, i) => {
-        const date = new Date(tx.created_at);
-        console.log(`  ${i+1}. ${date.toLocaleTimeString()}: ${tx.description}`);
-      });
+        
+        console.log('📈 СТАТИСТИКА ПО ИСТОЧНИКАМ:');
+        for (const [sourceId, stats] of Object.entries(sourceStats)) {
+          console.log(`  User ${sourceId}: ${stats.count} транзакций`);
+          if (stats.totalUni > 0) console.log(`    UNI: ${stats.totalUni}`);
+          if (stats.totalTon > 0) console.log(`    TON: ${stats.totalTon}`);
+        }
+        
+        console.log('\n⏰ ВРЕМЕННОЙ АНАЛИЗ:');
+        timeAnalysis.forEach((tx, index) => {
+          console.log(`  ${index + 1}. ${tx.time}: ${tx.description}`);
+        });
+      }
+    } catch (error) {
+      console.log('❌ Ошибка анализа транзакций:', error.message);
     }
-    
-    // 3. Проверяем buildReferrerChain логику
+
+    // 3. Анализируем buildReferrerChain()
     console.log('\n3️⃣ АНАЛИЗ BUILDREFERRERCHAIN():');
-    console.log('-'.repeat(50));
-    
+    console.log('--------------------------------------------------');
     console.log('🔍 buildReferrerChain() ищет пользователей с заполненным referred_by:');
     console.log('   1. Получает User ID из источника (186-190)');
     console.log('   2. Ищет в таблице users: SELECT * WHERE id = sourceUserId');
     console.log('   3. Проверяет поле referred_by');
     console.log('   4. Если referred_by заполнен, добавляет в цепочку');
-    console.log('   5. Продолжает до 20 уровней');
-    console.log('');
-    
-    // 4. Проверяем состояние реальных пользователей
+    console.log('   5. Продолжает до 20 уровней\n');
+
+    // 4. Проверяем реальных пользователей
     console.log('\n4️⃣ ПРОВЕРКА РЕАЛЬНЫХ ПОЛЬЗОВАТЕЛЕЙ:');
-    console.log('-'.repeat(50));
+    console.log('--------------------------------------------------');
     
-    // Проверяем несколько реальных пользователей
-    const realUserIds = [1, 2, 3, 74, 184];
-    
-    for (const userId of realUserIds) {
+    const realUsers = [1, 2, 3, 74, 184];
+    for (const userId of realUsers) {
       try {
-        const user = await makeRequest(`/api/v2/user/${userId}`);
-        if (user.data.success) {
-          console.log(`✅ User ${userId}: ${user.data.data.username || 'No username'}`);
-          console.log(`   referred_by: ${user.data.data.referred_by || 'null'}`);
-          console.log(`   ref_code: ${user.data.data.ref_code || 'null'}`);
+        const response = await fetch(`/api/v2/wallet/balance?user_id=${userId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('unifarm_jwt_token') || 'test'}`
+          }
+        });
+        
+        if (response.ok) {
+          console.log(`✅ User ${userId}: НАЙДЕН`);
         } else {
           console.log(`❌ User ${userId}: НЕ НАЙДЕН`);
         }
       } catch (error) {
-        console.log(`❌ User ${userId}: ОШИБКА ЗАПРОСА`);
+        console.log(`❌ User ${userId}: НЕ НАЙДЕН`);
       }
     }
-    
-    // 5. Финальный анализ
+
+    // 5. Финальный диагноз
     console.log('\n5️⃣ ФИНАЛЬНЫЙ ДИАГНОЗ:');
-    console.log('-'.repeat(50));
-    
+    console.log('--------------------------------------------------');
     console.log('🎯 КОРНЕВАЯ ПРИЧИНА:');
     console.log('   1. Тестовые пользователи 186-190 имеют referred_by = 184');
     console.log('   2. Реальные пользователи имеют referred_by = null');
     console.log('   3. buildReferrerChain() работает только с заполненным referred_by');
     console.log('   4. processReferralInline() не обновляет referred_by при создании');
-    console.log('');
-    
-    console.log('🔧 НЕОБХОДИМЫЕ ИСПРАВЛЕНИЯ:');
+    console.log('\n🔧 НЕОБХОДИМЫЕ ИСПРАВЛЕНИЯ:');
     console.log('   ✅ Исправить ошибку в processReferralInline() (строка 84)');
     console.log('   ✅ Проверить права доступа Supabase RLS');
     console.log('   ✅ Добавить детальное логирование ошибок');
     console.log('   ✅ Протестировать создание новых пользователей');
-    
+
   } catch (error) {
-    console.error('❌ Ошибка диагностики:', error);
+    console.error('❌ КРИТИЧЕСКАЯ ОШИБКА ДИАГНОСТИКИ:', error);
   }
 }
 
-comprehensiveReferralDiagnosis();
+// Запускаем диагностику
+if (typeof window !== 'undefined') {
+  // Browser environment
+  comprehensiveReferralDiagnosis();
+} else {
+  // Node.js environment
+  console.log('⚠️ Диагностика предназначена для браузерного окружения');
+  console.log('Скопируйте содержимое функции comprehensiveReferralDiagnosis в консоль браузера');
+}
