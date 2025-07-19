@@ -5,10 +5,10 @@ import { useTonConnectUI } from '@tonconnect/ui-react';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { fetchBalance, type Balance } from '@/services/balanceService';
 import { 
-  getWalletAddress, 
-  isWalletConnected, 
-  connectWallet as connectTonWallet,
-  disconnectWallet as disconnectTonWallet
+  getTonWalletAddress as getWalletAddress, 
+  isTonWalletConnected as isWalletConnected, 
+  connectTonWallet,
+  disconnectTonWallet
 } from '@/services/tonConnectService';
 import { useTelegram } from '@/hooks/useTelegram';
 
