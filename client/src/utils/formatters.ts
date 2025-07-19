@@ -179,7 +179,7 @@ export function getUSDEquivalent(amount: number, tokenType: 'UNI' | 'TON'): stri
   // Динамические курсы токенов к USD
   const exchangeRates = {
     'TON': 5.57, // Актуальный курс TON/USD - скрыт
-    'UNI': 0.005  // Изменено: 1000 UNI = 5 USD
+    'UNI': 0.000025  // Новый курс: 1 UNI = 0.000025 USD (10,000 UNI = 0.25 USD)
   };
   
   // Для TON возвращаем пустую строку (скрываем USD конверсию)
