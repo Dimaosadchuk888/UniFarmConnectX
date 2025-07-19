@@ -21,7 +21,7 @@ export class WalletController extends BaseController {
         }
         
         // Валидация TON адреса
-        if (!this.isValidTonAddress(walletAddress)) {
+        if (!(await this.isValidTonAddress(walletAddress))) {
           return this.sendError(res, 'Некорректный адрес TON кошелька', 400);
         }
         
@@ -51,14 +51,19 @@ export class WalletController extends BaseController {
     }
   }
   
-  private isValidTonAddress(address: string): boolean {
-    // TON адреса могут быть в двух форматах:
-    // 1. Raw: 64 символа hex (32 байта)
-    // 2. User-friendly: начинается с EQ или UQ, base64 encoded
-    const rawAddressRegex = /^[0-9a-fA-F]{64}$/;
-    const userFriendlyRegex = /^(EQ|UQ)[A-Za-z0-9_-]{46}$/;
-    
-    return rawAddressRegex.test(address) || userFriendlyRegex.test(address);
+  private async isValidTonAddress(address: string): Promise<boolean> {
+    // Попытка валидации через @ton/core для максимальной совместимости
+    try {
+      const { Address } = await import('@ton/core');
+      const parsed = Address.parse(address);
+      return true; // Если парсинг прошел успешно, адрес валиден
+    } catch (error) {
+      // Fallback на regex валидацию если @ton/core недоступен или адрес некорректен
+      const rawAddressRegex = /^[0-9a-fA-F]{64}$/;
+      const userFriendlyRegex = /^(EQ|UQ)[A-Za-z0-9_-]{46}$/;
+      
+      return rawAddressRegex.test(address) || userFriendlyRegex.test(address);
+    }
   }
 
   async getWalletData(req: Request, res: Response, next: NextFunction) {
