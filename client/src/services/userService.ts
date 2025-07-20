@@ -649,7 +649,7 @@ export async function getUserByGuestId(guestId: string): Promise<any> {
 
     // Попытка автоматической регистрации
     try {
-      const { correctApiRequest } = await import('../lib/correctApiRequest');
+      const { correctApiRequest } = await import('@/lib/correctApiRequest');
       const registerResponse = await correctApiRequest('/api/v2/users', 'POST', {
         guestId: guestId,
         refCode: null // TODO: получать из URL параметров

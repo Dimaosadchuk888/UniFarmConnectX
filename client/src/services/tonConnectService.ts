@@ -424,7 +424,7 @@ export async function sendTonTransaction(
       // НОВОЕ: Уведомляем backend о успешном TON депозите
       try {
         console.log('[TON_DEPOSIT] Начинаем уведомление backend о депозите...');
-        const { correctApiRequest } = await import('../../lib/correctApiRequest');
+        const { correctApiRequest } = await import('@/lib/correctApiRequest');
         
         const backendResponse = await correctApiRequest('/api/v2/wallet/ton-deposit', 'POST', {
           ton_tx_hash: result.boc,
