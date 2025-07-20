@@ -97,7 +97,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Информация о фарминге из ответа API
   const farmingInfo: FarmingInfo = farmingResponse?.data ? {
     // Безопасное маппинг полей из API ответа
-    isActive: farmingResponse.data.uni_farming_active || false,
+    isActive: farmingResponse.data.uni_farming_active === true,
     depositAmount: farmingResponse.data.uni_deposit_amount?.toString() || '0',
     ratePerSecond: farmingResponse.data.uni_farming_rate?.toString() || '0',
     depositCount: farmingResponse.data.uni_deposit_amount > 0 ? 1 : 0,
@@ -113,6 +113,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     depositCount: 0,
     totalDepositAmount: '0',
   };
+
+  // Диагностический лог для проверки isActive
+  console.log('[DEBUG] UniFarmingCard - isActive состояние:', {
+    isActive: farmingInfo.isActive,
+    uni_farming_active: farmingResponse?.data?.uni_farming_active,
+    depositAmount: farmingInfo.depositAmount,
+    farmingResponseExists: !!farmingResponse?.data
+  });
 
   // Для подсчета транзакций фарминга
   const { data: transactionsResponse } = useQuery({
@@ -501,7 +509,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
 
       // Проверка активности фарминга
-      if (!isActive) {
+      if (!farmingInfo.isActive) {
         console.log('Показываем информацию для неактивного фарминга');
         try {
           setError('Активируйте фарминг, чтобы начать получать доход автоматически');
@@ -627,14 +635,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     }
   };
 
-  // Проверяем, активен ли фарминг
-  const isActive = farmingInfo.isActive;
+  // Проверяем, активен ли фарминг (используем farmingInfo.isActive напрямую)
 
   // Расчет дневного дохода (для отображения) с улучшенной обработкой ошибок
   const calculateDailyIncome = (): string => {
     try {
       // Проверяем активность фарминга
-      if (!isActive) {
+      if (!farmingInfo.isActive) {
         return '0';
       }
 
@@ -683,7 +690,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const calculateSecondRate = (): string => {
     try {
       // Проверяем активность фарминга
-      if (!isActive) {
+      if (!farmingInfo.isActive) {
         return '0';
       }
 
@@ -733,7 +740,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const calculateAPR = (): { annual: string, daily: string } => {
     try {
       // Проверяем активность фарминга
-      if (!isActive) {
+      if (!farmingInfo.isActive) {
         console.log('[DEBUG] calculateAPR - Фарминг неактивен');
         return { annual: '0', daily: '0' };
       }
@@ -758,7 +765,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const formatStartDate = (): string => {
     try {
       // Проверка активности фарминга
-      if (!isActive) {
+      if (!farmingInfo.isActive) {
         console.log('[DEBUG] formatStartDate - Фарминг неактивен');
         return '-';
       }
@@ -816,7 +823,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       <h2 className="text-xl font-semibold mb-3 text-primary">Основной UNI пакет</h2>
 
       {/* Информация о текущем фарминге (отображается всегда, если активен) */}
-      {isActive && (
+      {farmingInfo.isActive && (
         <div className="mb-5">
           {/* Индикатор активности фарминга */}
           <div className="mb-4 p-3 bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-500/30 rounded-lg flex items-center">
@@ -893,7 +900,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       )}
 
       {/* Информация для неактивного состояния фарминга */}
-      {!isActive && (
+      {!farmingInfo.isActive && (
         <div className="mb-5">
           <div className="mb-4 p-3 bg-gradient-to-r from-amber-900/30 to-orange-900/20 border border-amber-500/30 rounded-lg flex items-center">
             <div className="flex items-center justify-center w-8 h-8 mr-3 bg-amber-500/20 rounded-full">
@@ -937,9 +944,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       )}
 
       {/* Форма для создания депозита (отображается всегда) */}
-      <div className={isActive ? "mt-6 pt-4 border-t border-slate-700" : ""}>
+      <div className={farmingInfo.isActive ? "mt-6 pt-4 border-t border-slate-700" : ""}>
         <h3 className="text-md font-medium mb-4 flex items-center">
-          <span className="text-primary">{isActive ? "Пополнить фарминг" : "Создать депозит и активировать фарминг"}</span>
+          <span className="text-primary">{farmingInfo.isActive ? "Пополнить фарминг" : "Создать депозит и активировать фарминг"}</span>
         </h3>
 
         <form onSubmit={handleSubmit} style={{ position: 'relative', zIndex: 20 }}>
@@ -1016,7 +1023,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             className={`w-full py-3 px-4 rounded-lg font-medium text-base ${
               isLoading || error === 'Обработка запроса...'
                 ? 'bg-muted text-foreground opacity-50'
-                : !isActive 
+                : !farmingInfo.isActive 
                   ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-900/20 hover:shadow-green-900/30'
                   : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 shadow-lg shadow-purple-900/20 hover:shadow-purple-900/30'
             }`}
@@ -1028,9 +1035,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               </div>
             ) : (
               <div className="flex items-center justify-center">
-                <i className={`fas ${isActive ? 'fa-arrow-up' : 'fa-seedling'} mr-2`}></i>
+                <i className={`fas ${farmingInfo.isActive ? 'fa-arrow-up' : 'fa-seedling'} mr-2`}></i>
                 <span>
-                  {isActive ? 'Пополнить фарминг' : 'Активировать фарминг UNI'}
+                  {farmingInfo.isActive ? 'Пополнить фарминг' : 'Активировать фарминг UNI'}
                 </span>
               </div>
             )}
