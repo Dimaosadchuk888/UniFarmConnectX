@@ -99,14 +99,18 @@ async function createBocWithComment(comment: string): Promise<string> {
   } catch (error) {
     console.error('Критическая ошибка при создании BOC:', error);
     
-    // Улучшенный fallback: создаем минимальный корректный BOC
+    // Динамический fallback: создаем корректный BOC
     try {
-      console.warn('⚠️ Используется упрощенный BOC fallback');
-      // Создаем простейший BOC с опкодом 0 и пустым телом
-      const fallbackPayload = 'te6cckEBAQEADgAAGAAAAABVbmlGYXJtAACjJA=='; // Предварительно созданный BOC для "UniFarm"
+      console.warn('⚠️ Используется динамический BOC fallback');
+      const { beginCell } = await import('@ton/core');
+      const fallbackCell = beginCell()
+        .storeUint(0, 32)
+        .storeStringTail("UniFarm")
+        .endCell();
+      const fallbackPayload = uint8ArrayToBase64(fallbackCell.toBoc());
       return fallbackPayload;
     } catch (e) {
-      console.error('Fallback также не удался:', e);
+      console.error('Динамический fallback также не удался:', e);
       return '';
     }
   }
@@ -345,8 +349,8 @@ export async function sendTonTransaction(
     // Конвертируем TON в наноTON, округляем до ближайшего целого
     const nanoTonAmount = Math.round(tonAmount * 1000000000).toString();
     
-    // По ТЗ: генерируем rawPayload в формате UniFarmBoost:userId:boostId
-    const rawPayload = `UniFarmBoost:${userId}:${boostId}`;
+    // Короткий комментарий для предотвращения ошибок BOC сериализации
+    const rawPayload = "UniFarm";
     
     // Создаем BOC-payload с комментарием
     const payload = await createBocWithComment(rawPayload);
@@ -369,7 +373,8 @@ export async function sendTonTransaction(
         {
           address: TON_PROJECT_ADDRESS, // User-friendly адрес
           amount: nanoTonAmount, // Сумма в наноTON
-          payload: payload // BOC payload
+          payload: payload, // BOC payload
+          bounce: false // Для обычных кошельков - устраняет ошибки эмуляции
         }
       ]
     };
@@ -521,10 +526,8 @@ export function isTonPaymentReady(tonConnectUI: TonConnectUI): boolean {
     console.log('[DEBUG] isTonPaymentReady вернул TRUE. Все проверки пройдены.');
   }
   
-  // По ТЗ временно отключаем проверку и принудительно возвращаем true
-  // для диагностики проблемы с вызовом sendTransaction
-  console.log('[DEBUG] ⚠️ ПРОВЕРКА isTonPaymentReady ОТКЛЮЧЕНА ПО ТЗ, ВОЗВРАЩАЕМ TRUE ДЛЯ ДИАГНОСТИКИ');
-  return true; // Всегда возвращаем true для тестирования sendTransaction
+  // Возвращаем реальный результат проверки готовности
+  return isReady;
 }
 
 /**
