@@ -1,93 +1,193 @@
 /**
- * ДИАГНОСТИКА TON ДЕПОЗИТА ПОЛЬЗОВАТЕЛЯ #25
- * Реф-код: REF_1750079004411_nddfp2
- * Сумма: 0.1 TON
- * Транзакция: b30da7471672b8fc154baca674b2cc9c0829ead2a443bfa901f7b676ced2c70d
+ * ДИАГНОСТИКА TON ДЕПОЗИТОВ USER 25 (TELEGRAM АККАУНТ)
+ * Проверка нового депозита и состояния баланса
  */
 
-const { execSync } = require('child_process');
 const { createClient } = require('@supabase/supabase-js');
 
-console.log('\n🔍 ДИАГНОСТИКА TON ДЕПОЗИТА ПОЛЬЗОВАТЕЛЯ #25');
-console.log('='.repeat(60));
-console.log('User ID: 25');
-console.log('Реф-код: REF_1750079004411_nddfp2');
-console.log('Сумма: 0.1 TON');
-console.log('Транзакция: b30da7471672b8fc154baca674b2cc9c0829ead2a443bfa901f7b676ced2c70d');
-console.log('='.repeat(60));
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function diagnoseUser25TonDeposit() {
+  console.log('🔍 ДИАГНОСТИКА USER 25 - TELEGRAM АККАУНТ');
+  console.log('='.repeat(50));
+  
+  const userId = 25;
+  
   try {
-    // 1. Поиск логов сервера с упоминанием user 25
-    console.log('\n1️⃣ Поиск в логах сервера...');
-    try {
-      const serverLogs = execSync('grep -r "user.*25\\|User.*25\\|userId.*25" logs/ 2>/dev/null | head -10', { encoding: 'utf8' });
-      if (serverLogs.trim()) {
-        console.log('📝 Найденные логи:', serverLogs);
-      } else {
-        console.log('⚠️ Логи для user 25 не найдены');
-      }
-    } catch {
-      console.log('❌ Директория логов недоступна или пуста');
+    // 1. Текущий баланс и информация
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (userError || !user) {
+      console.log('❌ User 25 не найден:', userError?.message);
+      return;
     }
-
-    // 2. Поиск упоминаний реф-кода
-    console.log('\n2️⃣ Поиск реф-кода REF_1750079004411_nddfp2...');
-    try {
-      const refLogs = execSync('grep -r "REF_1750079004411_nddfp2" . --exclude-dir=node_modules 2>/dev/null | head -5', { encoding: 'utf8' });
-      if (refLogs.trim()) {
-        console.log('🔗 Найдены упоминания:', refLogs);
+    
+    console.log('👤 USER 25 (TELEGRAM АККАУНТ):');
+    console.log(`   Telegram ID: ${user.telegram_id}`);
+    console.log(`   Username: ${user.username}`);
+    console.log(`   TON баланс: ${user.balance_ton}`);
+    console.log(`   UNI баланс: ${user.balance_uni}`);
+    console.log(`   Последняя активность: ${user.last_active}`);
+    console.log(`   Создан: ${user.created_at}`);
+    
+    // 2. Все TON транзакции за последние 24 часа
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
+    const { data: recentTonTx, error: tonError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('currency', 'TON')
+      .gte('created_at', yesterday)
+      .order('created_at', { ascending: false });
+    
+    console.log(`\n📊 TON ТРАНЗАКЦИИ ЗА 24 ЧАСА (${recentTonTx?.length || 0}):`);
+    
+    if (recentTonTx && recentTonTx.length > 0) {
+      let totalBalance = 0;
+      
+      recentTonTx.forEach((tx, i) => {
+        const time = new Date(tx.created_at);
+        const hoursAgo = Math.floor((Date.now() - time.getTime()) / 1000 / 60 / 60);
+        const minutesAgo = Math.floor((Date.now() - time.getTime()) / 1000 / 60) % 60;
+        const amount = parseFloat(tx.amount || 0);
+        
+        console.log(`\n   ${i + 1}. ID: ${tx.id}`);
+        console.log(`      Тип: ${tx.type}`);
+        console.log(`      Сумма: ${amount} TON`);
+        console.log(`      Время: ${time.toLocaleString()} (${hoursAgo}ч ${minutesAgo}м назад)`);
+        console.log(`      Описание: ${tx.description}`);
+        console.log(`      Статус: ${tx.status}`);
+        
+        if (tx.metadata) {
+          console.log(`      Metadata: ${JSON.stringify(tx.metadata)}`);
+        }
+        
+        // Ищем потенциальные депозиты
+        if (tx.type === 'DEPOSIT' || tx.description.includes('deposit') || tx.description.includes('пополнение')) {
+          console.log(`      🎯 ВОЗМОЖНЫЙ ДЕПОЗИТ!`);
+        }
+        
+        // Компенсационная транзакция
+        if (tx.description.includes('compensation') || tx.description.includes('restoration')) {
+          console.log(`      🔧 КОМПЕНСАЦИОННАЯ ТРАНЗАКЦИЯ`);
+        }
+        
+        // Подсчет баланса
+        if (tx.type === 'DEPOSIT' || tx.type === 'FARMING_REWARD' || tx.type === 'REFERRAL_REWARD') {
+          totalBalance += amount;
+        } else if (tx.type === 'WITHDRAWAL') {
+          totalBalance -= amount;
+        }
+      });
+      
+      console.log(`\n💰 РАСЧЕТ БАЛАНСА ИЗ ТРАНЗАКЦИЙ:`);
+      console.log(`   Расчетный баланс за 24ч: ${totalBalance} TON`);
+      console.log(`   Текущий баланс в БД: ${user.balance_ton} TON`);
+      
+      const diff = parseFloat(user.balance_ton) - totalBalance;
+      if (Math.abs(diff) > 0.001) {
+        console.log(`   ⚠️ НЕСООТВЕТСТВИЕ: ${diff} TON`);
+        
+        // Проверяем старые транзакции для полного расчета
+        const { data: allTonTx } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('currency', 'TON')
+          .order('created_at', { ascending: false });
+        
+        if (allTonTx) {
+          let fullBalance = 0;
+          allTonTx.forEach(tx => {
+            const amount = parseFloat(tx.amount || 0);
+            if (tx.type === 'DEPOSIT' || tx.type === 'FARMING_REWARD' || tx.type === 'REFERRAL_REWARD') {
+              fullBalance += amount;
+            } else if (tx.type === 'WITHDRAWAL') {
+              fullBalance -= amount;
+            }
+          });
+          
+          console.log(`   Полный расчетный баланс: ${fullBalance} TON`);
+          const fullDiff = parseFloat(user.balance_ton) - fullBalance;
+          console.log(`   Полное несоответствие: ${fullDiff} TON`);
+        }
       } else {
-        console.log('⚠️ Реф-код в коде/логах не найден');
+        console.log(`   ✅ Баланс соответствует транзакциям за 24ч`);
       }
-    } catch {
-      console.log('❌ Поиск реф-кода не удался');
-    }
-
-    // 3. Поиск hash транзакции
-    console.log('\n3️⃣ Поиск hash транзакции...');
-    try {
-      const hashLogs = execSync('grep -r "b30da7471672b8fc154baca674b2cc9c0829ead2a443bfa901f7b676ced2c70d" . --exclude-dir=node_modules 2>/dev/null', { encoding: 'utf8' });
-      if (hashLogs.trim()) {
-        console.log('🔗 Hash найден:', hashLogs);
-      } else {
-        console.log('⚠️ Hash транзакции в системе не найден');
+      
+    } else {
+      console.log('   ❌ TON транзакции за 24 часа не найдены');
+      if (parseFloat(user.balance_ton) > 0) {
+        console.log(`   🤔 НО баланс ${user.balance_ton} TON существует!`);
+        console.log('   Возможно депозиты были давно или есть проблема с записью');
       }
-    } catch {
-      console.log('❌ Поиск hash не удался');
     }
-
-    // 4. Проверка конфигурации баз данных
-    console.log('\n4️⃣ Проверка конфигурации БД...');
-    try {
-      const envCheck = execSync('env | grep -E "DATABASE_URL|SUPABASE_URL|NEON" | head -3', { encoding: 'utf8' });
-      if (envCheck.trim()) {
-        console.log('💾 Переменные БД найдены (значения скрыты)');
-      } else {
-        console.log('⚠️ Переменные БД не найдены в окружении');
-      }
-    } catch {
-      console.log('❌ Проверка переменных окружения не удалась');
+    
+    // 3. Поиск недавних депозитов по ключевым словам
+    console.log('\n🔍 ПОИСК ВОЗМОЖНЫХ ДЕПОЗИТОВ:');
+    
+    const { data: possibleDeposits } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .or('description.ilike.%0.1%,description.ilike.%deposit%,description.ilike.%пополнение%,description.ilike.%blockchain%')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (possibleDeposits && possibleDeposits.length > 0) {
+      console.log(`   📄 Найдено ${possibleDeposits.length} возможных депозитов:`);
+      possibleDeposits.forEach((tx, i) => {
+        const time = new Date(tx.created_at);
+        const hoursAgo = Math.floor((Date.now() - time.getTime()) / 1000 / 60 / 60);
+        console.log(`      ${i + 1}. ${tx.type}: ${tx.amount} ${tx.currency} (${hoursAgo}ч назад) - ${tx.description}`);
+      });
+    } else {
+      console.log('   ❌ Возможные депозиты не найдены');
     }
-
-    console.log('\n5️⃣ АНАЛИЗ ПРОБЛЕМЫ:');
-    console.log('🔍 ВОЗМОЖНЫЕ ПРИЧИНЫ:');
-    console.log('   1. User #25 не существует в текущей БД (Replit preview vs Production)');
-    console.log('   2. TON депозит обработан в другой БД/окружении');
-    console.log('   3. Проблемы с маршрутизацией по реф-коду');
-    console.log('   4. Транзакция обработана но balance не обновлен');
-    console.log('   5. WebSocket уведомления не работают для User #25');
-
-    console.log('\n6️⃣ РЕКОМЕНДАЦИИ:');
-    console.log('✅ Проверить production БД на наличие User ID 25');
-    console.log('✅ Найти логи обработки транзакции b30da747...');
-    console.log('✅ Верифицировать реф-код REF_1750079004411_nddfp2');
-    console.log('✅ Проверить корректность domain/endpoint конфигурации');
-    console.log('✅ Протестировать WebSocket для production');
-
+    
+    // 4. Проверка активности в системе
+    console.log('\n🔄 СИСТЕМНАЯ АКТИВНОСТЬ:');
+    
+    const { data: systemActivity } = await supabase
+      .from('transactions')
+      .select('id, user_id, type, amount, currency, created_at')
+      .eq('currency', 'TON')
+      .eq('type', 'DEPOSIT')
+      .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()) // За 2 часа
+      .order('created_at', { ascending: false });
+    
+    if (systemActivity && systemActivity.length > 0) {
+      console.log(`   📊 TON депозиты в системе за 2 часа (${systemActivity.length}):`);
+      systemActivity.forEach((tx, i) => {
+        const time = new Date(tx.created_at);
+        const minutesAgo = Math.floor((Date.now() - time.getTime()) / 1000 / 60);
+        console.log(`      ${i + 1}. User ${tx.user_id}: ${tx.amount} TON (${minutesAgo} мин назад)`);
+        
+        if (tx.user_id === userId) {
+          console.log(`         🎯 ЭТО ВАШ АККАУНТ!`);
+        }
+      });
+    } else {
+      console.log('   ❌ TON депозиты в системе за 2 часа не найдены');
+      console.log('   🤔 Если вы делали депозит, он не записался в БД');
+    }
+    
+    console.log('\n🎯 ВЫВОДЫ ДЛЯ USER 25:');
+    console.log('1. Проверьте отображается ли депозит в истории транзакций Telegram приложения');
+    console.log('2. Если да - проблема с записью в backend');
+    console.log('3. Если нет - проблема с TON Connect интеграцией');
+    console.log('4. Баланс мог обновиться без создания транзакции');
+    
   } catch (error) {
-    console.error('❌ Критическая ошибка диагностики:', error.message);
+    console.log('❌ Критическая ошибка диагностики:', error.message);
   }
 }
 
-diagnoseUser25TonDeposit();
+diagnoseUser25TonDeposit().catch(console.error);
