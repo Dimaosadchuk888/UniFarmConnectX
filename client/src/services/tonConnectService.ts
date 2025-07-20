@@ -421,29 +421,6 @@ export async function sendTonTransaction(
         has_result: !!result
       });
       
-      // НОВОЕ: Уведомляем backend о успешном TON депозите
-      try {
-        console.log('[TON_DEPOSIT] Начинаем уведомление backend о депозите...');
-        const { correctApiRequest } = await import('@/lib/correctApiRequest');
-        
-        const backendResponse = await correctApiRequest('/api/v2/wallet/ton-deposit', 'POST', {
-          ton_tx_hash: result.boc,
-          amount: tonAmount,
-          wallet_address: tonConnectUI.account?.address || 'unknown'
-        });
-        
-        console.log('[TON_DEPOSIT] Backend уведомлен:', backendResponse.success ? 'успешно' : 'с ошибкой', backendResponse);
-        
-        if (backendResponse.success) {
-          console.log('[TON_DEPOSIT] ✅ Депозит успешно обработан backend');
-        } else {
-          console.error('[TON_DEPOSIT] ❌ Backend вернул ошибку:', backendResponse.error);
-        }
-      } catch (backendError) {
-        console.error('[TON_DEPOSIT] ❌ Критическая ошибка при уведомлении backend:', backendError);
-        // НЕ прерываем выполнение - транзакция уже отправлена в блокчейн
-      }
-      
       return {
         txHash: result.boc,
         status: 'success'
