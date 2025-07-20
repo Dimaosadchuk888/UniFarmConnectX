@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Диагностика Frontend Отображения Транзакций</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Диагностика Frontend Отображения Транзакций</h1>
+    
+    <div class="section">
+        <h2>📊 Проверка Local Storage</h2>
+        <div id="localStorage-result" class="result">Загрузка...</div>
+    </div>
+    
+    <div class="section">
+        <h2>🗂️ Проверка Session Storage</h2>
+        <div id="sessionStorage-result" class="result">Загрузка...</div>
+    </div>
+    
+    <div class="section">
+        <h2>🔄 Проверка React Query Cache</h2>
+        <div id="reactQuery-result" class="result">Загрузка...</div>
+    </div>
+    
+    <div class="section">
+        <h2>🌐 Прямой API запрос транзакций</h2>
+        <div id="api-result" class="result">Загрузка...</div>
+    </div>
+    
+    <div class="section">
+        <h2>🎯 Анализ источника данных в UI</h2>
+        <div id="ui-analysis" class="result">Загрузка...</div>
+    </div>
+
+    <script>
+        // Проверка Local Storage
+        function checkLocalStorage() {
+            const result = document.getElementById('localStorage-result');
+            const keys = Object.keys(localStorage);
+            let output = `<strong>Найдено ${keys.length} ключей:</strong><br>`;
+            
+            keys.forEach(key => {
+                try {
+                    const value = localStorage.getItem(key);
+                    if (value && (key.includes('transaction') || key.includes('balance') || key.includes('ton'))) {
+                        output += `<div class="warning">🔍 ${key}: ${value.substring(0, 200)}${value.length > 200 ? '...' : ''}</div>`;
+                    } else {
+                        output += `<div>${key}: ${value ? value.substring(0, 50) : 'null'}${value && value.length > 50 ? '...' : ''}</div>`;
+                    }
+                } catch (e) {
+                    output += `<div class="error">❌ ${key}: ошибка чтения</div>`;
+                }
+            });
+            
+            result.innerHTML = output;
+        }
+        
+        // Проверка Session Storage
+        function checkSessionStorage() {
+            const result = document.getElementById('sessionStorage-result');
+            const keys = Object.keys(sessionStorage);
+            let output = `<strong>Найдено ${keys.length} ключей:</strong><br>`;
+            
+            keys.forEach(key => {
+                try {
+                    const value = sessionStorage.getItem(key);
+                    if (value && (key.includes('transaction') || key.includes('balance') || key.includes('ton'))) {
+                        output += `<div class="warning">🔍 ${key}: ${value.substring(0, 200)}${value.length > 200 ? '...' : ''}</div>`;
+                    } else {
+                        output += `<div>${key}: ${value ? value.substring(0, 50) : 'null'}${value && value.length > 50 ? '...' : ''}</div>`;
+                    }
+                } catch (e) {
+                    output += `<div class="error">❌ ${key}: ошибка чтения</div>`;
+                }
+            });
+            
+            result.innerHTML = output;
+        }
+        
+        // Проверка React Query Cache
+        function checkReactQueryCache() {
+            const result = document.getElementById('reactQuery-result');
+            
+            // Попытаемся найти React Query cache в window объекте
+            if (window.__REACT_QUERY_STATE__) {
+                result.innerHTML = '<div class="success">✅ React Query state найден</div>';
+            } else if (window.queryClient) {
+                result.innerHTML = '<div class="success">✅ Query Client найден</div>';
+            } else {
+                result.innerHTML = '<div class="warning">⚠️ React Query cache не найден в window объекте</div>';
+            }
+        }
+        
+        // Прямой API запрос
+        async function checkAPIDirectly() {
+            const result = document.getElementById('api-result');
+            
+            try {
+                // Получаем JWT токен из localStorage
+                const authData = localStorage.getItem('auth');
+                let token = null;
+                
+                if (authData) {
+                    try {
+                        const parsed = JSON.parse(authData);
+                        token = parsed.token;
+                    } catch (e) {
+                        console.log('Не удалось парсить auth из localStorage');
+                    }
+                }
+                
+                if (!token) {
+                    result.innerHTML = '<div class="error">❌ JWT токен не найден в localStorage</div>';
+                    return;
+                }
+                
+                // Делаем запрос транзакций
+                const response = await fetch('/api/v2/wallet/transactions?user_id=184&limit=20', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    result.innerHTML = `<div class="error">❌ API запрос неуспешен: ${response.status} ${response.statusText}</div>`;
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.transactions) {
+                    const transactions = data.data.transactions;
+                    
+                    // Ищем TON транзакции
+                    const tonTransactions = transactions.filter(tx => tx.currency === 'TON');
+                    const recentTonDeposits = tonTransactions.filter(tx => tx.type === 'DEPOSIT');
+                    
+                    let output = `<div class="success">✅ API ответил успешно</div>`;
+                    output += `<div><strong>Всего транзакций:</strong> ${transactions.length}</div>`;
+                    output += `<div><strong>TON транзакций:</strong> ${tonTransactions.length}</div>`;
+                    output += `<div><strong>TON депозитов:</strong> ${recentTonDeposits.length}</div>`;
+                    
+                    if (recentTonDeposits.length > 0) {
+                        output += '<div class="warning">🔍 Найденные TON депозиты:</div>';
+                        recentTonDeposits.forEach((tx, i) => {
+                            const time = new Date(tx.created_at).toLocaleString();
+                            output += `<div>  ${i + 1}. ${tx.amount} TON в ${time} - ${tx.description}</div>`;
+                        });
+                    } else {
+                        output += '<div class="error">❌ TON депозиты не найдены в API ответе</div>';
+                    }
+                    
+                    result.innerHTML = output;
+                } else {
+                    result.innerHTML = `<div class="error">❌ Неожиданный формат ответа API: ${JSON.stringify(data)}</div>`;
+                }
+                
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ Ошибка API запроса: ${error.message}</div>`;
+            }
+        }
+        
+        // Анализ UI элементов
+        function analyzeUI() {
+            const result = document.getElementById('ui-analysis');
+            let output = '';
+            
+            // Ищем элементы истории транзакций
+            const transactionElements = document.querySelectorAll('[data-testid*="transaction"], .transaction-item, [class*="transaction"]');
+            
+            if (transactionElements.length > 0) {
+                output += `<div class="success">✅ Найдено ${transactionElements.length} элементов транзакций в DOM</div>`;
+                
+                // Проверяем каждый элемент на наличие TON данных
+                transactionElements.forEach((el, i) => {
+                    const text = el.textContent || el.innerText || '';
+                    if (text.includes('TON') || text.includes('0.1') || text.includes('0,1')) {
+                        output += `<div class="warning">🔍 Элемент ${i + 1} содержит TON/0.1: ${text.substring(0, 100)}...</div>`;
+                    }
+                });
+            } else {
+                output += '<div class="warning">⚠️ Элементы транзакций не найдены в DOM</div>';
+            }
+            
+            // Ищем любые упоминания 0.1 или TON
+            const allElements = document.querySelectorAll('*');
+            let tonMentions = 0;
+            
+            allElements.forEach(el => {
+                const text = el.textContent || el.innerText || '';
+                if (text.includes('0.1 TON') || text.includes('0,1 TON')) {
+                    tonMentions++;
+                    if (tonMentions <= 5) { // Показываем только первые 5
+                        output += `<div class="warning">🎯 Найдено "0.1 TON" в: ${el.tagName} - ${text.substring(0, 100)}...</div>`;
+                    }
+                }
+            });
+            
+            if (tonMentions > 5) {
+                output += `<div>... и еще ${tonMentions - 5} упоминаний 0.1 TON</div>`;
+            }
+            
+            result.innerHTML = output;
+        }
+        
+        // Запуск всех проверок
+        window.onload = function() {
+            checkLocalStorage();
+            checkSessionStorage();
+            checkReactQueryCache();
+            checkAPIDirectly();
+            
+            // Анализ UI через небольшую задержку, чтобы React успел отрендериться
+            setTimeout(analyzeUI, 1000);
+        };
+    </script>
+</body>
+</html>
