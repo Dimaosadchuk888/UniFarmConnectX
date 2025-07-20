@@ -422,9 +422,10 @@ export class WalletService {
           type: 'DEPOSIT',
           currency: 'TON',
           status: 'completed',
-          description: ton_tx_hash,
+          description: `TON deposit from blockchain: ${ton_tx_hash}`,
           metadata: {
             source: 'ton_deposit',
+            original_type: 'TON_DEPOSIT',
             wallet_address,
             tx_hash: ton_tx_hash
           }
