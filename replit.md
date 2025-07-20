@@ -156,7 +156,28 @@ Required in Replit Secrets:
 
 Детальный отчет: `DEV_VS_PROD_CRITICAL_ISSUES_REPORT.md`
 
+## TON Connect Transaction Validation Issues
+**КРИТИЧЕСКАЯ ПРОБЛЕМА ОБНАРУЖЕНА (20.07.2025):**
+Пользователи получают предупреждение в Tonkeeper/Ton Space: «После подтверждения может произойти что угодно… Мы не смогли промоделировать транзакцию и не знаем, что произойдёт дальше.»
+
+### Диагностика завершена:
+- ❌ **Отсутствует bounce флаг** в структуре транзакции (основная причина)
+- ❌ **Принудительный обход проверок** готовности (`return true` в isTonPaymentReady)
+- ❌ **Длинный BOC комментарий** `UniFarmBoost:${userId}:${boostId}` превышает лимиты
+- ❌ **Хардкоженный fallback BOC** может быть некорректным
+- ⚠️ **Хардкоженные Replit URL** в манифестах и App.tsx
+
+### Готов план исправлений:
+1. Добавить `bounce: false` в messages транзакции
+2. Сократить комментарий до "UniFarm"
+3. Убрать принудительный `return true` из проверок
+4. Заменить статический fallback BOC на динамический
+5. Использовать переменные окружения для URL
+
+**Файлы для анализа:** `TON_CONNECT_TRANSACTION_VALIDATION_ANALYSIS.md`, `TON_CONNECT_EMULATION_FIX_PLAN.md`, `ton-connect-transaction-validator.cjs`
+
 ## Changelog
+- July 20, 2025. TON CONNECT TRANSACTION VALIDATION ANALYSIS COMPLETED - Проведена полная техническая проверка логики приёма TON через TON Connect согласно ТЗ по устранению предупреждений эмуляции. ДИАГНОСТИКА: создан автоматизированный валидатор `ton-connect-transaction-validator.cjs` для анализа всех аспектов транзакции. КЛЮЧЕВЫЕ НАХОДКИ: 1) Отсутствует bounce флаг в структуре транзакции - основная причина ошибок эмуляции; 2) Принудительный обход проверок готовности блокирует валидацию; 3) Длинный комментарий BOC превышает лимиты storeStringTail(); 4) Хардкоженный fallback BOC некорректен. РЕЗУЛЬТАТ: создан детальный план исправлений в 3 фазы, готовы конкретные изменения кода для устранения всех проблем эмуляции. Анализ проведен БЕЗ изменений кода согласно ТЗ.
 - July 19, 2025. REACT HOOKS USESTATE ERROR FIXED - Устранена критическая ошибка `TypeError: null is not an object (evaluating 'U.current.useState')` которая блокировала функциональность кошелька. КОРНЕВАЯ ПРИЧИНА: асинхронная инициализация React компонентов с setTimeout в main.tsx создавала race condition при использовании React hooks. РЕШЕНИЕ: 1) Убрана задержка setTimeout в client/src/main.tsx для синхронной инициализации; 2) Добавлена защита try-catch для useTonConnectUI() в TonDepositCard.tsx; 3) Исправлена последовательность инициализации компонентов. Результат: восстановлена стабильность React Context, исправлена функциональность кошелька, устранены ошибки в console.logs браузера. Минимальные изменения (удаление 6 строк кода + добавление 6 строк защиты) полностью восстановили работоспособность React приложения.
 - July 19, 2025. PRODUCTION OPTIMIZATION VALIDATED - Подтверждена корректная работа всех optimization улучшений через анализ browser logs и performance metrics. ВАЛИДАЦИЯ: 1) Cache Management - кэши не блокируют real-time обновления, force refresh очищает кэш корректно, TTL 5 минут предотвращает stale data; 2) API Performance - balance API ~200ms, UNI farming ~150ms, WebSocket <50ms, все в пределах нормы; 3) WebSocket Sync - 15-секундные auto-refresh работают стабильно, heartbeat ping/pong активен; 4) Production Ready - создан CACHE_VALIDATION_REPORT.md, система выдерживает нагрузки с 70-85% снижением API calls. РЕЗУЛЬТАТ: production оптимизация полностью завершена и протестирована, система готова к высоким нагрузкам.
 - July 19, 2025. PRODUCTION OPTIMIZATION ENHANCEMENTS COMPLETED - Реализованы критические улучшения для production готовности TON интеграции. КЛЮЧЕВЫЕ ИЗМЕНЕНИЯ: 1) Enhanced TonAPI Client (core/tonApiClient.ts) - добавлены timeout (30s), rate limiting (100ms), расширенная input validation и улучшенная обработка ошибок; 2) Smart Caching System (modules/boost/TonApiVerificationService.ts) - внедрено in-memory кэширование верифицированных транзакций с TTL 5 минут, методы очистки и мониторинга кэша; 3) Optimized Transaction Utils (utils/checkTonTransaction.ts) - добавлено кэширование результатов проверки транзакций для предотвращения duplicate API calls; 4) Enhanced Security - строгая типизация, comprehensive input validation, stack traces для debugging. РЕЗУЛЬТАТ: система готова к высоким нагрузкам с 70-85% снижением API calls, +80% faster response time, +80% reliability. Создан детальный отчет PRODUCTION_OPTIMIZATION_ENHANCEMENTS_REPORT.md.
