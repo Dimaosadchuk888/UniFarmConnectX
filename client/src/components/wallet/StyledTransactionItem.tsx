@@ -60,9 +60,12 @@ const getTransactionConfig = (type: string, description?: string, metadata?: any
   }
   // Приоритет 2: Различение реферальных наград по валюте
   else if (type === 'REFERRAL_REWARD') {
+    console.log('[Color Debug] REFERRAL_REWARD detected:', { type, currency, description });
     if (currency === 'TON' || description?.includes('TON')) {
+      console.log('[Color Debug] Setting TON referral -> REFERRAL_REWARD_TON (blue)');
       transactionType = 'REFERRAL_REWARD_TON';
     } else {
+      console.log('[Color Debug] Setting UNI referral -> REFERRAL_REWARD (purple)');
       transactionType = 'REFERRAL_REWARD'; // UNI остается фиолетовым
     }
   }
