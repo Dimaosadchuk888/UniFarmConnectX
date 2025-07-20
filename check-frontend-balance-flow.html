@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностика Frontend Balance Flow</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #0f3460;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #0f3460;
+            border-radius: 8px;
+            border-left: 4px solid #1db954;
+        }
+        .status {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success { background: #1db954; color: white; }
+        .warning { background: #ffa726; color: white; }
+        .error { background: #f44336; color: white; }
+        .info { background: #2196f3; color: white; }
+        .code {
+            background: #2d2d2d;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            border: 1px solid #444;
+        }
+        button {
+            background: #1db954;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #1aa34a;
+        }
+        #results {
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Диагностика Frontend Balance Flow</h1>
+        <p>Проверка цепочки обновления баланса TON в frontend приложении</p>
+        
+        <div class="section">
+            <h3>📊 Текущее состояние</h3>
+            <div id="current-state">
+                <div class="status info">Загрузка...</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>🧪 Тестовые операции</h3>
+            <button onclick="testBalanceService()">Тест BalanceService</button>
+            <button onclick="testUserContext()">Тест UserContext</button>
+            <button onclick="testWebSocket()">Тест WebSocket</button>
+            <button onclick="testRefreshBalance()">Тест RefreshBalance</button>
+            <button onclick="clearCache()">Очистить кэш</button>
+        </div>
+        
+        <div class="section">
+            <h3>📋 Результаты диагностики</h3>
+            <div id="results" class="code"></div>
+        </div>
+    </div>
+
+    <script>
+        let results = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            const logMessage = `[${timestamp}] ${prefix} ${message}`;
+            results.push(logMessage);
+            document.getElementById('results').textContent = results.join('\n');
+        }
+        
+        async function testBalanceService() {
+            log('Тестирование BalanceService...', 'info');
+            
+            try {
+                // Проверяем наличие JWT токена
+                const jwtToken = localStorage.getItem('unifarm_jwt_token');
+                if (!jwtToken) {
+                    log('JWT токен не найден в localStorage', 'error');
+                    return;
+                }
+                
+                // Декодируем JWT для получения userId
+                const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+                const userId = payload.userId || payload.user_id;
+                log(`UserId из JWT: ${userId}`, 'info');
+                
+                // Тестируем запрос баланса без кэша
+                log('Запрос баланса с forceRefresh=true...', 'info');
+                const response = await fetch(`/api/v2/wallet/balance?user_id=${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`Баланс получен: UNI=${data.data.uniBalance}, TON=${data.data.tonBalance}`, 'success');
+                    
+                    // Проверяем кэш
+                    const cachedData = localStorage.getItem('balance_cache');
+                    if (cachedData) {
+                        log(`Кэш содержит: ${cachedData.substring(0, 100)}...`, 'info');
+                    } else {
+                        log('Кэш баланса пуст', 'warning');
+                    }
+                } else {
+                    log(`Ошибка получения баланса: ${data.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка BalanceService: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testUserContext() {
+            log('Тестирование UserContext...', 'info');
+            
+            try {
+                // Проверяем React компоненты через window объекты
+                if (window.React) {
+                    log('React доступен в window', 'success');
+                } else {
+                    log('React не найден в window', 'warning');
+                }
+                
+                // Проверяем localStorage данные
+                const lastSession = localStorage.getItem('unifarm_last_session');
+                if (lastSession) {
+                    const session = JSON.parse(lastSession);
+                    log(`Последняя сессия: userId=${session.user_id}, username=${session.username}`, 'info');
+                } else {
+                    log('Данные последней сессии не найдены', 'warning');
+                }
+                
+                // Проверяем состояние аутентификации
+                const jwtToken = localStorage.getItem('unifarm_jwt_token');
+                if (jwtToken) {
+                    const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+                    const expiresAt = new Date(payload.exp * 1000);
+                    const isExpired = Date.now() > expiresAt.getTime();
+                    
+                    log(`JWT токен: ${isExpired ? 'истек' : 'действителен'} до ${expiresAt.toLocaleString()}`, 
+                        isExpired ? 'error' : 'success');
+                } else {
+                    log('JWT токен отсутствует', 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка UserContext: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testWebSocket() {
+            log('Тестирование WebSocket соединения...', 'info');
+            
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws`;
+                
+                log(`Попытка подключения к: ${wsUrl}`, 'info');
+                
+                const ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    log('WebSocket соединение установлено', 'success');
+                    
+                    // Отправляем сообщение аутентификации
+                    const jwtToken = localStorage.getItem('unifarm_jwt_token');
+                    if (jwtToken) {
+                        ws.send(JSON.stringify({
+                            type: 'auth',
+                            token: jwtToken
+                        }));
+                        log('Отправлен auth токен', 'info');
+                    }
+                    
+                    setTimeout(() => ws.close(), 5000);
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    log(`WebSocket сообщение: ${JSON.stringify(data)}`, 'info');
+                };
+                
+                ws.onerror = (error) => {
+                    log(`WebSocket ошибка: ${error}`, 'error');
+                };
+                
+                ws.onclose = (event) => {
+                    log(`WebSocket закрыт: код=${event.code}, причина=${event.reason}`, 'info');
+                };
+                
+            } catch (error) {
+                log(`Ошибка WebSocket: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testRefreshBalance() {
+            log('Тестирование принудительного обновления баланса...', 'info');
+            
+            try {
+                const jwtToken = localStorage.getItem('unifarm_jwt_token');
+                if (!jwtToken) {
+                    log('JWT токен отсутствует для тестирования', 'error');
+                    return;
+                }
+                
+                const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+                const userId = payload.userId || payload.user_id;
+                
+                // Очищаем существующий кэш
+                localStorage.removeItem('balance_cache');
+                log('Кэш баланса очищен', 'info');
+                
+                // Запрашиваем баланс с принудительным обновлением
+                const startTime = Date.now();
+                const response = await fetch(`/api/v2/wallet/balance?user_id=${userId}&_t=${Date.now()}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+                
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`Баланс обновлен за ${duration}ms: UNI=${data.data.uniBalance}, TON=${data.data.tonBalance}`, 'success');
+                    
+                    // Симулируем обновление в UserContext
+                    window.dispatchEvent(new CustomEvent('balance-updated', {
+                        detail: data.data
+                    }));
+                    
+                    log('Событие balance-updated отправлено', 'info');
+                } else {
+                    log(`Ошибка обновления баланса: ${data.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка RefreshBalance: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearCache() {
+            localStorage.removeItem('balance_cache');
+            localStorage.removeItem('unifarm_cache');
+            sessionStorage.clear();
+            log('Все кэши очищены', 'success');
+        }
+        
+        // Инициализация при загрузке страницы
+        window.addEventListener('load', () => {
+            log('Диагностика frontend balance flow начата', 'info');
+            testBalanceService();
+        });
+        
+        // Слушатель для событий обновления баланса
+        window.addEventListener('balance-updated', (event) => {
+            log(`Получено событие обновления баланса: ${JSON.stringify(event.detail)}`, 'success');
+        });
+        
+        // Обновление текущего состояния каждые 2 секунды
+        setInterval(() => {
+            const jwtToken = localStorage.getItem('unifarm_jwt_token');
+            const hasJWT = !!jwtToken;
+            const wsStatus = window.WebSocket ? 'Поддерживается' : 'Не поддерживается';
+            
+            let tokenInfo = 'Отсутствует';
+            if (jwtToken) {
+                try {
+                    const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+                    const expiresAt = new Date(payload.exp * 1000);
+                    const isExpired = Date.now() > expiresAt.getTime();
+                    tokenInfo = isExpired ? 'Истек' : 'Действителен';
+                } catch (e) {
+                    tokenInfo = 'Некорректный';
+                }
+            }
+            
+            document.getElementById('current-state').innerHTML = `
+                <div class="status ${hasJWT ? 'success' : 'error'}">JWT Token: ${tokenInfo}</div>
+                <div class="status info">WebSocket: ${wsStatus}</div>
+                <div class="status info">URL: ${window.location.href}</div>
+                <div class="status info">Время: ${new Date().toLocaleTimeString()}</div>
+            `;
+        }, 2000);
+    </script>
+</body>
+</html>

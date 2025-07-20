@@ -852,6 +852,11 @@ async function startServer() {
     
 
 
+    // Диагностическая страница для анализа frontend balance flow
+    app.get('/debug/balance-flow', (req: Request, res: Response) => {
+      res.sendFile(path.resolve(process.cwd(), 'check-frontend-balance-flow.html'));
+    });
+
     // Тестовый endpoint для демонстрации WebSocket уведомлений
     app.post('/api/v2/test/balance-notification', express.json(), async (req: Request, res: Response) => {
       try {
