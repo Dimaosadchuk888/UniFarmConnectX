@@ -1,8 +1,6 @@
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger.js';
 import { WALLET_TABLES, WALLET_CONFIG } from './model';
-import { BalanceManager } from '../../core/BalanceManager';
-import { UnifiedTransactionService } from '../../core/UnifiedTransactionService';
 
 export class WalletService {
   async saveTonWallet(userId: number, walletAddress: string): Promise<any> {
@@ -391,43 +389,67 @@ export class WalletService {
         };
       }
 
-      // Начисляем TON на баланс пользователя
-      const balanceResult = await BalanceManager.addBalance(user_id, amount, 'TON');
+      // ВРЕМЕННОЕ РЕШЕНИЕ: Простое обновление баланса без BalanceManager
+      const { data: user, error: getUserError } = await supabase
+        .from('users')
+        .select('balance_ton')
+        .eq('id', user_id)
+        .single();
+
+      if (getUserError || !user) {
+        throw new Error('Пользователь не найден');
+      }
+
+      const newBalance = parseFloat(user.balance_ton || '0') + amount;
       
-      if (!balanceResult.success) {
+      // Обновляем баланс
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ balance_ton: newBalance })
+        .eq('id', user_id);
+
+      if (updateError) {
         throw new Error('Не удалось обновить баланс');
       }
 
-      // Создаем запись транзакции
-      const transactionResult = await UnifiedTransactionService.createTransaction({
-        user_id,
-        amount,
-        type: 'DEPOSIT',
-        currency: 'TON',
-        status: 'completed',
-        description: ton_tx_hash,
-        metadata: {
-          source: 'ton_deposit',
-          wallet_address,
-          tx_hash: ton_tx_hash
-        }
-      });
+      // Создаем транзакцию напрямую в БД
+      const { data: transaction, error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id,
+          amount_ton: amount,
+          amount_uni: 0,
+          type: 'DEPOSIT',
+          currency: 'TON',
+          status: 'completed',
+          description: ton_tx_hash,
+          metadata: {
+            source: 'ton_deposit',
+            wallet_address,
+            tx_hash: ton_tx_hash
+          }
+        })
+        .select()
+        .single();
 
-      if (!transactionResult.success) {
-        // Откатываем баланс в случае ошибки
-        await BalanceManager.subtractBalance(user_id, amount, 'TON');
+      if (transactionError) {
+        // Откатываем баланс
+        await supabase
+          .from('users')
+          .update({ balance_ton: parseFloat(user.balance_ton || '0') })
+          .eq('id', user_id);
         throw new Error('Не удалось создать транзакцию');
       }
 
       logger.info('[WalletService] TON депозит успешно обработан', {
         userId: user_id,
         amount,
-        transactionId: transactionResult.transaction?.id
+        transactionId: transaction?.id
       });
 
       return {
         success: true,
-        transaction_id: transactionResult.transaction?.id?.toString()
+        transaction_id: transaction?.id?.toString()
       };
     } catch (error) {
       logger.error('[WalletService] Ошибка при обработке TON депозита', {
