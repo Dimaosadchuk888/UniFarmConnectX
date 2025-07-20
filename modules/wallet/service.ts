@@ -1,6 +1,8 @@
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger.js';
 import { WALLET_TABLES, WALLET_CONFIG } from './model';
+import { BalanceManager } from '../../core/BalanceManager';
+import { UnifiedTransactionService } from '../../core/UnifiedTransactionService';
 
 export class WalletService {
   async saveTonWallet(userId: number, walletAddress: string): Promise<any> {
