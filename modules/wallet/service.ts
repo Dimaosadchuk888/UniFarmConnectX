@@ -417,7 +417,6 @@ export class WalletService {
         .from('transactions')
         .insert({
           user_id,
-          amount: amount, // Frontend читает это поле для отображения
           amount_ton: amount,
           amount_uni: 0,
           type: 'DEPOSIT',
