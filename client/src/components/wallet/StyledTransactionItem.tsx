@@ -42,6 +42,7 @@ type TransactionConfigType =
   | 'DAILY_BONUS'
   | 'MISSION_REWARD'
   | 'REFERRAL_REWARD'
+  | 'REFERRAL_REWARD_TON'
   | 'UNI_DEPOSIT'
   | 'TON_DEPOSIT'
   | 'UNI_WITHDRAWAL'
@@ -49,7 +50,7 @@ type TransactionConfigType =
   | 'AIRDROP_REWARD';
 
 // Конфигурация стилей для каждого типа транзакции
-const getTransactionConfig = (type: string, description?: string, metadata?: any) => {
+const getTransactionConfig = (type: string, description?: string, metadata?: any, currency?: string) => {
   // Определяем тип транзакции на основе metadata, type и description (в порядке приоритета)
   let transactionType: TransactionConfigType = type as TransactionConfigType;
   
@@ -57,7 +58,15 @@ const getTransactionConfig = (type: string, description?: string, metadata?: any
   if (metadata?.original_type) {
     transactionType = metadata.original_type as TransactionConfigType;
   }
-  // Приоритет 2: Парсинг расширенных типов из description для FARMING_REWARD
+  // Приоритет 2: Различение реферальных наград по валюте
+  else if (type === 'REFERRAL_REWARD') {
+    if (currency === 'TON' || description?.includes('TON')) {
+      transactionType = 'REFERRAL_REWARD_TON';
+    } else {
+      transactionType = 'REFERRAL_REWARD'; // UNI остается фиолетовым
+    }
+  }
+  // Приоритет 3: Парсинг расширенных типов из description для FARMING_REWARD
   else if (type === 'FARMING_REWARD' && description) {
     if (description.includes('TON Boost') || description.includes('🚀')) {
       transactionType = 'TON_BOOST_INCOME';
@@ -164,7 +173,7 @@ const getTransactionConfig = (type: string, description?: string, metadata?: any
       amountColor: 'text-purple-400'
     },
     
-    // Referral Bonus - Фиолетовый фирменный
+    // Referral Bonus UNI - Фиолетовый фирменный
     'REFERRAL_REWARD': {
       icon: Users,
       label: 'Referral Reward',
@@ -175,6 +184,19 @@ const getTransactionConfig = (type: string, description?: string, metadata?: any
       iconBg: 'bg-purple-500/20',
       textColor: 'text-purple-300',
       amountColor: 'text-purple-400'
+    },
+    
+    // Referral Bonus TON - Синий похожий на TON Deposit
+    'REFERRAL_REWARD_TON': {
+      icon: Users,
+      label: 'Referral Reward',
+      emoji: '🤝',
+      bgGradient: 'from-cyan-500/20 to-blue-600/20',
+      borderColor: 'border-cyan-500/40',
+      iconColor: 'text-cyan-400',
+      iconBg: 'bg-cyan-500/20',
+      textColor: 'text-cyan-300',
+      amountColor: 'text-cyan-400'
     },
     
     // UNI Deposit - Зеленый с плюсом
@@ -282,7 +304,7 @@ const getAmountSign = (type: string, description?: string): '+' | '-' => {
 const StyledTransactionItem: React.FC<StyledTransactionItemProps> = ({ 
   transaction 
 }) => {
-  const config = getTransactionConfig(transaction.type, transaction.description, transaction.metadata);
+  const config = getTransactionConfig(transaction.type, transaction.description, transaction.metadata, transaction.currency);
   const IconComponent = config.icon;
   const sign = getAmountSign(transaction.type, transaction.description);
   

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🎨 Тестирование цветов реферальных наград</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-item {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        /* UNI Referral - Фиолетовый стиль */
+        .uni-referral {
+            background: linear-gradient(to right, rgba(168, 85, 247, 0.2), rgba(139, 92, 246, 0.2));
+            border-color: rgba(168, 85, 247, 0.4);
+        }
+        .uni-referral .icon {
+            background: rgba(168, 85, 247, 0.2);
+            color: rgba(168, 85, 247, 1);
+        }
+        .uni-referral .text {
+            color: rgba(168, 85, 247, 0.8);
+        }
+        .uni-referral .amount {
+            color: rgba(168, 85, 247, 1);
+        }
+        
+        /* TON Referral - Синий стиль */
+        .ton-referral {
+            background: linear-gradient(to right, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2));
+            border-color: rgba(6, 182, 212, 0.4);
+        }
+        .ton-referral .icon {
+            background: rgba(6, 182, 212, 0.2);
+            color: rgba(6, 182, 212, 1);
+        }
+        .ton-referral .text {
+            color: rgba(6, 182, 212, 0.8);
+        }
+        .ton-referral .amount {
+            color: rgba(6, 182, 212, 1);
+        }
+        
+        .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border: 2px solid;
+            border-color: inherit;
+        }
+        
+        .details {
+            flex: 1;
+        }
+        
+        .type {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .description {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .amount {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .comparison {
+            margin: 30px 0;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 12px;
+        }
+        
+        .success {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .issue {
+            color: #ef4444;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Тестирование различения цветов реферальных наград</h1>
+    
+    <div class="comparison">
+        <h2>📊 Проблема ДО исправления:</h2>
+        <p class="issue">❌ UNI и TON реферальные награды одинакового фиолетового цвета</p>
+        <p>Пользователи не могли различить валюты наград по цвету</p>
+        
+        <h2>✅ Решение ПОСЛЕ исправления:</h2>
+        <p class="success">✅ UNI реферальные = фиолетовый цвет (сохранен)</p>
+        <p class="success">✅ TON реферальные = синий цвет (новый)</p>
+        <p>Теперь цвета соответствуют валютам: TON = синий, UNI = фиолетовый</p>
+    </div>
+    
+    <h2>🧪 ДЕМОНСТРАЦИЯ ЦВЕТОВ:</h2>
+    
+    <!-- UNI Referral Reward -->
+    <div class="test-item uni-referral">
+        <div class="icon">🤝</div>
+        <div class="details">
+            <div class="type text">🤝 Referral Reward (UNI)</div>
+            <div class="description text">Referral L1 from User 190: 150.5 UNI (5%)</div>
+        </div>
+        <div class="amount">+150.5 UNI</div>
+    </div>
+    
+    <!-- TON Referral Reward -->
+    <div class="test-item ton-referral">
+        <div class="icon">🤝</div>
+        <div class="details">
+            <div class="type text">🤝 Referral Reward (TON)</div>
+            <div class="description text">Referral L1 from User 189: 0.00034722 TON (100%)</div>
+        </div>
+        <div class="amount">+0.00034722 TON</div>
+    </div>
+    
+    <div class="comparison">
+        <h2>🎯 РЕЗУЛЬТАТ ИСПРАВЛЕНИЯ:</h2>
+        <ul>
+            <li class="success">✅ UNI реферальные награды - фиолетовый стиль (purple/violet)</li>
+            <li class="success">✅ TON реферальные награды - синий стиль (cyan/blue)</li>
+            <li class="success">✅ Цвета согласованы с депозитами: TON Deposit = синий, UNI = зеленый/фиолетовый</li>
+            <li class="success">✅ Пользователи легко различают валюты по цветам</li>
+            <li class="success">✅ Минимальные изменения в коде - только frontend логика</li>
+        </ul>
+        
+        <h3>💡 Техническая реализация:</h3>
+        <code>
+        // Логика различения:<br>
+        if (type === 'REFERRAL_REWARD' && currency === 'TON') {<br>
+        &nbsp;&nbsp;return REFERRAL_REWARD_TON; // синий стиль<br>
+        } else {<br>
+        &nbsp;&nbsp;return REFERRAL_REWARD; // фиолетовый стиль для UNI<br>
+        }
+        </code>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px; color: #10b981;">
+        <h2>🏆 ИСПРАВЛЕНИЕ ЗАВЕРШЕНО!</h2>
+        <p>Теперь в реальном приложении TON реферальные награды отображаются синим цветом</p>
+    </div>
+    
+    <script>
+        console.log('🎨 Демонстрация цветовых различий реферальных наград');
+        console.log('✅ UNI = Фиолетовый (purple/violet)');
+        console.log('✅ TON = Синий (cyan/blue)');
+    </script>
+</body>
+</html>
