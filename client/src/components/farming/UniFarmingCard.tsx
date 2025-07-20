@@ -95,7 +95,18 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   });
 
   // Информация о фарминге из ответа API
-  const farmingInfo: FarmingInfo = farmingResponse?.data || {
+  const farmingInfo: FarmingInfo = farmingResponse?.data ? {
+    // Безопасное маппинг полей из API ответа
+    isActive: farmingResponse.data.uni_farming_active || false,
+    depositAmount: farmingResponse.data.uni_deposit_amount?.toString() || '0',
+    ratePerSecond: farmingResponse.data.uni_farming_rate?.toString() || '0',
+    depositCount: farmingResponse.data.uni_deposit_amount > 0 ? 1 : 0,
+    totalDepositAmount: farmingResponse.data.uni_deposit_amount?.toString() || '0',
+    totalRatePerSecond: farmingResponse.data.uni_farming_rate?.toString() || '0',
+    dailyIncomeUni: farmingResponse.data.uni_farming_rate ? (farmingResponse.data.uni_farming_rate * 24).toString() : '0',
+    startDate: farmingResponse.data.uni_farming_start_timestamp,
+    uni_farming_start_timestamp: farmingResponse.data.uni_farming_start_timestamp
+  } : {
     isActive: false,
     depositAmount: '0',
     ratePerSecond: '0',

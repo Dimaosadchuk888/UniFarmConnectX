@@ -132,8 +132,9 @@ export class FarmingController extends BaseController {
           uni_farming_start_timestamp: user.uni_farming_start_timestamp
         });
 
-        // Проверяем статус фарминга напрямую из данных пользователя
-        const isActive = !!(user.uni_farming_start_timestamp && user.uni_deposit_amount && parseFloat(user.uni_deposit_amount) > 0);
+        // Проверяем статус фарминга: достаточно наличия депозита > 0
+        // ИСПРАВЛЕНИЕ: Убираем требование uni_farming_start_timestamp для активности
+        const isActive = !!(user.uni_deposit_amount && parseFloat(user.uni_deposit_amount) > 0);
         
         const farmingData = {
           user_id: Number(userId),
