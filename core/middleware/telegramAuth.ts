@@ -53,10 +53,10 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
             const { SupabaseUserRepository } = await import('../../modules/user/service.js');
             const userRepository = new SupabaseUserRepository();
             
-            // Ищем пользователя по userId из JWT токена (primary key)
-            console.log('[TelegramAuth] Searching for user with userId:', userId);
-            console.log('[TelegramAuth] Type of userId:', typeof userId);
-            const fullUser = await userRepository.getUserById(userId);
+            // Ищем пользователя по telegram_id из JWT токена
+            console.log('[TelegramAuth] Searching for user with telegram_id:', telegramId);
+            console.log('[TelegramAuth] Type of telegram_id:', typeof telegramId);
+            const fullUser = await userRepository.getUserByTelegramId(telegramId);
             
             if (fullUser) {
               console.log('[TelegramAuth] Loaded full user data from database:', {
@@ -92,7 +92,7 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
           }
           
           // Если пользователь не найден в базе - JWT невалиден
-          console.log('[TelegramAuth] User not found in database for userId:', userId);
+          console.log('[TelegramAuth] User not found in database for telegram_id:', telegramId);
           res.status(401).json({ 
             success: false, 
             error: 'Invalid JWT token - user not found',

@@ -4,7 +4,6 @@ import { WalletService } from './service';
 import { SupabaseUserRepository } from '../user/service';
 import { logger } from '../../core/logger';
 import { supabase } from '../../core/supabase';
-import { supabase } from '../../core/supabase';
 
 const walletService = new WalletService();
 const userRepository = new SupabaseUserRepository();
