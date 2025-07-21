@@ -1086,4 +1086,119 @@ export class WalletService {
       };
     }
   }
+
+  // Метод для ручной компенсации User 228
+  async compensateUser228(): Promise<any> {
+    try {
+      logger.info('[WalletService] Начинаю компенсацию User 228 - 1.0 TON');
+
+      // Получаем текущий баланс User 228
+      const { data: user, error: getUserError } = await supabase
+        .from('users')
+        .select('balance_ton, telegram_id, username')
+        .eq('id', 228)
+        .single();
+
+      if (getUserError || !user) {
+        throw new Error('User 228 не найден в базе данных');
+      }
+
+      logger.info('[WalletService] User 228 найден', {
+        currentBalance: user.balance_ton,
+        telegram_id: user.telegram_id,
+        username: user.username
+      });
+
+      // Проверяем не была ли компенсация уже выплачена
+      const { data: existingCompensation } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', 228)
+        .ilike('description', '%компенсация%d1077cd0%')
+        .limit(1);
+
+      if (existingCompensation && existingCompensation.length > 0) {
+        logger.warn('[WalletService] Компенсация уже была выплачена', {
+          transactionId: existingCompensation[0].id,
+          date: existingCompensation[0].created_at
+        });
+        return {
+          success: false,
+          error: 'Компенсация уже была выплачена ранее'
+        };
+      }
+
+      const compensationAmount = 1.0;
+      const newBalance = parseFloat(user.balance_ton || '0') + compensationAmount;
+
+      // Обновляем баланс
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ balance_ton: newBalance.toString() })
+        .eq('id', 228);
+
+      if (updateError) {
+        throw new Error('Не удалось обновить баланс: ' + updateError.message);
+      }
+
+      // Создаем компенсационную транзакцию
+      const { data: transaction, error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: 228,
+          amount_ton: compensationAmount,
+          amount_uni: 0,
+          type: 'FARMING_REWARD',
+          currency: 'TON',
+          status: 'completed',
+          description: 'Компенсация потерянного TON депозита d1077cd0 из-за мошеннической схемы User 249',
+          metadata: {
+            compensation: true,
+            original_transaction: 'd1077cd0',
+            fraud_case: 'User_249_scheme',
+            authorized_by: 'manual_admin',
+            compensation_date: new Date().toISOString()
+          }
+        })
+        .select()
+        .single();
+
+      if (transactionError) {
+        // Откатываем баланс в случае ошибки транзакции
+        await supabase
+          .from('users')
+          .update({ balance_ton: user.balance_ton })
+          .eq('id', 228);
+        throw new Error('Не удалось создать транзакцию: ' + transactionError.message);
+      }
+
+      logger.info('[WalletService] Компенсация User 228 успешно выполнена', {
+        userId: 228,
+        oldBalance: user.balance_ton,
+        newBalance: newBalance.toString(),
+        compensationAmount,
+        transactionId: transaction?.id
+      });
+
+      return {
+        success: true,
+        message: 'Компенсация 1.0 TON для User 228 выполнена успешно',
+        transactionId: transaction?.id,
+        oldBalance: user.balance_ton,
+        newBalance: newBalance.toString(),
+        compensation: compensationAmount
+      };
+
+    } catch (error) {
+      logger.error('[WalletService] Ошибка компенсации User 228', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка'
+      };
+    }
+  }
 }
+
+export const walletService = new WalletService();
