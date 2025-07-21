@@ -3,6 +3,8 @@ import { BaseController } from '../../core/BaseController';
 import { WalletService } from './service';
 import { SupabaseUserRepository } from '../user/service';
 import { logger } from '../../core/logger';
+import { supabase } from '../../core/supabase';
+import { supabase } from '../../core/supabase';
 
 const walletService = new WalletService();
 const userRepository = new SupabaseUserRepository();
@@ -33,10 +35,10 @@ export class WalletController extends BaseController {
         });
         
         // Сохраняем адрес кошелька
-        const result = await walletService.saveTonWallet(user.id, walletAddress);
+        const result = await walletService.saveTonWallet(user!.id, walletAddress);
         
         logger.info('[Wallet] TON кошелек подключен', {
-          userId: user.id,
+          userId: user!.id,
           address: walletAddress
         });
         
@@ -375,12 +377,90 @@ export class WalletController extends BaseController {
           return this.sendError(res, 'Не все обязательные поля заполнены', 400);
         }
 
-        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        // АРХИТЕКТУРНОЕ РЕШЕНИЕ: Wallet-Based Deposit Resolution
+        // 1. Сначала пробуем найти пользователя по JWT (стандартный flow)
+        let user = await userRepository.getUserByTelegramId(telegram.user.id);
+        let resolutionMethod = 'jwt_auth';
+
+        // 2. Если пользователь не найден по JWT, ищем по кошельку
         if (!user) {
-          return this.sendError(res, 'Пользователь не найден', 404);
+          logger.warn('[TON Deposit] Пользователь не найден по JWT, поиск по кошельку', {
+            jwt_telegram_id: telegram.user.id,
+            jwt_username: telegram.user.username,
+            wallet_address: wallet_address.slice(0, 10) + '...'
+          });
+
+          // Ищем существующую связь кошелька с пользователем
+          const { data: existingUser, error } = await supabase
+            .from('users')
+            .select('id, telegram_id, username, ton_wallet_address')
+            .eq('ton_wallet_address', wallet_address)
+            .single();
+
+          if (existingUser && !error) {
+            user = existingUser;
+            resolutionMethod = 'wallet_linking';
+            logger.info('[TON Deposit] Пользователь найден по кошельку', {
+              user_id: user!.id,
+              telegram_id: user!.telegram_id,
+              wallet_address: wallet_address.slice(0, 10) + '...'
+            });
+          }
         }
 
-        // Обработка депозита
+        // 3. Если пользователь все еще не найден, создаем новый аккаунт
+        if (!user) {
+          logger.info('[TON Deposit] Создаем нового пользователя для депозита', {
+            jwt_telegram_id: telegram.user.id,
+            jwt_username: telegram.user.username,
+            wallet_address: wallet_address.slice(0, 10) + '...'
+          });
+
+          user = await userRepository.getOrCreateUserFromTelegram({
+            telegram_id: telegram.user.id,
+            username: telegram.user.username,
+            first_name: telegram.user.first_name || telegram.user.username
+          });
+
+          if (user) {
+            // Привязываем кошелек к новому пользователю
+            await supabase
+              .from('users')
+              .update({
+                ton_wallet_address: wallet_address,
+                ton_wallet_verified: true,
+                ton_wallet_linked_at: new Date().toISOString()
+              })
+              .eq('id', user.id);
+
+            resolutionMethod = 'auto_creation';
+            logger.info('[TON Deposit] Новый пользователь создан и кошелек привязан', {
+              user_id: user.id,
+              wallet_address: wallet_address.slice(0, 10) + '...'
+            });
+          }
+        }
+
+        // 4. Финальная проверка - если пользователя все еще нет, это критическая ошибка
+        if (!user) {
+          logger.error('[TON Deposit] КРИТИЧЕСКАЯ ОШИБКА: не удалось определить пользователя', {
+            jwt_telegram_id: telegram.user.id,
+            wallet_address: wallet_address.slice(0, 10) + '...',
+            ton_tx_hash
+          });
+          return this.sendError(res, 'Не удалось определить получателя депозита', 500);
+        }
+
+        // 5. Обработка депозита с расширенным логированием
+        logger.info('[TON Deposit] Начинаем обработку депозита', {
+          user_id: user.id,
+          telegram_id: user.telegram_id,
+          amount: parseFloat(amount),
+          tx_hash: ton_tx_hash,
+          wallet_address: wallet_address.slice(0, 10) + '...',
+          resolution_method: resolutionMethod
+        });
+
         const result = await walletService.processTonDeposit({
           user_id: user.id,
           ton_tx_hash,
@@ -389,20 +469,30 @@ export class WalletController extends BaseController {
         });
 
         if (!result.success) {
+          logger.error('[TON Deposit] Ошибка обработки депозита', {
+            user_id: user.id,
+            error: result.error,
+            tx_hash: ton_tx_hash
+          });
           return this.sendError(res, result.error || 'Ошибка обработки депозита', 400);
         }
 
         logger.info('[WalletController] TON депозит успешно обработан', {
           userId: user.id,
+          telegram_id: user.telegram_id,
           amount,
-          txHash: ton_tx_hash
+          txHash: ton_tx_hash,
+          transaction_id: result.transaction_id,
+          resolution_method: resolutionMethod
         });
 
         this.sendSuccess(res, {
           message: 'Депозит успешно обработан',
           transaction_id: result.transaction_id,
           amount: amount,
-          currency: 'TON'
+          currency: 'TON',
+          user_id: user.id,
+          resolution_method: resolutionMethod
         });
       }, 'обработки TON депозита');
     } catch (error) {
