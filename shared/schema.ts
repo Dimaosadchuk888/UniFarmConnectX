@@ -12,6 +12,7 @@ export const TransactionType = pgEnum('transaction_type', [
   'REFERRAL_REWARD',
   'WITHDRAWAL',
   'DEPOSIT',
+  'TON_DEPOSIT',
   'FARMING_DEPOSIT',
   'BOOST_PURCHASE',
   'AIRDROP_CLAIM'
