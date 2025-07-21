@@ -28,13 +28,7 @@ export class TONBoostIncomeScheduler {
 
     logger.info('[TON_BOOST_SCHEDULER] 🚀 Запуск планировщика доходов от TON Boost пакетов');
 
-    // Первый запуск сразу
-    logger.info('[TON_BOOST_SCHEDULER] 🔄 Запуск первого начисления TON Boost сразу при старте');
-    this.processTonBoostIncome()
-      .then(() => logger.info('[TON_BOOST_SCHEDULER] ✅ Первое начисление TON Boost выполнено'))
-      .catch(error => logger.error('[TON_BOOST_SCHEDULER] ❌ Ошибка первого начисления:', error));
-
-    // Затем каждые 5 минут
+    // Каждые 5 минут
     this.intervalId = setInterval(() => {
       logger.info('[TON_BOOST_SCHEDULER] ⏰ Запуск периодического начисления TON Boost');
       this.processTonBoostIncome()
