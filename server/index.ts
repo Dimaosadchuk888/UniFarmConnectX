@@ -995,20 +995,27 @@ async function startServer() {
       // Supabase API не требует мониторинга connection pool
       logger.info('✅ Supabase database connection active');
       
-      // Инициализация фарминг-планировщика
-      try {
-        farmingScheduler.start();
-        logger.info('✅ Фарминг-планировщик запущен');
-      } catch (error) {
-        logger.error('❌ Ошибка запуска фарминг-планировщика', { error });
-      }
-      
-      // Инициализация TON Boost планировщика
-      try {
-        tonBoostIncomeScheduler.start();
-        logger.info('✅ TON Boost планировщик запущен');
-      } catch (error) {
-        logger.error('❌ Ошибка запуска TON Boost планировщика', { error });
+      // EMERGENCY STOP: Планировщики временно отключены для диагностики
+      const fs = require('fs');
+      if (fs.existsSync('SCHEDULER_DISABLED.flag')) {
+        logger.warn('🚨 SCHEDULER_DISABLED.flag обнаружен - планировщики НЕ запускаются');
+        logger.warn('📋 Для восстановления удалите файл SCHEDULER_DISABLED.flag');
+      } else {
+        // Инициализация фарминг-планировщика
+        try {
+          farmingScheduler.start();
+          logger.info('✅ Фарминг-планировщик запущен');
+        } catch (error) {
+          logger.error('❌ Ошибка запуска фарминг-планировщика', { error });
+        }
+        
+        // Инициализация TON Boost планировщика
+        try {
+          tonBoostIncomeScheduler.start();
+          logger.info('✅ TON Boost планировщик запущен');
+        } catch (error) {
+          logger.error('❌ Ошибка запуска TON Boost планировщика', { error });
+        }
       }
       
       // Настройка интеграции WebSocket с BalanceManager (с исправленными уведомлениями)
