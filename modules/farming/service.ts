@@ -319,13 +319,59 @@ export class FarmingService {
         updateSuccess: true
       });
 
-      // ИСПРАВЛЕНИЕ ДУБЛИРОВАНИЯ: Транзакция создается в UniFarmingRepository.addDeposit()
-      // Убираем избыточное создание транзакции здесь для предотвращения дублей
-      logger.info('[FarmingService] ИСПРАВЛЕНО: Убрана дублирующая логика создания транзакций', {
+      // ИСПРАВЛЕНИЕ КРИТИЧЕСКОЙ РЕГРЕССИИ: Создаем транзакцию здесь, так как Repository её НЕ создает
+      logger.info('[FarmingService] ЭТАП 9: Создание транзакции фарминга', {
         userId: user.id,
-        depositAmount,
-        note: 'Транзакция будет создана в UniFarmingRepository.addDeposit()'
+        depositAmount
       });
+
+      try {
+        const transactionPayload = {
+          user_id: user.id,
+          type: 'FARMING_DEPOSIT',
+          amount: depositAmount.toString(),
+          amount_uni: depositAmount.toString(),
+          amount_ton: '0',
+          currency: 'UNI',
+          status: 'completed',
+          description: `UNI farming deposit: ${depositAmount}`
+        };
+
+        logger.info('[FarmingService] ЭТАП 9.1: Подготовка payload транзакции', { 
+          payload: transactionPayload,
+          userId: user.id,
+          depositAmount: depositAmount
+        });
+
+        const { data: transactionData, error: transactionError } = await supabase
+          .from(FARMING_TABLES.TRANSACTIONS)
+          .insert([transactionPayload])
+          .select()
+          .single();
+
+        if (transactionError) {
+          logger.error('[FarmingService] ЭТАП 9.2: Ошибка создания транзакции', { 
+            error: transactionError.message,
+            details: transactionError.details,
+            code: transactionError.code,
+            hint: transactionError.hint,
+            payload: transactionPayload
+          });
+        } else {
+          logger.info('[FarmingService] ЭТАП 9.3: Транзакция фарминга успешно создана', { 
+            transactionId: transactionData?.id,
+            type: transactionData?.type,
+            amount: transactionData?.amount_uni
+          });
+        }
+        
+      } catch (transactionError) {
+        logger.error('[FarmingService] ЭТАП 9.4: Исключение при создании транзакции', { 
+          error: transactionError instanceof Error ? transactionError.message : String(transactionError),
+          stack: transactionError instanceof Error ? transactionError.stack : undefined,
+          userId: user.id
+        });
+      }
 
       // Создаём запись в farming_sessions после успешного депозита
       logger.info('[FarmingService] ЭТАП 10: Создание записи в farming_sessions', {
