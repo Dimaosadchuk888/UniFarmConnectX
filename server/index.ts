@@ -33,6 +33,7 @@ import cors from 'cors';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import fs from 'fs';
 import { createServer } from 'http';
 // @ts-ignore
 import * as WebSocket from 'ws';
@@ -996,7 +997,6 @@ async function startServer() {
       logger.info('✅ Supabase database connection active');
       
       // EMERGENCY STOP: Планировщики временно отключены для диагностики
-      const fs = require('fs');
       if (fs.existsSync('SCHEDULER_DISABLED.flag')) {
         logger.warn('🚨 SCHEDULER_DISABLED.flag обнаружен - планировщики НЕ запускаются');
         logger.warn('📋 Для восстановления удалите файл SCHEDULER_DISABLED.flag');
