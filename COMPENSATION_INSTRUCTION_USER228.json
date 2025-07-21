@@ -1,0 +1,8 @@
+{
+  "action": "compensate_user_228",
+  "amount": "1.0",
+  "currency": "TON",
+  "reason": "Lost transaction d1077cd0 due to User 249 fraud scheme",
+  "timestamp": "2025-07-21T07:43:57.390Z",
+  "status": "pending_manual_execution"
+}
