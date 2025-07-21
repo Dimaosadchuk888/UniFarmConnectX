@@ -374,7 +374,7 @@ export class WalletService {
       const existingTransaction = await supabase
         .from('transactions')
         .select('*')
-        .eq('description', ton_tx_hash)
+        .eq('metadata->tx_hash', ton_tx_hash)
         .eq('type', 'DEPOSIT')
         .single();
 
