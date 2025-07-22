@@ -4,6 +4,7 @@ import { InlineKeyboardButton, InlineKeyboardMarkup } from './types';
 
 export class AdminBotController {
   private adminBotService: AdminBotService;
+  private tempAddresses: string[] = []; // Временное хранение адресов для копирования
 
   constructor() {
     this.adminBotService = new AdminBotService();
@@ -99,6 +100,14 @@ export class AdminBotController {
         await this.handleRejectCommand(chatId, args, username);
         break;
         
+      case '/search_user':
+        await this.handleSearchUserCommand(chatId, args);
+        break;
+        
+      case '/withdrawal_stats':
+        await this.handleWithdrawalStatsCommand(chatId);
+        break;
+        
       default:
         await this.adminBotService.sendMessage(
           chatId,
@@ -139,7 +148,8 @@ export class AdminBotController {
         break;
         
       case 'withdrawals':
-        await this.handleWithdrawalsCommand(chatId, []);
+        const filterStatus = params[0] || 'all';
+        await this.handleWithdrawalsCommand(chatId, [filterStatus]);
         await this.adminBotService.answerCallbackQuery(callbackQuery.id);
         break;
         
@@ -163,10 +173,40 @@ export class AdminBotController {
         const tonAddress = params.join(':'); // На случай если в адресе есть двоеточия
         await this.adminBotService.sendMessage(
           chatId,
-          `TON адрес:\n<code>${tonAddress}</code>\n\n` +
+          `🏦 <b>TON адрес:</b>\n<code>${tonAddress}</code>\n\n` +
           '<i>Нажмите на адрес для копирования</i>'
         );
         await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Адрес отправлен');
+        break;
+        
+      case 'copy_all_addresses':
+        if (this.tempAddresses.length > 0) {
+          const addressList = this.tempAddresses.map((addr, i) => `${i + 1}. <code>${addr}</code>`).join('\n');
+          await this.adminBotService.sendMessage(
+            chatId,
+            `🏦 <b>Все TON адреса (${this.tempAddresses.length}):</b>\n\n${addressList}\n\n` +
+            '<i>Нажмите на любой адрес для копирования</i>'
+          );
+          await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Адреса отправлены');
+        } else {
+          await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Нет адресов для копирования');
+        }
+        break;
+        
+      case 'withdrawal_stats':
+        await this.handleWithdrawalStatsCommand(chatId);
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
+        break;
+        
+      case 'withdrawal_search_prompt':
+        await this.adminBotService.sendMessage(
+          chatId,
+          '🔍 <b>Поиск заявок пользователя</b>\n\n' +
+          'Отправьте команду в формате:\n' +
+          '<code>/search_user telegram_id</code>\n\n' +
+          'Пример: <code>/search_user 123456789</code>'
+        );
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
         break;
         
       case 'users_page':
@@ -461,81 +501,132 @@ export class AdminBotController {
   }
 
   /**
-   * Handle /withdrawals command
+   * Handle /withdrawals command with improved UX
    */
   private async handleWithdrawalsCommand(chatId: number, args: string[]): Promise<void> {
     try {
-      const status = args[0]; // 'pending', 'approved', 'rejected'
-      const requests = await this.adminBotService.getWithdrawalRequests(status);
+      const status = args[0]; // 'pending', 'approved', 'rejected', 'all'
+      const limit = 50; // Показываем до 50 заявок
+      
+      const requests = await this.adminBotService.getWithdrawalRequests(status === 'all' ? undefined : status, limit);
       
       if (requests.length === 0) {
+        const statusText = status ? `со статусом "${status}"` : '';
         const keyboard: InlineKeyboardMarkup = {
           inline_keyboard: [
+            [
+              { text: '📊 Статистика', callback_data: 'withdrawal_stats' },
+              { text: '🔍 Поиск', callback_data: 'withdrawal_search_prompt' }
+            ],
             [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
           ]
         };
         
         await this.adminBotService.sendMessage(
           chatId, 
-          '📭 Нет заявок на вывод', 
+          `📭 <b>Нет заявок на вывод ${statusText}</b>`, 
           { reply_markup: keyboard }
         );
         return;
       }
       
-      let message = `💸 <b>Заявки на вывод</b>\n\n`;
+      // Группируем все заявки в одном сообщении
+      let message = `💸 <b>Заявки на вывод</b>`;
+      if (status && status !== 'all') {
+        const statusEmoji = status === 'pending' ? '⏳' : status === 'approved' ? '✅' : '❌';
+        message += ` ${statusEmoji} ${status.toUpperCase()}`;
+      }
+      message += `\n<i>Показано: ${requests.length} ${requests.length >= limit ? '(лимит)' : ''}</i>\n\n`;
       
-      for (const request of requests) {
-        message += `🆔 ID: ${request.id}\n`;
-        message += `👤 Пользователь: @${request.username || 'unknown'} (${request.telegram_id || request.user_id})\n`;
-        message += `💰 Сумма: ${request.amount_ton} TON\n`;
-        message += `👛 Кошелек: ${request.ton_wallet}\n`;
-        message += `📅 Дата: ${new Date(request.created_at).toLocaleString()}\n`;
-        message += `📌 Статус: ${request.status}\n`;
+      // Группируем адреса для массового копирования
+      const allAddresses = requests.map(r => r.wallet_address).filter(Boolean);
+      const uniqueAddresses = [...new Set(allAddresses)];
+      
+      for (let i = 0; i < requests.length; i++) {
+        const request = requests[i];
+        const num = i + 1;
         
+        // Статус с эмодзи
+        const statusEmoji = request.status === 'pending' ? '⏳' : 
+                           request.status === 'approved' ? '✅' : '❌';
+        
+        message += `<b>${num}. ${statusEmoji} ID: ${request.id}</b>\n`;
+        
+        // Информация о пользователе
+        const userDisplay = request.username ? `@${request.username}` : 
+                           request.first_name || `User ${request.telegram_id}`;
+        message += `👤 ${userDisplay} <code>(${request.telegram_id})</code>\n`;
+        
+        // Сумма и кошелек
+        message += `💰 <b>${parseFloat(request.amount).toFixed(4)} TON</b>\n`;
+        message += `🏦 <code>${request.wallet_address}</code>\n`;
+        
+        // Дата создания
+        const createDate = new Date(request.created_at).toLocaleString('ru-RU');
+        message += `📅 ${createDate}\n`;
+        
+        // Информация об обработке
         if (request.processed_at) {
-          message += `⏱ Обработано: ${new Date(request.processed_at).toLocaleString()}\n`;
-          message += `👮 Обработал: ${request.processed_by}\n`;
+          const processDate = new Date(request.processed_at).toLocaleString('ru-RU');
+          message += `⏱ Обработано: ${processDate}\n`;
+          message += `👮 ${request.processed_by || 'admin'}\n`;
         }
         
-        // Создаем кнопки для каждой заявки
-        const inlineKeyboard: InlineKeyboardButton[][] = [];
-        
-        // Кнопка копирования адреса для всех заявок
-        inlineKeyboard.push([
-          { text: '📋 Копировать адрес', callback_data: `copy_ton_address:${request.ton_wallet}` }
-        ]);
-        
-        // Кнопки одобрения/отклонения только для pending заявок
-        if (request.status === 'pending') {
-          inlineKeyboard.push([
-            { text: '✅ Одобрить', callback_data: `approve_withdrawal:${request.id}` },
-            { text: '❌ Отклонить', callback_data: `reject_withdrawal:${request.id}` }
-          ]);
-        }
-        
-        const keyboard: InlineKeyboardMarkup = {
-          inline_keyboard: inlineKeyboard
-        };
-        
-        await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
-        
-        message = ''; // Reset for next iteration
+        message += `━━━━━━━━━━━━━━━━━━━━━\n`;
       }
       
-      // Добавляем финальную кнопку после всех заявок
-      const finalKeyboard: InlineKeyboardMarkup = {
-        inline_keyboard: [
-          [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
-        ]
+      // Создаем клавиатуру с улучшенными кнопками
+      const keyboard: InlineKeyboardMarkup = {
+        inline_keyboard: []
       };
       
-      await this.adminBotService.sendMessage(
-        chatId,
-        `📊 Показано заявок: ${requests.length}`,
-        { reply_markup: finalKeyboard }
-      );
+      // Кнопки фильтрации по статусам
+      if (!status || status === 'all') {
+        keyboard.inline_keyboard.push([
+          { text: '⏳ Pending', callback_data: 'withdrawals:pending' },
+          { text: '✅ Approved', callback_data: 'withdrawals:approved' },
+          { text: '❌ Rejected', callback_data: 'withdrawals:rejected' }
+        ]);
+      } else {
+        keyboard.inline_keyboard.push([
+          { text: '📋 Все заявки', callback_data: 'withdrawals:all' }
+        ]);
+      }
+      
+      // Кнопки массового копирования
+      if (uniqueAddresses.length > 0) {
+        keyboard.inline_keyboard.push([
+          { text: `📋 Копировать адреса (${uniqueAddresses.length})`, callback_data: 'copy_all_addresses' }
+        ]);
+      }
+      
+      // Массовые операции для pending заявок
+      const pendingRequests = requests.filter(r => r.status === 'pending');
+      if (pendingRequests.length > 0) {
+        keyboard.inline_keyboard.push([
+          { text: `✅ Одобрить все (${pendingRequests.length})`, callback_data: 'approve_all_pending' },
+          { text: `❌ Отклонить все (${pendingRequests.length})`, callback_data: 'reject_all_pending' }
+        ]);
+      }
+      
+      // Дополнительные кнопки
+      keyboard.inline_keyboard.push([
+        { text: '📊 Статистика', callback_data: 'withdrawal_stats' },
+        { text: '🔍 Поиск', callback_data: 'withdrawal_search_prompt' }
+      ]);
+      
+      keyboard.inline_keyboard.push([
+        { text: '🔄 Обновить', callback_data: `withdrawals:${status || 'all'}` },
+        { text: '🏠 Главное меню', callback_data: 'refresh_admin' }
+      ]);
+      
+      // Сохраняем адреса для копирования
+      this.tempAddresses = uniqueAddresses;
+      
+      await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
+      
     } catch (error) {
+      logger.error('[AdminBot] Error in handleWithdrawalsCommand', { error: error instanceof Error ? error.message : String(error) });
       await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения заявок на вывод');
     }
   }
@@ -556,10 +647,10 @@ export class AdminBotController {
       const message = 
         '⚠️ <b>Подтверждение одобрения</b>\n\n' +
         `🆔 ID заявки: ${withdrawal.id}\n` +
-        `👤 Пользователь: ${withdrawal.user_id}\n` +
-        `💰 Сумма: <b>${withdrawal.amount_ton} TON</b>\n` +
+        `👤 Пользователь: ${withdrawal.username ? `@${withdrawal.username}` : withdrawal.first_name || `User ${withdrawal.telegram_id}`}\n` +
+        `💰 Сумма: <b>${parseFloat(withdrawal.amount).toFixed(4)} TON</b>\n` +
         `📅 Создана: ${new Date(withdrawal.created_at).toLocaleString('ru-RU')}\n` +
-        `🏦 Кошелек: <code>${withdrawal.ton_wallet}</code>\n\n` +
+        `🏦 Кошелек: <code>${withdrawal.wallet_address}</code>\n\n` +
         '❗ <b>Вы уверены, что хотите ОДОБРИТЬ эту выплату?</b>';
       
       const keyboard = {
@@ -593,10 +684,10 @@ export class AdminBotController {
       const message = 
         '⚠️ <b>Подтверждение отклонения</b>\n\n' +
         `🆔 ID заявки: ${withdrawal.id}\n` +
-        `👤 Пользователь: ${withdrawal.user_id}\n` +
-        `💰 Сумма: <b>${withdrawal.amount_ton} TON</b>\n` +
+        `👤 Пользователь: ${withdrawal.username ? `@${withdrawal.username}` : withdrawal.first_name || `User ${withdrawal.telegram_id}`}\n` +
+        `💰 Сумма: <b>${parseFloat(withdrawal.amount).toFixed(4)} TON</b>\n` +
         `📅 Создана: ${new Date(withdrawal.created_at).toLocaleString('ru-RU')}\n` +
-        `🏦 Кошелек: <code>${withdrawal.ton_wallet}</code>\n\n` +
+        `🏦 Кошелек: <code>${withdrawal.wallet_address}</code>\n\n` +
         '❗ <b>Вы уверены, что хотите ОТКЛОНИТЬ эту выплату?</b>\n' +
         '💡 <i>Средства будут возвращены на баланс пользователя</i>';
       
@@ -656,6 +747,109 @@ export class AdminBotController {
       }
     } catch (error) {
       await this.adminBotService.sendMessage(chatId, '❌ Ошибка выполнения команды');
+    }
+  }
+
+  /**
+   * Handle /search_user command
+   */
+  private async handleSearchUserCommand(chatId: number, args: string[]): Promise<void> {
+    if (!args[0]) {
+      await this.adminBotService.sendMessage(chatId, 'Использование: /search_user <telegram_id>');
+      return;
+    }
+    
+    try {
+      const telegramId = args[0];
+      const requests = await this.adminBotService.searchWithdrawalsByUser(telegramId);
+      
+      if (requests.length === 0) {
+        await this.adminBotService.sendMessage(
+          chatId,
+          `🔍 <b>Поиск завершен</b>\n\nЗаявки пользователя <code>${telegramId}</code> не найдены`
+        );
+        return;
+      }
+      
+      let message = `🔍 <b>Заявки пользователя ${telegramId}</b>\n`;
+      const userDisplay = requests[0].username ? `@${requests[0].username}` : 
+                         requests[0].first_name || `User ${requests[0].telegram_id}`;
+      message += `👤 ${userDisplay}\n`;
+      message += `📊 Найдено заявок: ${requests.length}\n\n`;
+      
+      for (let i = 0; i < requests.length; i++) {
+        const request = requests[i];
+        const statusEmoji = request.status === 'pending' ? '⏳' : 
+                           request.status === 'approved' ? '✅' : '❌';
+        
+        message += `${i + 1}. ${statusEmoji} <b>${parseFloat(request.amount).toFixed(4)} TON</b>\n`;
+        message += `📅 ${new Date(request.created_at).toLocaleString('ru-RU')}\n`;
+        message += `🏦 <code>${request.wallet_address}</code>\n`;
+        
+        if (request.processed_at) {
+          message += `⏱ Обработано: ${new Date(request.processed_at).toLocaleString('ru-RU')}\n`;
+        }
+        
+        message += `━━━━━━━━━━━━━━━━━━━━━\n`;
+      }
+      
+      const keyboard: InlineKeyboardMarkup = {
+        inline_keyboard: [
+          [{ text: '🔄 Все заявки', callback_data: 'withdrawals:all' }],
+          [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
+        ]
+      };
+      
+      await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
+    } catch (error) {
+      await this.adminBotService.sendMessage(chatId, '❌ Ошибка поиска заявок пользователя');
+    }
+  }
+
+  /**
+   * Handle withdrawal statistics command
+   */
+  private async handleWithdrawalStatsCommand(chatId: number): Promise<void> {
+    try {
+      const stats = await this.adminBotService.getWithdrawalStats();
+      
+      if (!stats) {
+        await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения статистики');
+        return;
+      }
+      
+      const message = 
+        `📊 <b>Статистика заявок на вывод</b>\n\n` +
+        `📋 <b>Общая статистика:</b>\n` +
+        `• Всего заявок: ${stats.total}\n` +
+        `• Ожидают обработки: ${stats.pending}\n` +
+        `• Одобрено: ${stats.approved}\n` +
+        `• Отклонено: ${stats.rejected}\n\n` +
+        `💰 <b>Финансовая статистика:</b>\n` +
+        `• Общая сумма: ${stats.totalAmount.toFixed(4)} TON\n` +
+        `• Заявок сегодня: ${stats.todayRequests}\n\n` +
+        `📈 <b>Процентное соотношение:</b>\n` +
+        `• Одобрено: ${stats.total > 0 ? ((stats.approved / stats.total) * 100).toFixed(1) : 0}%\n` +
+        `• Отклонено: ${stats.total > 0 ? ((stats.rejected / stats.total) * 100).toFixed(1) : 0}%\n` +
+        `• В обработке: ${stats.total > 0 ? ((stats.pending / stats.total) * 100).toFixed(1) : 0}%`;
+      
+      const keyboard: InlineKeyboardMarkup = {
+        inline_keyboard: [
+          [
+            { text: '⏳ Pending', callback_data: 'withdrawals:pending' },
+            { text: '✅ Approved', callback_data: 'withdrawals:approved' }
+          ],
+          [
+            { text: '❌ Rejected', callback_data: 'withdrawals:rejected' },
+            { text: '📋 Все заявки', callback_data: 'withdrawals:all' }
+          ],
+          [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
+        ]
+      };
+      
+      await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
+    } catch (error) {
+      await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения статистики');
     }
   }
 }

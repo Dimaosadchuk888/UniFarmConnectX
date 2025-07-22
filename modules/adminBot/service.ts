@@ -271,13 +271,20 @@ export class AdminBotService {
   }
 
   /**
-   * Get withdrawal by ID
+   * Get withdrawal by ID with user information
    */
   async getWithdrawalById(requestId: string): Promise<any | null> {
     try {
       const { data, error } = await supabase
         .from('withdraw_requests')
-        .select('*')
+        .select(`
+          *,
+          users!inner(
+            telegram_id,
+            username,
+            first_name
+          )
+        `)
         .eq('id', requestId)
         .single();
         
@@ -286,7 +293,13 @@ export class AdminBotService {
         return null;
       }
       
-      return data;
+      // Flatten user data
+      return {
+        ...data,
+        telegram_id: data.users?.telegram_id,
+        username: data.users?.username,
+        first_name: data.users?.first_name
+      };
     } catch (error) {
       logger.error('[AdminBot] Error in getWithdrawalById', { error: error instanceof Error ? error.message : String(error) });
       return null;
@@ -294,17 +307,28 @@ export class AdminBotService {
   }
 
   /**
-   * Get withdrawal requests
+   * Get withdrawal requests with user information
    */
-  async getWithdrawalRequests(status?: string): Promise<any[]> {
+  async getWithdrawalRequests(status?: string, limit?: number): Promise<any[]> {
     try {
       let query = supabase
         .from('withdraw_requests')
-        .select('*')
+        .select(`
+          *,
+          users!inner(
+            telegram_id,
+            username,
+            first_name
+          )
+        `)
         .order('created_at', { ascending: false });
         
       if (status) {
         query = query.eq('status', status);
+      }
+      
+      if (limit) {
+        query = query.limit(limit);
       }
       
       const { data, error } = await query;
@@ -314,7 +338,15 @@ export class AdminBotService {
         return [];
       }
       
-      return data || [];
+      // Flatten user data for easier access
+      const flattenedData = (data || []).map(request => ({
+        ...request,
+        telegram_id: request.users?.telegram_id,
+        username: request.users?.username,
+        first_name: request.users?.first_name
+      }));
+      
+      return flattenedData;
     } catch (error) {
       logger.error('[AdminBot] Error in getWithdrawalRequests', { error: error instanceof Error ? error.message : String(error) });
       return [];
@@ -354,7 +386,7 @@ export class AdminBotService {
       }
       
       // TODO: Here you would integrate with actual TON wallet to send transaction
-      logger.info('[AdminBot] Withdrawal approved', { requestId, amount: request.amount_ton });
+      logger.info('[AdminBot] Withdrawal approved', { requestId, amount: request.amount });
       
       return true;
     } catch (error) {
@@ -391,7 +423,7 @@ export class AdminBotService {
       const returnResult = await balanceManager.addBalance(
         request.user_id,
         0, // amount_uni
-        parseFloat(request.amount_ton), // amount_ton
+        parseFloat(request.amount), // amount_ton
         'AdminBot.rejectWithdrawal'
       );
       
@@ -421,7 +453,7 @@ export class AdminBotService {
         await balanceManager.subtractBalance(
           request.user_id,
           0,
-          parseFloat(request.amount_ton),
+          parseFloat(request.amount),
           'AdminBot.rejectWithdrawal.rollback'
         );
         return false;
@@ -430,13 +462,82 @@ export class AdminBotService {
       logger.info('[AdminBot] Withdrawal rejected and funds returned', { 
         requestId, 
         user_id: request.user_id,
-        amount_returned: request.amount_ton 
+        amount_returned: request.amount 
       });
       
       return true;
     } catch (error) {
       logger.error('[AdminBot] Error in rejectWithdrawal', { error: error instanceof Error ? error.message : String(error) });
       return false;
+    }
+  }
+
+  /**
+   * Get withdrawal statistics
+   */
+  async getWithdrawalStats(): Promise<any> {
+    try {
+      const { data: allRequests, error } = await supabase
+        .from('withdraw_requests')
+        .select('status, amount, created_at');
+        
+      if (error) {
+        logger.error('[AdminBot] Error getting withdrawal stats', { error });
+        return null;
+      }
+      
+      const stats = {
+        total: allRequests?.length || 0,
+        pending: allRequests?.filter(r => r.status === 'pending').length || 0,
+        approved: allRequests?.filter(r => r.status === 'approved').length || 0,
+        rejected: allRequests?.filter(r => r.status === 'rejected').length || 0,
+        totalAmount: allRequests?.reduce((sum, r) => sum + parseFloat(r.amount || '0'), 0) || 0,
+        todayRequests: allRequests?.filter(r => {
+          const today = new Date();
+          const requestDate = new Date(r.created_at);
+          return requestDate.toDateString() === today.toDateString();
+        }).length || 0
+      };
+      
+      return stats;
+    } catch (error) {
+      logger.error('[AdminBot] Error in getWithdrawalStats', { error: error instanceof Error ? error.message : String(error) });
+      return null;
+    }
+  }
+
+  /**
+   * Search withdrawal requests by user telegram_id
+   */
+  async searchWithdrawalsByUser(telegramId: string): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('withdraw_requests')
+        .select(`
+          *,
+          users!inner(
+            telegram_id,
+            username,
+            first_name
+          )
+        `)
+        .eq('users.telegram_id', telegramId)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        logger.error('[AdminBot] Error searching withdrawals by user', { error });
+        return [];
+      }
+      
+      return (data || []).map(request => ({
+        ...request,
+        telegram_id: request.users?.telegram_id,
+        username: request.users?.username,
+        first_name: request.users?.first_name
+      }));
+    } catch (error) {
+      logger.error('[AdminBot] Error in searchWithdrawalsByUser', { error: error instanceof Error ? error.message : String(error) });
+      return [];
     }
   }
 }
