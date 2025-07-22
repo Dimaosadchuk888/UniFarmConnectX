@@ -442,13 +442,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // Сохраняем адрес в базе данных
         if (address) {
           try {
-            const response = await correctApiRequest('/api/v2/wallet/save-ton-address', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ address })
-            });
+            const response = await correctApiRequest('/api/v2/wallet/save-ton-address', 'POST', { address });
             
             const data = await response.json();
             

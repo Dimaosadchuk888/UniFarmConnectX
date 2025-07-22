@@ -70,7 +70,7 @@ async function makeRequestWithAuth(url: string, config: RequestConfig): Promise<
 
 export async function correctApiRequest(
   url: string, 
-  method: string = 'GET', 
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' = 'GET', 
   body?: any, 
   headers: Record<string, string> = {},
   retryCount: number = 0
