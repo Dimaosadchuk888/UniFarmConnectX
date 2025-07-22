@@ -22,6 +22,23 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### TonConnect useState Error Fix (July 22, 2025)
+**Issue**: Critical React useState error `TypeError: null is not an object (evaluating 'U.current.useState')` was preventing application loading completely. The error occurred due to race condition where `useTonConnectUI()` hook was called in UserProvider before TonConnectUIProvider completed its initialization.
+
+**Solution Implemented**:
+1. **Deferred TonConnect Initialization**: Added 200ms timeout to allow TonConnectUIProvider to fully initialize before UserProvider attempts to use `useTonConnectUI()`
+2. **Ready State Tracking**: Added `isTonConnectReady` state to track TonConnect initialization status
+3. **Safe Wallet Operations**: Updated all wallet-related functions (`connectWallet`, `disconnectWallet`, wallet status check) to wait for TonConnect readiness
+4. **Enhanced Error Handling**: Added fallback mechanisms and detailed logging for TonConnect initialization states
+5. **Production-Safe Implementation**: Minimal code changes with comprehensive safety checks
+
+**Technical Details**:
+- **Root Cause**: UserProvider called `useTonConnectUI()` immediately upon mounting, but TonConnectUIProvider's internal useState was still null
+- **Files Modified**: `client/src/contexts/userContext.tsx` - Added deferred initialization pattern
+- **Safe Dependencies**: Updated all useCallback and useEffect dependencies to include `isTonConnectReady`
+
+**Status**: ✅ **RESOLVED** - Application now loads without useState errors, TonConnect wallet functionality restored.
+
 ### Referral Income Font Size Improvement (July 22, 2025)
 **Issue**: UNI and TON income amounts in referral system were displayed with very small font (`text-xs` - 12px), making them hard to read on mobile devices.
 

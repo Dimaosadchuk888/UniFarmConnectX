@@ -185,8 +185,9 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: React.ReactNode }) {
   // Инициализация хуков
   const queryClient = useQueryClient();
-  // Используем TonConnect UI
+  // Используем TonConnect UI с отложенной инициализацией для предотвращения useState ошибки
   const [tonConnectUI] = useTonConnectUI();
+  const [isTonConnectReady, setIsTonConnectReady] = useState(false);
   const { isReady: isTelegramReady, initData, user: telegramUser } = useTelegram();
   
   // Создаем состояние с помощью useReducer
@@ -196,6 +197,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const refreshInProgressRef = useRef<boolean>(false);
   const initializedRef = useRef<boolean>(false);
   const authorizationAttemptedRef = useRef<boolean>(false);
+  
+  // Отложенная проверка готовности TonConnect для предотвращения useState ошибки
+  useEffect(() => {
+    const checkTonConnect = () => {
+      if (tonConnectUI) {
+        console.log('[UserContext] TonConnect UI успешно инициализирован');
+        setIsTonConnectReady(true);
+      } else {
+        console.log('[UserContext] TonConnect UI еще не готов, ожидаем...');
+      }
+    };
+    
+    // Даем время TonConnectUIProvider полностью инициализироваться
+    const timer = setTimeout(checkTonConnect, 200);
+    return () => clearTimeout(timer);
+  }, [tonConnectUI]);
   
   // Обновление данных пользователя
   const refreshUserData = useCallback(async () => {
@@ -423,9 +440,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   
   // Функции работы с кошельком
   const connectWallet = useCallback(async (): Promise<boolean> => {
-    if (!tonConnectUI) {
-      console.log('[UserContext] TonConnect UI не инициализирован');
-      return false;
+    if (!tonConnectUI || !isTonConnectReady) {
+      console.log('[UserContext] TonConnect UI не готов:', { tonConnectUI: !!tonConnectUI, isTonConnectReady });
+      // Даем дополнительное время на инициализацию
+      if (tonConnectUI && !isTonConnectReady) {
+        console.log('[UserContext] Ожидаем готовности TonConnect...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        if (!isTonConnectReady) {
+          console.error('[UserContext] TonConnect UI недоступен после ожидания');
+          return false;
+        }
+      } else {
+        return false;
+      }
     }
     
     try {
@@ -463,11 +490,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       console.error('[UserContext] Ошибка подключения кошелька:', error);
       return false;
     }
-  }, [tonConnectUI]);
+  }, [tonConnectUI, isTonConnectReady]);
   
   const disconnectWallet = useCallback(async (): Promise<void> => {
-    if (!tonConnectUI) {
-      console.log('[UserContext] TonConnect UI не инициализирован для отключения');
+    if (!tonConnectUI || !isTonConnectReady) {
+      console.log('[UserContext] TonConnect UI не готов для отключения:', { tonConnectUI: !!tonConnectUI, isTonConnectReady });
       dispatch({
         type: 'SET_WALLET_CONNECTED',
         payload: { connected: false, address: null }
@@ -486,12 +513,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('[UserContext] Ошибка отключения кошелька:', error);
     }
-  }, [tonConnectUI]);
+  }, [tonConnectUI, isTonConnectReady]);
   
   // Проверяем статус подключения кошелька
   useEffect(() => {
-    if (!tonConnectUI) {
-      console.log('[UserContext] TonConnect UI не готов, пропускаем проверку кошелька');
+    if (!tonConnectUI || !isTonConnectReady) {
+      console.log('[UserContext] TonConnect UI не готов для проверки кошелька:', { tonConnectUI: !!tonConnectUI, isTonConnectReady });
       return;
     }
     
@@ -531,7 +558,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, 100);
     
     return () => clearTimeout(timeoutId);
-  }, [tonConnectUI]);
+  }, [tonConnectUI, isTonConnectReady]);
   
   // Автоматическая загрузка данных пользователя при первом рендере
   useEffect(() => {
