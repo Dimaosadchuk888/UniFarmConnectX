@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 
@@ -185,10 +185,53 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: React.ReactNode }) {
   // Инициализация хуков
   const queryClient = useQueryClient();
-  // Используем TonConnect UI с отложенной инициализацией для предотвращения useState ошибки
-  const [tonConnectUI] = useTonConnectUI();
+  
+  // Безопасное получение TonConnect UI с обработкой ошибок
+  const [tonConnectUI, setTonConnectUI] = useState<any>(null);
   const [isTonConnectReady, setIsTonConnectReady] = useState(false);
+  const [tonConnectError, setTonConnectError] = useState<string | null>(null);
+  
   const { isReady: isTelegramReady, initData, user: telegramUser } = useTelegram();
+  
+  // Безопасная инициализация TonConnect с error handling
+  useEffect(() => {
+    const initTonConnect = async () => {
+      try {
+        console.log('[UserContext] Начинаем безопасную инициализацию TonConnect...');
+        
+        // Импортируем TonConnect hook динамически
+        const { useTonConnectUI } = await import('@tonconnect/ui-react');
+        
+        // Даем время для полной инициализации React контекста
+        setTimeout(() => {
+          try {
+            const tonConnectResult = useTonConnectUI();
+            if (tonConnectResult && tonConnectResult[0]) {
+              setTonConnectUI(tonConnectResult[0]);
+              setIsTonConnectReady(true);
+              setTonConnectError(null);
+              console.log('[UserContext] TonConnect UI успешно инициализирован через безопасный метод');
+            } else {
+              console.warn('[UserContext] TonConnect UI вернул null, используем fallback');
+              setTonConnectError('TonConnect UI не инициализирован');
+            }
+          } catch (hookError) {
+            console.error('[UserContext] Ошибка вызова useTonConnectUI:', hookError);
+            setTonConnectError('Ошибка инициализации TonConnect UI');
+          }
+        }, 500);
+        
+      } catch (importError) {
+        console.error('[UserContext] Ошибка импорта TonConnect:', importError);
+        setTonConnectError('Ошибка импорта TonConnect');
+      }
+    };
+    
+    // Запускаем инициализацию через 300ms после монтирования
+    const initTimer = setTimeout(initTonConnect, 300);
+    
+    return () => clearTimeout(initTimer);
+  }, []);
   
   // Создаем состояние с помощью useReducer
   const [state, dispatch] = useReducer(userReducer, initialState);
@@ -198,21 +241,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const initializedRef = useRef<boolean>(false);
   const authorizationAttemptedRef = useRef<boolean>(false);
   
-  // Отложенная проверка готовности TonConnect для предотвращения useState ошибки
-  useEffect(() => {
-    const checkTonConnect = () => {
-      if (tonConnectUI) {
-        console.log('[UserContext] TonConnect UI успешно инициализирован');
-        setIsTonConnectReady(true);
-      } else {
-        console.log('[UserContext] TonConnect UI еще не готов, ожидаем...');
-      }
-    };
-    
-    // Даем время TonConnectUIProvider полностью инициализироваться
-    const timer = setTimeout(checkTonConnect, 200);
-    return () => clearTimeout(timer);
-  }, [tonConnectUI]);
+
   
   // Обновление данных пользователя
   const refreshUserData = useCallback(async () => {
