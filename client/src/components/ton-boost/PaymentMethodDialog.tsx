@@ -144,46 +144,69 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-blue-950/90 border-blue-800">
-        <DialogHeader>
-          <DialogTitle className="text-blue-200">Выберите способ оплаты</DialogTitle>
-          <DialogDescription className="text-blue-400">
-            Для активации TON Boost "{boostName}" выберите удобный способ оплаты
+      <DialogContent className="bg-gradient-to-br from-background via-card/50 to-background border border-border/20 backdrop-blur-xl shadow-2xl shadow-primary/10">
+        <DialogHeader className="text-center pb-6">
+          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary via-purple-400 to-primary bg-clip-text text-transparent">
+            Способ оплаты
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground/80 text-base">
+            Выберите удобный вариант для оплаты
           </DialogDescription>
         </DialogHeader>
         
-        {/* Debug info для разработки */}
-        <div className="text-xs text-slate-500 mb-2">
-          DEBUG: BoostID={boostId}, TonConnectReady={isTonPaymentReady(tonConnectUI) ? "Да" : "Нет"}
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <Button
-            variant="outline"
-            className="flex flex-col items-center justify-center h-32 space-y-2 border-blue-600 hover:bg-blue-800/30 hover:text-blue-200"
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
+          {/* Внутренний баланс карточка */}
+          <div 
+            className="group relative overflow-hidden rounded-2xl border border-border/30 bg-gradient-to-br from-card/60 via-card/40 to-card/60 p-6 cursor-pointer transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
             onClick={() => handleSelectMethod('internal_balance')}
           >
-            <CreditCard className="h-10 w-10 text-blue-400" />
-            <span className="text-base">Внутренний баланс</span>
-            <span className="text-xs text-blue-400">Использовать TON с баланса приложения</span>
-          </Button>
-          
-          <Button
-            variant="outline"
-            className="flex flex-col items-center justify-center h-32 space-y-2 border-blue-600 hover:bg-blue-800/30 hover:text-blue-200"
+            {/* Градиентный overlay для hover */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            
+            <div className="relative flex flex-col items-center text-center space-y-4">
+              <div className="p-4 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 group-hover:from-primary/30 group-hover:to-purple-500/30 transition-all duration-300">
+                <CreditCard className="h-8 w-8 text-primary group-hover:text-primary-foreground transition-colors duration-300" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors duration-300">
+                  Внутренний баланс
+                </h3>
+                <p className="text-sm text-muted-foreground/70">
+                  Средства с вашего баланса
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Внешний кошелек карточка */}
+          <div 
+            className="group relative overflow-hidden rounded-2xl border border-border/30 bg-gradient-to-br from-card/60 via-card/40 to-card/60 p-6 cursor-pointer transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
             onClick={() => handleSelectMethod('external_wallet')}
           >
-            <Wallet className="h-10 w-10 text-blue-400" />
-            <span className="text-base">Внешний кошелек</span>
-            <span className="text-xs text-blue-400">Оплатить с помощью TON кошелька</span>
-          </Button>
+            {/* Градиентный overlay для hover */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+            
+            <div className="relative flex flex-col items-center text-center space-y-4">
+              <div className="p-4 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 group-hover:from-primary/30 group-hover:to-purple-500/30 transition-all duration-300">
+                <Wallet className="h-8 w-8 text-primary group-hover:text-primary-foreground transition-colors duration-300" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors duration-300">
+                  Внешний кошелек
+                </h3>
+                <p className="text-sm text-muted-foreground/70">
+                  Подключенный TON кошелек
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
         
-        <DialogFooter>
+        <DialogFooter className="pt-6 border-t border-border/20">
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
-            className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30"
+            className="w-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
           >
             Отмена
           </Button>
