@@ -50,8 +50,9 @@ export class UnifiedFarmingCalculator {
     const minutesSinceLastUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60);
     const periods = Math.floor(minutesSinceLastUpdate / 5); // Периоды по 5 минут
     
-    // Защита от накопления: максимум 24 часа
-    const effectivePeriods = Math.min(periods, this.MAX_ALLOWED_PERIODS);
+    // Защита от накопления: переключение между накопительным и интервальным режимом
+    const useIntervalMode = process.env.UNI_FARMING_INTERVAL_MODE === 'true';
+    const effectivePeriods = useIntervalMode ? 1 : Math.min(periods, this.MAX_ALLOWED_PERIODS);
     if (periods > effectivePeriods) {
       logger.warn('[UnifiedFarmingCalculator] CAPPED: Too many periods', {
         userId: farmer.user_id || farmer.id,
@@ -87,7 +88,9 @@ export class UnifiedFarmingCalculator {
       periods: effectivePeriods,
       amount: finalAmount,
       lastUpdate: lastUpdate.toISOString(),
-      now: now.toISOString()
+      now: now.toISOString(),
+      mode: useIntervalMode ? 'INTERVAL' : 'ACCUMULATIVE',
+      originalPeriods: periods
     });
     
     return {
