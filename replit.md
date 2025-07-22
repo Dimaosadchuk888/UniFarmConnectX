@@ -43,21 +43,25 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 **Status**: ✅ **RESOLVED** - All TonConnect libraries now properly aligned, no version conflicts.
 
 ### TonConnect useState Error Fix (July 22, 2025)
-**Issue**: Critical React useState error `TypeError: null is not an object (evaluating 'U.current.useState')` was preventing application loading completely. The error occurred due to race condition where `useTonConnectUI()` hook was called in UserProvider before TonConnectUIProvider completed its initialization.
+**Issue**: Critical React useState error `TypeError: null is not an object (evaluating 'U.current.useState')` was preventing application loading completely. The error was caused by wrapping the `useTonConnectUI()` hook inside a try-catch block, which violates React Hooks rules.
+
+**Root Cause Analysis**:
+- **Commit f3cb2571** (18:33): Wrapped `useTonConnectUI()` in try-catch block
+- **React Hooks Rule Violation**: Hooks must be called at the top level of components, not inside conditional blocks
+- **Result**: React's internal useState mechanism failed with null reference error
 
 **Solution Implemented**:
-1. **Deferred TonConnect Initialization**: Added 200ms timeout to allow TonConnectUIProvider to fully initialize before UserProvider attempts to use `useTonConnectUI()`
-2. **Ready State Tracking**: Added `isTonConnectReady` state to track TonConnect initialization status
-3. **Safe Wallet Operations**: Updated all wallet-related functions (`connectWallet`, `disconnectWallet`, wallet status check) to wait for TonConnect readiness
-4. **Enhanced Error Handling**: Added fallback mechanisms and detailed logging for TonConnect initialization states
-5. **Production-Safe Implementation**: Minimal code changes with comprehensive safety checks
+1. **Removed try-catch block**: Restored `useTonConnectUI()` call to top level of component
+2. **Maintained deferred initialization**: Kept 200ms timeout for TonConnect readiness
+3. **React Hooks compliance**: Ensured all hooks follow React's rules of hooks
+4. **Clean implementation**: Removed complex error handling that violated React patterns
 
 **Technical Details**:
-- **Root Cause**: UserProvider called `useTonConnectUI()` immediately upon mounting, but TonConnectUIProvider's internal useState was still null
-- **Files Modified**: `client/src/contexts/userContext.tsx` - Added deferred initialization pattern
-- **Safe Dependencies**: Updated all useCallback and useEffect dependencies to include `isTonConnectReady`
+- **Root Cause**: Try-catch block around React Hook violated Rules of Hooks
+- **Files Modified**: `client/src/contexts/userContext.tsx` - Removed try-catch, restored proper hook usage
+- **Fix Applied**: Reverted to standard hook call: `const [tonConnectUI] = useTonConnectUI();`
 
-**Status**: ✅ **RESOLVED** - Application now loads without useState errors, TonConnect wallet functionality restored.
+**Status**: ✅ **RESOLVED** - React Hooks error fixed, application should now load properly.
 
 ### Referral Income Font Size Improvement (July 22, 2025)
 **Issue**: UNI and TON income amounts in referral system were displayed with very small font (`text-xs` - 12px), making them hard to read on mobile devices.

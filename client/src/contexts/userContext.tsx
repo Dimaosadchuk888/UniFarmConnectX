@@ -192,48 +192,28 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   
   const { isReady: isTelegramReady, initData, user: telegramUser } = useTelegram();
   
-  // Безопасный вызов useTonConnectUI с обработкой ошибок
-  let tonConnectUI: any = null;
-  let tonConnectHookError: Error | null = null;
-  
-  try {
-    const [ui] = useTonConnectUI();
-    tonConnectUI = ui;
-  } catch (error) {
-    tonConnectHookError = error as Error;
-    console.error('[UserContext] Ошибка при вызове useTonConnectUI:', error);
-  }
+  // Всегда вызываем useTonConnectUI на верхнем уровне (требование React Hooks)
+  const [tonConnectUI] = useTonConnectUI();
   
   // Отложенная готовность TonConnect для предотвращения race condition
   useEffect(() => {
     const initTonConnect = () => {
-      console.log('[UserContext] Инициализация TonConnect...');
+      console.log('[UserContext] Отложенная готовность TonConnect...');
       
-      // Даем время TonConnectUIProvider полностью инициализироваться
       setTimeout(() => {
         try {
-          if (tonConnectHookError) {
-            throw tonConnectHookError;
-          }
-          
-          if (tonConnectUI) {
-            setIsTonConnectReady(true);
-            setTonConnectError(null);
-            console.log('[UserContext] TonConnect готов к использованию');
-          } else {
-            throw new Error('TonConnect UI не инициализирован');
-          }
+          setIsTonConnectReady(true);
+          setTonConnectError(null);
+          console.log('[UserContext] TonConnect готов к использованию');
         } catch (error) {
           console.error('[UserContext] Ошибка готовности TonConnect:', error);
           setTonConnectError(`Ошибка TonConnect: ${error}`);
-          // Не блокируем работу приложения
-          setIsTonConnectReady(false);
         }
-      }, 200); // Задержка для стабильности
+      }, 200); // Даем время TonConnectUIProvider инициализироваться
     };
     
     initTonConnect();
-  }, [tonConnectUI, tonConnectHookError]);
+  }, []);
   
   // Создаем состояние с помощью useReducer
   const [state, dispatch] = useReducer(userReducer, initialState);
