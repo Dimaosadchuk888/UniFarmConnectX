@@ -286,10 +286,10 @@ function App() {
   // Ошибки будут отображаться в уведомлениях, но не блокируют UI
 
   return (
-    <TonConnectUIProvider manifestUrl="https://uni-farm-connect-aab49267.replit.app/tonconnect-manifest.json">
-      <TonConnectErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ErrorBoundary>
+        <TonConnectUIProvider manifestUrl="https://uni-farm-connect-aab49267.replit.app/tonconnect-manifest.json">
+          <TonConnectErrorBoundary>
             <NotificationProvider>
               <UserProvider>
                 <WebSocketProvider>
@@ -307,10 +307,10 @@ function App() {
                 </WebSocketProvider>
               </UserProvider>
             </NotificationProvider>
-          </ErrorBoundary>
-        </QueryClientProvider>
-      </TonConnectErrorBoundary>
-    </TonConnectUIProvider>
+          </TonConnectErrorBoundary>
+        </TonConnectUIProvider>
+      </ErrorBoundary>
+    </QueryClientProvider>
   );
 }
 
