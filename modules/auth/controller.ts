@@ -236,11 +236,24 @@ export class AuthController extends BaseController {
       await this.handleRequest(req, res, async () => {
         const { token } = req.body;
         
+        logger.info('[AuthController] JWT Refresh Request', { 
+          hasToken: !!token,
+          tokenLength: token ? token.length : 0,
+          tokenPreview: token ? token.substring(0, 20) + '...' : 'none'
+        });
+        
         if (!token) {
           return this.sendError(res, 'Токен для обновления не предоставлен', 400);
         }
 
         const result = await this.authService.refreshToken(token);
+        
+        logger.info('[AuthController] JWT Refresh Result', { 
+          success: result.success,
+          error: result.error,
+          hasNewToken: !!result.newToken,
+          hasUser: !!result.user
+        });
         
         if (result.success) {
           this.sendSuccess(res, {
@@ -253,6 +266,9 @@ export class AuthController extends BaseController {
         }
       }, 'обновления токена');
     } catch (error) {
+      logger.error('[AuthController] JWT Refresh Error', { 
+        error: error instanceof Error ? error.message : String(error)
+      });
       next(error);
     }
   }

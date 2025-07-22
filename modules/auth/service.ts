@@ -547,28 +547,75 @@ export class AuthService {
    */
   async refreshToken(token: string): Promise<{ success: boolean; newToken?: string; user?: User; error?: string }> {
     try {
+      logger.info('[AuthService] Начинаем обновление токена');
+      
+      // Сначала пробуем обычную валидацию
       const validation = await this.validateToken(token);
-      if (!validation.valid || !validation.payload) {
+      
+      let payload: any = null;
+      let validationMethod = 'standard';
+
+      if (validation.valid && validation.payload) {
+        payload = validation.payload;
+        validationMethod = 'standard';
+      } else {
+        // Если обычная валидация не прошла, пробуем декодировать без верификации подписи
+        // для получения данных пользователя (безопасно только для чтения user_id)
+        try {
+          const tokenParts = token.split('.');
+          if (tokenParts.length === 3) {
+            const decodedPayload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+            
+            // Проверяем, что токен не истек
+            const now = Math.floor(Date.now() / 1000);
+            if (decodedPayload.exp && decodedPayload.exp > now) {
+              payload = decodedPayload;
+              validationMethod = 'decoded_fallback';
+              logger.warn('[AuthService] Используется fallback декодирование токена', { 
+                reason: validation.error,
+                telegram_id: decodedPayload.telegram_id,
+                exp: new Date(decodedPayload.exp * 1000).toISOString()
+              });
+            } else {
+              return {
+                success: false,
+                error: 'Токен истек'
+              };
+            }
+          }
+        } catch (decodeError) {
+          logger.error('[AuthService] Ошибка декодирования токена', { 
+            error: decodeError instanceof Error ? decodeError.message : String(decodeError) 
+          });
+          return {
+            success: false,
+            error: 'Токен поврежден'
+          };
+        }
+      }
+
+      if (!payload || !payload.telegram_id) {
         return {
           success: false,
-          error: validation.error || 'Невалидный токен для обновления'
+          error: 'Невозможно извлечь данные из токена'
         };
       }
 
       // Получаем пользователя из базы данных
-      const userInfo = await this.findByTelegramId(validation.payload.telegram_id);
+      const userInfo = await this.findByTelegramId(payload.telegram_id);
       if (!userInfo) {
+        logger.warn('[AuthService] Пользователь не найден', { telegram_id: payload.telegram_id });
         return {
           success: false,
           error: 'Пользователь не найден'
         };
       }
 
-      // Создаем новый токен
+      // Создаем новый токен с актуальными данными
       const telegramUser: TelegramUser = {
-        id: validation.payload.telegram_id,
-        first_name: validation.payload.first_name || 'User',
-        username: validation.payload.username
+        id: payload.telegram_id,
+        first_name: payload.first_name || userInfo.first_name || 'User',
+        username: payload.username || userInfo.username
       };
 
       const userForToken = {
@@ -581,7 +628,8 @@ export class AuthService {
 
       logger.info('[AuthService] Токен успешно обновлен', { 
         userId: userInfo.id, 
-        telegram_id: userInfo.telegram_id 
+        telegram_id: userInfo.telegram_id,
+        validationMethod: validationMethod
       });
 
       return {

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Token Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .token-box { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .token-text { word-break: break-all; font-family: monospace; font-size: 12px; }
+        button { padding: 10px 20px; margin: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h2>JWT Token Test & Refresh</h2>
+    
+    <button onclick="getTokenFromStorage()">Get JWT Token from Storage</button>
+    <button onclick="testRefreshEndpoint()">Test Refresh Endpoint</button>
+    <button onclick="clearResults()">Clear Results</button>
+
+    <div id="results"></div>
+
+    <script>
+        function getTokenFromStorage() {
+            const token = localStorage.getItem('unifarm_jwt_token');
+            const resultsDiv = document.getElementById('results');
+            
+            if (token) {
+                // Decode JWT payload
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    const expiry = new Date(payload.exp * 1000);
+                    const now = new Date();
+                    const isExpired = now > expiry;
+                    const timeLeft = expiry - now;
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="token-box">
+                            <h3 class="${isExpired ? 'error' : 'success'}">JWT Token Found</h3>
+                            <p><strong>User ID:</strong> ${payload.id || 'N/A'}</p>
+                            <p><strong>Telegram ID:</strong> ${payload.telegram_id || 'N/A'}</p>
+                            <p><strong>Username:</strong> ${payload.username || 'N/A'}</p>
+                            <p><strong>Expires:</strong> ${expiry.toLocaleString()}</p>
+                            <p><strong>Status:</strong> <span class="${isExpired ? 'error' : 'success'}">${isExpired ? 'EXPIRED' : 'VALID'}</span></p>
+                            ${!isExpired ? `<p><strong>Time Left:</strong> ${Math.floor(timeLeft / (1000 * 60 * 60))} hours</p>` : ''}
+                            <div class="token-text">
+                                <strong>Token:</strong><br>
+                                ${token}
+                            </div>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML += `<div class="error">Error decoding token: ${error.message}</div>`;
+                }
+            } else {
+                resultsDiv.innerHTML += `<div class="error">No JWT token found in localStorage</div>`;
+            }
+        }
+
+        async function testRefreshEndpoint() {
+            const token = localStorage.getItem('unifarm_jwt_token');
+            const resultsDiv = document.getElementById('results');
+            
+            if (!token) {
+                resultsDiv.innerHTML += `<div class="error">No token to refresh</div>`;
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v2/auth/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token })
+                });
+
+                const data = await response.json();
+                
+                resultsDiv.innerHTML += `
+                    <div class="token-box">
+                        <h3 class="${response.ok ? 'success' : 'error'}">Refresh Test Result</h3>
+                        <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                        <p><strong>Response:</strong></p>
+                        <pre style="background: #eee; padding: 10px; border-radius: 4px;">${JSON.stringify(data, null, 2)}</pre>
+                        ${data.success && data.data?.token ? `
+                            <button onclick="updateTokenInStorage('${data.data.token}')">Update Token in Storage</button>
+                        ` : ''}
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="error">Error testing refresh: ${error.message}</div>`;
+            }
+        }
+
+        function updateTokenInStorage(newToken) {
+            localStorage.setItem('unifarm_jwt_token', newToken);
+            alert('Token updated in localStorage!');
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

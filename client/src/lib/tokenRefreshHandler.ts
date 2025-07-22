@@ -52,6 +52,7 @@ async function refreshJWTToken(): Promise<TokenRefreshResult> {
 
     const data = await response.json();
     
+    // Backend возвращает token в data.data.token согласно sendSuccess формату
     if (data.success && data.data?.token) {
       // Сохраняем новый токен
       localStorage.setItem('unifarm_jwt_token', data.data.token);

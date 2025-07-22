@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Final JWT Test - UniFarm Token Backup System</title>
+    <style>
+        body { font-family: monospace; max-width: 800px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 10px 0; }
+        button:hover { background: #0056b3; }
+        .success { color: green; background: #f0f8f0; padding: 10px; border-radius: 4px; }
+        .error { color: red; background: #fdf2f2; padding: 10px; border-radius: 4px; }
+        .info { color: blue; background: #f0f4ff; padding: 10px; border-radius: 4px; }
+        textarea { width: 100%; height: 100px; font-family: monospace; }
+        .log { background: #f8f9fa; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px; margin: 10px 0; max-height: 200px; overflow-y: auto; }
+        .step { margin: 15px 0; padding: 15px; border: 2px solid #ddd; border-radius: 8px; }
+        .step-title { font-weight: bold; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Final JWT Test - Token Backup System</h1>
+        <p><strong>Цель:</strong> Проверить работу системы backup/restore JWT токенов при обновлении приложения</p>
+
+        <div class="step">
+            <div class="step-title">Step 1: Set Test JWT Token</div>
+            <textarea id="tokenInput" placeholder="Вставьте JWT токен...">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjE4NCwidGVsZWdyYW1faWQiOjk5OTQ4OSwidXNlcm5hbWUiOiJ0ZXN0X3VzZXJfMTc1MjEyOTg0MDkwNSIsInJlZl9jb2RlIjoiUkVGXzE3NTI3NTU4MzUzNThfeWpydXN2IiwiaWF0IjoxNzUzMTgzNjMwLCJleHAiOjE3NTM3ODg0MzB9.BXd9tYdUTb8sO5bxsb372iamJRomJBBfNSm_-dgKngc</textarea>
+            <button onclick="setToken()">Set Token in LocalStorage</button>
+            <div id="tokenStatus"></div>
+        </div>
+
+        <div class="step">
+            <div class="step-title">Step 2: Simulate ForceRefresh Button (with VITE_JWT_BACKUP_ENABLED=true)</div>
+            <button onclick="simulateForceRefresh()">Simulate Force Refresh with Backup</button>
+            <div id="backupStatus"></div>
+        </div>
+
+        <div class="step">
+            <div class="step-title">Step 3: Test JWT Restore on Page Load</div>
+            <button onclick="testJWTRestore()">Test JWT Restore from SessionStorage</button>
+            <div id="restoreStatus"></div>
+        </div>
+
+        <div class="step">
+            <div class="step-title">Step 4: Test JWT Refresh Endpoint</div>
+            <button onclick="testJWTRefresh()">Test JWT Refresh API</button>
+            <div id="refreshStatus"></div>
+        </div>
+
+        <div class="log">
+            <strong>📋 Test Log:</strong>
+            <div id="testLog"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+        }
+
+        function setToken() {
+            const token = document.getElementById('tokenInput').value.trim();
+            if (!token) {
+                document.getElementById('tokenStatus').innerHTML = '<div class="error">Токен не введен</div>';
+                return;
+            }
+            
+            localStorage.setItem('userToken', token);
+            document.getElementById('tokenStatus').innerHTML = '<div class="success">✅ Токен сохранен в localStorage</div>';
+            log('JWT токен установлен в localStorage', 'success');
+        }
+
+        function simulateForceRefresh() {
+            const token = localStorage.getItem('userToken');
+            if (!token) {
+                document.getElementById('backupStatus').innerHTML = '<div class="error">Токен не найден в localStorage</div>';
+                return;
+            }
+
+            // Симуляция VITE_JWT_BACKUP_ENABLED=true logic
+            log('Симуляция: VITE_JWT_BACKUP_ENABLED=true', 'info');
+            log('ForceRefreshButton: Создание backup токена в sessionStorage', 'info');
+            
+            sessionStorage.setItem('jwt_backup_token', token);
+            sessionStorage.setItem('jwt_backup_timestamp', Date.now().toString());
+            
+            // Симуляция очистки localStorage (как делает ForceRefresh)
+            localStorage.removeItem('userToken');
+            
+            document.getElementById('backupStatus').innerHTML = '<div class="success">✅ JWT backup создан, localStorage очищен</div>';
+            log('JWT backup сохранен в sessionStorage, localStorage очищен', 'success');
+        }
+
+        function testJWTRestore() {
+            const backupToken = sessionStorage.getItem('jwt_backup_token');
+            const backupTimestamp = sessionStorage.getItem('jwt_backup_timestamp');
+            
+            if (!backupToken) {
+                document.getElementById('restoreStatus').innerHTML = '<div class="error">Backup токен не найден</div>';
+                log('JWT restore: backup токен отсутствует', 'error');
+                return;
+            }
+
+            // Симуляция restore logic из UserContext
+            log('UserContext: Обнаружен JWT backup в sessionStorage', 'info');
+            log(`Backup timestamp: ${new Date(parseInt(backupTimestamp)).toLocaleString()}`, 'info');
+            
+            // Восстановление в localStorage
+            localStorage.setItem('userToken', backupToken);
+            
+            // Очистка backup
+            sessionStorage.removeItem('jwt_backup_token');
+            sessionStorage.removeItem('jwt_backup_timestamp');
+            
+            document.getElementById('restoreStatus').innerHTML = '<div class="success">✅ JWT токен восстановлен из backup</div>';
+            log('JWT токен восстановлен в localStorage из backup', 'success');
+        }
+
+        async function testJWTRefresh() {
+            const token = localStorage.getItem('userToken');
+            if (!token) {
+                document.getElementById('refreshStatus').innerHTML = '<div class="error">Токен не найден для refresh</div>';
+                return;
+            }
+
+            log('Тестирование JWT refresh endpoint...', 'info');
+            
+            try {
+                const response = await fetch('/api/v2/auth/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ token })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    localStorage.setItem('userToken', result.data.token);
+                    document.getElementById('refreshStatus').innerHTML = '<div class="success">✅ JWT refresh успешен, новый токен сохранен</div>';
+                    log(`JWT refresh успешен. User: ${result.data.user.username} (${result.data.user.telegram_id})`, 'success');
+                } else {
+                    document.getElementById('refreshStatus').innerHTML = `<div class="error">❌ JWT refresh failed: ${result.error || 'Unknown error'}</div>`;
+                    log(`JWT refresh failed: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                document.getElementById('refreshStatus').innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+                log(`Network error: ${error.message}`, 'error');
+            }
+        }
+
+        // Автоматический тест при загрузке страницы
+        window.onload = function() {
+            log('🧪 Final JWT Test - Система готова к тестированию', 'info');
+            log('Feature Flag: VITE_JWT_BACKUP_ENABLED должен быть установлен в true', 'info');
+            log('Backend: JWT refresh endpoint с fallback validation активен', 'info');
+        }
+    </script>
+</body>
+</html>

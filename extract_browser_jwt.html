@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Extract Browser JWT Token</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .token-box { 
+            background: #f5f5f5; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            margin: 10px 0;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .info { color: #666; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔑 Extract Browser JWT Token</h1>
+    <p class="info">This page will extract the current JWT token from localStorage/sessionStorage</p>
+    
+    <button onclick="extractTokens()">Extract Tokens</button>
+    <button onclick="copyToClipboard()">Copy Current Token</button>
+    <button onclick="testTokenWithServer()">Test Token with Server</button>
+    
+    <div id="results">
+        <h3>Found Tokens:</h3>
+        <div id="token-display"></div>
+    </div>
+
+    <script>
+        let currentToken = null;
+
+        function extractTokens() {
+            const results = [];
+            
+            // Check localStorage
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                
+                if (value && (value.startsWith('eyJ') || key.toLowerCase().includes('token') || key.toLowerCase().includes('jwt'))) {
+                    results.push({
+                        source: 'localStorage',
+                        key: key,
+                        value: value
+                    });
+                }
+            }
+            
+            // Check sessionStorage  
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                const value = sessionStorage.getItem(key);
+                
+                if (value && (value.startsWith('eyJ') || key.toLowerCase().includes('token') || key.toLowerCase().includes('jwt'))) {
+                    results.push({
+                        source: 'sessionStorage',
+                        key: key,
+                        value: value
+                    });
+                }
+            }
+            
+            // Check for JWT patterns in any storage
+            const allStorage = {...localStorage, ...sessionStorage};
+            for (const [key, value] of Object.entries(allStorage)) {
+                if (typeof value === 'string' && value.match(/^eyJ[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=_-]+$/)) {
+                    if (!results.find(r => r.value === value)) {
+                        results.push({
+                            source: 'pattern-match',
+                            key: key,
+                            value: value
+                        });
+                    }
+                }
+            }
+            
+            displayTokens(results);
+        }
+
+        function displayTokens(tokens) {
+            const display = document.getElementById('token-display');
+            
+            if (tokens.length === 0) {
+                display.innerHTML = '<p>❌ No JWT tokens found in browser storage</p>';
+                return;
+            }
+            
+            let html = '';
+            tokens.forEach((token, index) => {
+                const decoded = decodeJWT(token.value);
+                const isJWT = token.value.split('.').length === 3;
+                
+                html += `
+                    <div style="margin: 20px 0; border: 1px solid #ccc; padding: 15px; border-radius: 5px;">
+                        <h4>Token ${index + 1} (${token.source})</h4>
+                        <p><strong>Key:</strong> ${token.key}</p>
+                        <p><strong>Is JWT:</strong> ${isJWT ? '✅' : '❌'}</p>
+                        ${decoded ? `
+                            <p><strong>User ID:</strong> ${decoded.id}</p>
+                            <p><strong>Telegram ID:</strong> ${decoded.telegram_id}</p>
+                            <p><strong>Username:</strong> ${decoded.username}</p>
+                            <p><strong>Expires:</strong> ${new Date(decoded.exp * 1000).toISOString()}</p>
+                            <p><strong>Expired:</strong> ${new Date() > new Date(decoded.exp * 1000) ? '❌' : '✅'}</p>
+                        ` : ''}
+                        <div class="token-box">${token.value}</div>
+                        <button onclick="selectToken(${index}, '${token.value}')">Select This Token</button>
+                    </div>
+                `;
+            });
+            
+            display.innerHTML = html;
+        }
+
+        function decodeJWT(token) {
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) return null;
+                
+                const payload = JSON.parse(atob(parts[1]));
+                return payload;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function selectToken(index, token) {
+            currentToken = token;
+            document.querySelectorAll('button').forEach(btn => {
+                if (btn.textContent.includes('Select This Token')) {
+                    btn.style.background = '#28a745';
+                    btn.textContent = 'Selected ✅';
+                }
+            });
+            
+            const buttons = document.querySelectorAll('button');
+            buttons[index + 3].style.background = '#007bff';
+            buttons[index + 3].textContent = 'Selected ✅';
+        }
+
+        function copyToClipboard() {
+            if (!currentToken) {
+                alert('Please select a token first');
+                return;
+            }
+            
+            navigator.clipboard.writeText(currentToken).then(() => {
+                alert('Token copied to clipboard!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = currentToken;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Token copied to clipboard!');
+            });
+        }
+
+        function testTokenWithServer() {
+            if (!currentToken) {
+                alert('Please select a token first');
+                return;
+            }
+            
+            fetch('/api/v2/auth/refresh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ token: currentToken })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Server response: ' + JSON.stringify(data, null, 2));
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+
+        // Auto-extract on page load
+        window.addEventListener('load', extractTokens);
+    </script>
+</body>
+</html>

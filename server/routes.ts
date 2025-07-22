@@ -30,6 +30,11 @@ router.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// JWT Token Extraction Helper
+router.get('/extract-jwt.html', (req: Request, res: Response) => {
+  res.sendFile('extract_browser_jwt.html', { root: process.cwd() });
+});
+
 // Balance cache metrics endpoint
 router.get('/metrics/balance-cache', (req: Request, res: Response) => {
   try {
