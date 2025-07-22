@@ -17,6 +17,16 @@ export class FarmingScheduler {
   private batchProcessor: typeof batchBalanceProcessor;
   private isProcessing: boolean = false;  // Distributed lock flag
   private lastProcessTime: Date | null = null;
+  private static instance: FarmingScheduler | null = null;
+  private cronJob: any = null;  // Store cron job reference
+  
+  // Singleton pattern to prevent multiple instances
+  static getInstance(): FarmingScheduler {
+    if (!FarmingScheduler.instance) {
+      FarmingScheduler.instance = new FarmingScheduler();
+    }
+    return FarmingScheduler.instance;
+  }
 
   constructor() {
     this.balanceManager = new BalanceManager();
@@ -27,27 +37,72 @@ export class FarmingScheduler {
    * Запускает автоматическое начисление фарминг дохода каждые 5 минут
    */
   start(): void {
-    if (this.isRunning) {
-      logger.warn('FarmingScheduler уже запущен');
+    if (this.isRunning || this.cronJob) {
+      logger.warn('FarmingScheduler уже запущен', { 
+        isRunning: this.isRunning, 
+        hasCronJob: !!this.cronJob 
+      });
       return;
     }
 
-    logger.info('🚀 Запуск автоматического планировщика фарминг дохода');
+    logger.info('🚀 [EMERGENCY FIX] Запуск защищенного планировщика фарминг дохода');
     
-    // Каждые 5 минут начисляем доход активным фармерам
-    cron.schedule('*/5 * * * *', async () => {
-      logger.info('⏰ [CRON] Запуск scheduler задачи для начисления доходов');
+    // CRITICAL FIX: Store cron job reference and add stronger validation
+    this.cronJob = cron.schedule('*/5 * * * *', async () => {
+      const startTime = new Date();
+      logger.info('⏰ [CRON-PROTECTED] Запуск задачи начисления доходов', {
+        startTime: startTime.toISOString(),
+        isProcessing: this.isProcessing,
+        lastProcessTime: this.lastProcessTime?.toISOString()
+      });
+      
+      // CRITICAL: Multiple level protection
+      if (this.isProcessing) {
+        logger.warn('🚫 [CRON-PROTECTED] SKIP: Уже выполняется обработка');
+        return;
+      }
+      
+      // Additional time-based protection  
+      if (this.lastProcessTime) {
+        const minutesSince = (Date.now() - this.lastProcessTime.getTime()) / (1000 * 60);
+        if (minutesSince < 4.8) { // Increased from 4.5 to 4.8 minutes
+          logger.warn('🚫 [CRON-PROTECTED] SKIP: Слишком рано с последнего запуска', {
+            minutesSince: minutesSince.toFixed(2),
+            required: 4.8
+          });
+          return;
+        }
+      }
+      
       try {
         await this.processUniFarmingIncome();
         await this.processTonFarmingIncome();
-        logger.info('✅ [CRON] Scheduler задача выполнена успешно');
+        const endTime = new Date();
+        const duration = endTime.getTime() - startTime.getTime();
+        logger.info('✅ [CRON-PROTECTED] Задача выполнена успешно', {
+          duration: `${duration}ms`,
+          endTime: endTime.toISOString()
+        });
       } catch (error) {
-        logger.error('❌ [CRON] Ошибка выполнения scheduler задачи:', error);
+        logger.error('❌ [CRON-PROTECTED] Ошибка выполнения задачи:', error);
       }
     });
 
     this.isRunning = true;
-    logger.info('✅ Планировщик фарминг дохода активен (каждые 5 минут)');
+    logger.info('✅ [EMERGENCY FIX] Защищенный планировщик фарминг дохода активен (строго каждые 5 минут)');
+  }
+  
+  /**
+   * Останавливает планировщик
+   */
+  stop(): void {
+    if (this.cronJob) {
+      this.cronJob.destroy();
+      this.cronJob = null;
+      logger.info('🛑 [CRON-PROTECTED] Планировщик остановлен');
+    }
+    this.isRunning = false;
+    this.isProcessing = false;
   }
 
   /**

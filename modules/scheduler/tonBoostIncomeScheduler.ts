@@ -12,6 +12,17 @@ import { supabase } from '../../core/supabase';
 export class TONBoostIncomeScheduler {
   private intervalId: NodeJS.Timeout | null = null;
   private referralService: ReferralService;
+  private static instance: TONBoostIncomeScheduler | null = null;
+  private isProcessing: boolean = false;
+  private lastProcessTime: Date | null = null;
+  
+  // Singleton pattern to prevent multiple instances
+  static getInstance(): TONBoostIncomeScheduler {
+    if (!TONBoostIncomeScheduler.instance) {
+      TONBoostIncomeScheduler.instance = new TONBoostIncomeScheduler();
+    }
+    return TONBoostIncomeScheduler.instance;
+  }
 
   constructor() {
     this.referralService = new ReferralService();
@@ -22,21 +33,61 @@ export class TONBoostIncomeScheduler {
    */
   start(): void {
     if (this.intervalId) {
-      logger.warn('[TON_BOOST_SCHEDULER] Планировщик уже запущен');
+      logger.warn('[TON_BOOST_SCHEDULER-PROTECTED] Планировщик уже запущен', {
+        hasInterval: !!this.intervalId,
+        isProcessing: this.isProcessing
+      });
       return;
     }
 
-    logger.info('[TON_BOOST_SCHEDULER] 🚀 Запуск планировщика доходов от TON Boost пакетов');
+    logger.info('[TON_BOOST_SCHEDULER-PROTECTED] 🚀 [EMERGENCY FIX] Запуск защищенного планировщика TON Boost');
 
-    // Каждые 5 минут
-    this.intervalId = setInterval(() => {
-      logger.info('[TON_BOOST_SCHEDULER] ⏰ Запуск периодического начисления TON Boost');
-      this.processTonBoostIncome()
-        .then(() => logger.info('[TON_BOOST_SCHEDULER] ✅ Периодическое начисление выполнено'))
-        .catch(error => logger.error('[TON_BOOST_SCHEDULER] ❌ Ошибка периодического начисления:', error));
+    // CRITICAL FIX: Add protection against multiple executions
+    this.intervalId = setInterval(async () => {
+      const startTime = new Date();
+      logger.info('[TON_BOOST_SCHEDULER-PROTECTED] ⏰ Запуск защищенного начисления TON Boost', {
+        startTime: startTime.toISOString(),
+        isProcessing: this.isProcessing,
+        lastProcessTime: this.lastProcessTime?.toISOString()
+      });
+      
+      // CRITICAL: Multiple level protection similar to UNI farming
+      if (this.isProcessing) {
+        logger.warn('[TON_BOOST_SCHEDULER-PROTECTED] 🚫 SKIP: Уже выполняется обработка');
+        return;
+      }
+      
+      // Additional time-based protection
+      if (this.lastProcessTime) {
+        const minutesSince = (Date.now() - this.lastProcessTime.getTime()) / (1000 * 60);
+        if (minutesSince < 4.8) { // Same protection as UNI farming
+          logger.warn('[TON_BOOST_SCHEDULER-PROTECTED] 🚫 SKIP: Слишком рано с последнего запуска', {
+            minutesSince: minutesSince.toFixed(2),
+            required: 4.8
+          });
+          return;
+        }
+      }
+      
+      this.isProcessing = true;
+      this.lastProcessTime = new Date();
+      
+      try {
+        await this.processTonBoostIncome();
+        const endTime = new Date();
+        const duration = endTime.getTime() - startTime.getTime();
+        logger.info('[TON_BOOST_SCHEDULER-PROTECTED] ✅ Защищенное начисление выполнено', {
+          duration: `${duration}ms`,
+          endTime: endTime.toISOString()
+        });
+      } catch (error) {
+        logger.error('[TON_BOOST_SCHEDULER-PROTECTED] ❌ Ошибка защищенного начисления:', error);
+      } finally {
+        this.isProcessing = false;
+      }
     }, 5 * 60 * 1000); // 5 минут
 
-    logger.info('[TON_BOOST_SCHEDULER] ✅ Планировщик TON Boost доходов активен (каждые 5 минут)');
+    logger.info('[TON_BOOST_SCHEDULER-PROTECTED] ✅ [EMERGENCY FIX] Защищенный планировщик TON Boost активен (строго каждые 5 минут)');
   }
 
   /**

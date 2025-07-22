@@ -40,8 +40,8 @@ import * as WebSocket from 'ws';
 import { config, logger, globalErrorHandler, notFoundHandler, EnvValidator } from '../core';
 import { supabase } from '../core/supabase';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
-import { farmingScheduler } from '../core/scheduler/farmingScheduler';
-import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler';
+import { FarmingScheduler } from '../core/scheduler/farmingScheduler';
+import { TONBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler';
 import { alertingService } from '../core/alerting';
 import { setupViteIntegration } from './setupViteIntegration';
 import { BalanceNotificationService } from '../core/balanceNotificationService';
@@ -1001,20 +1001,22 @@ async function startServer() {
         logger.warn('🚨 SCHEDULER_DISABLED.flag обнаружен - планировщики НЕ запускаются');
         logger.warn('📋 Для восстановления удалите файл SCHEDULER_DISABLED.flag');
       } else {
-        // Инициализация фарминг-планировщика
+        // EMERGENCY FIX: Инициализация защищенных планировщиков через Singleton
         try {
-          farmingScheduler.start();
-          logger.info('✅ Фарминг-планировщик запущен');
+          const protectedFarmingScheduler = FarmingScheduler.getInstance();
+          protectedFarmingScheduler.start();
+          logger.info('✅ [EMERGENCY FIX] Защищенный фарминг-планировщик запущен');
         } catch (error) {
-          logger.error('❌ Ошибка запуска фарминг-планировщика', { error });
+          logger.error('❌ [EMERGENCY FIX] Ошибка запуска защищенного фарминг-планировщика', { error });
         }
         
-        // Инициализация TON Boost планировщика
+        // EMERGENCY FIX: Инициализация защищенного TON Boost планировщика
         try {
-          tonBoostIncomeScheduler.start();
-          logger.info('✅ TON Boost планировщик запущен');
+          const protectedTonBoostScheduler = TONBoostIncomeScheduler.getInstance();
+          protectedTonBoostScheduler.start();
+          logger.info('✅ [EMERGENCY FIX] Защищенный TON Boost планировщик запущен');
         } catch (error) {
-          logger.error('❌ Ошибка запуска TON Boost планировщика', { error });
+          logger.error('❌ [EMERGENCY FIX] Ошибка запуска защищенного TON Boost планировщика', { error });
         }
       }
       
