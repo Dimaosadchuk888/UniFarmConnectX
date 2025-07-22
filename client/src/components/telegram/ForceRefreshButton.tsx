@@ -26,6 +26,18 @@ const ForceRefreshButton: React.FC<ForceRefreshButtonProps> = ({
     try {
       console.log('[FORCE REFRESH] 🔄 Пользователь запросил принудительное обновление');
       
+      // Feature flag для JWT backup - по умолчанию выключен для безопасности
+      const jwtBackupEnabled = import.meta.env.VITE_JWT_BACKUP_ENABLED === 'true';
+      if (jwtBackupEnabled) {
+        const token = localStorage.getItem('unifarm_jwt_token');
+        if (token) {
+          sessionStorage.setItem('unifarm_jwt_backup', token);
+          console.log('[FORCE REFRESH] JWT токен сохранен в резервное хранилище (feature flag включен)');
+        }
+      } else {
+        console.log('[FORCE REFRESH] JWT backup feature flag выключен - используется стандартная логика');
+      }
+      
       // Очищаем все возможные кэши
       if ('caches' in window) {
         caches.keys().then(cacheNames => {

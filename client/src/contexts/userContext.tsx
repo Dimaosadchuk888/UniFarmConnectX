@@ -72,7 +72,19 @@ interface UserState {
 // Начальное состояние - получаем данные из JWT токена
 const getInitialUserData = () => {
   try {
-    const jwtToken = localStorage.getItem('unifarm_jwt_token');
+    let jwtToken = localStorage.getItem('unifarm_jwt_token');
+    
+    // Feature flag для JWT restore - по умолчанию выключен для безопасности
+    const jwtBackupEnabled = import.meta.env.VITE_JWT_BACKUP_ENABLED === 'true';
+    if (!jwtToken && jwtBackupEnabled) {
+      jwtToken = sessionStorage.getItem('unifarm_jwt_backup');
+      if (jwtToken) {
+        localStorage.setItem('unifarm_jwt_token', jwtToken);
+        sessionStorage.removeItem('unifarm_jwt_backup');
+        console.log('[UserContext] JWT токен восстановлен из резервного хранилища (feature flag включен)');
+      }
+    }
+    
     if (jwtToken) {
       const payload = JSON.parse(atob(jwtToken.split('.')[1]));
       return {
