@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/contexts/userContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import StyledTransactionItem from './StyledTransactionItem';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 // Типы транзакций согласно схеме базы данных
 interface Transaction {
@@ -124,8 +125,17 @@ const TransactionHistory: React.FC = () => {
   
   // Обработчик загрузки следующей страницы
   const handleLoadMore = () => {
+    console.log('[TransactionHistory] Загружаем следующую страницу:', page + 1);
     setPage(prev => prev + 1);
   };
+
+  // Настройка infinite scroll
+  const { targetRef, isSupported: isInfiniteScrollSupported } = useInfiniteScroll({
+    hasMore: allTransactions.length < totalTransactions,
+    isLoading: isFetching,
+    onLoadMore: handleLoadMore,
+    rootMargin: '50px'
+  });
   
   if (error) {
     return (
@@ -233,43 +243,91 @@ const TransactionHistory: React.FC = () => {
             </p>
           </div>
         ) : (
-          // Список транзакций с новым стилизованным компонентом
-          allTransactions.map((transaction: any) => (
-            <StyledTransactionItem 
-              key={transaction.id}
-              transaction={{
-                id: transaction.id,
-                type: transaction.type,
-                amount: parseFloat(transaction.amount || '0'),
-                currency: transaction.currency,
-                status: transaction.status,
-                description: transaction.description,
-                createdAt: transaction.createdAt || transaction.created_at,
-                timestamp: transaction.timestamp || transaction.created_at
-              }}
-            />
-          ))
+          // Список транзакций с плавными анимациями
+          <>
+            {allTransactions.map((transaction: any, index: number) => (
+              <div
+                key={transaction.id}
+                className="animate-fadeInUp"
+                style={{
+                  animationDelay: `${Math.min(index * 50, 300)}ms`,
+                  animationDuration: '0.4s',
+                  animationFillMode: 'both'
+                }}
+              >
+                <StyledTransactionItem 
+                  transaction={{
+                    id: transaction.id,
+                    type: transaction.type,
+                    amount: parseFloat(transaction.amount || '0'),
+                    currency: transaction.currency,
+                    status: transaction.status,
+                    description: transaction.description,
+                    createdAt: transaction.createdAt || transaction.created_at,
+                    timestamp: transaction.timestamp || transaction.created_at
+                  }}
+                />
+              </div>
+            ))}
+            
+            {/* Loading skeleton для подгружающихся элементов */}
+            {isFetching && allTransactions.length > 0 && (
+              <>
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={`loading-skeleton-${index}`} className="bg-gray-800/30 rounded-lg p-3 animate-pulse">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-gray-700 rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="w-24 h-4 bg-gray-700 rounded mb-1"></div>
+                        <div className="w-32 h-3 bg-gray-700 rounded"></div>
+                      </div>
+                      <div className="text-right">
+                        <div className="w-16 h-4 bg-gray-700 rounded mb-1"></div>
+                        <div className="w-12 h-3 bg-gray-700 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </>
         )}
       </div>
       
-      {/* Кнопка "Загрузить еще" */}
+      {/* Infinite scroll trigger или fallback кнопка */}
       {allTransactions.length > 0 && allTransactions.length < totalTransactions && (
-        <div className="mt-4 text-center relative z-10">
-          <button
-            onClick={handleLoadMore}
-            disabled={isFetching}
-            className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
+        isInfiniteScrollSupported ? (
+          // Invisible trigger для infinite scroll
+          <div 
+            ref={targetRef}
+            className="h-16 flex items-center justify-center mt-4 relative z-10"
           >
-            {isFetching ? (
-              <>
+            {isFetching && (
+              <div className="flex items-center text-gray-400 text-sm animate-pulse">
                 <i className="fas fa-spinner fa-spin mr-2"></i>
-                Загрузка...
-              </>
-            ) : (
-              'Загрузить еще'
+                Загружаем еще транзакции...
+              </div>
             )}
-          </button>
-        </div>
+          </div>
+        ) : (
+          // Fallback кнопка для браузеров без IntersectionObserver
+          <div className="mt-4 text-center relative z-10">
+            <button
+              onClick={handleLoadMore}
+              disabled={isFetching}
+              className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
+            >
+              {isFetching ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  Загрузка...
+                </>
+              ) : (
+                'Загрузить еще'
+              )}
+            </button>
+          </div>
+        )
       )}
     </div>
   );
