@@ -22,6 +22,20 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Referral Income Font Size Improvement (July 22, 2025)
+**Issue**: UNI and TON income amounts in referral system were displayed with very small font (`text-xs` - 12px), making them hard to read on mobile devices.
+
+**Solution Implemented**:
+1. **Increased font size**: Changed from `text-xs` to `text-sm` in Badge components displaying referral income
+2. **Improved readability**: Income amounts now display at 14px instead of 12px (+17% size increase)
+3. **Maintained design consistency**: Changes preserve existing Badge styling and color scheme
+4. **Mobile-friendly**: Better accessibility on smaller screens without disrupting layout
+
+**Files Modified**:
+- `client/src/components/referral/ReferralStats.tsx`: Updated Badge className for UNI and TON income display
+
+**Status**: ✅ **COMPLETED** - Referral income amounts are now more readable while maintaining design integrity.
+
 ### Port Conflict Resolution Fix (July 22, 2025)
 **Issue**: Server startup was failing with `EADDRINUSE: address already in use 0.0.0.0:3000` error.
 

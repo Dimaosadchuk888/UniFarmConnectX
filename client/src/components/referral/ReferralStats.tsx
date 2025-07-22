@@ -243,10 +243,10 @@ const ReferralStats: React.FC = () => {
           </div>
           <div className="text-right">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-sm">
                 {formatNumber(level.income?.uni || 0)} UNI
               </Badge>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-sm">
                 {formatNumber(level.income?.ton || 0)} TON
               </Badge>
             </div>
