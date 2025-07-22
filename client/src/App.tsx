@@ -16,7 +16,7 @@ import TonConnectErrorBoundary from "@/components/ui/TonConnectErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
 import { WebSocketProvider } from "@/contexts/webSocketContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
-import { TonConnectReadinessProvider } from "@/components/providers/TonConnectReadinessProvider";
+
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 import { WebSocketBalanceSync } from "@/components/WebSocketBalanceSync";
 
@@ -289,8 +289,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        {/* Временно отключаем TonConnect для диагностики useState ошибки */}
-        <div>
+        <TonConnectUIProvider manifestUrl="https://uni-farm-connect-aab49267.replit.app/tonconnect-manifest.json">
           <TonConnectErrorBoundary>
               <NotificationProvider>
                 <UserProvider>
@@ -310,8 +309,7 @@ function App() {
                 </UserProvider>
               </NotificationProvider>
           </TonConnectErrorBoundary>
-        </div>
-        {/* TonConnect временно отключен для диагностики */}
+        </TonConnectUIProvider>
       </ErrorBoundary>
     </QueryClientProvider>
   );

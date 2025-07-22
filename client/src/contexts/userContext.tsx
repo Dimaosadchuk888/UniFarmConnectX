@@ -192,9 +192,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   
   const { isReady: isTelegramReady, initData, user: telegramUser } = useTelegram();
   
-  // Временно отключаем useTonConnectUI для диагностики useState ошибки
-  // const [tonConnectUI] = useTonConnectUI();
-  const tonConnectUI = null; // Временное отключение
+  // Всегда вызываем useTonConnectUI на верхнем уровне (требование React Hooks)
+  const [tonConnectUI] = useTonConnectUI();
   
   // Отложенная готовность TonConnect для предотвращения race condition
   useEffect(() => {

@@ -549,11 +549,12 @@ async function startServer() {
       console.log('[JWT Debug] Auth header:', authHeader);
       
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.json({
+        res.json({
           success: false,
           error: 'No JWT token provided',
           auth_header: authHeader || 'none'
         });
+        return;
       }
       
       const token = authHeader.substring(7);
@@ -561,11 +562,12 @@ async function startServer() {
         const jwtSecret = process.env.JWT_SECRET;
         
         if (!jwtSecret) {
-          return res.json({
+          res.json({
             success: false,
             error: 'JWT_SECRET not configured',
             env_check: 'JWT_SECRET' in process.env
           });
+          return;
         }
         
         const decoded = jwt.verify(token, jwtSecret);
@@ -589,10 +591,11 @@ async function startServer() {
         const jwtSecret = process.env.JWT_SECRET;
         
         if (!jwtSecret) {
-          return res.status(500).json({ 
+          res.status(500).json({ 
             error: 'JWT_SECRET not configured',
             env_check: 'JWT_SECRET' in process.env
           });
+          return;
         }
         
         const payload = {
@@ -769,7 +772,8 @@ async function startServer() {
         try {
           const userId = (req as any).user?.id;
           if (!userId) {
-            return res.status(401).json({ success: false, error: 'Unauthorized' });
+            res.status(401).json({ success: false, error: 'Unauthorized' });
+            return;
           }
           
           console.log('[BACKWARD COMPAT] /api/me for user:', userId);
@@ -778,10 +782,11 @@ async function startServer() {
           const user = await userRepository.getUserById(userId);
           
           if (!user) {
-            return res.status(404).json({ success: false, error: 'User not found' });
+            res.status(404).json({ success: false, error: 'User not found' });
+            return;
           }
           
-          return res.json({
+          res.json({
             success: true,
             data: {
               id: user.id,
@@ -797,7 +802,8 @@ async function startServer() {
           });
         } catch (error) {
           console.error('[/api/me] Error:', error);
-          return res.status(500).json({ success: false, error: 'Internal server error' });
+          res.status(500).json({ success: false, error: 'Internal server error' });
+          return;
         }
       });
       
@@ -894,10 +900,11 @@ async function startServer() {
         const { userId, changeAmount, currency } = req.body;
         
         if (!userId || !changeAmount || !currency) {
-          return res.status(400).json({
+          res.status(400).json({
             success: false,
             error: 'Требуются параметры: userId, changeAmount, currency'
           });
+          return;
         }
 
         const balanceService = BalanceNotificationService.getInstance();
@@ -930,6 +937,7 @@ async function startServer() {
           success: false,
           error: 'Ошибка сервера'
         });
+        return;
       }
     });
     
