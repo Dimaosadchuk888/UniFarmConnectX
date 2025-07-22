@@ -35,6 +35,8 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import fs from 'fs';
 import { createServer } from 'http';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 // @ts-ignore
 import * as WebSocket from 'ws';
 import { config, logger, globalErrorHandler, notFoundHandler, EnvValidator } from '../core';
@@ -56,6 +58,34 @@ import { SupabaseUserRepository } from '../modules/user/service';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
+
+/**
+ * Поиск доступного порта
+ */
+async function findAvailablePort(startPort: number): Promise<number> {
+  const net = require('net');
+  
+  const isPortAvailable = (port: number): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const server = net.createServer();
+      server.listen(port, () => {
+        server.once('close', () => resolve(true));
+        server.close();
+      });
+      server.on('error', () => resolve(false));
+    });
+  };
+
+  let port = startPort;
+  while (port < startPort + 100) { // Пробуем до 100 портов
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+    port++;
+  }
+  
+  throw new Error(`Не удалось найти доступный порт в диапазоне ${startPort}-${startPort + 100}`);
+}
 
 /**
  * Установка WebSocket сервера с логированием всех событий
@@ -986,13 +1016,36 @@ async function startServer() {
     // Устанавливаем WebSocket сервер
     const wss = setupWebSocketServer(httpServer);
     
-    // Запуск сервера с принудительным использованием 0.0.0.0 для контейнерной среды
+    // Запуск сервера с автоматическим поиском доступного порта
     const deploymentHost = '0.0.0.0'; // Всегда используем 0.0.0.0 для доступности извне
-    const server = httpServer.listen(Number(apiPort), deploymentHost, () => {
-      logger.info(`🚀 API сервер запущен на http://0.0.0.0:${apiPort}`);
-      logger.info(`📡 API доступен: http://localhost:${apiPort}${apiPrefix}/`);
-      logger.info(`🔌 WebSocket сервер активен на ws://localhost:${apiPort}/ws`);
-      logger.info(`🌐 Frontend: http://localhost:${apiPort}/ (Static files from dist)`);
+    let finalPort: number;
+    
+    try {
+      finalPort = await findAvailablePort(Number(apiPort));
+      if (finalPort !== Number(apiPort)) {
+        logger.warn(`⚠️  Порт ${apiPort} занят, используем порт ${finalPort}`);
+      }
+    } catch (error) {
+      logger.error('❌ Не удалось найти доступный порт', { error });
+      throw error;
+    }
+    
+    // Добавляем обработчик ошибок сервера
+    httpServer.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        logger.error(`❌ Порт ${finalPort} уже используется`, { error: error.message });
+        process.exit(1);
+      } else {
+        logger.error('❌ Ошибка HTTP сервера', { error: error.message });
+        process.exit(1);
+      }
+    });
+
+    const server = httpServer.listen(finalPort, deploymentHost, () => {
+      logger.info(`🚀 API сервер запущен на http://0.0.0.0:${finalPort}`);
+      logger.info(`📡 API доступен: http://localhost:${finalPort}${apiPrefix}/`);
+      logger.info(`🔌 WebSocket сервер активен на ws://localhost:${finalPort}/ws`);
+      logger.info(`🌐 Frontend: http://localhost:${finalPort}/ (Static files from dist)`);
       
       // Supabase API не требует мониторинга connection pool
       logger.info('✅ Supabase database connection active');
