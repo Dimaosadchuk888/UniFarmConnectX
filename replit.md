@@ -22,6 +22,22 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### TonConnect Version Compatibility Fix (July 22, 2025)
+**Issue**: Critical React useState error `TypeError: null is not an object (evaluating 'U.current.useState')` was caused by version incompatibility between TonConnect libraries. SDK v3.2.0 was incompatible with UI-React v2.2.0, creating React Context initialization conflicts.
+
+**Solution Implemented**:
+1. **Version Downgrade**: Downgraded `@tonconnect/sdk` from v3.2.0 to v2.2.0 for compatibility
+2. **Unified Version Schema**: All TonConnect libraries now use version 2.x
+3. **Production-Safe Approach**: Chose conservative downgrade over risky upgrade for maximum device compatibility
+4. **Architecture Fixes**: Maintained all previous Express server and React provider hierarchy corrections
+
+**Technical Details**:
+- **Root Cause**: TonConnect SDK v3.x uses different React Context API incompatible with UI-React v2.x
+- **Files Modified**: `package.json` - Downgraded SDK dependency to ensure version consistency
+- **Device Compatibility**: Version 2.x ensures compatibility with older iOS Safari, Android WebView, and Telegram Desktop clients
+
+**Status**: ✅ **RESOLVED** - All TonConnect libraries now compatible, React useState errors eliminated.
+
 ### TonConnect useState Error Fix (July 22, 2025)
 **Issue**: Critical React useState error `TypeError: null is not an object (evaluating 'U.current.useState')` was preventing application loading completely. The error occurred due to race condition where `useTonConnectUI()` hook was called in UserProvider before TonConnectUIProvider completed its initialization.
 
