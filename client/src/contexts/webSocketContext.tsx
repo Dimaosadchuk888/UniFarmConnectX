@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'connecting';
 
@@ -21,6 +22,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [lastMessage, setLastMessage] = useState<any>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const heartbeatIntervalRef = useRef<number | null>(null);
+  const { toast } = useToast();
+  const hasShownDisconnectedToast = useRef<boolean>(false);
 
   const connect = () => {
     try {
@@ -41,6 +44,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = null;
+        }
+        
+        // Показываем уведомление о восстановлении соединения только если было отключение
+        if (hasShownDisconnectedToast.current) {
+          toast({
+            title: "Соединение восстановлено",
+            variant: "default"
+          });
+          hasShownDisconnectedToast.current = false;
         }
         
         // Запускаем heartbeat - отправляем ping каждые 30 секунд
@@ -80,6 +92,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         console.log('[WebSocket] Соединение закрыто');
         setConnectionStatus('disconnected');
         setSocket(null);
+        
+        // Показываем уведомление об отключении только один раз
+        if (!hasShownDisconnectedToast.current) {
+          toast({
+            title: "Соединение с сервером потеряно",
+            variant: "destructive"
+          });
+          hasShownDisconnectedToast.current = true;
+        }
         
         // Очищаем heartbeat при закрытии соединения
         if (heartbeatIntervalRef.current) {

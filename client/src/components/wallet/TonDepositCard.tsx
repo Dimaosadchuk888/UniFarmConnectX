@@ -85,7 +85,7 @@ const TonDepositCard: React.FC = () => {
       }
     } catch (error) {
       console.error('Ошибка подключения кошелька:', error);
-      showError('Ошибка при подключении кошелька');
+      showError('Не удалось подключить кошелек');
     } finally {
       setIsConnecting(false);
     }
@@ -96,7 +96,7 @@ const TonDepositCard: React.FC = () => {
     const depositAmount = parseFloat(amount);
     
     if (!depositAmount || depositAmount <= 0) {
-      showError('Введите корректную сумму');
+      showError('Введите сумму больше 0');
       return;
     }
 

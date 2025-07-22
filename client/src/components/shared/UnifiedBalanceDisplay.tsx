@@ -57,7 +57,7 @@ export const UnifiedBalanceDisplay: React.FC<UnifiedBalanceDisplayProps> = ({
       setLastUpdate(new Date());
       addNotification({
         type: 'info',
-        message: 'Баланс обновлен в реальном времени',
+        message: 'Баланс обновлен',
         duration: 3000
       });
     }
@@ -79,7 +79,7 @@ export const UnifiedBalanceDisplay: React.FC<UnifiedBalanceDisplayProps> = ({
     } catch (error) {
       addNotification({
         type: 'error',
-        message: 'Ошибка обновления баланса',
+        message: 'Ошибка при обновлении баланса',
         duration: 3000
       });
     } finally {

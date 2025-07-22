@@ -113,6 +113,14 @@ export async function correctApiRequest(
         
         if (refreshResult.success) {
           console.log('[correctApiRequest] ✅ Токен успешно обновлен, повторяем запрос...');
+          
+          // Показываем пользователю что токен обновляется
+          toast({
+            title: "Обновляем токен авторизации...",
+            variant: "default",
+            duration: 2000
+          });
+          
           // Повторяем запрос с новым токеном
           return correctApiRequest(url, method, body, headers, retryCount + 1);
         } else {
@@ -137,8 +145,8 @@ export async function correctApiRequest(
           
           // Показываем уведомление пользователю
           toast({
-            title: "Слишком много запросов",
-            description: errorData.error || "Пожалуйста, подождите немного и попробуйте снова",
+            title: "Попробуйте через несколько секунд",
+            description: "Слишком много запросов",
             variant: "destructive",
             duration: 5000
           });
@@ -149,6 +157,15 @@ export async function correctApiRequest(
         (error as any).status = 429;
         (error as any).retryAfter = errorData.retryAfter;
         throw error;
+      }
+      
+      // Обработка серверных ошибок 5xx
+      if (response.status >= 500) {
+        toast({
+          title: "Временные проблемы с сервером",
+          description: "Мы работаем над решением проблемы",
+          variant: "destructive"
+        });
       }
       
       // Добавляем дополнительную информацию к ошибке
@@ -167,6 +184,16 @@ export async function correctApiRequest(
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     });
+    
+    // Обработка сетевых ошибок
+    if (error instanceof Error && error.name === 'TypeError' && error.message.includes('fetch')) {
+      toast({
+        title: "Проверьте подключение к интернету",
+        description: "Не удалось связаться с сервером",
+        variant: "destructive"
+      });
+    }
+    
     throw error;
   }
 }

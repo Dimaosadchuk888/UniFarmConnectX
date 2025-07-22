@@ -115,7 +115,7 @@ const WithdrawalForm: React.FC = () => {
     try {
       // Дополнительная валидация
       if (data.amount > getAvailableBalance()) {
-        throw new Error(`Недостаточно средств. Доступно: ${getAvailableBalance()} ${selectedCurrency}`);
+        throw new Error('Недостаточно средств');
       }
       
       if (data.amount < getMinAmount()) {

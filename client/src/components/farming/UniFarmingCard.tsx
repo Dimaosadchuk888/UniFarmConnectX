@@ -89,6 +89,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return response;
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка при получении информации о фарминге:', error);
+        showError('Не удалось загрузить данные фарминга');
         throw new Error(`Ошибка получения данных фарминга: ${error.message || 'Неизвестная ошибка'}`);
       }
     }
@@ -249,6 +250,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       try {
         console.error('[ERROR] UniFarmingCard - Ошибка в infoMutation:', error);
         setError('Ошибка при обновлении данных: ' + error.message);
+        showError('Не удалось обновить данные фарминга');
       } catch (err: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в обработке onError:', err);
         setError('Произошла ошибка при обновлении данных');
@@ -337,6 +339,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       try {
         console.error('[ERROR] UniFarmingCard - Ошибка в depositMutation:', error);
         setError(`Не удалось выполнить депозит: ${error.message}`);
+        showError('Не удалось создать депозит');
       } catch (err: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка обработки onError depositMutation:', err);
         setError('Не удалось выполнить депозит: пожалуйста, попробуйте позже');

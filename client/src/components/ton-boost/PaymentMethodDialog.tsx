@@ -102,7 +102,7 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
           });
         } else {
           toast({
-            title: "Транзакция отменена",
+            title: "Платеж отменен",
             description: "Вы отменили транзакцию или произошла ошибка",
             variant: "default"
           });

@@ -75,6 +75,7 @@ const TransactionHistory: React.FC = () => {
         return { transactions: [], total: 0 };
       } catch (err) {
         console.error('[TransactionHistory] Ошибка загрузки транзакций:', err);
+        showError('Не удалось загрузить историю транзакций');
         return { transactions: [], total: 0 };
       }
     },
