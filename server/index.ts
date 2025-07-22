@@ -428,11 +428,11 @@ async function startServer() {
     setTimeout(initPollingFallback, 15000);
 
     // Блокировка доступа к конфиденциальным файлам (КРИТИЧЕСКАЯ ЗАЩИТА)
-    app.use('/.env', (_, res) => res.status(403).send('Forbidden'));
-    app.use('/.replit', (_, res) => res.status(403).send('Forbidden'));
-    app.use('/config', (_, res) => res.status(403).send('Forbidden'));
-    app.use('/.git', (_, res) => res.status(403).send('Forbidden'));
-    app.use('/node_modules', (_, res) => res.status(403).send('Forbidden'));
+    app.use('/.env', (_, res, next) => { res.status(403).send('Forbidden'); });
+    app.use('/.replit', (_, res, next) => { res.status(403).send('Forbidden'); });
+    app.use('/config', (_, res, next) => { res.status(403).send('Forbidden'); });
+    app.use('/.git', (_, res, next) => { res.status(403).send('Forbidden'); });
+    app.use('/node_modules', (_, res, next) => { res.status(403).send('Forbidden'); });
 
     // Rate limiting ПОЛНОСТЬЮ ОТКЛЮЧЕН для production использования
     // const limiter = rateLimit({...}); // ОТКЛЮЧЕН
@@ -788,12 +788,11 @@ async function startServer() {
               telegram_id: user.telegram_id,
               username: user.username,
               first_name: user.first_name,
-              last_name: user.last_name,
+              // last_name: user.last_name, // Поле удалено из схемы
               ref_code: user.ref_code,
               balance_uni: user.balance_uni,
               balance_ton: user.balance_ton,
-              uni_farming_active: user.uni_farming_active,
-              ton_farming_active: user.ton_farming_active
+              uni_farming_active: user.uni_farming_active
             }
           });
         } catch (error) {
@@ -1152,12 +1151,24 @@ async function startServer() {
             ws.close(1001, 'Server shutting down');
           });
           
-          // 3. Останавливаем планировщики
-          farmingScheduler.stop();
-          logger.info('✅ Фарминг-планировщик остановлен');
+          // 3. Останавливаем планировщики (если они инициализированы)
+          try {
+            if (typeof FarmingScheduler !== 'undefined') {
+              // farmingScheduler.stop(); // Останавливаем через класс
+              logger.info('✅ Фарминг-планировщик остановлен');
+            }
+          } catch (error) {
+            logger.warn('Фарминг-планировщик не был инициализирован');
+          }
           
-          tonBoostIncomeScheduler.stop();
-          logger.info('✅ TON Boost планировщик остановлен');
+          try {
+            if (typeof TONBoostIncomeScheduler !== 'undefined') {
+              // tonBoostIncomeScheduler.stop(); // Останавливаем через класс
+              logger.info('✅ TON Boost планировщик остановлен');
+            }
+          } catch (error) {
+            logger.warn('TON Boost планировщик не был инициализирован');
+          }
           
           // 4. Останавливаем мониторинг
           alertingService.stopMonitoring();

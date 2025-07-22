@@ -16,6 +16,7 @@ import TonConnectErrorBoundary from "@/components/ui/TonConnectErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
 import { WebSocketProvider } from "@/contexts/webSocketContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { TonConnectReadinessProvider } from "@/components/providers/TonConnectReadinessProvider";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 import { WebSocketBalanceSync } from "@/components/WebSocketBalanceSync";
 
@@ -288,11 +289,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <TonConnectUIProvider manifestUrl="https://uni-farm-connect-aab49267.replit.app/tonconnect-manifest.json">
+        {/* Временно отключаем TonConnect для диагностики useState ошибки */}
+        <div>
           <TonConnectErrorBoundary>
-            <NotificationProvider>
-              <UserProvider>
-                <WebSocketProvider>
+              <NotificationProvider>
+                <UserProvider>
+                  <WebSocketProvider>
                   <WebSocketBalanceSync />
                   <TelegramWebAppCheck>
                     <MainLayout 
@@ -304,11 +306,12 @@ function App() {
                     {/* <NetworkStatusIndicator /> */}
                     <Toaster />
                   </TelegramWebAppCheck>
-                </WebSocketProvider>
-              </UserProvider>
-            </NotificationProvider>
+                  </WebSocketProvider>
+                </UserProvider>
+              </NotificationProvider>
           </TonConnectErrorBoundary>
-        </TonConnectUIProvider>
+        </div>
+        {/* TonConnect временно отключен для диагностики */}
       </ErrorBoundary>
     </QueryClientProvider>
   );
