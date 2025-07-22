@@ -1040,8 +1040,10 @@ async function startServer() {
       (async () => {
         try {
           const adminBot = new AdminBotService();
-          const appUrl = process.env.APP_DOMAIN || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+          const appUrl = process.env.TELEGRAM_WEBAPP_URL || process.env.APP_DOMAIN || 'https://uni-farm-connect-aab49267.replit.app';
           const webhookUrl = `${appUrl}/api/v2/admin-bot/webhook`;
+          
+          logger.info('[AdminBot] Initializing with URL', { appUrl, webhookUrl });
           
           const webhookSet = await adminBot.setupWebhook(webhookUrl);
           if (webhookSet) {

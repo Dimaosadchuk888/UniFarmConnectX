@@ -5,6 +5,25 @@ import { logger } from '../../core/logger';
 const router = Router();
 const adminBotController = new AdminBotController();
 
+// Admin bot routes test endpoint
+router.get('/test', (req, res) => {
+  res.status(200).json({
+    status: 'admin-bot routes working',
+    timestamp: new Date().toISOString(),
+    version: '2.0'
+  });
+});
+
+// Admin bot webhook status endpoint (for Telegram verification)
+router.get('/webhook', (req, res) => {
+  res.status(200).json({
+    status: 'ready',
+    service: 'UniFarm Admin Bot',
+    timestamp: new Date().toISOString(),
+    message: 'Webhook endpoint is operational'
+  });
+});
+
 // Admin bot webhook endpoint
 router.post('/webhook', async (req, res) => {
   try {
