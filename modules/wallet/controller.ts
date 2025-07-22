@@ -378,13 +378,14 @@ export class WalletController extends BaseController {
 
         // АРХИТЕКТУРНОЕ РЕШЕНИЕ: Wallet-Based Deposit Resolution
         // 1. Сначала пробуем найти пользователя по JWT (стандартный flow)
-        let user = await userRepository.getUserByTelegramId(telegram.user.id);
+        let user = await userRepository.getUserByTelegramId(telegram.user.telegram_id);
         let resolutionMethod = 'jwt_auth';
 
         // 2. Если пользователь не найден по JWT, ищем по кошельку
         if (!user) {
           logger.warn('[TON Deposit] Пользователь не найден по JWT, поиск по кошельку', {
-            jwt_telegram_id: telegram.user.id,
+            jwt_telegram_id: telegram.user.telegram_id,
+            jwt_database_id: telegram.user.id,
             jwt_username: telegram.user.username,
             wallet_address: wallet_address.slice(0, 10) + '...'
           });
@@ -410,13 +411,14 @@ export class WalletController extends BaseController {
         // 3. Если пользователь все еще не найден, создаем новый аккаунт
         if (!user) {
           logger.info('[TON Deposit] Создаем нового пользователя для депозита', {
-            jwt_telegram_id: telegram.user.id,
+            jwt_telegram_id: telegram.user.telegram_id,
+            jwt_database_id: telegram.user.id,
             jwt_username: telegram.user.username,
             wallet_address: wallet_address.slice(0, 10) + '...'
           });
 
           user = await userRepository.getOrCreateUserFromTelegram({
-            telegram_id: telegram.user.id,
+            telegram_id: telegram.user.telegram_id,
             username: telegram.user.username,
             first_name: telegram.user.first_name || telegram.user.username
           });
@@ -443,7 +445,8 @@ export class WalletController extends BaseController {
         // 4. Финальная проверка - если пользователя все еще нет, это критическая ошибка
         if (!user) {
           logger.error('[TON Deposit] КРИТИЧЕСКАЯ ОШИБКА: не удалось определить пользователя', {
-            jwt_telegram_id: telegram.user.id,
+            jwt_telegram_id: telegram.user.telegram_id,
+            jwt_database_id: telegram.user.id,
             wallet_address: wallet_address.slice(0, 10) + '...',
             ton_tx_hash
           });
