@@ -328,7 +328,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Показываем уведомление об успешном создании депозита ПОСЛЕ обновления данных
-        success('Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!');
+        // Разные сообщения для первого депозита (активация) и дополнительных депозитов
+        const isFirstDeposit = !farmingInfo.isActive;
+        if (isFirstDeposit) {
+          success('🌾 Фарминг UNI успешно активирован! Доход начисляется автоматически каждую секунду');
+        } else {
+          success('✅ Депозит добавлен в фарминг! Ваш доход увеличился');
+        }
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess depositMutation:', error);
         setError('Произошла ошибка при обработке депозита');
@@ -949,7 +955,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       {/* Форма для создания депозита (отображается всегда) */}
       <div className={farmingInfo.isActive ? "mt-6 pt-4 border-t border-slate-700" : ""}>
         <h3 className="text-md font-medium mb-4 flex items-center">
-          <span className="text-primary">{farmingInfo.isActive ? "Пополнить фарминг" : "Создать депозит и активировать фарминг"}</span>
+          <i className={`fas ${farmingInfo.isActive ? 'fa-plus-circle' : 'fa-rocket'} text-primary mr-2`}></i>
+          <span className="text-primary">{farmingInfo.isActive ? "Добавить депозит в фарминг" : "Создать первый депозит"}</span>
         </h3>
 
         <form onSubmit={handleSubmit} style={{ position: 'relative', zIndex: 20 }}>
@@ -1038,9 +1045,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               </div>
             ) : (
               <div className="flex items-center justify-center">
-                <i className={`fas ${farmingInfo.isActive ? 'fa-arrow-up' : 'fa-seedling'} mr-2`}></i>
+                <i className={`fas ${farmingInfo.isActive ? 'fa-plus-circle' : 'fa-rocket'} mr-2`}></i>
                 <span>
-                  {farmingInfo.isActive ? 'Пополнить фарминг' : 'Активировать фарминг UNI'}
+                  {farmingInfo.isActive ? 'Пополнить депозит' : 'Начать фарминг'}
                 </span>
               </div>
             )}
