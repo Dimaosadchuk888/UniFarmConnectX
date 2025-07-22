@@ -1139,6 +1139,58 @@ export class BoostService {
       return [];
     }
   }
+
+  /**
+   * Получить статус pending boost платежей для диагностики
+   * Добавлено для нового планировщика автоматической верификации
+   */
+  async getPendingPaymentsStatus() {
+    try {
+      logger.info('[BoostService] Получение статуса pending boost платежей');
+
+      // Получаем все pending покупки
+      const { data: pendingPurchases, error } = await supabase
+        .from('boost_purchases')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        logger.error('[BoostService] Ошибка получения pending покупок:', error);
+        throw error;
+      }
+
+      const now = new Date();
+      const twoMinutesAgo = new Date(now.getTime() - 2 * 60 * 1000);
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+      // Статистика по pending покупкам
+      const totalPending = pendingPurchases?.length || 0;
+      const readyForVerification = pendingPurchases?.filter(p => 
+        new Date(p.created_at) < twoMinutesAgo
+      ).length || 0;
+      const recent = pendingPurchases?.filter(p => 
+        new Date(p.created_at) > twoMinutesAgo
+      ).length || 0;
+      const expired = pendingPurchases?.filter(p => 
+        new Date(p.created_at) < twentyFourHoursAgo
+      ).length || 0;
+
+      return {
+        total_pending: totalPending,
+        ready_for_verification: readyForVerification,
+        recent_pending: recent,
+        expired_pending: expired,
+        last_check: new Date().toISOString(),
+        verification_schedule: 'Каждые 2 минуты',
+        cleanup_schedule: 'Expired записи старше 24 часов'
+      };
+
+    } catch (error) {
+      logger.error('[BoostService] Ошибка получения статуса pending платежей:', error);
+      throw error;
+    }
+  }
 }
 
 export const boostService = new BoostService();

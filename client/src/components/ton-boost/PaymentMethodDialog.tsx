@@ -98,7 +98,7 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
         if (result && result.status === 'success') {
           toast({
             title: "Транзакция отправлена",
-            description: "Платеж успешно отправлен в блокчейн TON",
+            description: "Платеж отправлен в блокчейн. Проверяем подтверждение...",
           });
         } else {
           toast({

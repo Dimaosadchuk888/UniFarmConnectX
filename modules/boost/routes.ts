@@ -62,6 +62,9 @@ router.post('/verify-ton-payment', requireTelegramAuth, strictRateLimit, validat
 // GET /api/boosts/farming-status - Получить статус TON Boost фарминга для дашборда (используем massOperationsRateLimit для частых обновлений)
 router.get('/farming-status', requireTelegramAuth, massOperationsRateLimit, boostController.getFarmingStatus.bind(boostController));
 
+// GET /api/boosts/pending-status - Диагностика статуса pending boost платежей
+router.get('/pending-status', requireTelegramAuth, liberalRateLimit, boostController.getPendingPaymentsStatus.bind(boostController));
+
 // GET /api/boosts/active - Получить активные boost пакеты текущего пользователя
 router.get('/active', requireTelegramAuth, liberalRateLimit, boostController.getActiveBoosts.bind(boostController));
 

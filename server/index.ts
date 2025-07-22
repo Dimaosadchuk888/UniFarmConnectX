@@ -42,6 +42,7 @@ import { supabase } from '../core/supabase';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
 import { FarmingScheduler } from '../core/scheduler/farmingScheduler';
 import { TONBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler';
+import { boostVerificationScheduler } from '../modules/scheduler/boostVerificationScheduler';
 import { alertingService } from '../core/alerting';
 import { setupViteIntegration } from './setupViteIntegration';
 import { BalanceNotificationService } from '../core/balanceNotificationService';
@@ -1017,6 +1018,14 @@ async function startServer() {
           logger.info('✅ [EMERGENCY FIX] Защищенный TON Boost планировщик запущен');
         } catch (error) {
           logger.error('❌ [EMERGENCY FIX] Ошибка запуска защищенного TON Boost планировщика', { error });
+        }
+        
+        // Boost Verification Scheduler: Автоматическая верификация pending boost платежей
+        try {
+          boostVerificationScheduler.start();
+          logger.info('✅ Boost Verification Scheduler запущен - автоматическая верификация pending платежей');
+        } catch (error) {
+          logger.error('❌ Ошибка запуска Boost Verification Scheduler', { error });
         }
       }
       

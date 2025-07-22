@@ -332,4 +332,21 @@ export class BoostController extends BaseController {
       });
     }, 'получения активных boost пакетов');
   }
+
+  /**
+   * Диагностический endpoint для мониторинга pending boost платежей
+   * Безопасно добавлен для нового планировщика автоматической верификации
+   */
+  async getPendingPaymentsStatus(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      logger.info('[BoostController] Получение статуса pending boost платежей');
+      
+      const status = await this.boostService.getPendingPaymentsStatus();
+      
+      this.sendSuccess(res, {
+        ...status,
+        scheduler_status: 'Планировщик автоматической верификации активен'
+      });
+    }, 'получения статуса pending платежей');
+  }
 }
