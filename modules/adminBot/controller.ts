@@ -108,6 +108,10 @@ export class AdminBotController {
         await this.handleWithdrawalStatsCommand(chatId);
         break;
         
+      case '/user_info':
+        await this.handleUserInfoCommand(chatId, args);
+        break;
+        
       default:
         await this.adminBotService.sendMessage(
           chatId,
@@ -201,11 +205,27 @@ export class AdminBotController {
       case 'withdrawal_search_prompt':
         await this.adminBotService.sendMessage(
           chatId,
-          '🔍 <b>Поиск заявок пользователя</b>\n\n' +
-          'Отправьте команду в формате:\n' +
-          '<code>/search_user telegram_id</code>\n\n' +
-          'Пример: <code>/search_user 123456789</code>'
+          '🔍 <b>Умный поиск пользователей</b>\n\n' +
+          '<b>Доступные команды:</b>\n' +
+          '• <code>/search_user telegram_id</code> - поиск заявок пользователя\n' +
+          '• <code>/user_info telegram_id</code> - полная информация о пользователе\n\n' +
+          '<b>Примеры:</b>\n' +
+          '• <code>/search_user 123456789</code>\n' +
+          '• <code>/user_info 123456789</code>\n\n' +
+          '<i>💡 Tip: Также можно искать по @username</i>',
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
+              ]
+            }
+          }
         );
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
+        break;
+        
+      case 'admin_tools':
+        await this.handleAdminToolsCommand(chatId);
         await this.adminBotService.answerCallbackQuery(callbackQuery.id);
         break;
         
@@ -258,30 +278,73 @@ export class AdminBotController {
    * Handle /admin command
    */
   private async handleAdminCommand(chatId: number): Promise<void> {
-    const keyboard = {
-      inline_keyboard: [
-        [
-          { text: '👥 Пользователи', callback_data: 'users_page:1' },
-          { text: '📊 Статистика', callback_data: 'stats' }
-        ],
-        [
-          { text: '🎯 Миссии', callback_data: 'missions' },
-          { text: '💸 Заявки на вывод', callback_data: 'withdrawals' }
-        ],
-        [
-          { text: '🚫 Заблокировать', callback_data: 'ban_prompt' },
-          { text: '🔄 Обновить', callback_data: 'refresh_admin' }
+    try {
+      // Получаем быструю статистику для отображения в главном меню
+      const stats = await this.adminBotService.getSystemStats();
+      const withdrawalStats = await this.adminBotService.getWithdrawalStats();
+      
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '📊 Полная статистика', callback_data: 'stats' },
+            { text: '🔍 Умный поиск', callback_data: 'withdrawal_search_prompt' }
+          ],
+          [
+            { text: '💸 Заявки на вывод', callback_data: 'withdrawals' },
+            { text: '👥 Пользователи', callback_data: 'users_page:1' }
+          ],
+          [
+            { text: '🎯 Миссии', callback_data: 'missions' },
+            { text: '📈 Аналитика выводов', callback_data: 'withdrawal_stats' }
+          ],
+          [
+            { text: '⚙️ Инструменты', callback_data: 'admin_tools' },
+            { text: '🔄 Обновить', callback_data: 'refresh_admin' }
+          ]
         ]
-      ]
-    };
-    
-    await this.adminBotService.sendMessage(
-      chatId,
-      `📋 <b>Главное меню</b>\n\n` +
-      `Выберите действие с помощью кнопок ниже:\n\n` +
-      `<i>Все команды теперь доступны через кнопки!</i>`,
-      { reply_markup: keyboard }
-    );
+      };
+      
+      // Создаем краткую сводку для главного меню
+      const quickSummary = 
+        `📊 <b>Сводка за 24 часа</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━━\n` +
+        `👥 Пользователей: ${stats.totalUsers} (↗️ +${stats.usersLast24h})\n` +
+        `💰 UNI: ${parseFloat(stats.totalUniBalance).toFixed(0)} | TON: ${parseFloat(stats.totalTonBalance).toFixed(2)}\n` +
+        `💸 Заявки: ${withdrawalStats?.pending || 0}⏳ | ${withdrawalStats?.approved || 0}✅ | ${withdrawalStats?.rejected || 0}❌\n` +
+        `🌾 Фарминг: ${stats.activeFarmingSessions} активных\n` +
+        `📈 Транзакций: ${stats.transactionsLast24h} за 24ч\n` +
+        `━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `<b>📋 Админ панель</b>\n` +
+        `<i>Выберите действие с помощью кнопок ниже</i>`;
+      
+      await this.adminBotService.sendMessage(chatId, quickSummary, { reply_markup: keyboard });
+    } catch (error) {
+      // Fallback к простому меню если статистика недоступна
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '👥 Пользователи', callback_data: 'users_page:1' },
+            { text: '📊 Статистика', callback_data: 'stats' }
+          ],
+          [
+            { text: '🎯 Миссии', callback_data: 'missions' },
+            { text: '💸 Заявки на вывод', callback_data: 'withdrawals' }
+          ],
+          [
+            { text: '🚫 Заблокировать', callback_data: 'ban_prompt' },
+            { text: '🔄 Обновить', callback_data: 'refresh_admin' }
+          ]
+        ]
+      };
+      
+      await this.adminBotService.sendMessage(
+        chatId,
+        `📋 <b>Главное меню</b>\n\n` +
+        `Выберите действие с помощью кнопок ниже:\n\n` +
+        `<i>Все команды теперь доступны через кнопки!</i>`,
+        { reply_markup: keyboard }
+      );
+    }
   }
 
   /**
@@ -850,6 +913,119 @@ export class AdminBotController {
       await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
     } catch (error) {
       await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения статистики');
+    }
+  }
+
+  /**
+   * Handle admin tools command
+   */
+  private async handleAdminToolsCommand(chatId: number): Promise<void> {
+    try {
+      const message = 
+        `⚙️ <b>Инструменты администратора</b>\n\n` +
+        `🔧 <b>Доступные инструменты:</b>\n` +
+        `• 📊 Экспорт данных (.csv)\n` +
+        `• 🔄 Обновление статистики\n` +
+        `• 🛡️ Проверка безопасности\n` +
+        `• ⚡ Состояние системы\n` +
+        `• 📝 Последние логи\n\n` +
+        `<i>Выберите нужный инструмент:</i>`;
+      
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '📊 Экспорт данных', callback_data: 'export_data' },
+            { text: '🔄 Обновить кэш', callback_data: 'refresh_cache' }
+          ],
+          [
+            { text: '🛡️ Безопасность', callback_data: 'security_check' },
+            { text: '⚡ Система', callback_data: 'system_status' }
+          ],
+          [
+            { text: '📝 Логи', callback_data: 'system_logs' },
+            { text: '🏠 Главное меню', callback_data: 'refresh_admin' }
+          ]
+        ]
+      };
+      
+      await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
+    } catch (error) {
+      await this.adminBotService.sendMessage(chatId, '❌ Ошибка загрузки инструментов');
+    }
+  }
+
+  /**
+   * Handle /user_info command
+   */
+  private async handleUserInfoCommand(chatId: number, args: string[]): Promise<void> {
+    if (!args[0]) {
+      await this.adminBotService.sendMessage(chatId, 'Использование: /user_info <telegram_id>');
+      return;
+    }
+    
+    try {
+      const telegramId = args[0];
+      const userInfo = await this.adminBotService.getUserInfo(telegramId);
+      
+      if (!userInfo) {
+        await this.adminBotService.sendMessage(
+          chatId,
+          `❌ <b>Пользователь не найден</b>\n\nTelegram ID: <code>${telegramId}</code>`
+        );
+        return;
+      }
+      
+      // Получаем дополнительную статистику
+      const withdrawals = await this.adminBotService.searchWithdrawalsByUser(telegramId);
+      const totalWithdrawals = withdrawals.length;
+      const totalWithdrawalAmount = withdrawals.reduce((sum, w) => sum + parseFloat(w.amount), 0);
+      
+      const userDisplay = userInfo.username ? `@${userInfo.username}` : 
+                         userInfo.first_name || `User ${userInfo.telegram_id}`;
+      
+      const message = 
+        `👤 <b>Профиль пользователя ${userDisplay}</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🆔 <b>Telegram ID:</b> <code>${userInfo.telegram_id}</code>\n` +
+        `👤 <b>Username:</b> ${userInfo.username || 'Не указан'}\n` +
+        `📝 <b>Имя:</b> ${userInfo.first_name || 'Не указано'}\n\n` +
+        `💰 <b>Балансы:</b>\n` +
+        `• UNI: <b>${parseFloat(userInfo.balance_uni || '0').toFixed(2)}</b>\n` +
+        `• TON: <b>${parseFloat(userInfo.balance_ton || '0').toFixed(6)}</b>\n\n` +
+        `🌾 <b>Фарминг:</b>\n` +
+        `• Статус: ${userInfo.uni_farming_active ? '✅ Активен' : '⏸️ Неактивен'}\n` +
+        `• Депозит: ${parseFloat(userInfo.uni_deposit_amount || '0').toFixed(2)} UNI\n\n` +
+        `💸 <b>Заявки на вывод:</b>\n` +
+        `• Всего заявок: ${totalWithdrawals}\n` +
+        `• Общая сумма: ${totalWithdrawalAmount.toFixed(4)} TON\n\n` +
+        `👥 <b>Реферальная система:</b>\n` +
+        `• Код: <code>${userInfo.ref_code || 'Не создан'}</code>\n` +
+        `• Пригласил: ${userInfo.referred_by ? `User ${userInfo.referred_by}` : 'Нет'}\n\n` +
+        `📅 <b>Даты:</b>\n` +
+        `• Регистрация: ${new Date(userInfo.created_at).toLocaleString('ru-RU')}\n` +
+        `• Последняя активность: ${userInfo.last_active ? new Date(userInfo.last_active).toLocaleString('ru-RU') : 'Не определена'}\n\n` +
+        `📊 <b>Статус:</b> ${userInfo.is_active ? '🟢 Активен' : '🔴 Заблокирован'}`;
+      
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: '💸 Заявки', callback_data: `user_withdrawals:${telegramId}` },
+            { text: '📊 Транзакции', callback_data: `user_transactions:${telegramId}` }
+          ],
+          [
+            { text: userInfo.is_active ? '🚫 Заблокировать' : '✅ Разблокировать', 
+              callback_data: `toggle_user_status:${telegramId}` }
+          ],
+          [
+            { text: '🔄 Обновить', callback_data: `user_info_refresh:${telegramId}` },
+            { text: '🏠 Главное меню', callback_data: 'refresh_admin' }
+          ]
+        ]
+      };
+      
+      await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
+    } catch (error) {
+      await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения информации о пользователе');
     }
   }
 }
