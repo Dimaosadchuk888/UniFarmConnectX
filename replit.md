@@ -22,6 +22,22 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### System Notifications UX Improvement (July 23, 2025)
+**Issue**: New users were seeing technical error notifications (JWT token missing, 401 unauthorized) during initial app load, creating confusion even though registration was successful.
+
+**Solution Implemented**:
+- Added initialization flag to hide system notifications during first 5 seconds of app load
+- Wrapped all toast notifications in `correctApiRequest.ts` with `appInitialized` check
+- System errors are still logged to console for developers
+- After 5 seconds, all notifications work normally
+
+**Technical Details**:
+- **File Modified**: `client/src/lib/correctApiRequest.ts`
+- **Changes**: Added `appInitialized` flag with 5-second timer, wrapped all `toast()` calls
+- **Safety**: No business logic affected - only visual notifications hidden during startup
+
+**Status**: ✅ **COMPLETED** - System notifications no longer confuse new users during initial load.
+
 ### TON Payment System Comprehensive Audit (July 23, 2025)
 **Task**: Complete audit of TON payment system including ConnectWallet, deposits, balance updates, and boost purchases.
 
