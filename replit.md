@@ -22,6 +22,30 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Database Duplicate Protection Implementation (July 23, 2025)
+**Issue**: System lacked protection against duplicate TON deposit transactions, potentially allowing users to exploit the system by resubmitting the same transaction hash multiple times.
+
+**Solution Implemented**:
+1. **Database Migration**: Added new fields to support duplicate detection:
+   - `tx_hash_unique` - stores unique transaction hash with unique index
+   - `is_duplicate` - boolean flag to mark duplicate transactions
+   - `duplicate_of_id` - reference to original transaction
+   - Migration completed successfully without deleting any existing data
+
+2. **Code Enhancement**: Added automatic population of `tx_hash_unique` field:
+   - Modified `core/TransactionService.ts` (line 110): Added `tx_hash_unique: metadata?.tx_hash || null`
+   - Now all transactions with tx_hash in metadata will be protected from duplication
+   - Database unique index will automatically reject duplicate transactions
+
+**Technical Details**:
+- **Root Cause**: No duplicate transaction protection existed in the system
+- **Files Modified**: 
+  - `core/TransactionService.ts` - Added tx_hash_unique field population
+  - Database tables updated with new fields and indexes
+- **Result**: Full protection against duplicate TON deposits at database level
+
+**Status**: ✅ **COMPLETED** - System now has comprehensive duplicate protection without modifying existing data.
+
 ### TonConnect Version Compatibility Fix (July 22, 2025)
 **Issue**: Critical React useState error `TypeError: null is not an object (evaluating 'U.current.useState')` was caused by version incompatibility between TonConnect libraries. Initial attempt to downgrade SDK to v2.2.0 failed because UI packages internally required SDK v3.x.
 
