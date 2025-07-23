@@ -57,6 +57,6 @@ exec('pkill -f "npm run dev" && pkill -f "tsx server" && pkill -f "node.*server"
         console.log('- Проверьте отсутствие перезагрузок');
         console.log('');
         console.log('📱 ДОМЕН ДЛЯ TELEGRAM:');
-        console.log('https://uni-farm-connect-aab49267.replit.app');
+        console.log('https://uni-farm-connect-unifarm01010101.replit.app');
     });
 });
