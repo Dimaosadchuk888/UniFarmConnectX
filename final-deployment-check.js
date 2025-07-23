@@ -8,13 +8,15 @@ import https from 'https';
 import http from 'http';
 import fs from 'fs';
 
-const NEW_DOMAIN = 'https://uni-farm-connect-aab49267.replit.app';
+const NEW_DOMAIN = 'https://uni-farm-connect-unifarm01010101.replit.app';
 const OLD_DOMAINS = [
   'uni-farm-connect-x-elizabethstone1',
   'uni-farm-connect-x-w81846064', 
   'uni-farm-connect-x-ab245275',
+  'uni-farm-connect-aab49267',
   'ab245275',
   'elizabethstone1',
+  'aab49267',
   'w81846064'
 ];
 
@@ -42,7 +44,7 @@ for (const [key, value] of Object.entries(requiredVars)) {
     if (value.includes('❌')) envErrors++;
   } else if (value) {
     const hasOldDomain = OLD_DOMAINS.some(old => value.includes(old));
-    const hasNewDomain = value.includes('aab49267');
+    const hasNewDomain = value.includes('unifarm01010101');
     
     if (hasOldDomain && !hasNewDomain) {
       console.log(`${key}: ❌ СОДЕРЖИТ СТАРЫЙ ДОМЕН - ${value}`);
@@ -79,7 +81,7 @@ for (const file of criticalFiles) {
   try {
     const content = fs.readFileSync(file, 'utf8');
     const hasOldDomain = OLD_DOMAINS.some(old => content.includes(old));
-    const hasNewDomain = content.includes('aab49267');
+    const hasNewDomain = content.includes('unifarm01010101');
     
     if (hasOldDomain) {
       console.log(`${file}: ❌ СОДЕРЖИТ СТАРЫЕ ССЫЛКИ`);

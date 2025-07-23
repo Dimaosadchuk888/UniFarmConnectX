@@ -3,7 +3,7 @@
  */
 
 async function testRoute(path: string, method: string = 'GET') {
-  const baseUrl = 'https://uni-farm-connect-aab49267.replit.app';
+  const baseUrl = 'https://uni-farm-connect-unifarm01010101.replit.app';
   const url = `${baseUrl}${path}`;
   
   try {

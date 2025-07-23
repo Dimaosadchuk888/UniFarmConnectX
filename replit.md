@@ -22,6 +22,35 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Domain Migration Completed (July 23, 2025)
+**Issue**: Complete migration from old domain `uni-farm-connect-aab49267.replit.app` to new domain `uni-farm-connect-unifarm01010101.replit.app` after project remix.
+
+**Solution Implemented**:
+1. **TON Connect Manifests**: Updated all manifest files with new domain URLs
+2. **Frontend Integration**: Updated TonConnectUIProvider manifestUrl in App.tsx
+3. **Backend Configuration**: Updated server endpoints and API configurations
+4. **Security Settings**: Updated CORS origins and security policies
+5. **Test Scripts**: Updated all testing and diagnostic scripts
+6. **Distribution Files**: Updated compiled assets and manifests
+
+**Files Updated** (35+ total):
+- TON Connect manifests in `/public/` and `/.well-known/` directories
+- Core configuration files (`config/app.ts`, `server/index.ts`)
+- Security configurations (`core/config/security.ts`, `core/middleware/cors.ts`)
+- Frontend integration (`client/src/App.tsx`)
+- Test and deployment scripts
+- Production configurations
+
+**Next Steps for Deployment**:
+1. Update environment variables in Replit Secrets:
+   - `TELEGRAM_WEBAPP_URL=https://uni-farm-connect-unifarm01010101.replit.app`
+   - `APP_DOMAIN=https://uni-farm-connect-unifarm01010101.replit.app`
+   - `CORS_ORIGINS=https://uni-farm-connect-unifarm01010101.replit.app,https://t.me`
+2. Update Telegram Bot webhook URL to new domain
+3. Test TON Connect integration with new manifest URLs
+
+**Status**: ✅ **COMPLETED** - Full domain migration completed across all system components. Ready for production deployment.
+
 ### System Notifications UX Improvement (July 23, 2025)
 **Issue**: New users were seeing technical error notifications (JWT token missing, 401 unauthorized) during initial app load, creating confusion even though registration was successful.
 
@@ -246,7 +275,7 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 - **Architecture**: Follow modular architecture patterns with clear separation of concerns
 
 ## Deployment Information
-- **Production URL**: https://uni-farm-connect-aab49267.replit.app
+- **Production URL**: https://uni-farm-connect-unifarm01010101.replit.app
 - **Development**: Local development on auto-detected available port (starts from 3000)
 - **Database**: Supabase PostgreSQL with real-time features
 - **Telegram Bot**: @UniFarming_Bot

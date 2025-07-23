@@ -23,10 +23,11 @@ interface DiagnosticIssue {
 
 class SystemDiagnostics {
   private issues: DiagnosticIssue[] = [];
-  private productionDomain = 'https://uni-farm-connect-aab49267.replit.app';
+  private productionDomain = 'https://uni-farm-connect-unifarm01010101.replit.app';
   private oldDomains = [
     'uni-farm-connect-x-ab245275.replit.app',
-    'uni-farm-connect-x-elizabethstone1.replit.app'
+    'uni-farm-connect-x-elizabethstone1.replit.app',
+    'uni-farm-connect-aab49267.replit.app'
   ];
 
   async runFullDiagnostics() {

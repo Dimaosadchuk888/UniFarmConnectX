@@ -289,7 +289,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <TonConnectUIProvider manifestUrl="https://uni-farm-connect-aab49267.replit.app/tonconnect-manifest.json">
+        <TonConnectUIProvider manifestUrl="https://uni-farm-connect-unifarm01010101.replit.app/tonconnect-manifest.json">
           <TonConnectErrorBoundary>
               <NotificationProvider>
                 <UserProvider>
