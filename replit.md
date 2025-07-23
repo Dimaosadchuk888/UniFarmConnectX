@@ -22,6 +22,31 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Withdrawal Transaction Display Fix (July 23, 2025)
+**Issue**: Withdrawal transactions were not displaying in transaction history despite being created successfully. The system was creating transactions with lowercase type 'withdrawal' but UnifiedTransactionService expected uppercase types.
+
+**Solution Implemented**:
+1. **Added backward compatibility** to UnifiedTransactionService:
+   - Added 'WITHDRAWAL' to TransactionsTransactionType enum
+   - Extended TRANSACTION_TYPE_MAPPING with lowercase mappings:
+     - 'withdrawal' → 'WITHDRAWAL'
+     - 'withdrawal_fee' → 'WITHDRAWAL'
+   - Updated UNI_WITHDRAWAL and TON_WITHDRAWAL to map to 'WITHDRAWAL' instead of 'FARMING_REWARD'
+
+2. **Enhanced type handling**:
+   - Added lowercase types to ExtendedTransactionType for compatibility
+   - Updated generateDescription() to handle lowercase withdrawal types
+   - Updated isWithdrawalType() to recognize lowercase types
+
+**Technical Details**:
+- **Root Cause**: Type mismatch between WalletService (lowercase) and UnifiedTransactionService (uppercase)
+- **Files Modified**: 
+  - `modules/transactions/types.ts` - Added WITHDRAWAL type and lowercase compatibility
+  - `core/TransactionService.ts` - Updated mapping and type handling
+- **Result**: Withdrawal transactions now display correctly in history while maintaining backward compatibility
+
+**Status**: ✅ **COMPLETED** - System now correctly handles both uppercase and lowercase withdrawal types.
+
 ### Database Duplicate Protection Implementation (July 23, 2025)
 **Issue**: System lacked protection against duplicate TON deposit transactions, potentially allowing users to exploit the system by resubmitting the same transaction hash multiple times.
 

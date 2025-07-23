@@ -14,14 +14,18 @@ const TRANSACTION_TYPE_MAPPING: Record<ExtendedTransactionType, TransactionsTran
   'REFERRAL_REWARD': 'REFERRAL_REWARD', 
   'MISSION_REWARD': 'MISSION_REWARD',
   'DAILY_BONUS': 'DAILY_BONUS',
+  'WITHDRAWAL': 'WITHDRAWAL',              // Добавлен прямой маппинг для выводов
   // Маппинг расширенных типов на базовые
   'TON_BOOST_INCOME': 'FARMING_REWARD',   // TON Boost доходы → FARMING_REWARD
   'UNI_DEPOSIT': 'FARMING_REWARD',        // UNI депозиты → FARMING_REWARD
   'TON_DEPOSIT': 'FARMING_REWARD',        // TON депозиты → FARMING_REWARD
-  'UNI_WITHDRAWAL': 'FARMING_REWARD',     // Выводы → FARMING_REWARD (с отрицательной суммой)
-  'TON_WITHDRAWAL': 'FARMING_REWARD',     // Выводы → FARMING_REWARD (с отрицательной суммой)
+  'UNI_WITHDRAWAL': 'WITHDRAWAL',          // Выводы UNI → WITHDRAWAL
+  'TON_WITHDRAWAL': 'WITHDRAWAL',          // Выводы TON → WITHDRAWAL
   'BOOST_PURCHASE': 'FARMING_REWARD',     // Покупки boost → FARMING_REWARD
-  'AIRDROP_REWARD': 'DAILY_BONUS'         // Airdrop награды → DAILY_BONUS
+  'AIRDROP_REWARD': 'DAILY_BONUS',        // Airdrop награды → DAILY_BONUS
+  // Маппинг lowercase для обратной совместимости
+  'withdrawal': 'WITHDRAWAL',              // Lowercase вывод → WITHDRAWAL
+  'withdrawal_fee': 'WITHDRAWAL'           // Lowercase комиссия → WITHDRAWAL
 };
 
 export interface TransactionData {
@@ -294,6 +298,11 @@ export class UnifiedTransactionService {
         return `Покупка Boost пакета: ${amount} ${currency}`;
       case 'AIRDROP_REWARD':
         return `Airdrop награда: ${amount} ${currency}`;
+      case 'WITHDRAWAL':
+      case 'withdrawal':
+        return `Вывод ${amount} ${currency}`;
+      case 'withdrawal_fee':
+        return `Комиссия за вывод: ${amount} ${currency}`;
       default:
         return `${type}: ${amount} ${currency}`;
     }
@@ -367,7 +376,10 @@ export class UnifiedTransactionService {
     const withdrawalTypes: ExtendedTransactionType[] = [
       'UNI_WITHDRAWAL',
       'TON_WITHDRAWAL',
-      'BOOST_PURCHASE'
+      'BOOST_PURCHASE',
+      'WITHDRAWAL',
+      'withdrawal',
+      'withdrawal_fee'
     ];
     
     return withdrawalTypes.includes(type);

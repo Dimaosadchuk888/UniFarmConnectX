@@ -6,7 +6,8 @@ export type TransactionsTransactionType =
   | 'FARMING_DEPOSIT'    // UNI фарминг депозиты
   | 'REFERRAL_REWARD'    // Реферальные бонусы
   | 'MISSION_REWARD'     // Награды за миссии
-  | 'DAILY_BONUS';       // Ежедневные бонусы + airdrop награды
+  | 'DAILY_BONUS'        // Ежедневные бонусы + airdrop награды
+  | 'WITHDRAWAL';        // Вывод средств
 
 // Расширенные типы транзакций
 export type ExtendedTransactionType = TransactionsTransactionType
@@ -16,7 +17,9 @@ export type ExtendedTransactionType = TransactionsTransactionType
   | 'UNI_WITHDRAWAL'     // Вывод UNI
   | 'TON_WITHDRAWAL'     // Вывод TON
   | 'BOOST_PURCHASE'     // Покупка boost пакетов
-  | 'AIRDROP_REWARD';    // Награды за airdrop
+  | 'AIRDROP_REWARD'     // Награды за airdrop
+  | 'withdrawal'         // Lowercase вывод для совместимости
+  | 'withdrawal_fee';    // Lowercase комиссия для совместимости
 
 export type TransactionsTransactionStatus = 'pending' | 'completed' | 'confirmed' | 'failed' | 'cancelled';
 
