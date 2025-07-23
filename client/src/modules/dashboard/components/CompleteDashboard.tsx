@@ -1,7 +1,7 @@
 /**
  * Полный дашборд с завершенной миграцией
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { userService } from '../../auth/userService';
 import { WelcomeSection } from './WelcomeSection';
@@ -19,6 +19,27 @@ export const CompleteDashboard: React.FC = () => {
     retryDelay: 1000,
   });
 
+  // Автоматическая перезагрузка при ошибке аутентификации
+  useEffect(() => {
+    if (error && error instanceof Error) {
+      // Проверяем, является ли это ошибкой аутентификации
+      const errorMessage = error.message || '';
+      const errorString = JSON.stringify(error);
+      
+      if (errorMessage.includes('Authentication required') || 
+          errorMessage.includes('need_jwt_token') ||
+          errorString.includes('Authentication required')) {
+        console.log('[CompleteDashboard] Обнаружена ошибка аутентификации, перезагрузка через 2 секунды...');
+        
+        const timer = setTimeout(() => {
+          window.location.href = window.location.href;
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [error]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -31,19 +52,38 @@ export const CompleteDashboard: React.FC = () => {
   }
 
   if (error || !user) {
+    // Проверяем, является ли это ошибкой аутентификации
+    const isAuthError = error instanceof Error && (
+      error.message.includes('Authentication required') || 
+      error.message.includes('need_jwt_token') ||
+      JSON.stringify(error).includes('Authentication required')
+    );
+
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center p-6">
-          <h2 className="text-xl font-semibold mb-2">Ошибка загрузки</h2>
+          <h2 className="text-xl font-semibold mb-2">
+            {isAuthError ? 'Загрузка приложения...' : 'Ошибка загрузки'}
+          </h2>
           <p className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'Не удалось загрузить данные пользователя'}
+            {isAuthError 
+              ? 'Приложение перезагрузится автоматически через несколько секунд' 
+              : (error instanceof Error && !error.message.includes('{') 
+                  ? error.message 
+                  : 'Не удалось загрузить данные пользователя')
+            }
           </p>
-          <button 
-            onClick={() => window.location.href = window.location.href + '?refresh=' + Date.now()} 
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Обновить страницу
-          </button>
+          {!isAuthError && (
+            <button 
+              onClick={() => window.location.href = window.location.href + '?refresh=' + Date.now()} 
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Обновить страницу
+            </button>
+          )}
+          {isAuthError && (
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mt-4"></div>
+          )}
         </div>
       </div>
     );
