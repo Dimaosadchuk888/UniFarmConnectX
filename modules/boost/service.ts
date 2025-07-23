@@ -217,8 +217,8 @@ export class BoostService {
 
       logger.info('[BoostService] UNI бонус успешно начислен', {
         userId,
-        oldBalance: currentBalance,
-        newBalance,
+        oldBalance: parseFloat(user.balance_uni || '0'),
+        newBalance: result.newBalance || 'unknown',
         bonusAmount: boostPackage.uni_bonus
       });
 
