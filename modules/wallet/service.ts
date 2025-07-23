@@ -463,7 +463,7 @@ export class WalletService {
           requested: withdrawAmount, 
           minimum: 1
         });
-        return { success: false, error: 'Минимальная сумма вывода — 1 TON' };
+        return { success: false, error: 'Минимальная сумма вывода должна быть больше или равна 1 TON' };
       }
 
       if (type === 'UNI' && withdrawAmount < 1000) {

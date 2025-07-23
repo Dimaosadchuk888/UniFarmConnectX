@@ -8,13 +8,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { submitWithdrawal } from '@/services/withdrawalService';
 
-// Схема валидации для формы вывода средств
-const withdrawalFormSchema = z.object({
+// Функция для создания схемы валидации с учетом выбранной валюты
+const createWithdrawalSchema = (currency: 'UNI' | 'TON') => z.object({
   walletAddress: z.string().min(10, 'Адрес кошелька слишком короткий'),
-  amount: z.number().min(0.001, 'Минимальная сумма для вывода: 0.001'),
+  amount: z.number().min(
+    currency === 'TON' ? 1 : 1000, 
+    currency === 'TON' 
+      ? 'Минимальная сумма для вывода: 1 TON' 
+      : 'Минимальная сумма для вывода: 1000 UNI'
+  ),
   currency: z.enum(['UNI', 'TON'])
 });
 
+// Базовая схема для типизации (используем TON по умолчанию)
+const withdrawalFormSchema = createWithdrawalSchema('TON');
 type WithdrawalFormData = z.infer<typeof withdrawalFormSchema>;
 
 // Состояния отправки формы
@@ -62,10 +69,10 @@ const WithdrawalForm: React.FC = () => {
     reset,
     clearErrors
   } = useForm<WithdrawalFormData>({
-    resolver: zodResolver(withdrawalFormSchema),
+    resolver: zodResolver(createWithdrawalSchema(selectedCurrency)),
     defaultValues: {
       walletAddress: walletAddress || '',
-      amount: 0.001,
+      amount: selectedCurrency === 'TON' ? 1 : 1000,
       currency: selectedCurrency
     },
     mode: 'onChange'

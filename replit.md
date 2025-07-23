@@ -22,6 +22,24 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Withdrawal Validation Messages Enhancement (July 23, 2025)
+**Issue**: Withdrawal validation messages were confusing users with incorrect minimum amounts (showing 0.001 instead of actual minimums).
+
+**Solution Implemented**:
+1. **Backend message updated**: Changed from `'Минимальная сумма вывода — 1 TON'` to `'Минимальная сумма вывода должна быть больше или равна 1 TON'` for clearer communication
+2. **Frontend validation made dynamic**: 
+   - Created `createWithdrawalSchema()` function that generates validation schema based on selected currency
+   - Replaced static minimum (0.001) with dynamic values: 1 TON for TON, 1000 UNI for UNI
+   - Validation messages now show correct minimums: "Минимальная сумма для вывода: 1 TON" or "Минимальная сумма для вывода: 1000 UNI"
+
+**Technical Details**:
+- **Files Modified**: 
+  - `modules/wallet/service.ts` - Updated error message for better clarity
+  - `client/src/components/wallet/WithdrawalForm.tsx` - Implemented dynamic validation schema
+- **Result**: Users now see accurate minimum withdrawal amounts in validation messages
+
+**Status**: ✅ **COMPLETED** - Validation messages now correctly reflect actual minimum withdrawal requirements.
+
 ### Withdrawal Transaction Display Fix (July 23, 2025)
 **Issue**: Withdrawal transactions were not displaying in transaction history despite being created successfully. The system was creating transactions with lowercase type 'withdrawal' but UnifiedTransactionService expected uppercase types.
 
