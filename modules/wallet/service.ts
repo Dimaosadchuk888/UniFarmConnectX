@@ -371,6 +371,17 @@ export class WalletService {
         walletAddress: wallet_address
       });
 
+      // КРИТИЧНОЕ ЛОГИРОВАНИЕ TON ДЕПОЗИТА (для диагностики исчезающих депозитов)
+      logger.error('[CRITICAL] [TON_DEPOSIT_PROCESSING]', {
+        user_id,
+        ton_tx_hash,
+        amount,
+        wallet_address,
+        timestamp: new Date().toISOString(),
+        action: 'НАЧАЛО_ОБРАБОТКИ',
+        blockchain_code: ton_tx_hash.substring(0, 50) + '...'
+      });
+
       // Создаем транзакцию через централизованный сервис
       // UnifiedTransactionService автоматически:
       // - Проверяет дубликаты через metadata.tx_hash
@@ -400,6 +411,17 @@ export class WalletService {
           txHash: ton_tx_hash,
           error: result.error
         });
+
+        // КРИТИЧНОЕ ЛОГИРОВАНИЕ НЕУДАЧНОГО ДЕПОЗИТА
+        logger.error('[CRITICAL] [TON_DEPOSIT_FAILED]', {
+          user_id,
+          ton_tx_hash,
+          amount,
+          error: result.error,
+          timestamp: new Date().toISOString(),
+          action: 'ОШИБКА_СОЗДАНИЯ_ТРАНЗАКЦИИ'
+        });
+
         return {
           success: false,
           error: result.error || 'Ошибка создания транзакции'
@@ -411,6 +433,16 @@ export class WalletService {
         amount,
         transactionId: result.transaction_id,
         txHash: ton_tx_hash
+      });
+
+      // КРИТИЧНОЕ ЛОГИРОВАНИЕ УСПЕШНОГО ДЕПОЗИТА
+      logger.error('[CRITICAL] [TON_DEPOSIT_SUCCESS]', {
+        user_id,
+        ton_tx_hash,
+        amount,
+        transaction_id: result.transaction_id,
+        timestamp: new Date().toISOString(),
+        action: 'ДЕПОЗИТ_ЗАВЕРШЕН_УСПЕШНО'
       });
 
       return {

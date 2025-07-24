@@ -120,6 +120,22 @@ export class BalanceManager {
         operation
       });
 
+      // КРИТИЧНОЕ ЛОГИРОВАНИЕ ИЗМЕНЕНИЙ БАЛАНСА (для диагностики исчезающих депозитов)
+      logger.error('[CRITICAL] [DIRECT_BALANCE_UPDATE]', {
+        user_id,
+        operation,
+        source,
+        transaction_id,
+        old_uni_balance: current.balance_uni,
+        old_ton_balance: current.balance_ton,
+        new_uni_balance: newUniBalance,
+        new_ton_balance: newTonBalance,
+        change_uni: newUniBalance - current.balance_uni,
+        change_ton: newTonBalance - current.balance_ton,
+        timestamp: new Date().toISOString(),
+        stack_trace: (new Error().stack?.split('\n').slice(2, 8).join('\n')) || 'no stack'
+      });
+
       const { data: updatedUser, error: updateError } = await supabase
         .from('users')
         .update({
