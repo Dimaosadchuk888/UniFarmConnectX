@@ -67,26 +67,22 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **COMPLETED** - System notifications no longer confuse new users during initial load.
 
-### TON Payment System Comprehensive Audit (July 23, 2025)
-**Task**: Complete audit of TON payment system including ConnectWallet, deposits, balance updates, and boost purchases.
+### TON Boost System Critical Investigation (July 24, 2025)
+**Issue**: Discovered critical discrepancy between documentation claims and actual system state - TON Boost purchase system non-functional since June 16, 2025.
 
-**Audit Completed**:
-1. **Documented full payment flow**: From wallet connection to balance updates
-2. **Mapped all system components**: Frontend (TonDepositCard, BoostPackagesCard) → API → Services → Database
-3. **Identified critical mechanisms**:
-   - Wallet-Based Deposit Resolution for user identification
-   - UnifiedTransactionService for transaction handling
-   - WebSocket integration for real-time updates
-   - Duplicate protection via tx_hash_unique field
-4. **Created comprehensive report**: `AUDIT_TON_PAYMENT_SYSTEM_REPORT.md` with full technical documentation
+**Investigation Completed**:
+1. **Identified core problem**: `activateBoost()` function contains only stub comments since T56 referral refactoring
+2. **Found 6 LSP errors**: Type mismatches and missing properties blocking system execution  
+3. **Traced system degradation**: Real activation logic was lost during June 16 referral fixes
+4. **Created comprehensive analysis**: Multiple diagnostic reports documenting the actual system state
 
 **Key Findings**:
-- System is fully functional with proper fallback mechanisms
-- All payment flows are protected against duplication
-- Real-time balance updates work through WebSocket
-- Boost purchases support both internal balance and external wallet payments
+- TON Boost activation function is a placeholder stub since June 16, 2025
+- System appears functional (money deduction works) but activation fails completely
+- Users lose money but receive no boost activation due to incomplete implementation
+- Previous "fully functional" assessment was based on outdated information
 
-**Status**: ✅ **AUDIT COMPLETED** - Full system documentation created without any code modifications.
+**Status**: ⚠️ **CRITICAL SYSTEM BROKEN** - TON Boost purchases completely non-functional, requires immediate restoration.
 
 ### Withdrawal Validation Messages Enhancement (July 23, 2025)
 **Issue**: Withdrawal validation messages were confusing users with incorrect minimum amounts (showing 0.001 instead of actual minimums).
