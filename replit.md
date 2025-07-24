@@ -27,7 +27,7 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Solution Implemented**:
 1. **Frontend-Backend Integration**: Added missing API call in `sendTonTransaction()` to notify backend after successful blockchain transaction
-2. **Dедупликация Restored**: Fixed `tx_hash_unique: null` to `metadata?.tx_hash || null` preventing duplicate transactions
+2. **Deduplication Fixed**: Changed `metadata?.tx_hash` to `metadata?.ton_tx_hash` to prevent duplicate transactions (CRITICAL FIX for User #25 duplication issue)
 3. **Type Mapping Fixed**: Changed `TON_DEPOSIT` mapping from `FARMING_REWARD` to `DEPOSIT` for correct display
 
 **Technical Details**:
