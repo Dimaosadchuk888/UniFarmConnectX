@@ -153,6 +153,35 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **COMPLETED** - TON Boost packages now display correctly in UI with full details (name, amount, daily income, status).
 
+### TON Boost External Wallet Payment Analysis Completed (July 24, 2025)
+**Task**: Comprehensive analysis of TON Boost external wallet payment system to identify integration gaps and provide specific recommendations for instant display in TON Farming statistics.
+
+**Key Findings**:
+1. **System Architecture 80% Functional**: TON Connect integration, backend processing, automatic verification scheduler, and UI display components all work correctly
+2. **Critical UX Gap Identified**: Missing `/api/v2/boost/check-payment` endpoint causes poor user experience - users see "waiting for payment" indefinitely
+3. **No Real-Time Updates**: Lack of WebSocket integration means UI doesn't update automatically when payments are confirmed
+4. **Delayed Display**: Users must wait 2+ minutes for automatic scheduler or manually refresh to see purchased packages
+
+**Root Cause Analysis**:
+- **Frontend Component**: `ExternalPaymentStatus.tsx` calls non-existent endpoint `/api/v2/boost/check-payment`
+- **Missing Backend Method**: `checkPaymentStatus()` not implemented in `BoostController`
+- **No WebSocket Integration**: TON Boost activation doesn't trigger real-time UI updates
+- **Pending Status Hidden**: Users can't see intermediate payment processing states
+
+**Recommended Implementation Plan**:
+1. **Phase 1 (Critical)**: Add missing check-payment endpoint to provide real-time status updates
+2. **Phase 2 (Important)**: Integrate WebSocket notifications for instant UI updates when payments confirm
+3. **Phase 3 (Enhancement)**: Display pending boosts alongside active ones for better transparency
+4. **Phase 4 (Optimization)**: Reduce polling interval and add immediate status checks
+
+**Technical Impact**: External wallet payments function correctly but suffer from poor UX due to missing status feedback. All necessary infrastructure exists - only requires connecting missing API endpoints and real-time update mechanisms.
+
+**Documentation Created**: 
+- `TON_BOOST_EXTERNAL_WALLET_DIAGNOSTIC_REPORT_2025-07-24.md` - Initial system analysis
+- `TON_BOOST_EXTERNAL_WALLET_IMPLEMENTATION_ANALYSIS_2025-07-24.md` - Detailed recommendations and implementation plan
+
+**Status**: ✅ **ANALYSIS COMPLETED** - Ready for implementation of missing components to achieve instant display functionality.
+
 ### TON Farming Display Fix Applied (July 24, 2025)
 **Issue**: TON Farming card was showing wallet balance (0.21 TON) instead of actual TON Boost deposit amounts, causing users to see incorrect farming information and very small calculated income.
 
