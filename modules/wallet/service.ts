@@ -176,7 +176,7 @@ export class WalletService {
       // Обновляем баланс UNI через централизованный BalanceManager
       const { balanceManager } = await import('../../core/BalanceManager');
       const result = await balanceManager.addBalance(
-        userId,
+        parseInt(userId),
         parseFloat(amount),
         0,
         'WalletService.updateUniBalance'
@@ -199,7 +199,7 @@ export class WalletService {
       logger.info('[WalletService] UNI баланс обновлен', { 
         userId, 
         amount, 
-        newBalance 
+        success: result.success
       });
       return true;
 
@@ -230,7 +230,7 @@ export class WalletService {
       // Обновляем баланс TON через централизованный BalanceManager
       const { balanceManager } = await import('../../core/BalanceManager');
       const result = await balanceManager.addBalance(
-        userId,
+        parseInt(userId),
         0,
         parseFloat(amount),
         'WalletService.updateTonBalance'
@@ -253,7 +253,7 @@ export class WalletService {
       logger.info('[WalletService] TON баланс обновлен', { 
         userId, 
         amount, 
-        newBalance 
+        success: result.success
       });
       return true;
 
@@ -559,7 +559,7 @@ export class WalletService {
       const amount_ton = type === 'TON' ? withdrawAmount : commission;
       
       const result = await balanceManager.subtractBalance(
-        userId,
+        parseInt(userId),
         amount_uni,
         amount_ton,
         'WalletService.withdraw'
