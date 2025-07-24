@@ -83,6 +83,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, 
             console.log('[WebSocket] Получено обновление баланса:', message);
           }
           
+          // Обрабатываем активацию TON Boost
+          if (message.type === 'TON_BOOST_ACTIVATED') {
+            console.log('[WebSocket] Получено уведомление об активации TON Boost:', message);
+            toast({
+              title: "TON Boost активирован!",
+              description: message.data?.message || `Пакет "${message.data?.package_name}" успешно активирован`,
+            });
+          }
+          
           setLastMessage(message);
         } catch (error) {
           console.error('[WebSocket] Ошибка парсинга сообщения:', error);

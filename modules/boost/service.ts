@@ -953,6 +953,32 @@ export class BoostService {
         durationDays: boostPackage.duration_days
       });
 
+      // 3. Отправляем WebSocket уведомление о активации пакета
+      try {
+        const { WebSocketManager } = await import('../../core/WebSocketManager');
+        const dailyIncome = parseFloat(boostPackage.min_amount.toString()) * (parseFloat(boostPackage.daily_rate) * 100) / 100;
+        
+        WebSocketManager.notifyUser(userId, {
+          type: 'TON_BOOST_ACTIVATED',
+          data: {
+            package_name: boostPackage.name,
+            amount: boostPackage.min_amount.toString(),
+            daily_income: dailyIncome.toFixed(6),
+            boost_id: boostId,
+            message: `TON Boost "${boostPackage.name}" активирован!`
+          }
+        });
+        
+        logger.info('[BoostService] WebSocket уведомление отправлено', {
+          userId,
+          packageName: boostPackage.name,
+          dailyIncome
+        });
+      } catch (wsError) {
+        logger.warn('[BoostService] Ошибка отправки WebSocket уведомления:', wsError);
+        // Не критично - продолжаем выполнение
+      }
+
       return true;
 
     } catch (error) {
@@ -1108,6 +1134,92 @@ export class BoostService {
         dailyIncomeTon: '0',
         dailyIncomeUni: '0',
         deposits: []
+      };
+    }
+  }
+
+  /**
+   * Проверка статуса внешнего платежа
+   */
+  async checkPaymentStatus(userId: string, transactionId: string): Promise<{
+    status: 'pending' | 'confirmed' | 'failed' | 'not_found';
+    message: string;
+    boost_activated?: boolean;
+    tx_hash?: string;
+    amount?: string;
+  }> {
+    try {
+      logger.info('[BoostService] Проверка статуса платежа', {
+        userId,
+        transactionId
+      });
+
+      // Поиск записи в boost_purchases по transaction_id (используем id записи)
+      const { data: purchase, error: purchaseError } = await supabase
+        .from('boost_purchases')
+        .select('*')
+        .eq('id', parseInt(transactionId))
+        .eq('user_id', parseInt(userId))
+        .single();
+
+      if (purchaseError || !purchase) {
+        logger.warn('[BoostService] Платеж не найден', {
+          userId,
+          transactionId,
+          error: purchaseError?.message
+        });
+        return {
+          status: 'not_found',
+          message: 'Платеж не найден'
+        };
+      }
+
+      // Проверяем статус платежа
+      if (purchase.status === 'confirmed') {
+        // Проверяем, активирован ли пакет у пользователя
+        const { data: user } = await supabase
+          .from('users')
+          .select('ton_boost_package')
+          .eq('id', parseInt(userId))
+          .single();
+
+        const boostActivated = user?.ton_boost_package === purchase.boost_id;
+
+        logger.info('[BoostService] Платеж подтвержден', {
+          userId,
+          transactionId,
+          boostActivated,
+          userBoostPackage: user?.ton_boost_package,
+          purchaseBoostId: purchase.boost_id
+        });
+
+        return {
+          status: 'confirmed',
+          message: 'Платеж подтвержден, пакет активирован',
+          boost_activated: boostActivated,
+          tx_hash: purchase.tx_hash,
+          amount: purchase.amount
+        };
+      } else if (purchase.status === 'failed') {
+        return {
+          status: 'failed',
+          message: 'Платеж отклонен блокчейном',
+          tx_hash: purchase.tx_hash
+        };
+      } else {
+        // Status: pending
+        return {
+          status: 'pending',
+          message: 'Платеж обрабатывается, ожидаем подтверждения блокчейна',
+          tx_hash: purchase.tx_hash
+        };
+      }
+
+    } catch (error) {
+      logger.error('[BoostService] Ошибка проверки статуса платежа:', error);
+      return {
+        status: 'failed',
+        message: 'Ошибка при проверке статуса платежа'
       };
     }
   }

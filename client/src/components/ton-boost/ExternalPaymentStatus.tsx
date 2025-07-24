@@ -52,13 +52,23 @@ const ExternalPaymentStatus: React.FC<ExternalPaymentStatusProps> = ({
   
   // Эффект для обработки статуса платежа
   useEffect(() => {
-    if (data?.success && data?.data?.status === 'completed') {
-      setPaymentProcessed(true);
-      toast({
-        title: "Платеж подтвержден",
-        description: `TON Boost "${boostName}" успешно активирован!`,
-      });
-      onPaymentComplete();
+    if (data?.success && data?.data) {
+      const status = data.data.status;
+      
+      if (status === 'confirmed' && data.data.boost_activated) {
+        setPaymentProcessed(true);
+        toast({
+          title: "Платеж подтвержден",
+          description: `TON Boost "${boostName}" успешно активирован!`,
+        });
+        onPaymentComplete();
+      } else if (status === 'failed') {
+        toast({
+          title: "Платеж отклонен",
+          description: "Транзакция была отклонена блокчейном",
+          variant: "destructive"
+        });
+      }
     }
     
     // Увеличиваем счетчик проверок

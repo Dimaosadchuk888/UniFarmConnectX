@@ -286,6 +286,33 @@ export class BoostController extends BaseController {
   }
 
   /**
+   * Проверка статуса внешнего платежа
+   * GET /api/v2/boost/check-payment?user_id=X&transaction_id=Y
+   */
+  async checkPaymentStatus(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      const { user_id, transaction_id } = req.query;
+
+      logger.info('[BoostController] Проверка статуса внешнего платежа', {
+        user_id,
+        transaction_id
+      });
+
+      // Валидация входных параметров
+      if (!user_id || !transaction_id) {
+        return this.sendError(res, 'Отсутствуют обязательные параметры: user_id, transaction_id', 400);
+      }
+
+      const status = await this.boostService.checkPaymentStatus(
+        user_id as string, 
+        transaction_id as string
+      );
+
+      this.sendSuccess(res, status);
+    }, 'проверки статуса платежа');
+  }
+
+  /**
    * Активация TON Boost пакета
    */
   async activatePackage(req: Request, res: Response): Promise<void> {
