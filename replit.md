@@ -108,6 +108,35 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **COMPLETED** - TON Boost packages now display correctly in UI with full details (name, amount, daily income, status).
 
+### Critical Deposit Disappearing Issue Fixed (July 24, 2025)
+**Issue**: Users reported TON deposits appearing in interface then disappearing after several seconds. The issue started on July 23rd after duplicate protection implementation, affecting users like User #25 with significant deposit amounts (25 TON).
+
+**Root Cause Analysis**:
+1. **Primary Cause**: Aggressive `tx_hash_unique` duplicate protection with UNIQUE INDEX was rolling back successful deposits when receiving duplicate requests with same transaction hash
+2. **Secondary Cause**: 5 LSP typing errors in `modules/wallet/service.ts` causing `updateUserBalance()` failures with type mismatches (`string` vs `number`)
+
+**Solution Implemented**:
+1. **Fixed LSP Typing Errors** (5 critical errors):
+   - Line 179, 233, 562: Added `parseInt(userId)` for proper number type conversion
+   - Line 202, 256: Replaced undefined `newBalance` variable with `success: result.success` in logs
+2. **Temporarily Disabled Aggressive Protection**: Set `tx_hash_unique: null` in `core/TransactionService.ts` line 117
+3. **Comprehensive Testing**: Verified system stability and LSP error elimination
+
+**Technical Details**:
+- **Root Issue**: `tx_hash_unique` UNIQUE CONSTRAINT violations caused PostgreSQL rollbacks of successful transactions
+- **Files Modified**: 
+  - `modules/wallet/service.ts` - Fixed 5 LSP typing errors
+  - `core/TransactionService.ts` - Temporarily disabled tx_hash_unique population
+- **Result**: Deposits no longer disappear, system returned to stable pre-July 23rd behavior
+
+**Timeline**:
+- **July 22**: System worked perfectly
+- **July 23**: `tx_hash_unique` protection added, issue began
+- **July 24 07:35**: Critical fixes applied
+- **July 24 08:00**: Issue resolved, system stabilized
+
+**Status**: ✅ **RESOLVED** - TON deposits now remain stable and don't disappear. Temporary duplicate protection disabled pending improved implementation.
+
 ### Withdrawal Validation Messages Enhancement (July 23, 2025)
 **Issue**: Withdrawal validation messages were confusing users with incorrect minimum amounts (showing 0.001 instead of actual minimums).
 
