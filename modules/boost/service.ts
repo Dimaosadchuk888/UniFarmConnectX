@@ -1060,19 +1060,32 @@ export class BoostService {
       }
 
       // Получаем farming_balance из ton_farming_data для корректного отображения
-      let farmingBalance = tonBalance; // По умолчанию используем balance_ton
+      let farmingBalance = 0; // Не используем fallback к balance_ton
+      let hasFarmingData = false;
+      
       try {
         const { data: farmingData } = await supabase
           .from('ton_farming_data')
           .select('farming_balance')
           .eq('user_id', parseInt(userId))
-          .single();
+          .maybeSingle(); // Используем maybeSingle() вместо single()
         
         if (farmingData && farmingData.farming_balance) {
           farmingBalance = parseFloat(farmingData.farming_balance);
+          hasFarmingData = true;
         }
       } catch (e) {
-        // Используем tonBalance как fallback
+        logger.warn('[BoostService] Ошибка получения farming_balance:', e);
+      }
+
+      // Если нет записи в ton_farming_data, используем минимальную сумму пакета
+      if (!hasFarmingData) {
+        farmingBalance = parseFloat(boostPackage.min_amount || '0');
+        logger.info('[BoostService] Используем min_amount пакета как farming_balance', {
+          userId,
+          packageMinAmount: boostPackage.min_amount,
+          calculatedBalance: farmingBalance
+        });
       }
 
       // Рассчитываем доход на основе ставки пакета
@@ -1085,8 +1098,10 @@ export class BoostService {
         activeBoostId,
         tonBalance,
         farmingBalance,
+        hasFarmingData,
         dailyRate,
-        dailyIncome
+        dailyIncome,
+        packageMinAmount: boostPackage.min_amount
       });
 
       return {
@@ -1097,9 +1112,10 @@ export class BoostService {
         deposits: [{
           id: activeBoostId,
           package_name: boostPackage.name,
-          amount: farmingBalance.toString(), // Используем farming_balance для отображения
+          amount: farmingBalance.toString(), // Теперь правильная сумма депозита
           rate: dailyRate.toString(),
-          status: 'active'
+          status: 'active',
+          source: hasFarmingData ? 'ton_farming_data' : 'package_min_amount'
         }]
       };
 

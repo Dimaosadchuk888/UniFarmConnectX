@@ -108,6 +108,30 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **COMPLETED** - TON Boost packages now display correctly in UI with full details (name, amount, daily income, status).
 
+### TON Farming Display Fix Applied (July 24, 2025)
+**Issue**: TON Farming card was showing wallet balance (0.21 TON) instead of actual TON Boost deposit amounts, causing users to see incorrect farming information and very small calculated income.
+
+**Root Cause Identified**:
+- Method `getTonBoostFarmingStatus()` used fallback to `users.balance_ton` when `ton_farming_data` records were missing
+- TON Boost activation wasn't creating records in `ton_farming_data` table
+- System showed wallet balance instead of actual deposit amounts
+
+**Solution Implemented**:
+1. **Removed incorrect fallback**: Changed from `balance_ton` fallback to using package `min_amount`
+2. **Enhanced error handling**: Used `maybeSingle()` instead of `single()` to prevent errors
+3. **Added proper logging**: Track data source (ton_farming_data vs package_min_amount)
+4. **Improved deposit display**: Show actual deposit amounts based on boost package values
+
+**Technical Details**:
+- **File Modified**: `modules/boost/service.ts` - `getTonBoostFarmingStatus()` method
+- **Key Changes**: 
+  - Fallback logic: `balance_ton` → `boostPackage.min_amount`
+  - Query method: `.single()` → `.maybeSingle()`
+  - Added `source` field to track data origin
+- **Result**: Users now see correct deposit amounts and realistic daily income calculations
+
+**Status**: ✅ **COMPLETED** - TON Farming display now shows correct deposit information instead of wallet balance.
+
 ### Critical Deposit Monitoring System Deployed (July 24, 2025)
 **Issue**: Users reported TON deposits appearing in interface then disappearing after several seconds. The issue started on July 23rd after duplicate protection implementation, affecting users like User #25 with significant deposit amounts (25 TON).
 
