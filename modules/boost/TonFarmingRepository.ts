@@ -245,7 +245,7 @@ export class TonFarmingRepository {
   async activateBoost(userId: string, packageId: number, rate: number, expiresAt?: string, depositAmount?: number): Promise<boolean> {
     try {
       // Сначала получаем существующую запись
-      const existingRecord = await this.getByUserId(parseInt(userId));
+      const existingRecord = await this.getByUserId(userId.toString());
       
       let newFarmingBalance: string;
       if (existingRecord && existingRecord.farming_balance) {

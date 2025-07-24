@@ -186,7 +186,7 @@ export class BoostService {
       // Обновляем баланс UNI через централизованный BalanceManager
       const { balanceManager } = await import('../../core/BalanceManager');
       const result = await balanceManager.addBalance(
-        userId,
+        parseInt(userId),
         boostPackage.uni_bonus,
         0,
         'BoostService.uni_bonus'
@@ -842,23 +842,43 @@ export class BoostService {
         durationDays: boostPackage.duration_days
       });
 
-      // Здесь будет логика активации Boost:
-      // - Обновление пользовательских множителей
-      // - Установка времени окончания действия
-      // - Применение эффектов к farming
-
-      // Реферальные награды теперь начисляются планировщиком от фактического дохода
-      logger.warn('[BoostService] Referral reward отключён: перенесено в Boost-планировщик', {
+      // 1. Обновить поля в users таблице для планировщика
+      const { error: userError } = await supabase
+        .from('users')
+        .update({
+          ton_boost_package: parseInt(boostId),
+          ton_boost_rate: boostPackage.daily_rate
+        })
+        .eq('id', parseInt(userId));
+      
+      if (userError) {
+        logger.error('[BoostService] Ошибка обновления users:', userError);
+        return false;
+      }
+      
+      // 2. Создать/обновить запись в ton_farming_data через репозиторий
+      const { TonFarmingRepository } = await import('./TonFarmingRepository');
+      const tonFarmingRepo = new TonFarmingRepository();
+      
+      const activationSuccess = await tonFarmingRepo.activateBoost(
         userId,
-        boostId,
-        packageName: boostPackage.name,
-        reason: 'Партнёрские начисления теперь происходят только от дохода Boost, не от активации'
-      });
+        parseInt(boostId),
+        boostPackage.daily_rate,
+        new Date(Date.now() + boostPackage.duration_days * 24 * 60 * 60 * 1000).toISOString(),
+        0 // depositAmount устанавливается отдельно при покупке
+      );
+      
+      if (!activationSuccess) {
+        logger.error('[BoostService] Ошибка активации через TonFarmingRepository');
+        return false;
+      }
       
       logger.info('[BoostService] Boost успешно активирован', {
         userId,
         boostId,
-        packageName: boostPackage.name
+        packageName: boostPackage.name,
+        dailyRate: boostPackage.daily_rate,
+        durationDays: boostPackage.duration_days
       });
 
       return true;
@@ -1014,7 +1034,8 @@ export class BoostService {
       logger.info('[BoostService] Активация TON Boost пакета', { userId, packageId });
       
       // Проверяем, существует ли пакет
-      const boostPackage = this.tonBoostPackages.find(pkg => pkg.id.toString() === packageId);
+      const packages = await this.getBoostPackages();
+      const boostPackage = packages.find((pkg: any) => pkg.id.toString() === packageId);
       if (!boostPackage) {
         return {
           success: false,
@@ -1106,7 +1127,8 @@ export class BoostService {
 
       // Проверяем активный TON Boost пакет
       if (user.ton_boost_package) {
-        const tonPackage = this.tonBoostPackages.find(pkg => pkg.id === user.ton_boost_package);
+        const packages = await this.getBoostPackages();
+        const tonPackage = packages.find((pkg: any) => pkg.id === user.ton_boost_package);
         if (tonPackage) {
           activeBoosts.push({
             type: 'ton_boost',
