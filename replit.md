@@ -152,36 +152,42 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **COMPLETED** - TON Farming display now shows correct deposit information instead of wallet balance.
 
-### Critical Deposit Monitoring System Deployed (July 24, 2025)
-**Issue**: Users reported TON deposits appearing in interface then disappearing after several seconds. The issue started on July 23rd after duplicate protection implementation, affecting users like User #25 with significant deposit amounts (25 TON).
+### Critical TON Boost Duplication Issue Identified (July 24, 2025)
+**Issue**: User #184 reported critical duplication problem - purchasing 1 TON Boost package resulted in system crediting 2 packages worth of bonuses and deposits, causing significant financial losses.
 
-**Comprehensive Investigation Results**:
-1. **Root Cause Confirmed**: Active `idx_tx_hash_unique_safe` PostgreSQL constraint causes rollback of successful deposits when duplicate tx_hash detected
-2. **User Deposit Verified**: Specific blockchain transaction `te6cckECBAEAA...` from 24.07.2025 08:55 MSK completely missing from database despite user confirmation
-3. **System Evidence**: 644 transactions processed normally in same timeframe, but zero TON_DEPOSIT records found, proving system loses deposits
+**Comprehensive Code Analysis Results**:
+1. **Triple UNI Bonus Duplication**: Method `awardUniBonus()` called 3-4 times per purchase:
+   - Line 402: `purchaseWithInternalWallet()` first call
+   - Line 482: `purchaseWithInternalWallet()` second call
+   - Line 826: `purchaseWithExternalTon()` third call
+   - Potential fourth call in activation chain
 
-**Safe Monitoring Solution Deployed**:
-1. **Critical Logging Added**:
-   - `core/BalanceManager.ts`: All direct balance updates now logged with full context
-   - `modules/wallet/service.ts`: Complete TON deposit processing pipeline logged
-   - Stack traces and timestamps included for debugging
-   
-2. **Real-time Monitoring System**:
-   - `MONITORING_SCRIPT.js`: Live tracking of balance changes and transaction creation/deletion
-   - WebSocket subscriptions to users and transactions tables
-   - Automatic detection of disappearing deposits
-   
-3. **Constraint Status**: `idx_tx_hash_unique_safe` confirmed still active in database (requires admin access to remove)
+2. **Triple TON Farming Activation**: Method `tonFarmingRepo.activateBoost()` called 3 times:
+   - Line 413: First activation in purchase flow
+   - Line 520: "Final activation" in same purchase flow  
+   - Line 954: Additional call in private `activateBoost()` method
+
+3. **Deposit Accumulation Problem**: `TonFarmingRepository.activateBoost()` uses additive logic causing balance accumulation instead of replacement
+
+**Impact Assessment**:
+- **User Experience**: 1 TON payment → 2-3x UNI bonus + 2x TON farming deposit
+- **Financial Loss**: System hemorrhaging UNI tokens through triple bonus payments
+- **Database Pollution**: Multiple duplicate DAILY_BONUS transactions per purchase
+- **Affected Users**: All TON Boost purchasers since system implementation
+
+**Safe Fix Strategy Developed**:
+1. **Phase 1**: Implement duplication protection without removing existing calls
+2. **Phase 2**: Add temporal deduplication keys to prevent multiple executions
+3. **Phase 3**: Gradual removal of duplicate calls after extensive testing
+4. **Compensation**: Identify and compensate affected users
 
 **Technical Implementation**:
-- **Files Modified**: 
-  - `core/BalanceManager.ts` - Added `[CRITICAL] [DIRECT_BALANCE_UPDATE]` logging
-  - `modules/wallet/service.ts` - Added `[CRITICAL] [TON_DEPOSIT_*]` logging at all stages
-  - Created monitoring and diagnostic scripts
-- **Safety**: Zero changes to business logic, only monitoring and logging added
-- **Result**: System now has complete visibility into deposit processing and balance changes
+- **Files Analyzed**: `modules/boost/service.ts`, `modules/boost/TonFarmingRepository.ts`
+- **Created**: `CRITICAL_PRODUCTION_SAFE_FIX_PLAN.md` with step-by-step remediation
+- **Created**: `SAFE_DUPLICATION_PROTECTION.ts` with temporary fix code
+- **Safety**: No code changes made pending user approval for production safety
 
-**Status**: ⚡ **CRITICAL MONITORING DEPLOYED** - Implemented comprehensive logging and real-time monitoring system to track and diagnose TON deposit disappearing issue. User-approved safe changes applied without touching business logic.
+**Status**: 🚨 **CRITICAL ISSUE IDENTIFIED** - Full diagnostic completed, safe fix plan prepared. Requires immediate but careful implementation to prevent breaking existing functionality while stopping financial losses.
 
 ### Withdrawal Validation Messages Enhancement (July 23, 2025)
 **Issue**: Withdrawal validation messages were confusing users with incorrect minimum amounts (showing 0.001 instead of actual minimums).
