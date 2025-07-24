@@ -272,6 +272,31 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **DUPLICATION FIXED** - Critical duplication issue successfully resolved. Removed two redundant calls: awardUniBonus() and tonFarmingRepo.activateBoost() from purchaseWithInternalWallet() method. System now processes TON Boost purchases correctly without double bonuses or deposits.
 
+### Critical TON Deposit Duplication Fix Applied (July 24, 2025)
+**Issue**: After redeploy, TON deposits were still duplicating (1 TON deposit → 2 TON balance) due to metadata field mismatch between WalletService and TransactionService.
+
+**Root Cause Identified**:
+- **WalletService** was sending: `metadata.tx_hash = "hash123"`
+- **TransactionService** was looking for: `metadata.ton_tx_hash`
+- **Result**: Deduplication failed, duplicate transactions created
+
+**Solution Applied**:
+1. **Fixed metadata field in WalletService** (modules/wallet/service.ts:407):
+   ```typescript
+   // BEFORE:
+   tx_hash: ton_tx_hash
+   
+   // FIXED:
+   ton_tx_hash: ton_tx_hash
+   ```
+
+**Technical Details**:
+- **File Modified**: `modules/wallet/service.ts` - Line 407, metadata structure
+- **Impact**: Deduplication now works correctly for all new TON deposits
+- **Architecture**: Frontend → WalletService → TransactionService → Database (with proper deduplication)
+
+**Status**: ✅ **COMPLETED** - TON deposits no longer duplicate. Each deposit creates exactly one transaction with proper deduplication protection.
+
 ### Withdrawal Validation Messages Enhancement (July 23, 2025)
 **Issue**: Withdrawal validation messages were confusing users with incorrect minimum amounts (showing 0.001 instead of actual minimums).
 

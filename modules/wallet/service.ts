@@ -401,7 +401,7 @@ export class WalletService {
           source: 'ton_deposit',
           original_type: 'TON_DEPOSIT',
           wallet_address,
-          tx_hash: ton_tx_hash
+          ton_tx_hash: ton_tx_hash
         }
       });
 
