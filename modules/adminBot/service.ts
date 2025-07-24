@@ -29,17 +29,19 @@ export class AdminBotService {
       return false;
     }
     
-    // Also check database is_admin flag
+    // Also check database is_admin flag (handle multiple records)
     try {
-      const { data: user } = await supabase
+      const { data: users } = await supabase
         .from('users')
-        .select('is_admin')
+        .select('is_admin, id')
         .eq('username', username.replace('@', ''))
-        .single();
+        .order('created_at', { ascending: false }); // Get newest first
         
-      return user?.is_admin === true;
+      // If any user with this username is admin, allow access
+      return users && users.length > 0 && users.some(user => user.is_admin === true);
     } catch (error) {
-      // If not in DB, still allow if in hardcoded list
+      logger.warn('[AdminBot] Database check failed, using hardcoded list', { username, error });
+      // If DB check fails, still allow if in hardcoded list
       return true;
     }
   }
