@@ -135,7 +135,7 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 - **July 24 07:35**: Critical fixes applied
 - **July 24 08:00**: Issue resolved, system stabilized
 
-**Status**: ✅ **RESOLVED** - TON deposits now remain stable and don't disappear. Temporary duplicate protection disabled pending improved implementation.
+**Status**: ❌ **ROOT CAUSE IDENTIFIED** - TON deposits are NOT being saved to database at all. User #25 has ZERO TON deposit records despite complaints about "disappearing" deposits. The issue is not in frontend filtering but in the deposit creation process itself - `WalletService.processTonDeposit()` fails to create transaction records while balance updates work correctly.
 
 ### Withdrawal Validation Messages Enhancement (July 23, 2025)
 **Issue**: Withdrawal validation messages were confusing users with incorrect minimum amounts (showing 0.001 instead of actual minimums).
