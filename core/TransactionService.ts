@@ -19,7 +19,7 @@ const TRANSACTION_TYPE_MAPPING: Record<ExtendedTransactionType, TransactionsTran
   // Маппинг расширенных типов на базовые
   'TON_BOOST_INCOME': 'FARMING_REWARD',   // TON Boost доходы → FARMING_REWARD
   'UNI_DEPOSIT': 'FARMING_REWARD',        // UNI депозиты → FARMING_REWARD
-  'TON_DEPOSIT': 'FARMING_REWARD',        // TON депозиты → FARMING_REWARD
+  'TON_DEPOSIT': 'DEPOSIT',              // TON депозиты → DEPOSIT (исправлено с FARMING_REWARD)
   'UNI_WITHDRAWAL': 'WITHDRAWAL',          // Выводы UNI → WITHDRAWAL
   'TON_WITHDRAWAL': 'WITHDRAWAL',          // Выводы TON → WITHDRAWAL
   'BOOST_PURCHASE': 'FARMING_REWARD',     // Покупки boost → FARMING_REWARD
@@ -112,7 +112,7 @@ export class UnifiedTransactionService {
           description: enhancedDescription,
           metadata: { ...metadata, original_type: metadata?.original_type || type },  // Приоритет metadata.original_type, fallback на type
           source_user_id: source_user_id || user_id,
-          tx_hash_unique: null, // ВРЕМЕННО ОТКЛЮЧЕНО для исправления проблемы исчезающих депозитов
+          tx_hash_unique: metadata?.tx_hash || null, // Восстановлена дедупликация для предотвращения дублирующих депозитов
           created_at: new Date().toISOString()
         })
         .select()

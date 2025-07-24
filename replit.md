@@ -22,6 +22,24 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### TON Connect Deposit System Fully Restored (July 24, 2025)
+**Issue**: Critical bug where TON Connect deposits disappeared after appearing briefly in UI. Users lost all external wallet deposits because frontend never called backend API after successful blockchain transactions.
+
+**Solution Implemented**:
+1. **Frontend-Backend Integration**: Added missing API call in `sendTonTransaction()` to notify backend after successful blockchain transaction
+2. **Dедупликация Restored**: Fixed `tx_hash_unique: null` to `metadata?.tx_hash || null` preventing duplicate transactions
+3. **Type Mapping Fixed**: Changed `TON_DEPOSIT` mapping from `FARMING_REWARD` to `DEPOSIT` for correct display
+
+**Technical Details**:
+- **File Modified**: `client/src/services/tonConnectService.ts` - Added 15 lines of backend integration
+- **File Modified**: `core/TransactionService.ts` - Restored deduplication and fixed type mapping
+- **Architecture Flow**: TON Connect → sendTransaction → correctApiRequest → Backend API → Database → WebSocket → UI
+- **Safety**: All changes are backward compatible, existing deposits unaffected
+
+**Impact**: All TON Connect deposits now work end-to-end. No more disappearing deposits, stable balances, correct transaction history display.
+
+**Status**: ✅ **FULLY RESTORED** - External wallet TON deposits now work correctly with instant backend processing and permanent balance updates.
+
 ### WebSocket System Notifications Disabled (July 24, 2025)
 **Issue**: Users were experiencing frequent system notifications about WebSocket connection status ("Соединение с сервером потеряно" / "Соединение восстановлено") that appeared every 5 seconds during connection interruptions, creating a poor user experience.
 
