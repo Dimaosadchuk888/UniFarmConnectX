@@ -18,9 +18,16 @@ interface BoostPackageData {
 interface UserBoostData {
   id: number;
   package_id: number;
+  package_name?: string;
+  ton_amount?: string;
+  rate_ton_per_second?: string;
+  rate_uni_per_second?: string;
+  accumulated_ton?: string;
+  bonus_uni?: string;
   start_date: Date;
   end_date: Date;
   is_active: boolean;
+  status?: string;
 }
 
 export class BoostService {
@@ -97,15 +104,74 @@ export class BoostService {
     try {
       logger.info(`[BoostService] Получение активных бустов для пользователя ${userId}`);
       
-      return [
-        {
-          id: 1,
-          package_id: 1,
-          start_date: new Date(),
-          end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          is_active: true
+      // Получаем данные пользователя из базы
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('id, ton_boost_package, ton_boost_rate, balance_ton')
+        .eq('id', parseInt(userId))
+        .single();
+        
+      if (userError || !user || !user.ton_boost_package) {
+        logger.info('[BoostService] У пользователя нет активных TON Boost пакетов', { 
+          userId, 
+          hasUser: !!user, 
+          hasPackage: user?.ton_boost_package 
+        });
+        return [];
+      }
+      
+      // Получаем информацию о пакете
+      const boostPackage = await this.getBoostPackageById(user.ton_boost_package.toString());
+      if (!boostPackage) {
+        logger.warn('[BoostService] Не найден пакет для активного boost', { 
+          userId, 
+          packageId: user.ton_boost_package 
+        });
+        return [];
+      }
+      
+      // Получаем farming_balance из ton_farming_data или используем fallback
+      let farmingBalance = parseFloat(user.balance_ton || '0');
+      try {
+        const { data: farmingData } = await supabase
+          .from('ton_farming_data')
+          .select('farming_balance, created_at')
+          .eq('user_id', parseInt(userId))
+          .single();
+          
+        if (farmingData && farmingData.farming_balance) {
+          farmingBalance = parseFloat(farmingData.farming_balance);
         }
-      ];
+      } catch (e) {
+        // Используем balance_ton как fallback
+      }
+      
+      // Возвращаем полные данные активного boost
+      const activeBoost: UserBoostData = {
+        id: user.ton_boost_package,
+        package_id: user.ton_boost_package,
+        package_name: boostPackage.name,
+        ton_amount: farmingBalance.toString(),
+        rate_ton_per_second: ((parseFloat(boostPackage.daily_rate) * 100 / 100) / 86400).toFixed(8),
+        rate_uni_per_second: '0',
+        accumulated_ton: '0',
+        bonus_uni: boostPackage.uni_bonus.toString(),
+        start_date: new Date(),
+        end_date: new Date(Date.now() + (boostPackage.duration_days || 365) * 24 * 60 * 60 * 1000),
+        is_active: true,
+        status: 'active'
+      };
+      
+      logger.info('[BoostService] Найден активный TON Boost пакет', {
+        userId,
+        packageId: activeBoost.package_id,
+        packageName: activeBoost.package_name,
+        amount: activeBoost.ton_amount,
+        dailyRate: parseFloat(boostPackage.daily_rate) * 100
+      });
+      
+      return [activeBoost];
+      
     } catch (error) {
       logger.error('[BoostService] Ошибка получения активных бустов:', error);
       return [];
@@ -890,7 +956,7 @@ export class BoostService {
         parseInt(boostId),
         boostPackage.daily_rate,
         new Date(Date.now() + boostPackage.duration_days * 24 * 60 * 60 * 1000).toISOString(),
-        0 // depositAmount устанавливается отдельно при покупке
+        parseFloat(boostPackage.min_amount.toString()) // Передаем минимальную сумму пакета как депозит
       );
       
       if (!activationSuccess) {
@@ -960,11 +1026,10 @@ export class BoostService {
         hasEnoughBalance: tonBalance >= 10
       });
 
-      if (!activeBoostId || tonBalance < 10) {
-        logger.info('[BoostService] TON Boost неактивен - нет пакета или недостаточно баланса', {
+      if (!activeBoostId) {
+        logger.info('[BoostService] TON Boost неактивен - нет активного пакета', {
           activeBoostId,
-          tonBalance,
-          required: 10
+          tonBalance
         });
         return {
           totalTonRatePerSecond: '0',
