@@ -88,6 +88,26 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **SYSTEM FULLY RESTORED** - TON Boost purchases now work end-to-end: purchase → activation → automated income generation.
 
+### TON Boost UI Display Restoration Completed (July 24, 2025)
+**Issue**: After TON Boost system restoration, users couldn't see their purchased packages in the UI. The `ActiveTonBoostsCard` component was disabled, and API methods returned incomplete data.
+
+**Solution Implemented**:
+1. **Re-enabled ActiveTonBoostsCard**: Uncommented import and usage in `client/src/pages/Farming.tsx`
+2. **Fixed getTonBoostFarmingStatus()**: Removed 10 TON balance requirement that prevented display of active packages
+3. **Enhanced getUserActiveBoosts()**: Now returns full package data including name, amount, rate, and bonus information
+4. **Updated UserBoostData interface**: Added missing fields for complete package display
+5. **Improved activateBoost()**: Fixed deposit amount passing to TonFarmingRepository
+
+**Technical Details**:
+- **Files Modified**: 
+  - `client/src/pages/Farming.tsx` - Re-enabled ActiveTonBoostsCard component
+  - `modules/boost/service.ts` - Fixed logic and enhanced data retrieval
+  - Interface updated with package_name, ton_amount, rate_ton_per_second, bonus_uni fields
+- **Test Results**: getUserActiveBoosts() returns "Starter Boost" with 3.095358 TON, 0.030954 daily income
+- **UI Status**: Users can now see purchased TON Boost packages with complete information
+
+**Status**: ✅ **COMPLETED** - TON Boost packages now display correctly in UI with full details (name, amount, daily income, status).
+
 ### Withdrawal Validation Messages Enhancement (July 23, 2025)
 **Issue**: Withdrawal validation messages were confusing users with incorrect minimum amounts (showing 0.001 instead of actual minimums).
 
