@@ -311,31 +311,56 @@ export class BoostService {
         };
       }
 
-      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Активация TON Boost СРАЗУ после списания средств
-      // Это гарантирует активацию планировщика независимо от проблем с createBoostPurchase
-      logger.info('[BoostService] НЕМЕДЛЕННАЯ активация TON Boost планировщика', {
-        userId,
-        boostId: boostPackage.id,
-        reason: 'Активация сразу после успешного списания средств'
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: НЕМЕДЛЕННАЯ АКТИВАЦИЯ после списания
+      logger.info('[BoostService] АКТИВАЦИЯ СРАЗУ после списания средств', {
+        userId, boostPackageId: boostPackage.id, amount: requiredAmount
       });
       
-      // Используем TonFarmingRepository для активации boost
+      // 1. Обновляем users таблицу для планировщика
+      const { supabase } = await import('../../core/supabase');
+      const { error: userUpdateError } = await supabase
+        .from('users')
+        .update({
+          ton_boost_package: boostPackage.id,
+          ton_boost_rate: boostPackage.daily_rate
+        })
+        .eq('id', parseInt(userId));
+        
+      if (userUpdateError) {
+        logger.error('[BoostService] Ошибка обновления users для активации:', userUpdateError);
+      } else {
+        logger.info('[BoostService] Users таблица обновлена для планировщика');
+      }
+      
+      // 2. Начисляем UNI бонус немедленно
+      const uniBonusSuccess = await this.awardUniBonus(userId, boostPackage);
+      if (uniBonusSuccess) {
+        logger.info('[BoostService] UNI бонус успешно начислен');
+      } else {
+        logger.error('[BoostService] Ошибка начисления UNI бонуса');
+      }
+      
+      // 3. Создаем запись в ton_farming_data
       const { TonFarmingRepository } = await import('./TonFarmingRepository');
       const tonFarmingRepo = new TonFarmingRepository();
       
-      const immediateActivation = await tonFarmingRepo.activateBoost(
+      const activationSuccess = await tonFarmingRepo.activateBoost(
         userId,
         boostPackage.id,
-        boostPackage.daily_rate / 100, // Конвертируем процент в десятичное число
-        undefined, // expiresAt - необязательный параметр
-        requiredAmount // Передаем сумму депозита для обновления farming_balance
+        boostPackage.daily_rate,
+        new Date(Date.now() + boostPackage.duration_days * 24 * 60 * 60 * 1000).toISOString(),
+        requiredAmount
       );
-        
-      if (!immediateActivation) {
-        logger.error('[BoostService] КРИТИЧЕСКАЯ ОШИБКА немедленной активации');
+      
+      if (activationSuccess) {
+        logger.info('[BoostService] ✅ TON BOOST ПОЛНОСТЬЮ АКТИВИРОВАН', {
+          userId, boostPackageId: boostPackage.id, dailyRate: boostPackage.daily_rate
+        });
       } else {
-        logger.info('[BoostService] Немедленная активация УСПЕШНА - планировщик активирован');
+        logger.error('[BoostService] ❌ Ошибка активации через TonFarmingRepository');
       }
+
+
 
       // Создаем запись о покупке
       logger.info('[BoostService] Вызов createBoostPurchase', {
