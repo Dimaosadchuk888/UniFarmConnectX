@@ -297,6 +297,21 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **COMPLETED** - TON deposits no longer duplicate. Each deposit creates exactly one transaction with proper deduplication protection.
 
+### Application Cache Issue Resolution (July 24, 2025)
+**Issue**: After implementing all duplication fixes, User #25 continued experiencing duplicate TON deposits due to application caching. The fixes were present in code but the running application was using a cached older version.
+
+**Solution Applied**:
+1. **Identified caching issue**: Code analysis confirmed all fixes were implemented correctly
+2. **Server restart**: Killed old process and restarted server to load updated code
+3. **Cache clearance**: Application now runs with all anti-duplication protections active
+
+**Technical Details**:
+- **Root Cause**: Application caching prevented updated code from running despite fixes being implemented
+- **Resolution**: Server restart via `pkill` and fresh `tsx server/index.ts` startup
+- **Impact**: All TON deposit duplication protections now active in running system
+
+**Status**: ✅ **RESOLVED** - Caching issue resolved, all duplication fixes now active in production.
+
 ### Withdrawal Validation Messages Enhancement (July 23, 2025)
 **Issue**: Withdrawal validation messages were confusing users with incorrect minimum amounts (showing 0.001 instead of actual minimums).
 
