@@ -14,9 +14,10 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 interface WebSocketProviderProps {
   children: ReactNode;
+  showSystemNotifications?: boolean;
 }
 
-export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
+export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children, showSystemNotifications = false }) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [lastMessage, setLastMessage] = useState<any>(null);
@@ -47,7 +48,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         }
         
         // Показываем уведомление о восстановлении соединения только если было отключение
-        if (hasShownDisconnectedToast.current) {
+        if (showSystemNotifications && hasShownDisconnectedToast.current) {
           toast({
             title: "Соединение восстановлено",
             variant: "default"
@@ -94,7 +95,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         setSocket(null);
         
         // Показываем уведомление об отключении только один раз
-        if (!hasShownDisconnectedToast.current) {
+        if (showSystemNotifications && !hasShownDisconnectedToast.current) {
           toast({
             title: "Соединение с сервером потеряно",
             variant: "destructive"

@@ -22,6 +22,31 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### WebSocket System Notifications Disabled (July 24, 2025)
+**Issue**: Users were experiencing frequent system notifications about WebSocket connection status ("Соединение с сервером потеряно" / "Соединение восстановлено") that appeared every 5 seconds during connection interruptions, creating a poor user experience.
+
+**Investigation Results**:
+- **Root Cause**: System notifications generated in `webSocketContext.tsx` lines 50-56 and 97-103
+- **Mechanism**: Used `useToast()` hook from Shadcn/UI system during WebSocket `onopen` and `onclose` events
+- **Frequency**: Triggered every 5 seconds during reconnection attempts
+- **Impact**: Technical notifications appeared to users without providing meaningful value
+
+**Solution Implemented**:
+1. **Added Configuration Option**: Added `showSystemNotifications?: boolean` prop to `WebSocketProviderProps` (default: false)
+2. **Conditional Notifications**: Wrapped system toast calls with `showSystemNotifications` check
+3. **Preserved Functionality**: Maintained full WebSocket reconnection logic and real-time balance updates
+4. **Selective Disabling**: Only disabled technical connection notifications, preserved all business notifications (deposits, withdrawals, bonuses)
+
+**Technical Details**:
+- **File Modified**: `client/src/contexts/webSocketContext.tsx`
+- **Changes**: 3 lines of conditional logic around existing toast() calls
+- **Default Behavior**: System notifications disabled by default for cleaner UX
+- **Override Option**: Can be enabled by passing `showSystemNotifications={true}` if needed
+
+**Impact**: Eliminated intrusive system notifications while preserving WebSocket functionality, real-time updates, and all user-relevant notifications. Users now experience smoother interaction without technical noise.
+
+**Status**: ✅ **COMPLETED** - Clean user experience achieved. Technical WebSocket notifications disabled with no functional impact.
+
 ### DEPOSIT WebSocket Integration Fix Completed (July 24, 2025)
 **Issue**: Existing DEPOSIT transactions were not triggering WebSocket balance updates, causing users to not see real-time balance changes after deposits. Analysis revealed 25 existing DEPOSIT transactions with TX hashes that weren't integrated with the WebSocket notification system.
 
