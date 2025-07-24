@@ -478,15 +478,12 @@ export class BoostService {
         logger.error('[BoostService] Ошибка создания транзакции покупки:', error);
       }
 
-      // Начисляем UNI бонус за покупку boost пакета
-      const uniBonusAwarded = await this.awardUniBonus(userId, boostPackage);
-      if (!uniBonusAwarded) {
-        logger.warn('[BoostService] Не удалось начислить UNI бонус', {
-          userId,
-          boostPackageId: boostPackage.id,
-          uniBonus: boostPackage.uni_bonus
-        });
-      }
+      // ИСПРАВЛЕНО: Удален дублированный вызов awardUniBonus (уже вызван на строке 402)
+      logger.info('[BoostService] UNI бонус уже начислен на строке 402, дублированный вызов удален', {
+        userId,
+        boostPackageId: boostPackage.id,
+        uniBonus: boostPackage.uni_bonus
+      });
 
       // Реферальные награды теперь начисляются планировщиком от фактического дохода
       logger.warn('[BoostService] Referral reward отключён: перенесено в Boost-планировщик', {
@@ -508,28 +505,12 @@ export class BoostService {
         newBalance: updatedWalletData.ton_balance
       });
 
-      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Принудительная активация TON Boost планировщика
-      // Выполняется в самом конце для гарантированного обновления ton_boost_package
-      logger.info('[BoostService] ФИНАЛЬНАЯ активация TON Boost планировщика', {
+      // ИСПРАВЛЕНО: Удалена дублированная активация TON Boost (уже выполнена на строке 413)
+      logger.info('[BoostService] TON Boost уже активирован на строке 413, дублированная активация удалена', {
         userId,
         boostId: boostPackage.id,
-        reason: 'Гарантированная активация после успешной покупки'
+        reason: 'Предотвращение двойного накопления депозита'
       });
-      
-      // Используем TonFarmingRepository для финальной активации boost
-      const finalActivation = await tonFarmingRepo.activateBoost(
-        userId, // Передаем как строку, метод сам конвертирует
-        boostPackage.id,
-        boostPackage.daily_rate / 100, // Конвертируем процент в десятичное число
-        undefined, // expiresAt - будет рассчитано автоматически
-        requiredAmount // КРИТИЧНО: передаем сумму депозита для farming_balance
-      );
-        
-      if (!finalActivation) {
-        logger.error('[BoostService] КРИТИЧЕСКАЯ ОШИБКА финальной активации');
-      } else {
-        logger.info('[BoostService] Финальная активация УСПЕШНА - планировщик активирован');
-      }
 
       const responseData = {
         success: true,
