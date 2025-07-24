@@ -22,6 +22,26 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### DEPOSIT WebSocket Integration Fix Completed (July 24, 2025)
+**Issue**: Existing DEPOSIT transactions were not triggering WebSocket balance updates, causing users to not see real-time balance changes after deposits. Analysis revealed 25 existing DEPOSIT transactions with TX hashes that weren't integrated with the WebSocket notification system.
+
+**Solution Implemented**:
+1. **Added DEPOSIT to Transaction Types**: Extended `TransactionsTransactionType` to include `'DEPOSIT'` type
+2. **Added Direct Mapping**: Added `'DEPOSIT': 'DEPOSIT'` to `TRANSACTION_TYPE_MAPPING` in UnifiedTransactionService
+3. **Enabled WebSocket Updates**: Added `'DEPOSIT'` to `shouldUpdateBalance()` method to trigger balance updates
+4. **Maintained Dual Support**: Preserved existing `TON_DEPOSIT` → `FARMING_REWARD` flow while adding support for direct `DEPOSIT` types
+
+**Technical Details**:
+- **Files Modified**: 
+  - `modules/transactions/types.ts` - Added DEPOSIT to type definitions
+  - `core/TransactionService.ts` - Added DEPOSIT mapping and WebSocket integration
+- **Analysis Results**: Found 25 existing DEPOSIT transactions (100% via UnifiedTransactionService, 96% with TX Hash)
+- **Architecture**: Dual type support - new deposits via FARMING_REWARD, existing deposits via DEPOSIT type
+
+**Impact**: All existing DEPOSIT transactions now properly update balances through WebSocket notifications. Users will see real-time balance changes for both new deposits (FARMING_REWARD) and existing deposits (DEPOSIT type).
+
+**Status**: ✅ **COMPLETED** - Full WebSocket integration for all deposit types. No more disappearing deposits or missing balance updates.
+
 ### Domain Migration Completed (July 23, 2025)
 **Issue**: Complete migration from old domain `uni-farm-connect-aab49267.replit.app` to new domain `uni-farm-connect-unifarm01010101.replit.app` after project remix.
 

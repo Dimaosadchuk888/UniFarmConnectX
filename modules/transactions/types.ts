@@ -7,7 +7,8 @@ export type TransactionsTransactionType =
   | 'REFERRAL_REWARD'    // Реферальные бонусы
   | 'MISSION_REWARD'     // Награды за миссии
   | 'DAILY_BONUS'        // Ежедневные бонусы + airdrop награды
-  | 'WITHDRAWAL';        // Вывод средств
+  | 'WITHDRAWAL'         // Вывод средств
+  | 'DEPOSIT';           // Пополнение счета (TON/UNI)
 
 // Расширенные типы транзакций
 export type ExtendedTransactionType = TransactionsTransactionType

@@ -15,6 +15,7 @@ const TRANSACTION_TYPE_MAPPING: Record<ExtendedTransactionType, TransactionsTran
   'MISSION_REWARD': 'MISSION_REWARD',
   'DAILY_BONUS': 'DAILY_BONUS',
   'WITHDRAWAL': 'WITHDRAWAL',              // Добавлен прямой маппинг для выводов
+  'DEPOSIT': 'DEPOSIT',                    // Добавлен прямой маппинг для депозитов
   // Маппинг расширенных типов на базовые
   'TON_BOOST_INCOME': 'FARMING_REWARD',   // TON Boost доходы → FARMING_REWARD
   'UNI_DEPOSIT': 'FARMING_REWARD',        // UNI депозиты → FARMING_REWARD
@@ -320,7 +321,8 @@ export class UnifiedTransactionService {
       'TON_BOOST_INCOME',
       'UNI_DEPOSIT',
       'TON_DEPOSIT',
-      'AIRDROP_REWARD'
+      'AIRDROP_REWARD',
+      'DEPOSIT'  // Добавлено для поддержки существующих DEPOSIT транзакций
     ];
     
     return incomeTypes.includes(type);
