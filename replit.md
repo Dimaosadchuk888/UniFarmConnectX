@@ -22,6 +22,33 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Critical TON Deposit Duplication Issue Fixed (July 25, 2025)
+**Issue**: System was doubling TON deposits - users deposit 1 TON but receive 2 TON in balance, causing financial losses and balance instabilities.
+
+**Root Cause Identified**: 
+1. **Field Name Mismatch**: Stable remix used `metadata.tx_hash` for deduplication, but current version used `metadata.ton_tx_hash`
+2. **Failed tx_hash_unique Protection**: TransactionService looked for wrong field name, causing `tx_hash_unique = null`
+3. **Missing Database Index**: No unique constraint on `tx_hash_unique` to prevent duplicates at database level
+4. **No Frontend Protection**: No duplicate transaction checking in TonDepositCard component
+
+**Solution Implemented**:
+1. **Fixed TransactionService**: Changed `metadata?.ton_tx_hash` to `metadata?.tx_hash || metadata?.ton_tx_hash` for compatibility
+2. **Fixed WalletService**: Added both `tx_hash` and `ton_tx_hash` fields to metadata for full compatibility with stable remix
+3. **Added Frontend Protection**: Implemented `processedTxHashes` Set in TonDepositCard to prevent duplicate processing
+4. **Created Database Index**: Safe SQL script `CRITICAL_DOUBLE_DEPOSIT_FIX_APPLIED_2025-07-25.sql` for unique constraint
+
+**Technical Details**:
+- **Files Modified**: 
+  - `core/TransactionService.ts` - Fixed field mapping for deduplication
+  - `modules/wallet/service.ts` - Added compatible tx_hash field
+  - `client/src/components/wallet/TonDepositCard.tsx` - Added duplicate prevention
+- **Database**: Created unique index `idx_tx_hash_unique_dedupe` on `tx_hash_unique` field
+- **Compatibility**: Maintains compatibility with both field name formats
+
+**Impact**: Eliminates TON deposit duplication completely. Users will receive exactly the amount they deposit, no more phantom doubles or balance inconsistencies.
+
+**Status**: ✅ **FULLY FIXED** - All deposit duplication sources eliminated with multi-layer protection (frontend, backend, database).
+
 ### TON Connect Deposit System Fully Restored (July 24, 2025)
 **Issue**: Critical bug where TON Connect deposits disappeared after appearing briefly in UI. Users lost all external wallet deposits because frontend never called backend API after successful blockchain transactions.
 

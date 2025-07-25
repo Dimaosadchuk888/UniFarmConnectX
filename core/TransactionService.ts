@@ -112,7 +112,7 @@ export class UnifiedTransactionService {
           description: enhancedDescription,
           metadata: { ...metadata, original_type: metadata?.original_type || type },  // Приоритет metadata.original_type, fallback на type
           source_user_id: source_user_id || user_id,
-          tx_hash_unique: metadata?.ton_tx_hash || null, // Восстановлена дедупликация для предотвращения дублирующих депозитов
+          tx_hash_unique: metadata?.tx_hash || metadata?.ton_tx_hash || null, // Поддержка обоих форматов для совместимости со стабильным ремиксом
           created_at: new Date().toISOString()
         })
         .select()

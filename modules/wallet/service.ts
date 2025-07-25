@@ -401,7 +401,8 @@ export class WalletService {
           source: 'ton_deposit',
           original_type: 'TON_DEPOSIT',
           wallet_address,
-          ton_tx_hash: ton_tx_hash
+          tx_hash: ton_tx_hash, // Основное поле для дедупликации (совместимость со стабильным ремиксом)
+          ton_tx_hash: ton_tx_hash // Дополнительное поле для обратной совместимости
         }
       });
 

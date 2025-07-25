@@ -39,6 +39,7 @@ const TonDepositCard: React.FC = () => {
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [processedTxHashes, setProcessedTxHashes] = useState<Set<string>>(new Set()); // Защита от дублирования
 
   // Проверяем подключение кошелька при загрузке
   useEffect(() => {
@@ -117,6 +118,20 @@ const TonDepositCard: React.FC = () => {
       );
 
       if (result && result.status === 'success' && result.txHash) {
+        // Проверяем, не была ли эта транзакция уже обработана
+        if (processedTxHashes.has(result.txHash)) {
+          console.log('[TonDepositCard] Транзакция уже обработана:', result.txHash);
+          showError('Эта транзакция уже была обработана');
+          return;
+        }
+
+        // Добавляем хеш в список обработанных
+        setProcessedTxHashes(prev => {
+          const newSet = new Set(prev);
+          newSet.add(result.txHash);
+          return newSet;
+        });
+
         // Отправляем информацию о транзакции на backend
         const response = await fetch('/api/v2/wallet/ton-deposit', {
           method: 'POST',
