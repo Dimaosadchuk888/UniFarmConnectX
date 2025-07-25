@@ -222,7 +222,9 @@ export class TONBoostIncomeScheduler {
           const dailyIncome = userDeposit * dailyRate;
           const fiveMinuteIncome = dailyIncome / 288; // 288 циклов по 5 минут в день
 
-          if (fiveMinuteIncome <= 0.0001) {
+          // Уменьшаем минимальный порог чтобы обрабатывать даже мелкие депозиты
+          if (fiveMinuteIncome <= 0.00001) { // Было 0.0001, стало 0.00001
+            logger.info(`[TON_BOOST_SCHEDULER] User ${user.user_id}: доход слишком мал (${fiveMinuteIncome.toFixed(8)} TON) - пропускаем`);
             continue;
           }
 
