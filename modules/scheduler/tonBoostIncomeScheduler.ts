@@ -112,8 +112,27 @@ export class TONBoostIncomeScheduler {
       logger.info(`[TON_BOOST_SCHEDULER] Найдено ${activeBoostUsers.length} активных TON Boost пользователей`);
 
       // Получаем балансы пользователей из таблицы users
-      // Важно: user_id в ton_farming_data хранится как строка, а id в users как число
-      const userIds = activeBoostUsers.map(u => parseInt(u.user_id.toString()));
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: user_id в ton_farming_data хранится как строка, а id в users как число
+      // Используем CAST для правильного приведения типов в SQL запросе
+      const userIds = activeBoostUsers.map(u => {
+        const numericId = parseInt(u.user_id.toString());
+        if (isNaN(numericId)) {
+          logger.warn(`[TON_BOOST_SCHEDULER] Некорректный user_id: ${u.user_id}`);
+          return null;
+        }
+        return numericId;
+      }).filter(id => id !== null);
+      
+      if (userIds.length === 0) {
+        logger.warn('[TON_BOOST_SCHEDULER] Нет корректных пользователей для обработки');
+        return;
+      }
+      
+      logger.info(`[TON_BOOST_SCHEDULER] Преобразованные ID пользователей:`, {
+        original: activeBoostUsers.map(u => u.user_id),
+        converted: userIds
+      });
+      
       const { data: userBalances, error: balanceError } = await supabase
         .from('users')
         .select('id, balance_ton, balance_uni')
@@ -134,13 +153,32 @@ export class TONBoostIncomeScheduler {
       for (const user of activeBoostUsers) {
         try {
           // Получаем актуальные балансы пользователя
-          // Конвертируем user_id в число для поиска в мапе
+          // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Конвертируем user_id из строки в число для поиска в мапе
           const userId = parseInt(user.user_id.toString());
-          const userBalance = balanceMap.get(userId);
-          if (!userBalance) {
-            logger.warn(`[TON_BOOST_SCHEDULER] Баланс не найден для пользователя ${user.user_id}`);
+          if (isNaN(userId)) {
+            logger.warn(`[TON_BOOST_SCHEDULER] 🚫 SKIP: Некорректный user_id: ${user.user_id} - пропускаем`);
             continue;
           }
+          
+          const userBalance = balanceMap.get(userId);
+          if (!userBalance) {
+            logger.error(`[TON_BOOST_SCHEDULER] 🚫 CRITICAL: Баланс не найден для пользователя ${user.user_id} (ID: ${userId})`);
+            logger.error(`[TON_BOOST_SCHEDULER] Доступные балансы в мапе:`, Array.from(balanceMap.keys()));
+            logger.error(`[TON_BOOST_SCHEDULER] Пользователь из farming_data:`, {
+              user_id: user.user_id,
+              type: typeof user.user_id,
+              converted_id: userId,
+              boost_package_id: user.boost_package_id
+            });
+            continue;
+          }
+          
+          logger.info(`[TON_BOOST_SCHEDULER] ✅ ОБРАБОТКА ПОЛЬЗОВАТЕЛЯ ${user.user_id}:`, {
+            string_id: user.user_id,
+            numeric_id: userId,
+            found_balance: true,
+            balance_ton: userBalance.balance_ton
+          });
           
           // Логируем данные для диагностики
           logger.info(`[TON_BOOST_SCHEDULER] Обработка пользователя ${user.user_id}:`, {
