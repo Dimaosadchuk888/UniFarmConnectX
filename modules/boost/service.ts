@@ -977,27 +977,20 @@ export class BoostService {
 
       // 3. Отправляем WebSocket уведомление о активации пакета
       try {
-        const { webSocketManager } = await import('../../core/webSocketManager');
         const dailyIncome = parseFloat(boostPackage.min_amount.toString()) * (parseFloat(boostPackage.daily_rate) * 100) / 100;
         
-        webSocketManager.notifyUser(userId, {
-          type: 'TON_BOOST_ACTIVATED',
-          data: {
-            package_name: boostPackage.name,
-            amount: boostPackage.min_amount.toString(),
-            daily_income: dailyIncome.toFixed(6),
-            boost_id: boostId,
-            message: `TON Boost "${boostPackage.name}" активирован!`
-          }
-        });
-        
-        logger.info('[BoostService] WebSocket уведомление отправлено', {
+        logger.info('[BoostService] TON Boost активирован - уведомление готово', {
           userId,
           packageName: boostPackage.name,
-          dailyIncome
+          dailyIncome,
+          boost_id: boostId,
+          message: `TON Boost "${boostPackage.name}" активирован!`
         });
+        
+        // Временно отключаем WebSocket для исправления активации
+        // TODO: Восстановить после исправления основной проблемы
       } catch (wsError) {
-        logger.warn('[BoostService] Ошибка отправки WebSocket уведомления:', wsError);
+        logger.warn('[BoostService] Ошибка подготовки WebSocket уведомления:', wsError);
         // Не критично - продолжаем выполнение
       }
 
