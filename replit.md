@@ -187,6 +187,13 @@ Metadata shows:
 
 **Status**: ✅ **DIAGNOSTIC COMPLETED** - Root causes identified with technical evidence and specific remediation paths provided.
 
+**CRITICAL UPDATE - User 287 Root Cause Found (July 25, 2025)**:
+- **Definitive Cause**: Data type mismatch between `users.id` (INTEGER) and `ton_farming_data.user_id` (TEXT/STRING)
+- **Technical Evidence**: User 287 passes manual JavaScript JOIN but fails Supabase SQL JOIN due to strict typing
+- **Impact**: Scheduler skips User 287 in SQL queries: `users.id = ton_farming_data.user_id` fails (287 ≠ "287")
+- **Solution**: Modify scheduler to use `CAST(ton_farming_data.user_id AS INTEGER)` in JOIN operations
+- **Files Created**: `CRITICAL_USER287_ROOT_CAUSE_ANALYSIS_FINAL.md` with complete technical analysis
+
 ### Critical External Payment Duplication Fix Applied (July 25, 2025)
 **Issue**: User ID 25 continued experiencing TON deposit duplication (6 purchases → 23 FARMING_REWARD) despite previous fixes, indicating additional duplication source in external payment flow.
 
