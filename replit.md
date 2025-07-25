@@ -22,6 +22,30 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Critical TON Boost Synchronization Issue Fixed (July 25, 2025)
+**Issue**: New TON Boost users were at risk of scheduler not detecting their packages due to field mapping inconsistency between `syncToUsers()` method and scheduler requirements.
+
+**Root Cause Identified**: 
+1. **Field Mapping Inconsistency**: `syncToUsers()` method updated `users.ton_boost_package_id` but scheduler searches for `users.ton_boost_package` 
+2. **Architectural Issue**: Double field update in `purchaseWithInternalWallet()` - direct update of correct field, then sync with wrong field
+3. **Risk for New Users**: Future TON Boost purchasers would have working deposits in `ton_farming_data` but inactive auto-farming due to scheduler synchronization failure
+
+**Solution Implemented**:
+1. **Fixed syncToUsers() Method**: Added `updates.ton_boost_package = data.boost_package_id` to ensure scheduler compatibility
+2. **Maintained Backward Compatibility**: Kept `ton_boost_package_id` update for existing integrations
+3. **Enhanced Logging**: Added detailed synchronization logging to track field updates and scheduler readiness
+4. **Self-Healing Architecture**: System now automatically fixes synchronization for any future users
+
+**Technical Details**:
+- **Files Modified**: 
+  - `modules/boost/TonFarmingRepository.ts` - Fixed syncToUsers() field mapping and added comprehensive logging
+- **Fields Updated**: Both `ton_boost_package_id` (compatibility) and `ton_boost_package` (scheduler) now synchronized
+- **Architecture**: Dual field synchronization ensures scheduler detection while maintaining system compatibility
+
+**Impact**: Prevents future TON Boost users from experiencing invisible farming issues. All new purchases will be immediately visible to scheduler for automatic income generation.
+
+**Status**: ✅ **PREVENTION IMPLEMENTED** - Future users protected from synchronization issues, existing users already working correctly.
+
 ### Critical TON Deposit Duplication Issue Fixed (July 25, 2025)
 **Issue**: System was doubling TON deposits - users deposit 1 TON but receive 2 TON in balance, causing financial losses and balance instabilities.
 

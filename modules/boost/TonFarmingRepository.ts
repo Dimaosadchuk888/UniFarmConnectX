@@ -201,7 +201,12 @@ export class TonFarmingRepository {
       if (error) {
         logger.warn('[TonFarmingRepository] Failed to sync to users:', error);
       } else {
-        logger.info('[TonFarmingRepository] Synced to users table');
+        logger.info('[TonFarmingRepository] ✅ СИНХРОНИЗАЦИЯ ЗАВЕРШЕНА', {
+          userId: data.user_id,
+          updatedFields: Object.keys(updates),
+          values: updates,
+          schedulerReady: updates.ton_boost_package ? 'YES' : 'NO'
+        });
       }
     } catch (error) {
       logger.warn('[TonFarmingRepository] Exception syncing to users:', error);
