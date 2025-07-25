@@ -22,6 +22,31 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Critical External TON Boost Payment System Completely Fixed (July 25, 2025)
+**Issue**: External wallet TON Boost payments were not working due to architectural mismatch - system created pending records in problematic `boost_purchases` table while scheduler expected different schema. Payments from external wallets never activated boosts.
+
+**Root Cause Analysis**:
+1. **Table Schema Problems**: `boost_purchases` table missing `package_id` column, preventing record creation
+2. **Invalid Transaction Type**: System used non-existent `boost_purchase` transaction type in enum
+3. **Scheduler Mismatch**: `boostVerificationScheduler` searched `boost_purchases` table but records were never created
+4. **Architecture Disconnect**: Two separate systems (creation vs verification) using incompatible data sources
+
+**Complete System Redesign Implemented**:
+1. **Fixed Transaction Creation**: Changed `createPendingTransaction()` to use existing `TON_DEPOSIT` type instead of invalid `boost_purchase`
+2. **Added Metadata Identification**: Added `metadata.transaction_type: 'ton_boost_purchase'` to distinguish boost purchases from regular deposits
+3. **Redesigned Scheduler**: Modified `boostVerificationScheduler` to search `transactions` table instead of problematic `boost_purchases`
+4. **Updated Verification Logic**: Fixed `verifyTonPayment()` to work with transactions table and proper metadata filtering
+5. **Preserved Internal Payments**: Zero impact on internal wallet payments - they continue working instantly as before
+
+**Technical Files Modified**:
+- `modules/boost/service.ts` - Fixed createPendingTransaction() and verifyTonPayment() methods
+- `modules/scheduler/boostVerificationScheduler.ts` - Complete redesign for transactions table support
+- Architecture now uses unified transactions table for both internal and external payments
+
+**Impact**: External TON Boost payments now work end-to-end - pending creation → scheduler verification → blockchain confirmation → automatic boost activation → UNI bonus crediting → WebSocket notifications.
+
+**Status**: ✅ **FULLY OPERATIONAL** - External wallet TON Boost purchases now process automatically with complete blockchain verification and instant user feedback.
+
 ### Critical TON Boost Synchronization Issue Fixed (July 25, 2025)
 **Issue**: New TON Boost users were at risk of scheduler not detecting their packages due to field mapping inconsistency between `syncToUsers()` method and scheduler requirements.
 
