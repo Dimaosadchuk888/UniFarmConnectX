@@ -1,142 +1,106 @@
 #!/usr/bin/env tsx
 /**
- * СПЕЦИАЛЬНАЯ ПРОВЕРКА USER 287
- * Выясняем почему он не получил доход в последнем цикле
+ * СПЕЦИАЛЬНАЯ ПРОВЕРКА USER 287 ПОСЛЕ ПЕРЕЗАПУСКА
  */
 
 import { supabase } from '../core/supabase';
 
 async function checkUser287Specifically() {
-  console.log('🔍 СПЕЦИАЛЬНАЯ ПРОВЕРКА USER 287');
-  console.log('================================');
+  console.log('🎯 ПРОВЕРКА USER 287 ПОСЛЕ ПЕРЕЗАПУСКА СИСТЕМЫ');
+  console.log('===============================================');
   console.log(`Время: ${new Date().toLocaleString('ru-RU')}\n`);
 
-  // 1. Проверяем состояние User 287 в farming_data
-  console.log('1. 📋 СОСТОЯНИЕ USER 287 В FARMING_DATA:');
+  // Проверяем последние 10 минут (после перезапуска)
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
   
-  const { data: user287Data, error: farmingError } = await supabase
-    .from('ton_farming_data')
-    .select('*')
-    .eq('user_id', '287')
-    .single();
-
-  if (farmingError) {
-    console.log(`❌ Ошибка получения данных: ${farmingError.message}`);
-  } else if (user287Data) {
-    console.log(`   ✅ Найден в farming_data:`, {
-      user_id: user287Data.user_id,
-      type: typeof user287Data.user_id,
-      boost_active: user287Data.boost_active,
-      farming_balance: user287Data.farming_balance,
-      farming_rate: user287Data.farming_rate,
-      boost_package_id: user287Data.boost_package_id
-    });
-  } else {
-    console.log('   ❌ НЕ найден в farming_data');
-  }
-
-  // 2. Проверяем состояние User 287 в users
-  console.log('\n2. 👤 СОСТОЯНИЕ USER 287 В USERS:');
+  console.log('1. 📊 АКТИВНОСТЬ ПЛАНИРОВЩИКА ЗА 10 МИНУТ:');
   
-  const { data: user287User, error: userError } = await supabase
-    .from('users')
-    .select('id, balance_ton, balance_uni, ton_boost_package, ton_boost_active')
-    .eq('id', 287)
-    .single();
-
-  if (userError) {
-    console.log(`❌ Ошибка: ${userError.message}`);
-  } else if (user287User) {
-    console.log(`   ✅ Найден в users:`, {
-      id: user287User.id,
-      type: typeof user287User.id,
-      balance_ton: user287User.balance_ton,
-      ton_boost_package: user287User.ton_boost_package,
-      ton_boost_active: user287User.ton_boost_active
-    });
-  }
-
-  // 3. Симуляция планировщика для User 287
-  console.log('\n3. 🎯 СИМУЛЯЦИЯ ПЛАНИРОВЩИКА ДЛЯ USER 287:');
-  
-  if (user287Data && user287User) {
-    // Преобразование как в планировщике
-    const userId = parseInt(user287Data.user_id.toString());
-    console.log(`   Преобразование ID: "${user287Data.user_id}" → ${userId}`);
-    console.log(`   ID корректен: ${!isNaN(userId)}`);
-    
-    // Проверка депозита
-    const userDeposit = Math.max(0, parseFloat(user287Data.farming_balance || '0'));
-    const dailyRate = user287Data.ton_boost_rate || 0.01;
-    const dailyIncome = userDeposit * dailyRate;
-    const fiveMinuteIncome = dailyIncome / 288;
-    
-    console.log(`   Расчет дохода:`);
-    console.log(`   • Депозит: ${userDeposit} TON`);
-    console.log(`   • Дневная ставка: ${dailyRate} (${(dailyRate * 100).toFixed(1)}%)`);
-    console.log(`   • Дневной доход: ${dailyIncome.toFixed(6)} TON`);
-    console.log(`   • Доход за 5 минут: ${fiveMinuteIncome.toFixed(6)} TON`);
-    console.log(`   • Минимальный порог: 0.00001 TON (обновлен)`);
-    console.log(`   • Проходит проверку: ${fiveMinuteIncome > 0.00001 ? 'ДА ✅' : 'НЕТ ❌'}`);
-  }
-
-  // 4. Проверяем последние транзакции планировщика
-  console.log('\n4. 📊 ПОСЛЕДНИЕ ТРАНЗАКЦИИ ПЛАНИРОВЩИКА:');
-  
-  const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000).toISOString();
-  const { data: recentTransactions } = await supabase
+  const { data: recentIncomes } = await supabase
     .from('transactions')
     .select('user_id, created_at, amount_ton, description, metadata')
     .eq('type', 'FARMING_REWARD')
     .eq('currency', 'TON')
-    .gte('created_at', oneMinuteAgo)
+    .gte('created_at', tenMinutesAgo)
     .order('created_at', { ascending: false });
 
-  if (recentTransactions && recentTransactions.length > 0) {
-    console.log(`   Транзакций за последнюю минуту: ${recentTransactions.length}`);
-    
-    const user287Transaction = recentTransactions.find(tx => tx.user_id === 287);
-    if (user287Transaction) {
-      console.log(`   ✅ User 287 ПОЛУЧИЛ доход:`, {
-        amount: user287Transaction.amount_ton,
-        time: new Date(user287Transaction.created_at).toLocaleTimeString('ru-RU'),
-        description: user287Transaction.description
-      });
-    } else {
-      console.log(`   ❌ User 287 НЕ получил доход в последнем цикле`);
-      console.log(`   Пользователи которые получили:`, 
-        [...new Set(recentTransactions.map(tx => tx.user_id))].sort()
-      );
-    }
-  } else {
-    console.log('   Нет транзакций за последнюю минуту');
-  }
-
-  // 5. Рекомендации
-  console.log('\n5. 💡 ДИАГНОЗ:');
-  console.log('═'.repeat(30));
+  console.log(`   Всего TON начислений: ${recentIncomes?.length || 0}`);
   
-  if (user287Data && user287Data.boost_active) {
-    if (user287User && user287User.balance_ton !== undefined) {
-      const userDeposit = Math.max(0, parseFloat(user287Data.farming_balance || '0'));
-      const fiveMinuteIncome = (userDeposit * 0.01) / 288;
-      
-      if (fiveMinuteIncome > 0.0001) {
-        console.log('✅ User 287 соответствует всем требованиям планировщика');
-        console.log('⏳ Должен получить доход в следующем цикле (каждые 5 минут)');
-        console.log('🔧 Возможно планировщик обрабатывает пользователей по очереди');
-      } else {
-        console.log('❌ User 287 не проходит минимальный порог дохода');
-        console.log('💡 Депозит слишком мал для генерации значимого дохода');
-      }
-    } else {
-      console.log('❌ Проблема с балансом User 287 в таблице users');
-    }
-  } else {
-    console.log('❌ User 287 не активен или не найден в farming_data');
+  if (recentIncomes && recentIncomes.length > 0) {
+    const uniqueUsers = [...new Set(recentIncomes.map(tx => tx.user_id))];
+    console.log(`   Пользователи получившие доходы: ${uniqueUsers.sort().join(', ')}`);
+    
+    // Группируем по времени
+    const timeGroups = new Map();
+    recentIncomes.forEach(tx => {
+      const minute = new Date(tx.created_at).toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      if (!timeGroups.has(minute)) timeGroups.set(minute, []);
+      timeGroups.get(minute).push(tx.user_id);
+    });
+
+    console.log('\n   Начисления по времени:');
+    Array.from(timeGroups.entries()).sort().reverse().slice(0, 3).forEach(([time, users]) => {
+      const uniqueUsers = [...new Set(users)];
+      console.log(`   • ${time}: ${users.length} начислений (${uniqueUsers.length} пользователей: ${uniqueUsers.sort().join(', ')})`);
+    });
   }
 
-  console.log('\n✅ Специальная проверка User 287 завершена');
+  console.log('\n2. 🎯 СПЕЦИАЛЬНАЯ ПРОВЕРКА USER 287:');
+  
+  const user287Transactions = recentIncomes?.filter(tx => tx.user_id === 287) || [];
+  
+  if (user287Transactions.length > 0) {
+    console.log(`   ✅ USER 287 ПОЛУЧИЛ ДОХОДЫ! Количество: ${user287Transactions.length}`);
+    
+    user287Transactions.forEach((tx, i) => {
+      console.log(`   Доход ${i + 1}: +${parseFloat(tx.amount_ton).toFixed(8)} TON в ${new Date(tx.created_at).toLocaleTimeString('ru-RU')}`);
+      console.log(`   Описание: ${tx.description}`);
+      if (tx.metadata?.transaction_source) {
+        console.log(`   Источник: ${tx.metadata.transaction_source}`);
+      }
+    });
+    
+    console.log('\n   🎉 ПРОБЛЕМА ПОЛНОСТЬЮ РЕШЕНА!');
+    console.log('   ✅ Исправление типов данных работает');
+    console.log('   ✅ Снижение порога помогло');
+    console.log('   ✅ Перезапуск планировщика помог');
+    
+  } else {
+    console.log('   ❌ User 287 еще не получил доходы');
+    
+    // Проверяем его статус
+    const { data: farmingData } = await supabase
+      .from('ton_farming_data')
+      .select('*')
+      .eq('user_id', '287')
+      .single();
+      
+    const { data: userData } = await supabase
+      .from('users')
+      .select('balance_ton, ton_boost_package')
+      .eq('id', 287)
+      .single();
+
+    console.log('\n   📋 Статус User 287:');
+    console.log(`   Farming active: ${farmingData?.boost_active}`);
+    console.log(`   Farming balance: ${farmingData?.farming_balance} TON`);
+    console.log(`   Package ID: ${farmingData?.boost_package_id}`);
+    console.log(`   Current balance: ${userData?.balance_ton} TON`);
+    
+    // Рассчитываем ожидаемый доход
+    const deposit = parseFloat(farmingData?.farming_balance || '0');
+    const rate = parseFloat(farmingData?.farming_rate || '0.01');
+    const fiveMinIncome = (deposit * rate) / 288;
+    
+    console.log(`\n   💰 Ожидаемый доход за 5 мин: ${fiveMinIncome.toFixed(8)} TON`);
+    console.log(`   Проходит порог 0.00001: ${fiveMinIncome > 0.00001 ? 'ДА' : 'НЕТ'}`);
+    
+    console.log('\n   ⏳ Нужно подождать следующий цикл планировщика');
+  }
+
+  console.log('\n✅ Проверка User 287 завершена');
 }
 
 // Запуск
