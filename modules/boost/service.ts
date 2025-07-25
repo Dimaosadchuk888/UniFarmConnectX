@@ -824,10 +824,11 @@ export class BoostService {
       const boostPackageId = transaction.metadata?.boost_package_id;
       const boostPackage = await this.getBoostPackageById(boostPackageId || boostId);
       
+      let boostActivated = false;
       if (boostPackage) {
         // ИСПРАВЛЕНО: Все активации выполняются в методе activateBoost()
         // Активируем Boost - это включает в себя UNI бонус и создание farming записи
-        const boostActivated = await this.activateBoost(userId, boostPackage.id.toString());
+        boostActivated = await this.activateBoost(userId, boostPackage.id.toString());
         
         logger.info('[BoostService] Boost активирован через внешний платеж', {
           userId,
@@ -836,12 +837,14 @@ export class BoostService {
         });
       }
 
+      const activationResult = boostPackage ? boostActivated : false;
+      
       logger.info('[BoostService] TON платеж успешно подтвержден и Boost активирован', {
         txHash,
         userId,
         boostId,
         amount: tonResult.amount,
-        boostActivated: boostPackage ? boostActivated : false
+        boostActivated: activationResult
       });
 
       return {
@@ -849,7 +852,7 @@ export class BoostService {
         status: 'confirmed',
         message: 'Платеж подтвержден, Boost успешно активирован',
         transaction_amount: tonResult.amount,
-        boost_activated: boostPackage ? boostActivated : false
+        boost_activated: activationResult
       };
 
     } catch (error) {
@@ -974,10 +977,10 @@ export class BoostService {
 
       // 3. Отправляем WebSocket уведомление о активации пакета
       try {
-        const { WebSocketManager } = await import('../../core/WebSocketManager');
+        const { webSocketManager } = await import('../../core/webSocketManager');
         const dailyIncome = parseFloat(boostPackage.min_amount.toString()) * (parseFloat(boostPackage.daily_rate) * 100) / 100;
         
-        WebSocketManager.notifyUser(userId, {
+        webSocketManager.notifyUser(userId, {
           type: 'TON_BOOST_ACTIVATED',
           data: {
             package_name: boostPackage.name,
