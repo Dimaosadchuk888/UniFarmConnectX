@@ -100,15 +100,14 @@ const BoostPackagesCard: React.FC = () => {
   
 
 
-  // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету
+  // БЕЗОПАСНОЕ ИСПРАВЛЕНИЕ: Убираем диалог выбора - покупка только через внутренний баланс
   const handleBoostClick = (boostId: number) => {
-
-    // Сохраняем ID буста и ВСЕГДА показываем диалог выбора способа оплаты
+    // Сохраняем ID буста
     setSelectedBoostId(boostId);
     
-    // ИСПРАВЛЕНИЕ: Всегда показываем диалог выбора (внутренний/внешний баланс)
-    // Пользователь сам выберет подходящий способ оплаты
-    setPaymentMethodDialogOpen(true);
+    // PRODUCTION SAFE: Сразу используем внутренний баланс без диалога выбора
+    // Внешние платежи временно отключены для безопасности пользователей
+    handleSelectPaymentMethod(boostId, 'internal_balance');
   };
 
   // Обработчик выбора способа оплаты
@@ -478,15 +477,17 @@ const BoostPackagesCard: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Диалог выбора способа оплаты */}
-      <PaymentMethodDialog
+      {/* ВРЕМЕННО ОТКЛЮЧЕНО: Диалог выбора способа оплаты 
+          Причина: Внешние платежи не работают стабильно в продакшене
+          Решение: Только внутренний баланс до устранения проблем с внешними кошельками */}
+      {/* <PaymentMethodDialog
         open={paymentMethodDialogOpen}
         onOpenChange={setPaymentMethodDialogOpen}
         boostId={selectedBoostId}
         boostName={boostPackages.find((p: TonBoostPackage) => p.id === selectedBoostId)?.name || ''}
         boostPriceTon={boostPackages.find((p: TonBoostPackage) => p.id === selectedBoostId)?.priceTon.toString() || '0'}
         onSelectPaymentMethod={handleSelectPaymentMethod}
-      />
+      /> */}
 
       {/* Диалог статуса внешнего платежа */}
       {externalPaymentData && (

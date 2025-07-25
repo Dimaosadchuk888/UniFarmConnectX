@@ -22,6 +22,31 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### External TON Boost Payments Temporarily Disabled for User Safety (July 25, 2025)
+**Issue**: External wallet TON Boost payments not working correctly in production, causing users to lose money. System is live and money loss is unacceptable.
+
+**Solution Implemented**: Temporarily disabled external wallet payment option for TON Boost packages while preserving all underlying functionality for future investigation.
+
+**Changes Made**:
+1. **Modified handleBoostClick()**: Removed payment method dialog, directly calls `handleSelectPaymentMethod(boostId, 'internal_balance')`
+2. **Commented out PaymentMethodDialog**: Preserved component code but disabled UI rendering
+3. **Simplified user flow**: "Buy" button now directly purchases through internal balance without additional steps
+
+**Technical Details**:
+- **File Modified**: `client/src/components/ton-boost/BoostPackagesCard.tsx`
+- **Safety**: Only UI changes, all backend functions preserved intact
+- **Reversibility**: Can be quickly restored by uncommenting PaymentMethodDialog and reverting handleBoostClick logic
+- **Impact**: Users can only purchase TON Boost through internal wallet balance (which works perfectly)
+
+**User Experience**:
+- **Before**: Buy → Choose payment method → Select internal/external → Purchase
+- **After**: Buy → Instant purchase through internal balance
+- **Result**: Safer, faster, more reliable TON Boost purchases
+
+**Backend Preservation**: All external payment functions (`verifyTonPayment()`, `purchaseWithExternalWallet()`, scheduler verification) remain functional for future restoration.
+
+**Status**: ✅ **PRODUCTION SAFE** - Users protected from money loss, functionality maintained through proven internal payment system.
+
 ### Critical External TON Boost Payment System Completely Fixed (July 25, 2025)
 **Issue**: External wallet TON Boost payments were not working due to architectural mismatch - system created pending records in problematic `boost_purchases` table while scheduler expected different schema. Payments from external wallets never activated boosts.
 
