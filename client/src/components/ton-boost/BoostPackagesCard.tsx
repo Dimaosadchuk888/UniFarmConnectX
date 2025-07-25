@@ -341,19 +341,38 @@ const BoostPackagesCard: React.FC = () => {
               variant: "default"
             });
           } else {
-            toast({
-              title: "Ошибка покупки",
-              description: data.message || "Не удалось активировать TON Boost",
-              variant: "destructive"
-            });
+            // Проверяем тип ошибки для специального сообщения о недостатке средств
+            if (data.error_type === 'insufficient_funds') {
+              toast({
+                title: "💰 Недостаточно средств",
+                description: data.message || "У вас недостаточно средств на балансе! Пополните кошелек и повторите запрос на оплату",
+                variant: "destructive"
+              });
+            } else {
+              toast({
+                title: "Ошибка покупки",
+                description: data.message || "Не удалось активировать TON Boost",
+                variant: "destructive"
+              });
+            }
           }
         } catch (error: any) {
           console.error('Error purchasing TON Boost:', error);
-          toast({
-            title: "Ошибка",
-            description: "Произошла ошибка при покупке TON Boost",
-            variant: "destructive"
-          });
+          
+          // Проверяем, есть ли детальная информация об ошибке
+          if (error?.error_type === 'insufficient_funds' || error?.message?.includes('недостаточно средств')) {
+            toast({
+              title: "💰 Недостаточно средств",
+              description: error.message || "У вас недостаточно средств на балансе! Пополните кошелек и повторите запрос на оплату",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Ошибка",
+              description: error?.message || "Произошла ошибка при покупке TON Boost",
+              variant: "destructive"
+            });
+          }
         }
       }
     } catch (error: any) {

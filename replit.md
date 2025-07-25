@@ -47,6 +47,30 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **PRODUCTION SAFE** - Users protected from money loss, functionality maintained through proven internal payment system.
 
+### Improved Error Messages for Insufficient Balance (July 25, 2025)
+**Issue**: When users tried to purchase TON Boost packages without sufficient balance, they received generic error message "Произошла ошибка при покупке TON Boost" instead of clear information about insufficient funds.
+
+**Solution Implemented**: Enhanced error handling system with specific messaging for insufficient balance scenarios.
+
+**Changes Made**:
+1. **Backend Enhancement**: Modified `purchaseWithInternalWallet()` method to return detailed insufficient funds message
+2. **Added Error Type**: Added `error_type: 'insufficient_funds'` field for frontend to distinguish error types
+3. **Frontend Improvements**: Updated `BoostPackagesCard.tsx` to show user-friendly messages with money emoji 💰
+4. **User-Friendly Messages**: Clear instruction "У вас недостаточно средств на балансе! Пополните кошелек и повторите запрос на оплату"
+
+**Technical Details**:
+- **Files Modified**: 
+  - `modules/boost/service.ts` - Enhanced error response with specific message and error type
+  - `client/src/components/ton-boost/BoostPackagesCard.tsx` - Added conditional error handling
+- **Message Format**: Shows exact amounts required vs available: "Требуется: 1 TON, доступно: 0.120743 TON"
+- **UI Enhancement**: Added 💰 emoji and descriptive title "Недостаточно средств" instead of generic "Ошибка"
+
+**User Experience Improvement**:
+- **Before**: Generic red error "Произошла ошибка при покупке TON Boost"  
+- **After**: Clear message "💰 Недостаточно средств" with exact requirements and instruction to top up wallet
+
+**Status**: ✅ **COMPLETED** - Users now receive clear, actionable error messages when attempting purchases with insufficient balance.
+
 ### Critical External TON Boost Payment System Completely Fixed (July 25, 2025)
 **Issue**: External wallet TON Boost payments were not working due to architectural mismatch - system created pending records in problematic `boost_purchases` table while scheduler expected different schema. Payments from external wallets never activated boosts.
 

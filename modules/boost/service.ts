@@ -318,6 +318,7 @@ export class BoostService {
   private async purchaseWithInternalWallet(userId: string, boostPackage: any): Promise<{
     success: boolean;
     message: string;
+    error_type?: string;
     purchase?: any;
     balanceUpdate?: {
       tonBalance: number;
@@ -363,7 +364,8 @@ export class BoostService {
         });
         return {
           success: false,
-          message: `Недостаточно средств. Требуется: ${requiredAmount} TON, доступно: ${walletData.ton_balance} TON`
+          message: `У вас недостаточно средств на балансе! Пополните кошелек и повторите запрос на оплату. Требуется: ${requiredAmount} TON, доступно: ${walletData.ton_balance.toFixed(6)} TON`,
+          error_type: 'insufficient_funds'
         };
       }
 
