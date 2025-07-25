@@ -823,18 +823,15 @@ export class BoostService {
       const boostPackage = await this.getBoostPackageById(boostPackageId || boostId);
       
       if (boostPackage) {
-        // Начисляем UNI бонус за покупку boost пакета
-        const uniBonusAwarded = await this.awardUniBonus(userId, boostPackage);
-        if (!uniBonusAwarded) {
-          logger.warn('[BoostService] Не удалось начислить UNI бонус при подтверждении TON транзакции', {
-            userId,
-            boostId: boostPackage.id,
-            uniBonus: boostPackage.uni_bonus
-          });
-        }
-
-        // Активируем Boost
+        // ИСПРАВЛЕНО: Все активации выполняются в методе activateBoost()
+        // Активируем Boost - это включает в себя UNI бонус и создание farming записи
         const boostActivated = await this.activateBoost(userId, boostPackage.id.toString());
+        
+        logger.info('[BoostService] Boost активирован через внешний платеж', {
+          userId,
+          boostId: boostPackage.id,
+          activated: boostActivated
+        });
       }
 
       logger.info('[BoostService] TON платеж успешно подтвержден и Boost активирован', {
@@ -842,7 +839,7 @@ export class BoostService {
         userId,
         boostId,
         amount: tonResult.amount,
-        boostActivated
+        boostActivated: boostPackage ? boostActivated : false
       });
 
       return {
@@ -850,7 +847,7 @@ export class BoostService {
         status: 'confirmed',
         message: 'Платеж подтвержден, Boost успешно активирован',
         transaction_amount: tonResult.amount,
-        boost_activated: boostActivated
+        boost_activated: boostPackage ? boostActivated : false
       };
 
     } catch (error) {

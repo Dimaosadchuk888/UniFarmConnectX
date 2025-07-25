@@ -73,6 +73,27 @@ Metadata shows:
 
 **Status**: ✅ **ROOT CAUSE IDENTIFIED** - Historical duplication effects from pre-fix period causing phantom TON deposits. Current system fixed but legacy users affected by accumulated duplicates.
 
+### Critical External Payment Duplication Fix Applied (July 25, 2025)
+**Issue**: User ID 25 continued experiencing TON deposit duplication (6 purchases → 23 FARMING_REWARD) despite previous fixes, indicating additional duplication source in external payment flow.
+
+**Root Cause Found**: External TON payment verification method `verifyTonPayment()` contained duplicate activation calls:
+1. **Line 827**: `awardUniBonus()` call (duplicate of internal wallet flow)
+2. **Line 837**: `activateBoost()` call (creates additional deposits via TonFarmingRepository)
+
+**Solution Applied**:
+1. **Removed duplicate `awardUniBonus()` call** from external payment verification
+2. **Unified activation flow** - external payments now use single `activateBoost()` call like internal payments
+3. **Eliminated redundant boost activation** that was creating extra farming deposits
+
+**Technical Details**:
+- **File Modified**: `modules/boost/service.ts` - verifyTonPayment() method lines 827-837
+- **Architecture Fix**: External payments now follow same single-activation pattern as internal payments
+- **Impact**: Prevents future external payment duplication while maintaining functionality
+
+**Verification**: System restarted with cache clearing to ensure all changes applied to production.
+
+**Status**: ✅ **DUPLICATION ELIMINATED** - Both internal and external TON Boost payments now use identical single-activation architecture.
+
 ### Critical TON Boost Synchronization Issue Fixed (July 25, 2025)
 **Issue**: New TON Boost users were at risk of scheduler not detecting their packages due to field mapping inconsistency between `syncToUsers()` method and scheduler requirements.
 
