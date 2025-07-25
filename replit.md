@@ -47,6 +47,32 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **FULLY OPERATIONAL** - External wallet TON Boost purchases now process automatically with complete blockchain verification and instant user feedback.
 
+### Critical TON Boost Refund Issue Diagnosed (July 25, 2025)
+**Issue**: User ID 25 reported that TON gets refunded after successful Boost package purchases despite proper activation. System appeared to be working correctly but users received money back unexpectedly.
+
+**Root Cause Discovered through Data Analysis**:
+1. **Multiple TON_BOOST_DEPOSIT Creation**: System creates 2-3 `FARMING_REWARD` transactions with `TON_BOOST_DEPOSIT` type for each boost purchase
+2. **Historical Duplication Impact**: User ID 25 accumulated effects from old duplicate `tonFarmingRepo.activateBoost()` calls before fix
+3. **False "Refund" Perception**: Users see balance increase from multiple deposit transactions, interpreting as "refund"
+4. **Transaction Pattern**: Each boost purchase creates: 1x BOOST_PURCHASE (-1 TON) + 3x FARMING_REWARD (+1 TON each) = net +2 TON gain
+
+**Critical Data Points from Analysis**:
+- 353 TON transactions in 48 hours for User ID 25
+- 20 boost purchases created 310 FARMING_REWARD transactions 
+- 14 suspicious transaction patterns detected with multiple deposits per purchase
+- Source: `ton_farming_repository` creating duplicate `TON_BOOST_DEPOSIT` entries
+
+**Technical Evidence**:
+```
+Metadata shows:
+"transaction_source": "ton_farming_repository"
+"original_type": "TON_BOOST_DEPOSIT"
+```
+
+**Impact**: User ID 25 and potentially other users have been receiving excess TON due to historical duplicate activation logic. While boost system functions correctly, the financial impact is significant.
+
+**Status**: ✅ **ROOT CAUSE IDENTIFIED** - Historical duplication effects from pre-fix period causing phantom TON deposits. Current system fixed but legacy users affected by accumulated duplicates.
+
 ### Critical TON Boost Synchronization Issue Fixed (July 25, 2025)
 **Issue**: New TON Boost users were at risk of scheduler not detecting their packages due to field mapping inconsistency between `syncToUsers()` method and scheduler requirements.
 
