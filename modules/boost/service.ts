@@ -641,17 +641,24 @@ export class BoostService {
     try {
       const { supabase } = await import('../../core/supabase');
       
+      // Используем существующий тип TON_DEPOSIT для pending внешних платежей TON Boost
       const { data, error } = await supabase
         .from('transactions')
         .insert({
           user_id: parseInt(userId),
-          type: 'boost_purchase',
-          amount_uni: '0',
-          amount_ton: boostPackage.min_amount.toString(),
+          type: 'TON_DEPOSIT', // Используем существующий тип для совместимости
+          amount_uni: 0,
+          amount_ton: parseFloat(boostPackage.min_amount),
           currency: 'TON',
           status: 'pending',
           tx_hash: txHash,
-          description: `Покупка Boost "${boostPackage.name}"`,
+          description: `Покупка TON Boost пакета "${boostPackage.name}" (ожидает подтверждения)`,
+          metadata: {
+            boost_package_id: boostPackage.id,
+            boost_package_name: boostPackage.name,
+            payment_method: 'external_wallet',
+            transaction_type: 'ton_boost_purchase' // Идентификатор для отличия от обычных депозитов
+          },
           created_at: new Date().toISOString()
         });
 
@@ -689,9 +696,9 @@ export class BoostService {
 
       const { supabase } = await import('../../core/supabase');
 
-      // Проверяем, не был ли этот tx_hash уже использован
+      // Проверяем, не был ли этот tx_hash уже использован в confirmed транзакциях
       const { data: existingConfirmed, error: duplicateError } = await supabase
-        .from('boost_purchases')
+        .from('transactions')
         .select('*')
         .eq('tx_hash', txHash)
         .eq('status', 'confirmed')
@@ -700,7 +707,7 @@ export class BoostService {
       if (existingConfirmed) {
         logger.warn('[BoostService] Попытка повторного использования tx_hash', {
           txHash,
-          existingPurchaseId: existingConfirmed.id,
+          existingTransactionId: existingConfirmed.id,
           existingUserId: existingConfirmed.user_id
         });
         return {
@@ -710,32 +717,46 @@ export class BoostService {
         };
       }
 
-      // Ищем pending запись покупки
-      const { data: purchase, error: purchaseError } = await supabase
-        .from('boost_purchases')
+      // Найти pending транзакцию для этого TON Boost платежа
+      const { data: transaction, error: transactionError } = await supabase
+        .from('transactions')
         .select('*')
-        .eq('user_id', userId)
-        .eq('boost_id', boostId)
+        .eq('user_id', parseInt(userId))
+        .eq('type', 'TON_DEPOSIT')
         .eq('tx_hash', txHash)
         .eq('status', 'pending')
         .single();
 
-      if (purchaseError || !purchase) {
-        logger.warn('[BoostService] Pending покупка не найдена', {
+      if (transactionError || !transaction) {
+        logger.warn('[BoostService] Pending TON Boost транзакция не найдена', {
           txHash,
           userId,
           boostId,
-          error: purchaseError?.message
+          error: transactionError?.message
         });
         return {
           success: true,
           status: 'not_found',
-          message: 'Pending покупка с указанным tx_hash не найдена'
+          message: 'Pending TON Boost транзакция с указанным tx_hash не найдена'
         };
       }
 
-      logger.info('[BoostService] Найдена pending покупка', {
-        purchaseId: purchase.id,
+      // Проверяем, что это действительно TON Boost покупка через metadata
+      const isBoostPurchase = transaction.metadata?.transaction_type === 'ton_boost_purchase';
+      if (!isBoostPurchase) {
+        logger.warn('[BoostService] Транзакция не является TON Boost покупкой', {
+          txHash,
+          transactionType: transaction.metadata?.transaction_type
+        });
+        return {
+          success: true,
+          status: 'not_found',
+          message: 'Транзакция не является TON Boost покупкой'
+        };
+      }
+
+      logger.info('[BoostService] Найдена pending TON Boost транзакция', {
+        transactionId: transaction.id,
         txHash
       });
 
@@ -773,35 +794,34 @@ export class BoostService {
         sender: tonResult.sender,
         recipient: tonResult.recipient,
         timestamp: tonResult.timestamp,
-        purchaseId: purchase.id
+        transactionId: transaction.id
       });
 
-      // Обновляем статус покупки на confirmed
+      // Обновляем статус транзакции на confirmed
       const { error: updateError } = await supabase
-        .from('boost_purchases')
+        .from('transactions')
         .update({
           status: 'confirmed',
           updated_at: new Date().toISOString()
         })
-        .eq('id', purchase.id);
+        .eq('id', transaction.id);
 
       if (updateError) {
-        logger.error('[BoostService] Ошибка обновления статуса покупки', {
-          purchaseId: purchase.id,
+        logger.error('[BoostService] Ошибка обновления статуса транзакции', {
+          transactionId: transaction.id,
           error: updateError.message
         });
         return {
           success: false,
           status: 'error',
-          message: 'Ошибка обновления статуса покупки'
+          message: 'Ошибка обновления статуса транзакции'
         };
       }
 
-      // Создаем confirmed транзакцию
-      await this.createConfirmedTransaction(userId, boostId, txHash, tonResult.amount);
-
-      // Получаем информацию о boost пакете для начисления UNI бонуса
-      const boostPackage = await this.getBoostPackageById(boostId);
+      // Получаем информацию о boost пакете из metadata транзакции
+      const boostPackageId = transaction.metadata?.boost_package_id;
+      const boostPackage = await this.getBoostPackageById(boostPackageId || boostId);
+      
       if (boostPackage) {
         // Начисляем UNI бонус за покупку boost пакета
         const uniBonusAwarded = await this.awardUniBonus(userId, boostPackage);
@@ -812,10 +832,10 @@ export class BoostService {
             uniBonus: boostPackage.uni_bonus
           });
         }
-      }
 
-      // Активируем Boost
-      const boostActivated = await this.activateBoost(userId, boostId);
+        // Активируем Boost
+        const boostActivated = await this.activateBoost(userId, boostPackage.id.toString());
+      }
 
       logger.info('[BoostService] TON платеж успешно подтвержден и Boost активирован', {
         txHash,

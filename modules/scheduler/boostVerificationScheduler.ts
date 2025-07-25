@@ -51,12 +51,13 @@ export class BoostVerificationScheduler {
       
       const { supabase } = await import('../../core/supabase');
       
-      // Найти все pending boost_purchases старше 2 минут
+      // Найти все pending TON_DEPOSIT транзакции для TON Boost покупок старше 2 минут
       const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
       
       const { data: pendingPurchases, error } = await supabase
-        .from('boost_purchases')
+        .from('transactions')
         .select('*')
+        .eq('type', 'TON_DEPOSIT')
         .eq('status', 'pending')
         .not('tx_hash', 'is', null)
         .lt('created_at', twoMinutesAgo)
@@ -89,40 +90,64 @@ export class BoostVerificationScheduler {
       let verified = 0;
       let failed = 0;
 
-      // Обрабатываем каждую pending покупку
-      for (const purchase of pendingPurchases) {
+      // Обрабатываем каждую pending транзакцию
+      for (const transaction of pendingPurchases) {
         try {
-          logger.info('[BoostVerificationScheduler] Проверяем платеж:', {
-            purchaseId: purchase.id,
-            userId: purchase.user_id,
-            txHash: purchase.tx_hash?.slice(0, 10) + '...'
+          // Проверяем, является ли это TON Boost покупкой через metadata
+          const metadata = transaction.metadata || {};
+          const isBoostPurchase = metadata.transaction_type === 'ton_boost_purchase';
+          
+          if (!isBoostPurchase) {
+            // Пропускаем обычные TON депозиты
+            continue;
+          }
+
+          logger.info('[BoostVerificationScheduler] Проверяем TON Boost платеж:', {
+            transactionId: transaction.id,
+            userId: transaction.user_id,
+            txHash: transaction.tx_hash?.slice(0, 10) + '...',
+            boostPackageId: metadata.boost_package_id
           });
 
-          // Используем существующий метод verifyTonPayment
+          // Используем существующий метод verifyTonPayment для проверки блокчейна
           const result = await boostService.verifyTonPayment(
-            purchase.tx_hash,
-            purchase.user_id.toString(),
-            purchase.package_id.toString()
+            transaction.tx_hash,
+            transaction.user_id.toString(),
+            metadata.boost_package_id.toString()
           );
 
           if (result.success && result.status === 'confirmed') {
             verified++;
-            logger.info('[BoostVerificationScheduler] Платеж успешно подтвержден:', {
-              purchaseId: purchase.id,
-              userId: purchase.user_id,
-              txHash: purchase.tx_hash?.slice(0, 10) + '...',
+            
+            // Обновляем статус транзакции на confirmed
+            await supabase
+              .from('transactions')
+              .update({ status: 'confirmed' })
+              .eq('id', transaction.id);
+            
+            logger.info('[BoostVerificationScheduler] TON Boost платеж успешно подтвержден и активирован:', {
+              transactionId: transaction.id,
+              userId: transaction.user_id,
+              txHash: transaction.tx_hash?.slice(0, 10) + '...',
               amount: result.transaction_amount,
               boostActivated: result.boost_activated
             });
           } else if (result.status === 'waiting') {
-            logger.debug('[BoostVerificationScheduler] Платеж еще не подтвержден в блокчейне:', {
-              purchaseId: purchase.id,
-              txHash: purchase.tx_hash?.slice(0, 10) + '...'
+            logger.debug('[BoostVerificationScheduler] TON Boost платеж еще не подтвержден в блокчейне:', {
+              transactionId: transaction.id,
+              txHash: transaction.tx_hash?.slice(0, 10) + '...'
             });
           } else if (result.status === 'error' || result.status === 'not_found') {
             failed++;
-            logger.warn('[BoostVerificationScheduler] Ошибка верификации платежа:', {
-              purchaseId: purchase.id,
+            
+            // Помечаем транзакцию как failed
+            await supabase
+              .from('transactions')
+              .update({ status: 'failed' })
+              .eq('id', transaction.id);
+              
+            logger.warn('[BoostVerificationScheduler] Ошибка верификации TON Boost платежа:', {
+              transactionId: transaction.id,
               status: result.status,
               message: result.message
             });
@@ -133,18 +158,24 @@ export class BoostVerificationScheduler {
 
         } catch (error) {
           failed++;
-          logger.error('[BoostVerificationScheduler] Критическая ошибка проверки платежа:', {
-            purchaseId: purchase.id,
+          logger.error('[BoostVerificationScheduler] Критическая ошибка проверки TON Boost платежа:', {
+            transactionId: transaction.id,
             error: error instanceof Error ? error.message : String(error)
           });
         }
       }
 
-      logger.info('[BoostVerificationScheduler] Завершена проверка pending платежей:', {
-        total: pendingPurchases.length,
+      // Подсчитываем только TON Boost транзакции  
+      const boostTransactionsCount = pendingPurchases.filter(tx => 
+        tx.metadata?.transaction_type === 'ton_boost_purchase'
+      ).length;
+      
+      logger.info('[BoostVerificationScheduler] Завершена проверка pending TON Boost платежей:', {
+        totalPendingTransactions: pendingPurchases.length,
+        boostTransactions: boostTransactionsCount,
         verified,
         failed,
-        waiting: pendingPurchases.length - verified - failed
+        waiting: boostTransactionsCount - verified - failed
       });
 
       // Очищаем очень старые pending записи (старше 24 часов)
