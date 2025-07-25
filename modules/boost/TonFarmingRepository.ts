@@ -283,7 +283,7 @@ export class TonFarmingRepository {
       
       // Подготавливаем данные для upsert
       const upsertData = {
-        user_id: parseInt(userId),
+        user_id: userId.toString(), // ✅ ИСПРАВЛЕНО: используем STRING вместо INTEGER
         boost_active: true,
         boost_package_id: packageId,
         farming_rate: rate.toString(),

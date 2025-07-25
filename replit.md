@@ -22,6 +22,30 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Critical TON Farming System Data Type Fix Applied (July 25, 2025)
+**Issue**: New TON Boost users experiencing systematic activation failures due to data type incompatibility between `TonFarmingRepository.activateBoost()` and database schema. Users received UNI bonuses but farming never started.
+
+**Root Cause**: `TonFarmingRepository.ts` line 289 used `user_id: parseInt(userId)` (INTEGER) while database expected STRING format, causing INSERT operations to fail silently.
+
+**Solution Implemented**:
+1. **Fixed Data Type**: Changed `user_id: parseInt(userId)` to `user_id: userId.toString()` in TonFarmingRepository.ts
+2. **Restored 4 Affected Users**: Created missing ton_farming_data records for Users 290, 278, 191, 184
+3. **Verified System Compatibility**: New TON Boost purchases now work automatically without activation failures
+
+**Technical Details**:
+- **File Modified**: `modules/boost/TonFarmingRepository.ts` - Line 289 data type correction
+- **Users Restored**: 4 users with completed purchases but missing farming data
+- **Test Verification**: Confirmed new records create successfully with STRING user_id format
+- **Scheduler Integration**: All restored users now visible to income generation scheduler
+
+**Impact**: 
+- ✅ New participants will not encounter the same activation bugs
+- ✅ All affected users will receive their farming income automatically  
+- ✅ System operates through ton_farming_data table with proper STRING user_id compatibility
+- ✅ TON Boost purchase → activation → income generation flow fully restored
+
+**Status**: ✅ **SYSTEM FULLY OPERATIONAL** - Critical data type issue resolved, affected users restored, future users protected.
+
 ### External TON Boost Payments Temporarily Disabled for User Safety (July 25, 2025)
 **Issue**: External wallet TON Boost payments not working correctly in production, causing users to lose money. System is live and money loss is unacceptable.
 
