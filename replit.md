@@ -94,7 +94,7 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
   - `client/src/lib/toast-helpers.ts` - Created branded notification helpers
   - `client/src/components/ton-boost/BoostPackagesCard.tsx` - Integrated new notification system
 - **Design Philosophy**: Moved from harsh red errors to soft amber warnings with clear iconography
-- **Backdrop Effects**: Added `backdrop-blur-sm` for modern glass-morphism effect
+- **High Contrast Design**: Replaced glass-blur effect with solid dark backgrounds for better text readability
 
 **User Experience Improvement**:
 - **Before**: Aggressive red error "❌ Ошибка - Произошла ошибка при покупке TON Boost"
@@ -103,6 +103,8 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 **Safety Guarantee**: ✅ **COMPLETELY SAFE** - Only visual/UI changes, no business logic modified. All error handling and functionality preserved exactly.
 
 **Status**: ✅ **COMPLETED** - Branded notification system implemented with improved user experience and professional appearance.
+
+**Text Readability Fix (July 25, 2025)**: Replaced glass-blur effect with high-contrast dark backgrounds for better text visibility. Changed from transparent gradients to solid dark variants (amber-900/80, emerald-900/80, etc.) with white text for optimal readability.
 
 ### Critical External TON Boost Payment System Completely Fixed (July 25, 2025)
 **Issue**: External wallet TON Boost payments were not working due to architectural mismatch - system created pending records in problematic `boost_purchases` table while scheduler expected different schema. Payments from external wallets never activated boosts.

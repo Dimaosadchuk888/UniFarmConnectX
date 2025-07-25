@@ -29,15 +29,15 @@ const toastVariants = cva(
       variant: {
         default: "border bg-background text-foreground",
         destructive:
-          "border-amber-500/50 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-foreground backdrop-blur-sm",
+          "border-amber-500/60 bg-gradient-to-r from-amber-900/80 to-orange-900/80 text-amber-50 shadow-xl",
         success: 
-          "border-emerald-500/50 bg-gradient-to-r from-emerald-500/10 to-green-500/10 text-foreground backdrop-blur-sm",
+          "border-emerald-500/60 bg-gradient-to-r from-emerald-900/80 to-green-900/80 text-emerald-50 shadow-xl",
         warning:
-          "border-amber-400/50 bg-gradient-to-r from-amber-400/10 to-yellow-500/10 text-foreground backdrop-blur-sm",
+          "border-amber-400/60 bg-gradient-to-r from-amber-800/80 to-yellow-800/80 text-amber-50 shadow-xl",
         info:
-          "border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 text-foreground backdrop-blur-sm",
+          "border-blue-500/60 bg-gradient-to-r from-blue-900/80 to-cyan-900/80 text-blue-50 shadow-xl",
         premium:
-          "border-purple-500/50 bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-foreground backdrop-blur-sm"
+          "border-purple-500/60 bg-gradient-to-r from-purple-900/80 to-pink-900/80 text-purple-50 shadow-xl"
       },
     },
     defaultVariants: {
@@ -83,7 +83,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-amber-300 group-[.destructive]:hover:text-amber-50 group-[.destructive]:focus:ring-amber-400 group-[.success]:text-emerald-300 group-[.success]:hover:text-emerald-50 group-[.warning]:text-amber-300 group-[.info]:text-blue-300 group-[.premium]:text-purple-300",
+      "absolute right-2 top-2 rounded-md p-1 text-foreground/70 opacity-0 transition-opacity hover:text-white focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-amber-200 group-[.destructive]:hover:text-white group-[.destructive]:focus:ring-amber-400 group-[.success]:text-emerald-200 group-[.success]:hover:text-white group-[.warning]:text-amber-200 group-[.info]:text-blue-200 group-[.premium]:text-purple-200",
       className
     )}
     toast-close=""
