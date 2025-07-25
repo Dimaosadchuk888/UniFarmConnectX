@@ -185,7 +185,10 @@ export class TonFarmingRepository {
       if (data.farming_accumulated !== undefined) updates.ton_farming_accumulated = data.farming_accumulated;
       if (data.farming_last_claim !== undefined) updates.ton_farming_last_claim = data.farming_last_claim;
       if (data.boost_active !== undefined) updates.ton_boost_active = data.boost_active;
-      if (data.boost_package_id !== undefined) updates.ton_boost_package_id = data.boost_package_id;
+      if (data.boost_package_id !== undefined) {
+        updates.ton_boost_package_id = data.boost_package_id;
+        updates.ton_boost_package = data.boost_package_id; // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: синхронизация с планировщиком
+      }
       if (data.boost_expires_at !== undefined) updates.ton_boost_expires_at = data.boost_expires_at;
       
       if (Object.keys(updates).length === 0) return;
@@ -219,7 +222,10 @@ export class TonFarmingRepository {
       if (data.farming_accumulated !== undefined) updates.ton_farming_accumulated = data.farming_accumulated;
       if (data.farming_last_claim !== undefined) updates.ton_farming_last_claim = data.farming_last_claim;
       if (data.boost_active !== undefined) updates.ton_boost_active = data.boost_active;
-      if (data.boost_package_id !== undefined) updates.ton_boost_package_id = data.boost_package_id;
+      if (data.boost_package_id !== undefined) {
+        updates.ton_boost_package_id = data.boost_package_id;
+        updates.ton_boost_package = data.boost_package_id; // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: синхронизация с планировщиком  
+      }
       if (data.boost_expires_at !== undefined) updates.ton_boost_expires_at = data.boost_expires_at;
       
       const { error } = await supabase
