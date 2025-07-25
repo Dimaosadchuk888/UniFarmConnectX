@@ -31,12 +31,99 @@ interface BoostPurchase {
 }
 
 async function diagnoseTonBoostPackage290() {
-  console.log('\n🔍 === ДИАГНОСТИКА TON BOOST ПАКЕТА ID 290 ===\n');
+  console.log('\n🔍 === РАСШИРЕННАЯ ДИАГНОСТИКА TON BOOST ПАКЕТА ID 290 ===\n');
 
   try {
-    // 1. Проверяем информацию о самом пакете
-    console.log('1️⃣ Информация о TON Boost пакете ID 290:');
-    console.log('==========================================');
+    // 0. Сначала проверяем все существующие таблицы
+    console.log('0️⃣ Проверка всех доступных таблиц:');
+    console.log('===================================');
+    
+    const { data: allTables, error: tablesError } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_schema', 'public')
+      .order('table_name');
+      
+    if (allTables) {
+      console.log('✅ Доступные таблицы в базе данных:');
+      allTables.forEach(table => {
+        console.log(`   - ${table.table_name}`);
+      });
+    }
+
+    // 1. Проверяем таблицу Users на предмет TON Boost данных
+    console.log('\n1️⃣ Проверка Users таблицы на TON Boost данные:');
+    console.log('===============================================');
+    
+    // Ищем пользователей с ton_boost_package_id = 290
+    const { data: usersWithBoost290, error: usersError } = await supabase
+      .from('users')
+      .select('id, telegram_id, username, ton_boost_package_id, ton_boost_active, ton_boost_rate, ton_farming_balance, ton_farming_start_timestamp, balance_ton')
+      .eq('ton_boost_package_id', 290);
+      
+    if (usersError) {
+      console.log('❌ Ошибка при проверке users:', usersError.message);
+    } else if (usersWithBoost290?.length) {
+      console.log(`✅ Найдено ${usersWithBoost290.length} пользователей с TON Boost пакетом ID 290:`);
+      usersWithBoost290.forEach((user, index) => {
+        console.log(`\n   Пользователь #${index + 1}:`);
+        console.log(`     User ID: ${user.id}`);
+        console.log(`     Telegram ID: ${user.telegram_id}`);
+        console.log(`     Username: ${user.username || 'НЕТ'}`);
+        console.log(`     TON Boost Package ID: ${user.ton_boost_package_id}`);
+        console.log(`     TON Boost активен: ${user.ton_boost_active}`);
+        console.log(`     TON Boost ставка: ${user.ton_boost_rate}%`);
+        console.log(`     TON фарминг баланс: ${user.ton_farming_balance}`);
+        console.log(`     Баланс TON: ${user.balance_ton}`);
+        console.log(`     Старт фарминга: ${user.ton_farming_start_timestamp ? new Date(user.ton_farming_start_timestamp).toLocaleString('ru-RU') : 'НЕТ'}`);
+      });
+    } else {
+      console.log('ℹ️ Пользователей с TON Boost пакетом ID 290 не найдено');
+      
+      // Проверяем все TON Boost поля у всех пользователей
+      const { data: allBoostUsers } = await supabase
+        .from('users')
+        .select('id, ton_boost_package_id, ton_boost_active')
+        .not('ton_boost_package_id', 'is', null)
+        .limit(20);
+        
+      if (allBoostUsers?.length) {
+        console.log('\n📊 Пользователи с другими TON Boost пакетами:');
+        allBoostUsers.forEach(user => {
+          console.log(`   User ${user.id}: Package ID ${user.ton_boost_package_id}, Active: ${user.ton_boost_active}`);
+        });
+      }
+    }
+
+    // 2. Проверяем все альтернативные таблицы с boost данными
+    console.log('\n2️⃣ Проверка альтернативных boost таблиц:');
+    console.log('========================================');
+    
+    // Проверяем boost_packages если есть
+    try {
+      const { data: boostPackages, error: packagesError } = await supabase
+        .from('boost_packages')
+        .select('*')
+        .eq('id', 290);
+        
+      if (!packagesError && boostPackages) {
+        console.log('✅ Таблица boost_packages найдена!');
+        if (boostPackages.length > 0) {
+          console.log('📦 Пакет ID 290 найден в boost_packages:');
+          boostPackages.forEach(pkg => {
+            console.log(`   ${JSON.stringify(pkg, null, 4)}`);
+          });
+        } else {
+          console.log('ℹ️ Пакет ID 290 не найден в boost_packages');
+        }
+      }
+    } catch (e) {
+      console.log('ℹ️ Таблица boost_packages не существует или недоступна');
+    }
+
+    // 1. Проверяем информацию о самом пакете в ton_boost_packages
+    console.log('\n3️⃣ Информация о TON Boost пакете ID 290 в ton_boost_packages:');
+    console.log('==============================================================');
     
     const { data: packageData, error: packageError } = await supabase
       .from('ton_boost_packages')
@@ -82,8 +169,50 @@ async function diagnoseTonBoostPackage290() {
       console.log(`   Обновлен: ${new Date(packageData.updated_at).toLocaleString('ru-RU')}`);
     }
 
-    // 2. Проверяем покупки этого пакета
-    console.log('\n2️⃣ Покупки TON Boost пакета ID 290:');
+    // 4. Проверяем все TON-связанные таблицы на наличие данных о пакете 290
+    console.log('\n4️⃣ Проверка всех TON-связанных таблиц:');
+    console.log('======================================');
+    
+    // Проверяем ton_farming_data если есть
+    try {
+      const { data: tonFarmingData, error: farmingError } = await supabase
+        .from('ton_farming_data')
+        .select('*')
+        .or('boost_package_id.eq.290,package_id.eq.290');
+        
+      if (!farmingError && tonFarmingData?.length) {
+        console.log('✅ Найдены данные в ton_farming_data:');
+        tonFarmingData.forEach(data => {
+          console.log(`   ${JSON.stringify(data, null, 4)}`);
+        });
+      } else {
+        console.log('ℹ️ Данных о пакете 290 в ton_farming_data не найдено');
+      }
+    } catch (e) {
+      console.log('ℹ️ Таблица ton_farming_data недоступна');
+    }
+
+    // Проверяем ton_deposits если есть
+    try {
+      const { data: tonDeposits, error: depositsError } = await supabase
+        .from('ton_deposits')
+        .select('*')
+        .or('boost_id.eq.290,package_id.eq.290');
+        
+      if (!depositsError && tonDeposits?.length) {
+        console.log('✅ Найдены депозиты в ton_deposits:');
+        tonDeposits.forEach(deposit => {
+          console.log(`   ${JSON.stringify(deposit, null, 4)}`);
+        });
+      } else {
+        console.log('ℹ️ Депозитов с пакетом 290 в ton_deposits не найдено');
+      }
+    } catch (e) {
+      console.log('ℹ️ Таблица ton_deposits недоступна');
+    }
+
+    // 5. Проверяем покупки этого пакета
+    console.log('\n5️⃣ Покупки TON Boost пакета ID 290:');
     console.log('====================================');
     
     const { data: purchases, error: purchasesError } = await supabase
