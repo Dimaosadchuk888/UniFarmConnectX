@@ -76,8 +76,8 @@ async function checkUser287Specifically() {
     console.log(`   • Дневная ставка: ${dailyRate} (${(dailyRate * 100).toFixed(1)}%)`);
     console.log(`   • Дневной доход: ${dailyIncome.toFixed(6)} TON`);
     console.log(`   • Доход за 5 минут: ${fiveMinuteIncome.toFixed(6)} TON`);
-    console.log(`   • Минимальный порог: 0.0001 TON`);
-    console.log(`   • Проходит проверку: ${fiveMinuteIncome > 0.0001 ? 'ДА ✅' : 'НЕТ ❌'}`);
+    console.log(`   • Минимальный порог: 0.00001 TON (обновлен)`);
+    console.log(`   • Проходит проверку: ${fiveMinuteIncome > 0.00001 ? 'ДА ✅' : 'НЕТ ❌'}`);
   }
 
   // 4. Проверяем последние транзакции планировщика
