@@ -157,6 +157,36 @@ Metadata shows:
 
 **Status**: ✅ **ROOT CAUSE IDENTIFIED** - Historical duplication effects from pre-fix period causing phantom TON deposits. Current system fixed but legacy users affected by accumulated duplicates.
 
+### Complete TON Boost Diagnostic Analysis for Users ID 25 & 287 (July 25, 2025)
+**Task**: Conducted comprehensive production diagnosis of TonBoost packages per technical specification - point-check of deposits/withdrawals logic without code changes.
+
+**Key Findings**:
+
+**User ID 25 - Active Duplication Problem Confirmed**:
+- **Root Cause**: System creates instant "refund" via `FARMING_REWARD` (+1 TON) simultaneously with `BOOST_PURCHASE` (-1 TON)
+- **Evidence**: 367 boost purchases with corresponding instant deposits creating false refund perception
+- **Scheduler Status**: ✅ Working normally (last income 1 minute ago, 0.000868 TON every 2-5 minutes)
+- **Impact**: User receives regular income but perceives system as "broken" due to instant compensation transactions
+
+**User ID 287 - Selective Scheduler Problem Confirmed**:
+- **Root Cause**: Scheduler selectively ignores user despite all conditions being met
+- **Evidence**: 72 minutes without income while global scheduler processes other users every 2-5 minutes
+- **Data Integrity**: ✅ All records correct (active package, 2 TON farming balance, proper sync)
+- **Impact**: User should receive income but is skipped by scheduler selection logic
+
+**Technical Evidence Generated**:
+- `scripts/final-tonboost-diagnosis-user25-287.ts` - Complete user analysis
+- `scripts/check-user287-scheduler-status.ts` - Detailed scheduler diagnosis
+- `scripts/final-scheduler-status-check.ts` - Global scheduler verification
+- `TONBOOST_FINAL_DIAGNOSTIC_REPORT_USER25_287.md` - Comprehensive findings report
+
+**Concrete Recommendations**:
+1. **User 25**: Eliminate instant deposit duplication in boost activation logic
+2. **User 287**: Investigate scheduler user selection SQL queries/joins for filtering issues
+3. **Monitoring**: Add logging for boost activation and scheduler user selection processes
+
+**Status**: ✅ **DIAGNOSTIC COMPLETED** - Root causes identified with technical evidence and specific remediation paths provided.
+
 ### Critical External Payment Duplication Fix Applied (July 25, 2025)
 **Issue**: User ID 25 continued experiencing TON deposit duplication (6 purchases → 23 FARMING_REWARD) despite previous fixes, indicating additional duplication source in external payment flow.
 
