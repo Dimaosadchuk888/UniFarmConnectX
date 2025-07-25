@@ -71,6 +71,39 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **COMPLETED** - Users now receive clear, actionable error messages when attempting purchases with insufficient balance.
 
+### Custom Branded Toast Notifications Implementation (July 25, 2025)
+**Issue**: Default toast notifications used aggressive red colors and generic styling that didn't match the UniFarm brand, creating poor user experience especially for error messages.
+
+**Solution Implemented**: Complete redesign of notification system with custom branded styling and improved user experience.
+
+**Changes Made**:
+1. **Enhanced Toast Variants**: Added 5 new notification types:
+   - `success`: Emerald gradient with ✅ emoji for successful operations
+   - `warning`: Amber gradient with 💡 emoji for warnings  
+   - `info`: Blue gradient with ℹ️ emoji for information
+   - `premium`: Purple gradient with 🚀 emoji for TON Boost activations
+   - `destructive`: Soft amber gradient with ⚠️ emoji (replaced harsh red)
+
+2. **Created Toast Helper Library**: New `client/src/lib/toast-helpers.ts` with branded notification functions
+3. **Updated TON Boost Component**: Replaced generic error messages with branded notifications
+4. **Gradient Backgrounds**: All notifications now use subtle gradients with backdrop blur for modern look
+
+**Technical Details**:
+- **Files Modified**:
+  - `client/src/components/ui/toast.tsx` - Added new variants and softer styling
+  - `client/src/lib/toast-helpers.ts` - Created branded notification helpers
+  - `client/src/components/ton-boost/BoostPackagesCard.tsx` - Integrated new notification system
+- **Design Philosophy**: Moved from harsh red errors to soft amber warnings with clear iconography
+- **Backdrop Effects**: Added `backdrop-blur-sm` for modern glass-morphism effect
+
+**User Experience Improvement**:
+- **Before**: Aggressive red error "❌ Ошибка - Произошла ошибка при покупке TON Boost"
+- **After**: Soft amber warning "⚠️ Недостаточно средств" with helpful guidance
+
+**Safety Guarantee**: ✅ **COMPLETELY SAFE** - Only visual/UI changes, no business logic modified. All error handling and functionality preserved exactly.
+
+**Status**: ✅ **COMPLETED** - Branded notification system implemented with improved user experience and professional appearance.
+
 ### Critical External TON Boost Payment System Completely Fixed (July 25, 2025)
 **Issue**: External wallet TON Boost payments were not working due to architectural mismatch - system created pending records in problematic `boost_purchases` table while scheduler expected different schema. Payments from external wallets never activated boosts.
 

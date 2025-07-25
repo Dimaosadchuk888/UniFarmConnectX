@@ -335,25 +335,22 @@ const BoostPackagesCard: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
             queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions'] });
 
-            toast({
-              title: "TON Boost активирован!",
-              description: `${selectedPackage.name} успешно активирован. TON баланс обновлен мгновенно.`,
-              variant: "default"
-            });
+            const { showBoostActivatedToast } = await import('@/lib/toast-helpers');
+            showBoostActivatedToast(selectedPackage.name);
           } else {
             // Проверяем тип ошибки для специального сообщения о недостатке средств
             if (data.error_type === 'insufficient_funds') {
-              toast({
-                title: "💰 Недостаточно средств",
-                description: data.message || "У вас недостаточно средств на балансе! Пополните кошелек и повторите запрос на оплату",
-                variant: "destructive"
-              });
+              // Используем улучшенное уведомление без агрессивного красного цвета
+              const { showInsufficientFundsToast } = await import('@/lib/toast-helpers');
+              const amountMatch = data.message?.match(/Требуется: (\d+(?:\.\d+)?)/);
+              const availableMatch = data.message?.match(/доступно: (\d+(?:\.\d+)?)/);
+              const requiredAmount = amountMatch ? parseFloat(amountMatch[1]) : selectedPackage.priceTon;
+              const availableAmount = availableMatch ? parseFloat(availableMatch[1]) : 0;
+              
+              showInsufficientFundsToast(requiredAmount, availableAmount, 'TON');
             } else {
-              toast({
-                title: "Ошибка покупки",
-                description: data.message || "Не удалось активировать TON Boost",
-                variant: "destructive"
-              });
+              const { showErrorToast } = await import('@/lib/toast-helpers');
+              showErrorToast("Ошибка покупки", data.message || "Не удалось активировать TON Boost");
             }
           }
         } catch (error: any) {
@@ -361,17 +358,11 @@ const BoostPackagesCard: React.FC = () => {
           
           // Проверяем, есть ли детальная информация об ошибке
           if (error?.error_type === 'insufficient_funds' || error?.message?.includes('недостаточно средств')) {
-            toast({
-              title: "💰 Недостаточно средств",
-              description: error.message || "У вас недостаточно средств на балансе! Пополните кошелек и повторите запрос на оплату",
-              variant: "destructive"
-            });
+            const { showInsufficientFundsToast } = await import('@/lib/toast-helpers');
+            showInsufficientFundsToast(selectedPackage.priceTon, 0, 'TON');
           } else {
-            toast({
-              title: "Ошибка",
-              description: error?.message || "Произошла ошибка при покупке TON Boost",
-              variant: "destructive"
-            });
+            const { showErrorToast } = await import('@/lib/toast-helpers');
+            showErrorToast("Ошибка", error?.message || "Произошла ошибка при покупке TON Boost");
           }
         }
       }
