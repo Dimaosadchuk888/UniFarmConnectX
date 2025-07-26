@@ -22,6 +22,36 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Critical Telegram WebApp Authentication Diagnostic Completed (July 26, 2025)
+**Issue**: Users seeing raw JSON errors `{"success":false,"error":"Authentication required","need_jwt_token":true}` instead of proper re-authentication when JWT tokens expire in Telegram Mini App.
+
+**Diagnostic Results**: Comprehensive technical analysis revealed that the issue is **NOT an authentication flow problem** but a **React Hooks failure** causing app crashes.
+
+**Root Cause Discovered**: 
+1. **React Hook Error**: `TypeError: null is not an object (evaluating 'U.current.useState')` occurs during app initialization
+2. **TonConnect Integration Issue**: `useTonConnectUI()` hook from `@tonconnect/ui-react` violates React Rules of Hooks
+3. **Telegram WebApp Lifecycle**: Hook executes before TonConnect SDK is properly initialized
+4. **Cascade Effect**: React crash → App failure → Error boundary shows last API response (JSON)
+
+**Technical Evidence**:
+- **WebView Console Logs**: Consistent `TypeError` with `U.current.useState` across multiple app loads
+- **Architecture Analysis**: Backend JWT handling is correct, frontend API client properly processes 401 errors
+- **Component Analysis**: Error boundaries and auth handlers work correctly when React doesn't crash
+
+**Safe Solutions Identified**:
+1. **Deferred TonConnect Initialization**: Use `useEffect` with timeout instead of direct `useTonConnectUI()` call
+2. **Enhanced Error Boundaries**: Add React Hook error detection and Telegram WebApp recovery
+3. **Telegram WebApp Lifecycle**: Proper `ready` event handling before hook initialization
+4. **Graceful Degradation**: Fallback UI when TonConnect fails to initialize
+
+**Files Created**:
+- `TELEGRAM_WEBAPP_AUTH_DIAGNOSTIC_REPORT.md` - Complete authentication flow analysis
+- `CRITICAL_REACT_HOOK_ERROR_DIAGNOSIS.md` - React Hook failure analysis and solutions
+
+**Impact**: Authentication system is architecturally sound. The visible JSON errors are a symptom of React crashes, not auth failures. Solution requires fixing TonConnect hook initialization timing.
+
+**Status**: ✅ **DIAGNOSTIC COMPLETED** - Real cause identified as React Hook timing issue, not authentication architecture problem.
+
 ### Critical TON Deposit Duplication Fix via Programmatic Protection (July 26, 2025)
 **Issue**: Critical duplication bug where User 25 and others received double TON deposits (1 TON deposit → 2 TON balance). Database unique index creation failed, requiring immediate alternative solution.
 
