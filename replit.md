@@ -22,6 +22,28 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### UI Clean-up: Removed "Активные TON Boost-пакеты" Block (July 26, 2025)
+**Issue**: User requested removal of the "Активные TON Boost-пакеты" visual block from TON Farming section as it was unnecessary clutter.
+
+**Solution Implemented**:
+1. **Removed Visual Block**: Eliminated `<ActiveTonBoostsCardWithErrorBoundary />` component from TON Farming tab
+2. **Cleaned Imports**: Removed unused import `ActiveTonBoostsCardWithErrorBoundary`
+3. **Preserved Functionality**: All TON Boost backend functions remain intact and operational
+
+**Technical Details**:
+- **File Modified**: `client/src/pages/Farming.tsx` - Removed lines 67-68 and cleaned import
+- **Visual Impact**: Cleaner TON Farming interface with 2 blocks instead of 3:
+  - TON Farming Status (kept)
+  - TON Boost Packages for Purchase (kept)  
+  - Active TON Boost Packages (removed)
+- **Safety**: Only UI changes, no business logic or API modifications
+
+**User Experience**:
+- **Before**: 3 blocks in TON Farming section with potentially redundant active packages display
+- **After**: Streamlined 2-block interface focusing on status and purchase options
+
+**Status**: ✅ **COMPLETED** - Clean visual interface achieved without affecting system functionality.
+
 ### Critical TON Farming System Data Type Fix Applied (July 25, 2025)
 **Issue**: New TON Boost users experiencing systematic activation failures due to data type incompatibility between `TonFarmingRepository.activateBoost()` and database schema. Users received UNI bonuses but farming never started.
 

@@ -4,7 +4,7 @@ import UniFarmingCardWithErrorBoundary from '../components/farming/UniFarmingCar
 import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPackagesCardWithErrorBoundary';
 import TonBoostPackagesCardWithErrorBoundary from '../components/ton-boost/TonBoostPackagesCardWithErrorBoundary';
 import TonFarmingStatusCardWithErrorBoundary from '../components/ton-boost/TonFarmingStatusCardWithErrorBoundary';
-import ActiveTonBoostsCardWithErrorBoundary from '../components/ton-boost/ActiveTonBoostsCardWithErrorBoundary';
+
 // ЭТАП 2: Импорт хука для управления кнопками фарминга
 import { useTelegramButtons } from '../hooks/useTelegramButtons';
 
@@ -64,8 +64,6 @@ const Farming: React.FC = () => {
           {/* Статус TON фарминга - с ErrorBoundary */}
           <TonFarmingStatusCardWithErrorBoundary />
           
-          {/* Активные TON Boost-пакеты */}
-          <ActiveTonBoostsCardWithErrorBoundary />
           
           {/* TON Boost-пакеты - с ErrorBoundary */}
           <BoostPackagesCardWithErrorBoundary />
