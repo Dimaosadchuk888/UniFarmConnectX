@@ -98,6 +98,38 @@ export class UnifiedTransactionService {
       const amount = amount_uni > 0 ? amount_uni : amount_ton;
       const transactionCurrency = amount_uni > 0 ? 'UNI' : 'TON';
 
+      // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ
+      // Проверяем существование записи с таким же tx_hash_unique
+      const txHashToCheck = metadata?.tx_hash || metadata?.ton_tx_hash;
+      if (txHashToCheck) {
+        logger.info('[UnifiedTransactionService] Проверка дублирования для tx_hash:', txHashToCheck);
+        
+        const { data: existingTransaction, error: checkError } = await supabase
+          .from('transactions')
+          .select('id, created_at, user_id, amount_ton')
+          .eq('tx_hash_unique', txHashToCheck)
+          .single();
+          
+        if (existingTransaction && !checkError) {
+          logger.warn('[UnifiedTransactionService] ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО:', {
+            existing_id: existingTransaction.id,
+            existing_date: existingTransaction.created_at,
+            existing_user: existingTransaction.user_id,
+            existing_amount: existingTransaction.amount_ton,
+            attempted_user: user_id,
+            attempted_amount: amount_ton,
+            tx_hash: txHashToCheck
+          });
+          
+          return { 
+            success: false, 
+            error: 'Транзакция с таким hash уже существует'
+          };
+        }
+        
+        logger.info('[UnifiedTransactionService] Проверка дублирования пройдена для:', txHashToCheck);
+      }
+
       // Создание записи транзакции
       const { data: transaction, error: txError } = await supabase
         .from('transactions')
