@@ -31,6 +31,7 @@ import Wallet from "@/pages/Wallet";
 // Services
 import userService from '@/services/userService';
 import { getReferrerIdFromURL } from './lib/utils';
+import { CacheManager } from '@/utils/cacheManager';
 
 // Types
 interface AppState {
@@ -73,6 +74,11 @@ function App() {
 
   const initializeApp = async () => {
     try {
+      // Force cache clear for all users to eliminate old bugs
+      const cacheCleared = CacheManager.checkVersionAndClearCache();
+      if (cacheCleared) {
+        console.log('🔄 Cache cleared - user will get fresh version without bugs');
+      }
       setState(prev => ({ ...prev, isLoading: true, authError: null }));
       
       // Загружаем интерфейс сразу, без ожидания аутентификации
