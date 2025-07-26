@@ -142,7 +142,7 @@ const WithdrawalForm: React.FC = () => {
       }
       
       // Отправляем реальный запрос на сервер
-      const result = await submitWithdrawal(parseInt(userId || '0'), {
+      const result = await submitWithdrawal(parseInt(String(userId || '0')), {
         amount: data.amount,
         currency: selectedCurrency,
         wallet_address: data.walletAddress
@@ -305,6 +305,14 @@ const WithdrawalForm: React.FC = () => {
               <p className="text-xs text-gray-400 mt-1">
                 (0.1 TON за каждые 1000 UNI)
               </p>
+              <div className="mt-2 pt-2 border-t border-blue-500/20">
+                <p className="text-xs text-gray-400">
+                  Вывод доступен только на кошелёк TonKeeper.
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Ваши UNI будут автоматически зачислены на указанный адрес ближе к моменту листинга токена.
+                </p>
+              </div>
             </div>
           )}
         </div>
