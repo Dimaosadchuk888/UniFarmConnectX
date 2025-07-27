@@ -99,6 +99,74 @@ export class WalletController extends BaseController {
     }
   }
 
+  // Новый endpoint для принудительного обновления балансов
+  async forceBalanceRefresh(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        logger.info('[Wallet] Принудительное обновление баланса', {
+          telegram_id: telegram.user.id,
+          timestamp: new Date().toISOString()
+        });
+
+        // Получаем пользователя
+        const user = await userRepository.getOrCreateUserFromTelegram({
+          telegram_id: telegram.user.id,
+          username: telegram.user.username,
+          first_name: telegram.user.first_name
+        });
+
+        if (!user) {
+          return this.sendError(res, 'User not found', 404);
+        }
+
+        // Получаем актуальный баланс из БД с принудительным обновлением
+        const { data: freshUser, error } = await supabase
+          .from('users')
+          .select('balance_ton, balance_uni, uni_farming_active, uni_deposit_amount, uni_farming_balance')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          logger.error('[Wallet] Ошибка получения свежего баланса', { error: error.message, userId: user.id });
+          return this.sendError(res, 'Failed to fetch fresh balance', 500);
+        }
+
+        // Обновляем timestamp для принудительной синхронизации
+        await supabase
+          .from('users')
+          .update({ last_active: new Date().toISOString() })
+          .eq('id', user.id);
+
+        const refreshedBalance = {
+          uniBalance: parseFloat(freshUser.balance_uni) || 0,
+          tonBalance: parseFloat(freshUser.balance_ton) || 0,
+          uniFarmingActive: Boolean(freshUser.uni_farming_active),
+          uniDepositAmount: parseFloat(freshUser.uni_deposit_amount) || 0,
+          uniFarmingBalance: parseFloat(freshUser.uni_farming_balance) || 0,
+          lastUpdated: new Date().toISOString(),
+          forceRefresh: true
+        };
+
+        logger.info('[Wallet] Принудительное обновление завершено', {
+          userId: user.id,
+          tonBalance: refreshedBalance.tonBalance,
+          uniBalance: refreshedBalance.uniBalance
+        });
+
+        this.sendSuccess(res, {
+          ...refreshedBalance,
+          message: 'Balance forcefully refreshed from database',
+          cache_cleared: true
+        });
+      }, 'принудительного обновления баланса');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getTransactions(req: Request, res: Response, next: NextFunction) {
     try {
       await this.handleRequest(req, res, async () => {
