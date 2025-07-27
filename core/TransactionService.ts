@@ -18,11 +18,11 @@ const TRANSACTION_TYPE_MAPPING: Record<ExtendedTransactionType, TransactionsTran
   'DEPOSIT': 'DEPOSIT',                    // Добавлен прямой маппинг для депозитов
   // Маппинг расширенных типов на базовые
   'TON_BOOST_INCOME': 'FARMING_REWARD',   // TON Boost доходы → FARMING_REWARD
-  'UNI_DEPOSIT': 'FARMING_REWARD',        // UNI депозиты → FARMING_REWARD
-  'TON_DEPOSIT': 'DEPOSIT',              // TON депозиты → DEPOSIT (исправлено с FARMING_REWARD)
-  'UNI_WITHDRAWAL': 'WITHDRAWAL',          // Выводы UNI → WITHDRAWAL
-  'TON_WITHDRAWAL': 'WITHDRAWAL',          // Выводы TON → WITHDRAWAL
-  'BOOST_PURCHASE': 'FARMING_REWARD',     // Покупки boost → FARMING_REWARD
+  'UNI_DEPOSIT': 'DEPOSIT',               // UNI депозиты → DEPOSIT (ИСПРАВЛЕНО: было FARMING_REWARD)
+  'TON_DEPOSIT': 'DEPOSIT',               // TON депозиты → DEPOSIT (исправлено с FARMING_REWARD)
+  'UNI_WITHDRAWAL': 'WITHDRAWAL',         // Выводы UNI → WITHDRAWAL
+  'TON_WITHDRAWAL': 'WITHDRAWAL',         // Выводы TON → WITHDRAWAL
+  'BOOST_PURCHASE': 'BOOST_PAYMENT',      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: было FARMING_REWARD → теперь BOOST_PAYMENT
   'AIRDROP_REWARD': 'DAILY_BONUS',        // Airdrop награды → DAILY_BONUS
   // Маппинг lowercase для обратной совместимости
   'withdrawal': 'WITHDRAWAL',              // Lowercase вывод → WITHDRAWAL
@@ -331,6 +331,8 @@ export class UnifiedTransactionService {
         return `Покупка Boost пакета: ${amount} ${currency}`;
       case 'AIRDROP_REWARD':
         return `Airdrop награда: ${amount} ${currency}`;
+      case 'BOOST_PAYMENT':
+        return `Платеж за Boost пакет: ${amount} ${currency}`;
       case 'WITHDRAWAL':
       case 'withdrawal':
         return `Вывод ${amount} ${currency}`;
@@ -351,10 +353,11 @@ export class UnifiedTransactionService {
       'MISSION_REWARD',
       'DAILY_BONUS',
       'TON_BOOST_INCOME',
-      'UNI_DEPOSIT',
-      'TON_DEPOSIT',
+      'UNI_DEPOSIT',      // UNI депозиты обновляют баланс
+      'TON_DEPOSIT',      // TON депозиты обновляют баланс  
       'AIRDROP_REWARD',
-      'DEPOSIT'  // Добавлено для поддержки существующих DEPOSIT транзакций
+      'DEPOSIT'           // Существующие DEPOSIT транзакции обновляют баланс
+      // BOOST_PAYMENT и BOOST_PURCHASE НЕ входят в список - НЕ обновляют баланс
     ];
     
     return incomeTypes.includes(type);
