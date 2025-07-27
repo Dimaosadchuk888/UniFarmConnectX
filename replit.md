@@ -22,6 +22,35 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### User Compensation Successfully Completed (July 27, 2025)
+**Issue**: Users 251 and 255 lost 2 TON each due to historical deposit bugs in the system, requiring manual compensation.
+
+**Solution Implemented**: Successfully completed system-level balance compensation through direct API approach after SQL methods failed.
+
+**Technical Implementation**:
+1. **Multiple SQL Attempts Failed**: Direct database SQL updates were not executing properly
+2. **System-Level Compensation**: Created `FIXED_BALANCE_COMPENSATION.ts` script using Supabase API
+3. **Safe Balance Updates**: Direct `balance_ton` field updates without affecting transaction history
+4. **Verification Process**: Complete before/after balance tracking with confirmation
+
+**Results Achieved**:
+- **User 251 (@Irinkatriumf)**: `0.003301 TON` → `2.003301 TON` (+2.000000 TON) ✅
+- **User 255 (@Glazeb0)**: `0.00223 TON` → `2.00223 TON` (+2.000000 TON) ✅
+- **Total Compensated**: 4 TON (2 TON per user)
+- **Success Rate**: 2/2 users (100% successful)
+
+**Technical Details**:
+- **Files Created**: 
+  - `FIXED_BALANCE_COMPENSATION.ts` - Working compensation script
+  - `CHECK_COMPENSATION_RESULT.ts` - Verification script
+  - `SYSTEM_BALANCE_COMPENSATION.ts` - Initial attempt (schema issues)
+- **Method Used**: Direct Supabase API `update()` calls on users table
+- **Safety**: No transaction history modifications, only balance adjustments
+
+**Impact**: Both users have recovered their lost deposits and can continue using the platform normally. The compensation issue is fully resolved without affecting system stability.
+
+**Status**: ✅ **COMPLETED** - Manual compensation successfully executed and verified. Users 251 and 255 have received their 2 TON compensation for historical deposit losses.
+
 ### Critical TON Balance Transaction Mapping System Fixed (July 27, 2025)
 **Issue**: Unpredictable TON balance behavior including automatic fund returns after TON Boost purchases, fund deductions after deposits, and deposit returns after payments. System achieved 0/100 stability score due to critical transaction mapping problems.
 
