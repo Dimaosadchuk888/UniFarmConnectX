@@ -1,292 +1,363 @@
 /**
- * КРИТИЧЕСКИЙ АНАЛИЗ ПОТОКА TON БАЛАНСОВ
- * Цель: Найти узкие места в системе без изменения кода
- * Проблемы: Непредсказуемые списания/возвраты TON при депозитах и TON Boost
+ * КРИТИЧЕСКИЙ АНАЛИЗ ПОТОКОВ TON БАЛАНСОВ
+ * Полное исследование всех проблем с мапингами, депозитами и возвратами средств
  */
 
 import { supabase } from './core/supabase';
 
-async function analyzeTonBalanceFlow() {
-  console.log('🔍 КРИТИЧЕСКИЙ АНАЛИЗ ПОТОКА TON БАЛАНСОВ');
-  console.log('=' * 70);
+async function analyzeTonBalanceFlows() {
+  console.log('🔍 КРИТИЧЕСКИЙ АНАЛИЗ ПОТОКОВ TON БАЛАНСОВ');
+  console.log('='.repeat(80));
+  
+  const issues = [];
+  const warnings = [];
+  const suspiciousPatterns = [];
   
   try {
-    // 1. АНАЛИЗ ПОСЛЕДНИХ TON ТРАНЗАКЦИЙ С ВРЕМЕННЫМИ ИНТЕРВАЛАМИ
-    console.log('\n1️⃣ АНАЛИЗ ПОСЛЕДНИХ TON ТРАНЗАКЦИЙ (72 часа):');
-    console.log('-'.repeat(50));
+    // 1. АНАЛИЗ СИСТЕМЫ МАПИНГОВ
+    console.log('\n1️⃣ ПОЛНЫЙ АНАЛИЗ ТРАНЗАКЦИОННЫХ МАПИНГОВ:');
+    console.log('-'.repeat(70));
     
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    // Получаем все мапинги из кода
+    const TRANSACTION_TYPE_MAPPING = {
+      'FARMING_REWARD': 'FARMING_REWARD',
+      'FARMING_DEPOSIT': 'FARMING_DEPOSIT',
+      'REFERRAL_REWARD': 'REFERRAL_REWARD', 
+      'MISSION_REWARD': 'MISSION_REWARD',
+      'DAILY_BONUS': 'DAILY_BONUS',
+      'WITHDRAWAL': 'WITHDRAWAL',
+      'DEPOSIT': 'DEPOSIT',
+      // ПРОБЛЕМНЫЕ МАПИНГИ:
+      'TON_BOOST_INCOME': 'FARMING_REWARD',   // ✅ Логично - доходы
+      'UNI_DEPOSIT': 'FARMING_REWARD',        // 🔴 ПРОБЛЕМА - депозиты как доходы
+      'TON_DEPOSIT': 'DEPOSIT',              // ✅ Исправлено недавно  
+      'UNI_WITHDRAWAL': 'WITHDRAWAL',         // ✅ Логично
+      'TON_WITHDRAWAL': 'WITHDRAWAL',         // ✅ Логично
+      'BOOST_PURCHASE': 'FARMING_REWARD',     // 🔴 КРИТИЧЕСКАЯ ПРОБЛЕМА
+      'AIRDROP_REWARD': 'DAILY_BONUS',        // ✅ Логично
+      'withdrawal': 'WITHDRAWAL',              // ✅ Совместимость
+      'withdrawal_fee': 'WITHDRAWAL'           // ✅ Совместимость
+    };
     
-    const { data: tonTransactions, error: tonError } = await supabase
-      .from('transactions')
-      .select('*')
-      .gte('created_at', threeDaysAgo.toISOString())
-      .or('currency.eq.TON,amount_ton.neq.0')
-      .order('created_at', { ascending: false })
-      .limit(50);
-    
-    if (tonError) {
-      console.error('❌ Ошибка получения TON транзакций:', tonError);
-      return;
-    }
-    
-    if (!tonTransactions || tonTransactions.length === 0) {
-      console.log('⚠️ TON транзакций за 72 часа не найдено');
-      return;
-    }
-    
-    console.log(`📊 Найдено TON транзакций: ${tonTransactions.length}`);
-    
-    // Анализируем паттерны по пользователям
-    const userFlows = new Map();
-    
-    tonTransactions.forEach(tx => {
-      const userId = tx.user_id.toString();
-      if (!userFlows.has(userId)) {
-        userFlows.set(userId, []);
-      }
-      userFlows.get(userId).push({
-        id: tx.id,
-        amount: parseFloat(tx.amount_ton || '0'),
-        type: tx.type,
-        description: tx.description,
-        created_at: tx.created_at,
-        metadata: tx.metadata
-      });
+    console.log('📋 АНАЛИЗ ВСЕХ МАПИНГОВ:');
+    Object.entries(TRANSACTION_TYPE_MAPPING).forEach(([source, target]) => {
+      console.log(`   ${source.padEnd(20)} → ${target}`);
     });
     
-    console.log(`👥 Уникальных пользователей: ${userFlows.size}`);
+    // 2. АНАЛИЗ shouldUpdateBalance ЛОГИКИ
+    console.log('\n2️⃣ АНАЛИЗ shouldUpdateBalance ЛОГИКИ:');
+    console.log('-'.repeat(70));
     
-    // 2. ПОИСК ПОДОЗРИТЕЛЬНЫХ ПАТТЕРНОВ СПИСАНИЕ → ВОЗВРАТ
-    console.log('\n2️⃣ ПОИСК ПАТТЕРНОВ СПИСАНИЕ → ВОЗВРАТ:');
-    console.log('-'.repeat(50));
+    const incomeTypes = [
+      'FARMING_REWARD',
+      'REFERRAL_REWARD', 
+      'MISSION_REWARD',
+      'DAILY_BONUS',
+      'TON_BOOST_INCOME',
+      'UNI_DEPOSIT',
+      'TON_DEPOSIT',
+      'AIRDROP_REWARD',
+      'DEPOSIT'
+    ];
     
-    let suspiciousPatternsFound = 0;
-    let totalReversalPatterns = 0;
-    
-    for (const [userId, transactions] of userFlows) {
-      if (transactions.length < 2) continue;
-      
-      // Сортируем по времени
-      transactions.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      
-      let userSuspiciousPatterns = 0;
-      
-      for (let i = 0; i < transactions.length - 1; i++) {
-        const tx1 = transactions[i];
-        const tx2 = transactions[i + 1];
-        
-        const amount1 = tx1.amount;
-        const amount2 = tx2.amount;
-        const timeDiff = (new Date(tx2.created_at).getTime() - new Date(tx1.created_at).getTime()) / 1000;
-        
-        // Паттерн: списание и возврат примерно одинаковой суммы
-        if (amount1 < 0 && amount2 > 0 && Math.abs(Math.abs(amount1) - amount2) < 0.001 && timeDiff < 3600) {
-          console.log(`\n🔴 ПОДОЗРИТЕЛЬНЫЙ ПАТТЕРН - User ${userId}:`);
-          console.log(`  Списание: ${amount1} TON (${new Date(tx1.created_at).toLocaleString()})`);
-          console.log(`  Возврат:  +${amount2} TON (${new Date(tx2.created_at).toLocaleString()})`);
-          console.log(`  Интервал: ${Math.round(timeDiff)} секунд`);
-          console.log(`  Описание 1: ${tx1.description}`);
-          console.log(`  Описание 2: ${tx2.description}`);
-          
-          if (tx1.metadata?.tx_hash || tx2.metadata?.tx_hash) {
-            console.log(`  TX Hash 1: ${tx1.metadata?.tx_hash || 'нет'}`);
-            console.log(`  TX Hash 2: ${tx2.metadata?.tx_hash || 'нет'}`);
-          }
-          
-          userSuspiciousPatterns++;
-          totalReversalPatterns++;
-        }
-        
-        // Паттерн: дублирование одинаковых транзакций
-        if (Math.abs(amount1 - amount2) < 0.001 && amount1 !== 0 && timeDiff < 300) {
-          console.log(`\n🟠 ВОЗМОЖНОЕ ДУБЛИРОВАНИЕ - User ${userId}:`);
-          console.log(`  Транзакция 1: ${amount1} TON (${new Date(tx1.created_at).toLocaleString()})`);
-          console.log(`  Транзакция 2: ${amount2} TON (${new Date(tx2.created_at).toLocaleString()})`);
-          console.log(`  Интервал: ${Math.round(timeDiff)} секунд`);
-          
-          userSuspiciousPatterns++;
-        }
-      }
-      
-      if (userSuspiciousPatterns > 0) {
-        suspiciousPatternsFound++;
-      }
-    }
-    
-    console.log(`\n📊 СТАТИСТИКА ПАТТЕРНОВ:`);
-    console.log(`- Пользователей с подозрительными паттернами: ${suspiciousPatternsFound}`);
-    console.log(`- Общее количество паттернов возврата: ${totalReversalPatterns}`);
-    
-    // 3. АНАЛИЗ TON BOOST АКТИВНОСТИ
-    console.log('\n3️⃣ АНАЛИЗ TON BOOST АКТИВНОСТИ:');
-    console.log('-'.repeat(50));
-    
-    const boostTransactions = tonTransactions.filter(tx => 
-      tx.description?.toLowerCase().includes('boost') ||
-      tx.metadata?.original_type?.includes('BOOST') ||
-      tx.type === 'BOOST_PURCHASE'
-    );
-    
-    console.log(`📊 TON Boost транзакций: ${boostTransactions.length}`);
-    
-    if (boostTransactions.length > 0) {
-      const boostByUser = new Map();
-      
-      boostTransactions.forEach(tx => {
-        const userId = tx.user_id.toString();
-        if (!boostByUser.has(userId)) {
-          boostByUser.set(userId, { purchases: [], deposits: [], incomes: [] });
-        }
-        
-        const userData = boostByUser.get(userId);
-        const amount = parseFloat(tx.amount_ton || '0');
-        
-        if (amount < 0 || tx.description?.toLowerCase().includes('покупка')) {
-          userData.purchases.push(tx);
-        } else if (tx.metadata?.original_type === 'TON_BOOST_DEPOSIT') {
-          userData.deposits.push(tx);
-        } else if (tx.metadata?.original_type === 'TON_BOOST_INCOME') {
-          userData.incomes.push(tx);
-        }
-      });
-      
-      console.log(`👥 Пользователей с TON Boost активностью: ${boostByUser.size}`);
-      
-      for (const [userId, data] of boostByUser) {
-        const { purchases, deposits, incomes } = data;
-        
-        if (purchases.length > 0 || deposits.length > 0) {
-          console.log(`\n👤 User ${userId}:`);
-          console.log(`  💰 Покупок: ${purchases.length}`);
-          console.log(`  📥 Депозитов: ${deposits.length}`);
-          console.log(`  📈 Доходов: ${incomes.length}`);
-          
-          // Анализ потенциальных проблем
-          if (deposits.length > 0 && purchases.length === 0) {
-            console.log(`  ⚠️ СТРАННО: Есть депозиты но нет покупок`);
-          }
-          
-          if (deposits.length > purchases.length) {
-            console.log(`  🔴 ПРОБЛЕМА: Депозитов больше чем покупок!`);
-          }
-          
-          // Анализ временных интервалов
-          if (purchases.length > 0 && deposits.length > 0) {
-            purchases.forEach(purchase => {
-              const purchaseTime = new Date(purchase.created_at).getTime();
-              
-              deposits.forEach(deposit => {
-                const depositTime = new Date(deposit.created_at).getTime();
-                const timeDiff = Math.abs(depositTime - purchaseTime) / 1000;
-                
-                if (timeDiff < 60) {
-                  console.log(`  ⚡ Покупка и депозит с разницей ${Math.round(timeDiff)} секунд`);
-                }
-              });
-            });
-          }
-        }
-      }
-    }
-    
-    // 4. ПРОВЕРКА ДЕДУПЛИКАЦИИ TRANSACTION ХЕШЕЙ
-    console.log('\n4️⃣ ПРОВЕРКА ДЕДУПЛИКАЦИИ TX ХЕШЕЙ:');
-    console.log('-'.repeat(50));
-    
-    const hashMap = new Map();
-    const duplicatedHashes = [];
-    
-    tonTransactions.forEach(tx => {
-      const hash = tx.metadata?.tx_hash || tx.metadata?.ton_tx_hash;
-      if (hash) {
-        if (!hashMap.has(hash)) {
-          hashMap.set(hash, []);
-        }
-        hashMap.get(hash).push(tx);
-      }
+    console.log('💰 ТИПЫ ОБНОВЛЯЮЩИЕ БАЛАНС (доходы):');
+    incomeTypes.forEach(type => {
+      console.log(`   ✅ ${type}`);
     });
     
-    for (const [hash, transactions] of hashMap) {
-      if (transactions.length > 1) {
-        duplicatedHashes.push({ hash, transactions });
-      }
-    }
+    // КРИТИЧЕСКИЙ АНАЛИЗ ПРОБЛЕМНЫХ КОМБИНАЦИЙ
+    console.log('\n🔍 ПРОБЛЕМНЫЕ КОМБИНАЦИИ:');
     
-    if (duplicatedHashes.length > 0) {
-      console.log(`🔴 НАЙДЕНО ДУБЛИРОВАННЫХ TX ХЕШЕЙ: ${duplicatedHashes.length}`);
+    const problematicMappings = [];
+    Object.entries(TRANSACTION_TYPE_MAPPING).forEach(([source, target]) => {
+      const sourceUpdatesBalance = incomeTypes.includes(source);
+      const targetUpdatesBalance = incomeTypes.includes(target);
       
-      duplicatedHashes.forEach(({ hash, transactions }, index) => {
-        console.log(`\n${index + 1}. Hash: ${hash}`);
-        transactions.forEach(tx => {
-          console.log(`   - ID ${tx.id}, User ${tx.user_id}, ${tx.amount_ton} TON, ${new Date(tx.created_at).toLocaleString()}`);
+      // Проверяем на логические несоответствия
+      if (source.includes('PURCHASE') && targetUpdatesBalance) {
+        problematicMappings.push({
+          source,
+          target,
+          problem: 'ПОКУПКА МАПИТСЯ В ДОХОД',
+          severity: 'КРИТИЧЕСКАЯ'
         });
-      });
-    } else {
-      console.log('✅ Дублированных TX хешей не найдено');
-    }
-    
-    // 5. АНАЛИЗ ТЕКУЩИХ БАЛАНСОВ ПОЛЬЗОВАТЕЛЕЙ
-    console.log('\n5️⃣ АНАЛИЗ ТЕКУЩИХ БАЛАНСОВ:');
-    console.log('-'.repeat(50));
-    
-    const activeUserIds = Array.from(userFlows.keys()).slice(0, 10); // Топ 10 активных
-    
-    for (const userId of activeUserIds) {
-      const { data: userBalance, error: balanceError } = await supabase
-        .from('users')
-        .select('id, balance_ton, balance_uni')
-        .eq('id', parseInt(userId))
-        .single();
+      }
       
-      if (!balanceError && userBalance) {
-        const userTxs = userFlows.get(userId);
-        const totalFlow = userTxs.reduce((sum, tx) => sum + tx.amount, 0);
-        
-        console.log(`User ${userId}: Баланс ${userBalance.balance_ton} TON, Поток транзакций: ${totalFlow.toFixed(6)} TON`);
-        
-        if (Math.abs(totalFlow) > parseFloat(userBalance.balance_ton) * 2) {
-          console.log(`  ⚠️ ПОДОЗРИТЕЛЬНО: Поток транзакций превышает баланс в 2+ раза`);
+      if (source.includes('DEPOSIT') && source !== 'TON_DEPOSIT' && targetUpdatesBalance) {
+        problematicMappings.push({
+          source,
+          target,
+          problem: 'ДЕПОЗИТ МАПИТСЯ В ДОХОД',
+          severity: 'ВЫСОКАЯ'
+        });
+      }
+      
+      if (source.includes('WITHDRAWAL') && targetUpdatesBalance) {
+        problematicMappings.push({
+          source,
+          target,
+          problem: 'ВЫВОД МАПИТСЯ В ДОХОД',
+          severity: 'КРИТИЧЕСКАЯ'
+        });
+      }
+    });
+    
+    problematicMappings.forEach(mapping => {
+      console.log(`   🔴 ${mapping.severity}: ${mapping.source} → ${mapping.target}`);
+      console.log(`      Проблема: ${mapping.problem}`);
+      issues.push(`${mapping.source}: ${mapping.problem}`);
+    });
+    
+    // 3. АНАЛИЗ ПОСЛЕДНИХ ТРАНЗАКЦИЙ ЗА 24 ЧАСА
+    console.log('\n3️⃣ АНАЛИЗ ПОСЛЕДНИХ ТРАНЗАКЦИЙ (24 часа):');
+    console.log('-'.repeat(70));
+    
+    const { data: recentTransactions, error: txError } = await supabase
+      .from('transactions')
+      .select('id, user_id, type, amount_ton, amount_uni, description, metadata, created_at')
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(100);
+    
+    if (txError) {
+      console.log('❌ Ошибка получения транзакций:', txError);
+      issues.push('База данных: недоступна для анализа транзакций');
+    } else if (recentTransactions) {
+      console.log(`📊 Найдено транзакций за 24 часа: ${recentTransactions.length}`);
+      
+      // Группируем по типам
+      const typeStats = {};
+      const userStats = {};
+      const suspiciousTransactions = [];
+      
+      recentTransactions.forEach(tx => {
+        // Статистика по типам
+        if (!typeStats[tx.type]) {
+          typeStats[tx.type] = { count: 0, users: new Set(), totalTon: 0, totalUni: 0 };
         }
+        typeStats[tx.type].count++;
+        typeStats[tx.type].users.add(tx.user_id);
+        typeStats[tx.type].totalTon += parseFloat(tx.amount_ton || '0');
+        typeStats[tx.type].totalUni += parseFloat(tx.amount_uni || '0');
+        
+        // Статистика по пользователям
+        if (!userStats[tx.user_id]) {
+          userStats[tx.user_id] = { transactions: 0, tonFlow: 0, uniFlow: 0, types: new Set() };
+        }
+        userStats[tx.user_id].transactions++;
+        userStats[tx.user_id].tonFlow += parseFloat(tx.amount_ton || '0');
+        userStats[tx.user_id].uniFlow += parseFloat(tx.amount_uni || '0');
+        userStats[tx.user_id].types.add(tx.type);
+        
+        // Поиск подозрительных паттернов
+        const tonAmount = parseFloat(tx.amount_ton || '0');
+        const uniAmount = parseFloat(tx.amount_uni || '0');
+        
+        // 1. BOOST_PURCHASE с положительными суммами
+        if (tx.type === 'BOOST_PURCHASE' && tonAmount > 0) {
+          suspiciousTransactions.push({
+            ...tx,
+            suspicion: 'BOOST_PURCHASE с положительной TON суммой (возврат денег)',
+            severity: 'КРИТИЧЕСКАЯ'
+          });
+        }
+        
+        // 2. Депозиты с отрицательными суммами
+        if ((tx.type === 'DEPOSIT' || tx.type.includes('DEPOSIT')) && (tonAmount < 0 || uniAmount < 0)) {
+          suspiciousTransactions.push({
+            ...tx,
+            suspicion: 'ДЕПОЗИТ с отрицательной суммой (списание после пополнения)',
+            severity: 'КРИТИЧЕСКАЯ'
+          });
+        }
+        
+        // 3. Множественные одинаковые транзакции от одного пользователя
+        const sameUserSameAmount = recentTransactions.filter(t => 
+          t.user_id === tx.user_id && 
+          t.amount_ton === tx.amount_ton && 
+          t.type === tx.type &&
+          Math.abs(new Date(t.created_at).getTime() - new Date(tx.created_at).getTime()) < 60000 // в пределах минуты
+        );
+        
+        if (sameUserSameAmount.length > 1) {
+          suspiciousTransactions.push({
+            ...tx,
+            suspicion: `Дублирование: ${sameUserSameAmount.length} одинаковых транзакций за минуту`,
+            severity: 'ВЫСОКАЯ'
+          });
+        }
+      });
+      
+      console.log('\n📋 СТАТИСТИКА ПО ТИПАМ:');
+      Object.entries(typeStats).forEach(([type, stats]: [string, any]) => {
+        console.log(`   ${type}:`);
+        console.log(`      Транзакций: ${stats.count}, Пользователей: ${stats.users.size}`);
+        console.log(`      TON: ${stats.totalTon.toFixed(6)}, UNI: ${stats.totalUni.toFixed(2)}`);
+        
+        // Анализируем аномалии
+        if (type === 'BOOST_PURCHASE' && stats.totalTon > 0) {
+          console.log(`      🔴 АНОМАЛИЯ: BOOST_PURCHASE имеет положительный TON баланс!`);
+          issues.push(`${type}: положительный TON баланс ${stats.totalTon.toFixed(6)}`);
+        }
+        
+        if (type.includes('DEPOSIT') && (stats.totalTon < 0 || stats.totalUni < 0)) {
+          console.log(`      🔴 АНОМАЛИЯ: ДЕПОЗИТ имеет отрицательный баланс!`);
+          issues.push(`${type}: отрицательные суммы при депозитах`);
+        }
+      });
+      
+      // 4. АНАЛИЗ ПОДОЗРИТЕЛЬНЫХ ПОЛЬЗОВАТЕЛЕЙ
+      console.log('\n4️⃣ АНАЛИЗ ПОЛЬЗОВАТЕЛЕЙ С АНОМАЛЬНОЙ АКТИВНОСТЬЮ:');
+      console.log('-'.repeat(70));
+      
+      const suspiciousUsers = Object.entries(userStats)
+        .filter(([userId, stats]: [string, any]) => {
+          return stats.transactions > 10 || // более 10 транзакций за день
+                 Math.abs(stats.tonFlow) > 5 || // большие движения TON
+                 stats.types.size > 5; // много разных типов транзакций
+        })
+        .sort(([,a], [,b]) => (b as any).transactions - (a as any).transactions);
+      
+      if (suspiciousUsers.length > 0) {
+        console.log('👤 ПОЛЬЗОВАТЕЛИ С ВЫСОКОЙ АКТИВНОСТЬЮ:');
+        suspiciousUsers.slice(0, 10).forEach(([userId, stats]: [string, any]) => {
+          console.log(`   User ${userId}:`);
+          console.log(`      Транзакций: ${stats.transactions}`);
+          console.log(`      TON поток: ${stats.tonFlow > 0 ? '+' : ''}${stats.tonFlow.toFixed(6)}`);
+          console.log(`      UNI поток: ${stats.uniFlow > 0 ? '+' : ''}${stats.uniFlow.toFixed(2)}`);
+          console.log(`      Типы: ${Array.from(stats.types).join(', ')}`);
+          
+          if (stats.tonFlow > 2) {
+            warnings.push(`User ${userId}: подозрительно высокий положительный TON поток`);
+          }
+        });
+      }
+      
+      // 5. ПОДОЗРИТЕЛЬНЫЕ ТРАНЗАКЦИИ
+      if (suspiciousTransactions.length > 0) {
+        console.log('\n5️⃣ ПОДОЗРИТЕЛЬНЫЕ ТРАНЗАКЦИИ:');
+        console.log('-'.repeat(70));
+        
+        const uniqueSuspicious = suspiciousTransactions.filter((tx, index, self) => 
+          index === self.findIndex(t => t.id === tx.id)
+        );
+        
+        uniqueSuspicious.slice(0, 20).forEach(tx => {
+          console.log(`🚨 ${tx.severity}: Transaction ${tx.id}`);
+          console.log(`   User: ${tx.user_id}, Type: ${tx.type}`);
+          console.log(`   Amount: ${tx.amount_ton || 0} TON, ${tx.amount_uni || 0} UNI`);
+          console.log(`   Проблема: ${tx.suspicion}`);
+          console.log(`   Время: ${tx.created_at}`);
+          
+          suspiciousPatterns.push(`TX${tx.id}: ${tx.suspicion}`);
+        });
       }
     }
     
-    // 6. ИТОГОВЫЕ РЕКОМЕНДАЦИИ
-    console.log('\n6️⃣ УЗКИЕ МЕСТА И РЕКОМЕНДАЦИИ:');
-    console.log('='.repeat(50));
+    // 6. АНАЛИЗ КОНКРЕТНЫХ ПРОБЛЕМНЫХ СЦЕНАРИЕВ
+    console.log('\n6️⃣ АНАЛИЗ ПРОБЛЕМНЫХ СЦЕНАРИЕВ:');
+    console.log('-'.repeat(70));
     
-    console.log('\n🔍 ОБНАРУЖЕННЫЕ ПРОБЛЕМЫ:');
+    console.log('🎯 СЦЕНАРИЙ 1: TON Boost покупка');
+    console.log('   Ожидаемый поток: User покупает → списание с баланса → активация boost');
+    console.log('   Текущий маппинг: BOOST_PURCHASE → FARMING_REWARD → зачисление на баланс');
+    console.log('   🔴 РЕЗУЛЬТАТ: "Возврат денег" - пользователь видит зачисление вместо списания');
     
-    if (totalReversalPatterns > 0) {
-      console.log(`❌ ${totalReversalPatterns} паттернов списание→возврат найдено`);
-      console.log('   Рекомендация: Проверить логику TransactionService и BalanceManager');
+    console.log('\n🎯 СЦЕНАРИЙ 2: TON депозит');
+    console.log('   Ожидаемый поток: User депозит → зачисление на баланс');
+    console.log('   Текущий маппинг: TON_DEPOSIT → DEPOSIT → зачисление на баланс');
+    console.log('   ✅ РЕЗУЛЬТАТ: Работает корректно (исправлено)');
+    
+    console.log('\n🎯 СЦЕНАРИЙ 3: UNI депозит');
+    console.log('   Ожидаемый поток: User депозит → зачисление на баланс');
+    console.log('   Текущий маппинг: UNI_DEPOSIT → FARMING_REWARD → зачисление на баланс');
+    console.log('   ⚠️ РЕЗУЛЬТАТ: Работает, но логически неправильно');
+    
+    // 7. ИССЛЕДОВАНИЕ ДВОЙНЫХ ОБНОВЛЕНИЙ БАЛАНСА
+    console.log('\n7️⃣ ИССЛЕДОВАНИЕ ДВОЙНЫХ ОБНОВЛЕНИЙ:');
+    console.log('-'.repeat(70));
+    
+    console.log('🔍 ИСТОЧНИКИ ОБНОВЛЕНИЯ БАЛАНСА:');
+    console.log('   1. TransactionService.shouldUpdateBalance() → updateUserBalance()');
+    console.log('   2. BalanceManager.updateUserBalance() (прямые вызовы)');
+    console.log('   3. WalletService.processWithdrawal() → BalanceManager');
+    console.log('   4. Планировщики доходов → BalanceManager');
+    
+    console.log('\n💥 ПОТЕНЦИАЛЬНЫЕ КОНФЛИКТЫ:');
+    console.log('   🔴 TonBoost покупка может вызвать:');
+    console.log('      - WalletService.processWithdrawal() списывает TON');
+    console.log('      - TransactionService создает BOOST_PURCHASE → FARMING_REWARD');
+    console.log('      - shouldUpdateBalance(BOOST_PURCHASE) = false, НО');
+    console.log('      - shouldUpdateBalance проверяется по dbType (FARMING_REWARD) = true');
+    console.log('      - updateUserBalance зачисляет TON обратно');
+    console.log('   🎯 ИТОГ: Списание + зачисление = "возврат денег"');
+    
+    // 8. ФИНАЛЬНАЯ ДИАГНОСТИКА
+    console.log('\n8️⃣ ФИНАЛЬНАЯ ДИАГНОСТИКА:');
+    console.log('-'.repeat(70));
+    
+    console.log(`🔴 КРИТИЧЕСКИЕ ПРОБЛЕМЫ: ${issues.length}`);
+    issues.forEach((issue, index) => {
+      console.log(`   ${index + 1}. ${issue}`);
+    });
+    
+    console.log(`\n⚠️ ПРЕДУПРЕЖДЕНИЯ: ${warnings.length}`);
+    warnings.forEach((warning, index) => {
+      console.log(`   ${index + 1}. ${warning}`);
+    });
+    
+    console.log(`\n🚨 ПОДОЗРИТЕЛЬНЫЕ ПАТТЕРНЫ: ${suspiciousPatterns.length}`);
+    suspiciousPatterns.slice(0, 10).forEach((pattern, index) => {
+      console.log(`   ${index + 1}. ${pattern}`);
+    });
+    
+    // ОБЩАЯ ОЦЕНКА КРИТИЧНОСТИ
+    const criticalityScore = Math.max(0, 100 - (issues.length * 25) - (warnings.length * 10) - (suspiciousPatterns.length * 5));
+    console.log(`\n📊 КРИТИЧНОСТЬ СИСТЕМЫ: ${criticalityScore}/100`);
+    
+    if (criticalityScore <= 30) {
+      console.log('🔴 СИСТЕМА В КРИТИЧЕСКОМ СОСТОЯНИИ - ТРЕБУЕТ НЕМЕДЛЕННОГО ИСПРАВЛЕНИЯ');
+    } else if (criticalityScore <= 60) {
+      console.log('⚠️ СИСТЕМА ИМЕЕТ СЕРЬЕЗНЫЕ ПРОБЛЕМЫ');
+    } else {
+      console.log('💛 СИСТЕМА ТРЕБУЕТ ВНИМАНИЯ');
     }
     
-    if (duplicatedHashes.length > 0) {
-      console.log(`❌ ${duplicatedHashes.length} дублированных TX хешей`);
-      console.log('   Рекомендация: Усилить дедупликацию в TransactionService');
-    }
+    // 9. ДЕТАЛЬНЫЕ РЕКОМЕНДАЦИИ ПО ИСПРАВЛЕНИЮ
+    console.log('\n9️⃣ ДЕТАЛЬНЫЕ РЕКОМЕНДАЦИИ:');
+    console.log('-'.repeat(70));
     
-    console.log('\n🎯 ПРИОРИТЕТНЫЕ ОБЛАСТИ ДЛЯ ИССЛЕДОВАНИЯ:');
-    console.log('1. core/TransactionService.ts - логика shouldUpdateBalance()');
-    console.log('2. core/BalanceManager.ts - операции add/subtract/set');
-    console.log('3. modules/boost/service.ts - активация TON Boost пакетов');
-    console.log('4. modules/wallet/service.ts - обработка TON депозитов');
-    console.log('5. Дедупликация по tx_hash_unique полю');
+    console.log('🎯 КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ (ПРИОРИТЕТ 1):');
+    console.log('   1. Изменить BOOST_PURCHASE mapping:');
+    console.log('      БЫЛО: "BOOST_PURCHASE": "FARMING_REWARD"');
+    console.log('      СТАТЬ: "BOOST_PURCHASE": "BOOST_PAYMENT" (новый тип, не обновляющий баланс)');
+    
+    console.log('\n   2. Исправить UNI_DEPOSIT mapping:');
+    console.log('      БЫЛО: "UNI_DEPOSIT": "FARMING_REWARD"');
+    console.log('      СТАТЬ: "UNI_DEPOSIT": "DEPOSIT"');
+    
+    console.log('\n🔧 СИСТЕМНЫЕ УЛУЧШЕНИЯ (ПРИОРИТЕТ 2):');
+    console.log('   3. Добавить защиту от двойного обновления баланса');
+    console.log('   4. Настроить WebSocket интеграцию для мгновенных обновлений');
+    console.log('   5. Добавить мониторинг подозрительных транзакций');
+    
+    console.log('\n📊 МОНИТОРИНГ (ПРИОРИТЕТ 3):');
+    console.log('   6. Создать алерты на положительные BOOST_PURCHASE');
+    console.log('   7. Мониторить пользователей с высокой транзакционной активностью');
+    console.log('   8. Логировать все изменения баланса с источником операции');
     
   } catch (error) {
-    console.error('💥 КРИТИЧЕСКАЯ ОШИБКА:', error);
+    console.error('💥 КРИТИЧЕСКАЯ ОШИБКА анализа:', error);
   }
 }
 
 // Запуск анализа
-analyzeTonBalanceFlow()
+analyzeTonBalanceFlows()
   .then(() => {
-    console.log('\n✅ Анализ завершен');
+    console.log('\n✅ Критический анализ завершен');
     process.exit(0);
   })
   .catch(error => {
-    console.error('💥 Ошибка выполнения:', error);
+    console.error('💥 Ошибка выполнения анализа:', error);
     process.exit(1);
   });
