@@ -390,7 +390,8 @@ export class BoostService {
         .from('users')
         .update({
           ton_boost_package: boostPackage.id,
-          ton_boost_rate: boostPackage.daily_rate
+          ton_boost_rate: boostPackage.daily_rate,
+          ton_boost_active: true  // ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: активация для планировщика
         })
         .eq('id', parseInt(userId));
         
@@ -941,7 +942,8 @@ export class BoostService {
         .from('users')
         .update({
           ton_boost_package: parseInt(boostId),
-          ton_boost_rate: boostPackage.daily_rate
+          ton_boost_rate: boostPackage.daily_rate,
+          ton_boost_active: true  // ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: активация для планировщика
         })
         .eq('id', parseInt(userId));
       
