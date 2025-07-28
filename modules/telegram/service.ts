@@ -47,7 +47,7 @@ export class TelegramService {
       const urlParams = new URLSearchParams(initData);
       const params: any = {};
       
-      for (const [key, value] of urlParams.entries()) {
+      urlParams.forEach((value, key) => {
         if (key === 'user') {
           try {
             params.user = JSON.parse(decodeURIComponent(value));
@@ -61,7 +61,7 @@ export class TelegramService {
         } else {
           params[key] = decodeURIComponent(value);
         }
-      }
+      });
 
       // Проверяем обязательные поля
       if (!params.user || !params.auth_date || !params.hash) {
@@ -201,6 +201,126 @@ export class TelegramService {
         success: false,
         error: 'INTERNAL_ERROR'
       };
+    }
+  }
+
+  /**
+   * Set webhook for the main bot
+   */
+  async setWebhook(webhookUrl: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      const url = `https://api.telegram.org/bot${this.botToken}/setWebhook`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url: webhookUrl,
+          allowed_updates: ['message', 'callback_query']
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.ok) {
+        logger.info('[TelegramService] Webhook успешно установлен', { webhookUrl });
+        return {
+          success: true,
+          message: 'Webhook установлен'
+        };
+      } else {
+        logger.error('[TelegramService] Ошибка установки webhook', result);
+        return {
+          success: false,
+          message: result.description || 'Ошибка установки webhook'
+        };
+      }
+    } catch (error) {
+      logger.error('[TelegramService] Ошибка установки webhook', error);
+      return {
+        success: false,
+        message: 'Внутренняя ошибка сервера'
+      };
+    }
+  }
+
+  /**
+   * Process webhook update from Telegram
+   */
+  async processUpdate(update: any): Promise<void> {
+    try {
+      // Handle /start command
+      if (update.message && update.message.text === '/start') {
+        await this.handleStartCommand(update.message);
+        return;
+      }
+
+      // Ignore all other messages/commands
+      logger.info('[TelegramService] Игнорируем сообщение (не /start)', {
+        text: update.message?.text,
+        from: update.message?.from?.username
+      });
+    } catch (error) {
+      logger.error('[TelegramService] Ошибка обработки обновления', error);
+    }
+  }
+
+  /**
+   * Handle /start command - show welcome message with WebApp button
+   */
+  private async handleStartCommand(message: any): Promise<void> {
+    try {
+      const chatId = message.chat.id;
+      const username = message.from?.username || 'пользователь';
+
+      logger.info('[TelegramService] Обработка команды /start', {
+        chatId,
+        username,
+        userId: message.from?.id
+      });
+
+      // Welcome message text
+      const welcomeText = `🎉 Добро пожаловать в UniFarm —  
+приложение, в котором токены работают на тебя!
+
+🚜 Здесь ты не просто хранишь UNI и TON — ты запускаешь их в работу.  
+Каждая минута приносит доход — всё зависит от твоего выбора и стратегии.
+
+🎯 Выбери стратегию. Активируй фарминг. Следи за ростом.
+
+👇 Готов начать? Жми кнопку ниже и заходи в своё поле токенов!`;
+
+      // Create inline keyboard with WebApp button
+      const keyboard = {
+        inline_keyboard: [
+          [
+            {
+              text: '🚀 Запустить UniFarm',
+              web_app: {
+                url: `https://t.me/${telegramConfig.botUsername}/${telegramConfig.webAppName}`
+              }
+            }
+          ]
+        ]
+      };
+
+      // Send welcome message
+      await this.sendMessage(chatId, welcomeText, {
+        reply_markup: keyboard
+      });
+
+      logger.info('[TelegramService] Приветственное сообщение отправлено', {
+        chatId,
+        username
+      });
+
+    } catch (error) {
+      logger.error('[TelegramService] Ошибка обработки /start команды', error);
     }
   }
 }

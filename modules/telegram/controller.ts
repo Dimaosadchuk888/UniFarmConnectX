@@ -85,6 +85,37 @@ export class TelegramController extends BaseController {
       next(error);
     }
   }
+
+  /**
+   * Handle webhook updates from Telegram
+   */
+  async handleWebhook(req: Request, res: Response, next: NextFunction) {
+    try {
+      // Always respond 200 OK to Telegram immediately
+      res.status(200).json({ ok: true });
+
+      // Process update asynchronously
+      const update = req.body;
+      
+      if (!update) {
+        logger.warn('[TelegramController] Получен пустой webhook update');
+        return;
+      }
+
+      logger.info('[TelegramController] Получен webhook update', {
+        updateId: update.update_id,
+        messageText: update.message?.text,
+        from: update.message?.from?.username
+      });
+
+      // Process the update
+      await telegramService.processUpdate(update);
+      
+    } catch (error) {
+      logger.error('[TelegramController] Ошибка обработки webhook', error);
+      // Don't call next(error) here since we already responded to Telegram
+    }
+  }
 }
 
 export const telegramController = new TelegramController();

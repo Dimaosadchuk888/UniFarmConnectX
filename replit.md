@@ -22,6 +22,57 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Main Telegram Bot (@UniFarming_Bot) Cleanup and Simplification Completed (July 28, 2025)
+**Issue**: Main Telegram bot (@UniFarming_Bot) needed to be cleaned up and simplified to respond only to /start command with a welcome message and WebApp button, removing all other commands and handlers.
+
+**Previous State**: 
+- Bot had only WebApp API endpoints but no actual command handlers
+- No webhook processing for incoming messages
+- Mixed architecture with admin bot having full commands while main bot was purely WebApp-based
+
+**Solution Implemented**:
+1. **Added Simplified Command Handler**: Created streamlined telegram service that processes only /start commands
+2. **Implemented Webhook System**: Added webhook endpoint `/api/v2/telegram/webhook` for main bot message processing
+3. **Created Welcome Message Flow**: Implemented farming-themed welcome message with WebApp launch button
+4. **Removed All Other Commands**: Cleared bot command menu to ensure only /start is available
+5. **Clean Architecture**: Separated main bot (simple /start only) from admin bot (full functionality)
+
+**Technical Implementation**:
+- **Files Modified**: 
+  - `modules/telegram/service.ts` - Added webhook processing, /start handler, and welcome message
+  - `modules/telegram/controller.ts` - Added webhook endpoint handler
+  - `modules/telegram/routes.ts` - Added webhook route
+  - `server/index.ts` - Added main bot initialization and webhook setup
+- **Welcome Message**: "🎉 Добро пожаловать в UniFarm — приложение, в котором токены работают на тебя!" with farming-themed content
+- **WebApp Button**: "🚀 Запустить UniFarm" linking to `https://t.me/UniFarming_Bot/UniFarm`
+- **Architecture**: Main bot processes only /start, ignores all other messages with logging
+
+**Technical Details**:
+- **Webhook URL**: `https://uni-farm-connect-unifarm01010101.replit.app/api/v2/telegram/webhook`
+- **Command Processing**: Only `/start` command triggers response, all others ignored gracefully
+- **Error Handling**: Comprehensive logging and safe async processing
+- **Integration**: Non-blocking initialization that doesn't affect other bot functionality
+
+**Impact**: 
+- ✅ **Simplified User Experience**: Users only see /start command, reducing confusion
+- ✅ **Focused Functionality**: Bot serves single purpose - launching WebApp
+- ✅ **Clean Architecture**: Clear separation between main bot (WebApp launcher) and admin bot (management)
+- ✅ **Production Ready**: Webhook-based processing with proper error handling
+- ✅ **Farming Theme**: Welcome message emphasizes token farming and income generation
+
+**Test Results**:
+- ✅ Server starts successfully with both main bot and admin bot initialization
+- ✅ Webhook endpoint configured correctly
+- ✅ Bot commands cleared (empty command list)
+- ✅ Admin bot webhook remains functional separately
+- ✅ All LSP diagnostics clean
+
+**User Experience**:
+- **Before**: Mixed bot with WebApp endpoints but no command responses
+- **After**: Clean /start command with farming-themed welcome and direct WebApp access
+
+**Status**: ✅ **PRODUCTION READY** - Main bot cleanup completed. Bot now responds only to /start with welcome message and WebApp button, all other functionality removed as requested.
+
 ### Critical Withdrawal System Integration Completed (July 27, 2025)
 **Issue**: Withdrawal requests were created successfully but admin bot was not receiving notifications about new withdrawal requests, causing manual processing delays and user complaints.
 

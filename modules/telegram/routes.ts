@@ -13,4 +13,7 @@ router.post('/set-commands', requireTelegramAuth, telegramController.setCommands
 // POST /api/v2/telegram/send-message - Отправить сообщение пользователю (дополнительный endpoint)
 router.post('/send-message', requireTelegramAuth, telegramController.sendMessage.bind(telegramController));
 
+// POST /api/v2/telegram/webhook - Webhook для главного бота @UniFarming_Bot
+router.post('/webhook', telegramController.handleWebhook.bind(telegramController));
+
 export default router;

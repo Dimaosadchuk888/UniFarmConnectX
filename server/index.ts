@@ -299,133 +299,42 @@ async function startServer() {
 
     // Sentry middleware disabled for deployment compatibility
 
-    // TELEGRAM WEBHOOK - МАКСИМАЛЬНЫЙ ПРИОРИТЕТ (первая регистрация)
-    const webhookHandler = async (req: Request, res: Response): Promise<void> => {
+    // Clean webhook implementation removed - now handled by telegram module routes
+
+    // Initialize main bot
+    const initMainBot = async () => {
       try {
-        const update = req.body;
+        logger.info('[MainBot] Инициализация главного бота @UniFarming_Bot...');
         
-        logger.info('[TelegramWebhook] Получено обновление от Telegram', {
-          update_id: update.update_id,
-          message: update.message ? {
-            message_id: update.message.message_id,
-            from: update.message.from,
-            text: update.message.text
-          } : null
-        });
-
-        // Обработка команды /start
-        if (update.message && update.message.text && update.message.text.startsWith('/start')) {
-          const chatId = update.message.chat.id;
-          
-          logger.info('[TelegramWebhook] Обработка команды /start', {
-            chat_id: chatId,
-            user_id: update.message.from.id
-          });
-
-          // Отправляем ответ с кнопкой Mini App
-          try {
-            const { TelegramService } = await import('../modules/telegram/service');
-            const telegramService = new TelegramService();
-            
-            await telegramService.sendMessage(chatId, 
-              '🌾 Добро пожаловать в UniFarm Connect!\n\n' +
-              'Начните фармить UNI и TON токены прямо сейчас!', 
-              {
-                reply_markup: {
-                  inline_keyboard: [[{
-                    text: '🚀 Запустить UniFarm',
-                    web_app: { url: process.env.APP_DOMAIN || process.env.TELEGRAM_WEBAPP_URL || 'https://t.me/UniFarming_Bot' }
-                  }]]
-                }
-              }
-            );
-          } catch (serviceError) {
-            logger.error('[TelegramWebhook] Ошибка отправки сообщения', { 
-              error: serviceError instanceof Error ? serviceError.message : String(serviceError) 
-            });
-          }
+        const { telegramService } = await import('../modules/telegram/service');
+        
+        // Set up webhook
+        const webhookUrl = `${process.env.APP_DOMAIN || 'https://uni-farm-connect-unifarm01010101.replit.app'}/api/v2/telegram/webhook`;
+        const webhookResult = await telegramService.setWebhook(webhookUrl);
+        
+        if (webhookResult.success) {
+          logger.info('[MainBot] Webhook успешно установлен', { webhookUrl });
+        } else {
+          logger.error('[MainBot] Ошибка установки webhook', { error: webhookResult.message });
         }
 
-        res.json({ 
-          success: true,
-          status: 'webhook_processed',
-          update_id: update.update_id,
-          timestamp: new Date().toISOString()
-        });
+        // Clear bot commands (remove all except /start)
+        const commandsResult = await telegramService.setCommands([]);
+        
+        if (commandsResult.success) {
+          logger.info('[MainBot] Команды бота очищены - остается только /start');
+        } else {
+          logger.error('[MainBot] Ошибка очистки команд', { error: commandsResult.message });
+        }
+
+        logger.info('[MainBot] Инициализация завершена - бот отвечает только на /start');
+        
       } catch (error) {
-        logger.error('[TelegramWebhook] Ошибка обработки webhook', { 
+        logger.error('[MainBot] Ошибка инициализации главного бота', { 
           error: error instanceof Error ? error.message : String(error) 
         });
-        
-        res.status(500).json({
-          success: false,
-          error: 'Webhook processing error'
-        });
       }
     };
-
-    // Регистрируем webhook handler на множественных путях
-    app.post('/webhook', express.json({ limit: '1mb' }), webhookHandler);
-    app.post('/api/webhook', express.json({ limit: '1mb' }), webhookHandler);
-    app.post('/bot/webhook', express.json({ limit: '1mb' }), webhookHandler);
-    app.post('/telegram/webhook', express.json({ limit: '1mb' }), webhookHandler);
-
-    // Fallback polling service для обхода блокировки webhook
-    const initPollingFallback = async () => {
-      try {
-        // Проверяем доступность webhook через внешний домен
-        const webhookUrl = process.env.APP_DOMAIN || process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-unifarm01010101.replit.app';
-        const testResponse = await fetch(`${webhookUrl}/webhook`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ test: true })
-        });
-        
-        if (testResponse.status === 404) {
-          logger.info('[TelegramPolling] Webhook заблокирован, активируем polling service');
-          
-          // Простой polling механизм
-          let offset = 0;
-          const pollTelegram = async () => {
-            try {
-              const botToken = process.env.TELEGRAM_BOT_TOKEN;
-              const updatesResponse = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ offset, timeout: 10 })
-              });
-              
-              const data = await updatesResponse.json() as any;
-              if (data.ok && data.result.length > 0) {
-                for (const update of data.result) {
-                  await webhookHandler({ body: update } as Request, {
-                    json: (data: any) => logger.info('[TelegramPolling] Processed:', data),
-                    status: () => ({ json: () => {} })
-                  } as any);
-                  offset = update.update_id + 1;
-                }
-              }
-            } catch (error) {
-              logger.error('[TelegramPolling] Polling error:', error instanceof Error ? error.message : String(error));
-            }
-            
-            setTimeout(pollTelegram, 3000); // Poll every 3 seconds
-          };
-          
-          // Удаляем webhook и запускаем polling
-          const botToken = process.env.TELEGRAM_BOT_TOKEN;
-          await fetch(`https://api.telegram.org/bot${botToken}/deleteWebhook`);
-          setTimeout(pollTelegram, 5000); // Start polling after 5 seconds
-        } else {
-          logger.info('[TelegramPolling] Webhook работает корректно');
-        }
-      } catch (error) {
-        logger.error('[TelegramPolling] Ошибка инициализации:', error instanceof Error ? error.message : String(error));
-      }
-    };
-    
-    // Запускаем проверку через 15 секунд после старта сервера
-    setTimeout(initPollingFallback, 15000);
 
     // Блокировка доступа к конфиденциальным файлам (КРИТИЧЕСКАЯ ЗАЩИТА)
     app.use('/.env', (_, res, next) => { res.status(403).send('Forbidden'); });
@@ -1124,6 +1033,15 @@ async function startServer() {
           }
         } catch (error) {
           logger.error('❌ Ошибка инициализации админ-бота', { error });
+        }
+      })();
+      
+      // Инициализация главного бота @UniFarming_Bot
+      (async () => {
+        try {
+          await initMainBot();
+        } catch (error) {
+          logger.error('❌ Ошибка инициализации главного бота', { error });
         }
       })();
       
