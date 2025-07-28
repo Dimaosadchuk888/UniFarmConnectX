@@ -192,7 +192,7 @@ async function main() {
   console.log('✅ Подключение к базе данных работает');
   
   const targetUsers = [251, 255];
-  const results = [];
+  const results: Array<{ userId: number; success: boolean }> = [];
   
   for (const userId of targetUsers) {
     const success = await activateBoostForUser(userId, 2);

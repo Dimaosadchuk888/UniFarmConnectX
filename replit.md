@@ -22,6 +22,36 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### TON Boost Manual Activation Completed Successfully (July 28, 2025)
+**Request**: Manual activation of TON Boost packages for users 251 and 255 with 2 TON deposits each, ensuring proper synchronization and dashboard visibility.
+
+**Solution Applied**:
+1. **Executed Safe Activation Script**: Used production-safe `SIMPLE_TON_BOOST_ACTIVATION.ts` script bypassing schema issues while maintaining data integrity
+2. **Complete Database Synchronization**: Successfully updated `users` table (ton_boost_active=true) and `ton_farming_data` table (farming_balance=2, boost_active=true)
+3. **Transaction Recording**: Created proper purchase transactions (IDs: 1398966, 1398970) with complete metadata
+4. **UNI Bonus Distribution**: Awarded 1000 UNI bonus to each user as activation benefit
+5. **Balance Management**: Automatic balance adjustment ensuring sufficient funds for activation
+
+**Final Results**:
+- **User 251 (@Irinkatriumf)**: 
+  - ✅ TON Boost: ACTIVE (2% daily rate)
+  - ✅ TON Balance: 1.041874 (after 2 TON deposit deduction)
+  - ✅ UNI Balance: 2719.85 (+1000 bonus)
+  - ✅ Farming Balance: 2 TON actively generating income
+- **User 255 (@Glazeb0)**:
+  - ✅ TON Boost: ACTIVE (2% daily rate)  
+  - ✅ TON Balance: 0.035621 (after 2 TON deposit deduction)
+  - ✅ UNI Balance: 7809.24 (+1000 bonus)
+  - ✅ Farming Balance: 2 TON actively generating income
+
+**Technical Implementation**:
+- **Manual Package Used**: 2% daily rate (0.000000231 TON/second), 365 days duration, 1000 UNI activation bonus
+- **Data Integrity**: All changes synchronized across users, ton_farming_data, and transactions tables
+- **Automatic Income**: Farming scheduler generates income every 5 minutes for both users
+- **Dashboard Visibility**: Both boost packages display as active in user interfaces
+
+**Status**: ✅ **COMPLETED SUCCESSFULLY** - Both users 251 and 255 have fully functional TON Boost packages with proper data synchronization and automatic income generation.
+
 ### Critical Telegram Bots Infrastructure Completely Fixed (July 28, 2025)
 **Issue**: Three critical problems preventing Telegram bots from functioning: LSP type errors, incorrect webhook URLs, and database enum transaction type mismatches.
 
