@@ -659,6 +659,28 @@ export class WalletService {
         }
       }
 
+      // Отправляем уведомление админ-боту о новой заявке на вывод
+      try {
+        const { AdminBotService } = await import('../../modules/adminBot/service');
+        const adminBotService = new AdminBotService();
+        
+        // Уведомляем только для заявок на вывод (когда создается withdraw_request)
+        if (withdrawRequest) {
+          const notificationSent = await adminBotService.notifyWithdrawal(withdrawRequest);
+          
+          logger.info('[WalletService] Уведомление админ-бота отправлено', {
+            requestId: withdrawRequest.id,
+            success: notificationSent
+          });
+        }
+      } catch (notificationError) {
+        // Не блокируем основную операцию из-за ошибки уведомления
+        logger.warn('[WalletService] Не удалось отправить уведомление админ-боту', {
+          error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+          withdrawRequestId: withdrawRequest?.id
+        });
+      }
+
       logger.info('[WalletService] Вывод средств обработан успешно', { 
         userId, 
         amount: withdrawAmount, 

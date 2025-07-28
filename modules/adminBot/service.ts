@@ -475,13 +475,114 @@ export class AdminBotService {
   }
 
   /**
+   * Notify admin bot about new withdrawal request
+   */
+  async notifyWithdrawal(withdrawRequest: any): Promise<boolean> {
+    try {
+      logger.info('[AdminBot] Отправка уведомления о новой заявке на вывод', {
+        requestId: withdrawRequest.id,
+        userId: withdrawRequest.user_id,
+        amount: withdrawRequest.amount_ton
+      });
+
+      // Получаем всех авторизованных админов
+      const adminUsernames = adminBotConfig.authorizedAdmins;
+      let notificationsSent = 0;
+
+      for (const adminUsername of adminUsernames) {
+        try {
+          // Находим telegram_id админа в базе данных
+          const cleanUsername = adminUsername.replace('@', '');
+          const { data: adminUser } = await supabase
+            .from('users')
+            .select('telegram_id')
+            .eq('username', cleanUsername)
+            .eq('is_admin', true)
+            .single();
+
+          if (!adminUser?.telegram_id) {
+            logger.warn('[AdminBot] Admin not found in database', { username: adminUsername });
+            continue;
+          }
+
+          // Формируем сообщение уведомления
+          const userDisplay = withdrawRequest.username ? `@${withdrawRequest.username}` : 
+                             `User ${withdrawRequest.telegram_id}`;
+          
+          const message = `🔔 <b>НОВАЯ ЗАЯВКА НА ВЫВОД</b>
+
+👤 <b>Пользователь:</b> ${userDisplay}
+🆔 <b>ID заявки:</b> ${withdrawRequest.id}
+💰 <b>Сумма:</b> ${withdrawRequest.amount_ton} TON
+🏦 <b>Кошелек:</b> <code>${withdrawRequest.ton_wallet}</code>
+📅 <b>Дата:</b> ${new Date(withdrawRequest.created_at).toLocaleString('ru-RU')}
+⏳ <b>Статус:</b> Ожидает обработки
+
+<i>Используйте /withdrawals для управления заявками</i>`;
+
+          // Кнопки для быстрых действий
+          const keyboard: any = {
+            inline_keyboard: [
+              [
+                { text: '✅ Одобрить', callback_data: `approve_withdrawal:${withdrawRequest.id}` },
+                { text: '❌ Отклонить', callback_data: `reject_withdrawal:${withdrawRequest.id}` }
+              ],
+              [
+                { text: '📋 Все заявки', callback_data: 'withdrawals:pending' }
+              ]
+            ]
+          };
+
+          // Отправляем уведомление
+          const success = await this.sendMessage(adminUser.telegram_id, message, { 
+            reply_markup: keyboard 
+          });
+
+          if (success) {
+            notificationsSent++;
+            logger.info('[AdminBot] Уведомление отправлено', { 
+              admin: adminUsername, 
+              telegramId: adminUser.telegram_id 
+            });
+          } else {
+            logger.warn('[AdminBot] Не удалось отправить уведомление', { 
+              admin: adminUsername 
+            });
+          }
+
+        } catch (error) {
+          logger.error('[AdminBot] Ошибка отправки уведомления админу', { 
+            admin: adminUsername, 
+            error: error instanceof Error ? error.message : String(error) 
+          });
+        }
+      }
+
+      logger.info('[AdminBot] Уведомления о выводе отправлены', { 
+        total: adminUsernames.length,
+        sent: notificationsSent,
+        requestId: withdrawRequest.id
+      });
+
+      return notificationsSent > 0;
+
+    } catch (error) {
+      logger.error('[AdminBot] Критическая ошибка отправки уведомления о выводе', { 
+        error: error instanceof Error ? error.message : String(error),
+        withdrawRequest: withdrawRequest?.id
+      });
+      return false;
+    }
+  }
+
+  /**
    * Get withdrawal statistics
    */
   async getWithdrawalStats(): Promise<any> {
     try {
       const { data: allRequests, error } = await supabase
         .from('withdraw_requests')
-        .select('status, amount, created_at');
+        .select('status, amount_ton, created_at');
         
       if (error) {
         logger.error('[AdminBot] Error getting withdrawal stats', { error });
@@ -493,7 +594,7 @@ export class AdminBotService {
         pending: allRequests?.filter(r => r.status === 'pending').length || 0,
         approved: allRequests?.filter(r => r.status === 'approved').length || 0,
         rejected: allRequests?.filter(r => r.status === 'rejected').length || 0,
-        totalAmount: allRequests?.reduce((sum, r) => sum + parseFloat(r.amount || '0'), 0) || 0,
+        totalAmount: allRequests?.reduce((sum, r) => sum + parseFloat(r.amount_ton || '0'), 0) || 0,
         todayRequests: allRequests?.filter(r => {
           const today = new Date();
           const requestDate = new Date(r.created_at);

@@ -15,6 +15,12 @@ export class AdminBotController {
    */
   async handleUpdate(update: any): Promise<void> {
     try {
+      logger.info('[AdminBot] Получено обновление от Telegram', { 
+        updateId: update.update_id,
+        hasMessage: !!update.message,
+        hasCallbackQuery: !!update.callback_query
+      });
+
       // Handle message
       if (update.message) {
         await this.handleMessage(update.message);
@@ -24,8 +30,15 @@ export class AdminBotController {
       if (update.callback_query) {
         await this.handleCallbackQuery(update.callback_query);
       }
+
+      logger.info('[AdminBot] Обновление обработано успешно', { updateId: update.update_id });
     } catch (error) {
-      logger.error('[AdminBot] Error handling update', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('[AdminBot] Error handling update', { 
+        error: error instanceof Error ? error.message : String(error),
+        updateId: update.update_id,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      // Не бросаем ошибку дальше, чтобы не вызвать 500 в webhook
     }
   }
 
