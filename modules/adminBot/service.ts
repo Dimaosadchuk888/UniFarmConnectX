@@ -498,7 +498,8 @@ export class AdminBotService {
             .select('telegram_id')
             .eq('username', cleanUsername)
             .eq('is_admin', true)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
           if (!adminUser?.telegram_id) {
             logger.warn('[AdminBot] Admin not found in database', { username: adminUsername });
