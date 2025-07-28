@@ -22,6 +22,47 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### TON Boost Activation for Users 251 & 255 Successfully Completed (July 28, 2025)
+**Issue**: Users 251 and 255 required safe activation of TON Boost packages with 2 TON deposits each, ensuring proper data synchronization and dashboard visibility.
+
+**Challenge**: Database schema inconsistencies and missing table columns (`updated_at`, `last_claim`) prevented standard activation methods from working.
+
+**Solution Implemented**:
+1. **Created Production-Safe Activation Script**: Developed `SIMPLE_TON_BOOST_ACTIVATION.ts` that bypasses schema issues while maintaining system integrity
+2. **Manual Package Configuration**: Used embedded package data to avoid missing `boost_packages` table issues
+3. **Full Data Synchronization**: Successfully updated both `users` table and `ton_farming_data` table with proper activation flags
+4. **Balance Management**: Ensured sufficient TON balance for each user before activation
+5. **UNI Bonus Distribution**: Awarded 1000 UNI bonus to each user as part of activation package
+
+**Technical Implementation**:
+- **Package Used**: Manual Activation Package (2% daily rate, 1000 UNI bonus, 365 days duration)
+- **Database Updates**: 
+  - `users` table: `ton_boost_active=true`, `ton_boost_package=1`, `ton_boost_rate=0.02`
+  - `ton_farming_data` table: `farming_balance=2`, `farming_rate=0.000000231`, `boost_active=true`
+- **Transactions Created**: Purchase transactions (IDs: 1375324, 1375326) and UNI bonus transactions
+- **Schema Adaptation**: Removed problematic fields (`updated_at`, `last_claim`) to work with current database structure
+
+**Final Results**:
+- **User 251 (@Irinkatriumf)**: 
+  - TON Boost: ACTIVE
+  - TON Balance: 1.023471 (after 2 TON deduction)
+  - UNI Balance: 1218.99 (+1000 bonus)
+  - Farming Balance: 2 TON active
+- **User 255 (@Glazeb0)**:
+  - TON Boost: ACTIVE  
+  - TON Balance: 0.029388 (after 2 TON deduction)
+  - UNI Balance: 6653.14 (+1000 bonus)
+  - Farming Balance: 2 TON active
+
+**Impact**: 
+- ✅ Both users now have fully functional TON Boost packages visible in their dashboards
+- ✅ Automatic income generation every 5 minutes via farming scheduler (0.000000231 TON/second each)
+- ✅ Complete transaction history created for transparency
+- ✅ System maintains data integrity despite schema limitations
+- ✅ Production-safe method established for future similar activations
+
+**Status**: ✅ **COMPLETED SUCCESSFULLY** - Both users 251 and 255 have active TON Boost packages with 2 TON deposits, receiving automatic farming income and dashboard visibility.
+
 ### Critical Withdrawal System Authorization Fix Applied (July 28, 2025)
 **Issue**: Withdrawal requests were failing due to architectural mismatch between WalletController and telegramAuth middleware. System showed 401 Unauthorized errors despite JWT tokens working correctly for other endpoints.
 
