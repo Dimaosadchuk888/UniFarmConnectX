@@ -205,6 +205,44 @@ export class TelegramService {
   }
 
   /**
+   * Get webhook info
+   */
+  async getWebhookInfo(): Promise<any> {
+    try {
+      const url = `https://api.telegram.org/bot${this.botToken}/getWebhookInfo`;
+      const response = await fetch(url);
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      logger.error('[TelegramService] Ошибка получения webhook info', error);
+      return { ok: false, error };
+    }
+  }
+
+  /**
+   * Delete webhook
+   */
+  async deleteWebhook(): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      const url = `https://api.telegram.org/bot${this.botToken}/deleteWebhook`;
+      const response = await fetch(url, { method: 'POST' });
+      const result = await response.json();
+      
+      if (result.ok) {
+        return { success: true, message: 'Webhook удален' };
+      } else {
+        return { success: false, message: result.description || 'Ошибка удаления webhook' };
+      }
+    } catch (error) {
+      logger.error('[TelegramService] Ошибка удаления webhook', error);
+      return { success: false, message: 'Внутренняя ошибка сервера' };
+    }
+  }
+
+  /**
    * Set webhook for the main bot
    */
   async setWebhook(webhookUrl: string): Promise<{
