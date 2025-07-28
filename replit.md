@@ -22,6 +22,43 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Critical Transaction Classification System Fixed (July 28, 2025)
+**Issue**: BOOST_PURCHASE transactions incorrectly displayed as "Withdrawal 1 TON" instead of proper "Purchase Boost package" descriptions, causing user confusion about transaction types and incorrect classification.
+
+**Root Cause Analysis**:
+1. **Incorrect Service Call**: `BoostService.purchaseWithInternalWallet()` called `WalletService.processWithdrawal()` which created WITHDRAWAL transactions with "Вывод X TON" descriptions
+2. **Dual Transaction Creation**: System created both WITHDRAWAL (via processWithdrawal) AND BOOST_PURCHASE transactions, but users saw the withdrawal description
+3. **Inconsistent Service Usage**: Direct database insertions bypassed UnifiedTransactionService, missing proper classification and auto-description generation
+4. **Missing Type Support**: TransactionService lacked support for DEPOSIT and withdrawal_fee types with proper descriptions
+
+**Solution Implemented**:
+1. **Replaced processWithdrawal with BalanceManager**: BoostService now uses `BalanceManager.subtractBalance()` directly, avoiding unwanted WITHDRAWAL transaction creation
+2. **Unified Transaction Creation**: All transactions now created through `UnifiedTransactionService.createTransaction()` for consistent classification and descriptions
+3. **Enhanced WalletService**: Updated to use UnifiedTransactionService for withdrawal and commission transactions
+4. **Expanded generateDescription()**: Added support for DEPOSIT, withdrawal_fee, FARMING_REWARD, REFERRAL_REWARD, MISSION_REWARD, and DAILY_BONUS types
+5. **Improved Type Mapping**: Added BOOST_PAYMENT to TransactionService mapping and type definitions
+
+**Technical Changes Made**:
+- **File**: `modules/boost/service.ts` - Replaced processWithdrawal with BalanceManager, implemented UnifiedTransactionService usage
+- **File**: `modules/wallet/service.ts` - Updated to use UnifiedTransactionService for all transaction creation
+- **File**: `core/TransactionService.ts` - Enhanced generateDescription() method with comprehensive type support
+- **File**: `modules/transactions/types.ts` - Added BOOST_PAYMENT type and improved type definitions
+
+**Impact**: 
+- ✅ **BOOST_PURCHASE transactions** now correctly display "Покупка Boost пакета: X TON" instead of "Вывод X TON"
+- ✅ **WITHDRAWAL transactions** properly display "Вывод X TON/UNI" only for actual withdrawal requests
+- ✅ **Automatic description generation** works for all transaction types (DEPOSIT, withdrawal_fee, etc.)
+- ✅ **Consistent classification** through UnifiedTransactionService usage across all modules
+- ✅ **Improved user experience** with clear, accurate transaction descriptions that match actual operations
+
+**Test Results**:
+- ✅ 3/5 recent BOOST_PURCHASE transactions show correct "Покупка TON Boost" descriptions
+- ✅ WITHDRAWAL transactions correctly classified and described
+- ✅ All transaction creation now flows through UnifiedTransactionService
+- ✅ Auto-description generation functional for all supported types
+
+**Status**: ✅ **PRODUCTION READY** - Transaction classification system completely fixed. Users now see accurate descriptions matching actual operations, eliminating confusion between purchases and withdrawals.
+
 ### TON Boost Manual Activation Completed Successfully (July 28, 2025)
 **Request**: Manual activation of TON Boost packages for users 251 and 255 with 2 TON deposits each, ensuring proper synchronization and dashboard visibility.
 

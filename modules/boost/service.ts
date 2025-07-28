@@ -369,10 +369,21 @@ export class BoostService {
         };
       }
 
-      // Списываем средства
-      const withdrawSuccess = await walletService.processWithdrawal(userId, requiredAmount.toString(), 'TON');
-      if (!withdrawSuccess) {
-        logger.error('[BoostService] Не удалось списать средства', { userId, amount: requiredAmount });
+      // Списываем средства напрямую через BalanceManager (не создавая транзакцию WITHDRAWAL)
+      const { balanceManager } = await import('../../core/BalanceManager');
+      const balanceResult = await balanceManager.subtractBalance(
+        parseInt(userId),
+        0, // amount_uni
+        requiredAmount, // amount_ton
+        'BoostService.purchase'
+      );
+      
+      if (!balanceResult.success) {
+        logger.error('[BoostService] Не удалось списать средства', { 
+          userId, 
+          amount: requiredAmount,
+          error: balanceResult.error 
+        });
         return {
           success: false,
           message: 'Ошибка списания средств с внутреннего баланса'
@@ -453,34 +464,33 @@ export class BoostService {
 
       // Активация планировщика должна быть после всех операций
 
-      // Создаем транзакцию покупки буста для истории
+      // Создаем транзакцию покупки буста через UnifiedTransactionService для правильной классификации
       try {
-        const { supabase } = await import('../../core/supabase');
-        const { error: transactionError } = await supabase
-          .from('transactions')
-          .insert({
-            user_id: parseInt(userId),
-            type: 'BOOST_PURCHASE', // Новый тип для покупок TON Boost
-            amount: (-requiredAmount).toString(),
-            currency: 'TON',
-            status: 'completed',
-            description: `Покупка TON Boost "${boostPackage.name}" (-${requiredAmount} TON)`,
-            created_at: new Date().toISOString(),
-            metadata: {
-              original_type: 'TON_BOOST_PURCHASE',
-              boost_package_id: boostPackage.id,
-              package_name: boostPackage.name,
-              daily_rate: boostPackage.daily_rate
-            }
-          });
+        const { transactionService } = await import('../../core/TransactionService');
+        const transactionResult = await transactionService.createTransaction({
+          user_id: parseInt(userId),
+          type: 'BOOST_PURCHASE',
+          amount_ton: requiredAmount,
+          amount_uni: 0,
+          currency: 'TON',
+          status: 'completed',
+          description: '', // Пустое описание - автогенерация сработает
+          metadata: {
+            original_type: 'TON_BOOST_PURCHASE',
+            boost_package_id: boostPackage.id,
+            package_name: boostPackage.name,
+            daily_rate: boostPackage.daily_rate
+          }
+        });
 
-        if (transactionError) {
-          logger.error('[BoostService] Ошибка создания транзакции покупки буста:', transactionError);
+        if (!transactionResult.success) {
+          logger.error('[BoostService] Ошибка создания транзакции покупки буста:', transactionResult.error);
         } else {
-          logger.info('[BoostService] Транзакция покупки буста успешно создана', {
+          logger.info('[BoostService] Транзакция покупки буста успешно создана через UnifiedTransactionService', {
             userId,
             amount: requiredAmount,
-            packageName: boostPackage.name
+            packageName: boostPackage.name,
+            transactionId: transactionResult.transaction_id
           });
         }
       } catch (error) {

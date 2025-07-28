@@ -615,68 +615,93 @@ export class WalletService {
         return { success: false, error: result.error || 'Ошибка обновления баланса' };
       }
 
-      // Создаем запись транзакции для основного вывода
-      logger.info('[WalletService] Создаем транзакцию для заявки на вывод', {
+      // Создаем запись транзакции для основного вывода через UnifiedTransactionService
+      logger.info('[WalletService] Создаем транзакцию для заявки на вывод через UnifiedTransactionService', {
         userId,
         type,
         amount: withdrawAmount,
         withdrawRequestId: withdrawRequest?.id
       });
 
-      const { data: transactionData, error: transactionError } = await supabase
-        .from(WALLET_TABLES.TRANSACTIONS)
-        .insert({
+      try {
+        const { transactionService } = await import('../../core/TransactionService');
+        const withdrawalTransactionType = type === 'UNI' ? 'UNI_WITHDRAWAL' : 'TON_WITHDRAWAL';
+        
+        const transactionResult = await transactionService.createTransaction({
           user_id: parseInt(userId),
-          type: 'WITHDRAWAL', // Используем WITHDRAWAL вместо lowercase 'withdrawal'
-          amount_uni: type === 'UNI' ? withdrawAmount.toString() : '0',
-          amount_ton: type === 'TON' ? withdrawAmount.toString() : '0',
+          type: withdrawalTransactionType,
+          amount_uni: type === 'UNI' ? withdrawAmount : 0,
+          amount_ton: type === 'TON' ? withdrawAmount : 0,
           currency: type,
           status: 'pending', // Изменено с 'completed' на 'pending'
-          description: `Вывод ${withdrawAmount} ${type}`,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (transactionError) {
-        logger.error('[WalletService] КРИТИЧЕСКАЯ ОШИБКА создания транзакции для заявки на вывод', { 
-          userId, 
-          type,
-          amount: withdrawAmount,
-          error: transactionError.message,
-          code: transactionError.code,
-          details: transactionError.details,
-          hint: transactionError.hint
+          description: '', // Автогенерация: "Вывод X TON/UNI"
+          metadata: {
+            original_type: withdrawalTransactionType,
+            withdraw_request_id: withdrawRequest?.id,
+            wallet_address: walletAddress
+          }
         });
-      } else {
-        logger.info('[WalletService] Транзакция для заявки на вывод создана УСПЕШНО', {
+
+        if (!transactionResult.success) {
+          logger.error('[WalletService] КРИТИЧЕСКАЯ ОШИБКА создания транзакции для заявки на вывод', { 
+            userId, 
+            type,
+            amount: withdrawAmount,
+            error: transactionResult.error
+          });
+        } else {
+          logger.info('[WalletService] Транзакция для заявки на вывод создана УСПЕШНО через UnifiedTransactionService', {
+            userId,
+            type,
+            amount: withdrawAmount,
+            transactionId: transactionResult.transaction_id,
+            withdrawRequestId: withdrawRequest?.id
+          });
+        }
+      } catch (error) {
+        logger.error('[WalletService] Ошибка создания транзакции вывода', {
           userId,
           type,
           amount: withdrawAmount,
-          transactionId: transactionData?.id,
-          withdrawRequestId: withdrawRequest?.id
+          error: error instanceof Error ? error.message : String(error)
         });
       }
 
-      // Создаем запись транзакции для комиссии (если есть)
+      // Создаем запись транзакции для комиссии через UnifiedTransactionService (если есть)
       if (type === 'UNI' && commission > 0) {
-        const { error: commissionError } = await supabase
-          .from(WALLET_TABLES.TRANSACTIONS)
-          .insert({
+        try {
+          const { transactionService } = await import('../../core/TransactionService');
+          const commissionResult = await transactionService.createTransaction({
             user_id: parseInt(userId),
-            type: 'WITHDRAWAL', // Используем WITHDRAWAL вместо withdrawal_fee
-            amount_uni: '0',
-            amount_ton: commission.toString(),
+            type: 'withdrawal_fee',
+            amount_ton: commission,
+            amount_uni: 0,
             currency: 'TON',
             status: 'completed',
-            description: `Комиссия за вывод ${withdrawAmount} UNI`,
-            created_at: new Date().toISOString()
+            description: '', // Автогенерация: "Комиссия за вывод: X TON"
+            metadata: {
+              original_type: 'withdrawal_fee',
+              related_withdrawal_amount: withdrawAmount,
+              related_withdrawal_currency: type
+            }
           });
 
-        if (commissionError) {
+          if (!commissionResult.success) {
+            logger.warn('[WalletService] Ошибка создания транзакции комиссии через UnifiedTransactionService', { 
+              userId, 
+              error: commissionResult.error 
+            });
+          } else {
+            logger.info('[WalletService] Транзакция комиссии успешно создана', {
+              userId,
+              commission,
+              transactionId: commissionResult.transaction_id
+            });
+          }
+        } catch (error) {
           logger.warn('[WalletService] Ошибка создания транзакции комиссии', { 
             userId, 
-            error: commissionError.message 
+            error: error instanceof Error ? error.message : String(error)
           });
         }
       }

@@ -16,6 +16,7 @@ const TRANSACTION_TYPE_MAPPING: Record<ExtendedTransactionType, TransactionsTran
   'DAILY_BONUS': 'DAILY_BONUS',
   'WITHDRAWAL': 'WITHDRAWAL',              // Добавлен прямой маппинг для выводов
   'DEPOSIT': 'DEPOSIT',                    // Добавлен прямой маппинг для депозитов
+  'BOOST_PAYMENT': 'BOOST_PAYMENT',        // Добавлен прямой маппинг для платежей
   // Маппинг расширенных типов на базовые
   'TON_BOOST_INCOME': 'FARMING_REWARD',   // TON Boost доходы → FARMING_REWARD
   'UNI_DEPOSIT': 'DEPOSIT',               // UNI депозиты → DEPOSIT (ИСПРАВЛЕНО: было FARMING_REWARD)
@@ -26,7 +27,7 @@ const TRANSACTION_TYPE_MAPPING: Record<ExtendedTransactionType, TransactionsTran
   'AIRDROP_REWARD': 'DAILY_BONUS',        // Airdrop награды → DAILY_BONUS
   // Маппинг lowercase для обратной совместимости
   'withdrawal': 'WITHDRAWAL',              // Lowercase вывод → WITHDRAWAL
-  'withdrawal_fee': 'WITHDRAWAL'           // Lowercase комиссия → WITHDRAWAL
+  'withdrawal_fee': 'WITHDRAWAL'           // Lowercase комиссия → WITHDRAWAL (комиссии отображаются как выводы)
 };
 
 export interface TransactionData {
@@ -323,6 +324,8 @@ export class UnifiedTransactionService {
         return `Пополнение UNI: ${amount}`;
       case 'TON_DEPOSIT':
         return `Пополнение TON: ${amount}`;
+      case 'DEPOSIT':
+        return `Пополнение ${currency}: ${amount}`;
       case 'UNI_WITHDRAWAL':
         return `Вывод UNI: ${amount}`;
       case 'TON_WITHDRAWAL':
@@ -338,6 +341,14 @@ export class UnifiedTransactionService {
         return `Вывод ${amount} ${currency}`;
       case 'withdrawal_fee':
         return `Комиссия за вывод: ${amount} ${currency}`;
+      case 'FARMING_REWARD':
+        return currency === 'UNI' ? `UNI Farming доход: ${amount} UNI` : `TON Boost доход: ${amount} TON`;
+      case 'REFERRAL_REWARD':
+        return `Реферальный бонус: ${amount} ${currency}`;
+      case 'MISSION_REWARD':
+        return `Награда за миссию: ${amount} ${currency}`;
+      case 'DAILY_BONUS':
+        return `Ежедневный бонус: ${amount} ${currency}`;
       default:
         return `${type}: ${amount} ${currency}`;
     }
