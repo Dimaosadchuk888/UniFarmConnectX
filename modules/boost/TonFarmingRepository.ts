@@ -22,9 +22,189 @@ export class TonFarmingRepository {
   private useFallback: boolean = false;
   
   constructor() {
-    // Таблица ton_farming_data существует, fallback не нужен
-    // this.checkTableExists();
-    logger.info('[TonFarmingRepository] Using ton_farming_data table directly');
+    // Таблица ton_farming_data существует в БД
+    logger.info('[TonFarmingRepository] Initializing with ton_farming_data table (production mode)');
+  }
+
+  /**
+   * КРИТИЧЕСКОЕ УЛУЧШЕНИЕ: Безопасная активация TON Boost с гарантированным созданием депозита
+   * Этот метод обеспечивает создание записи в ton_farming_data И синхронизацию с users
+   */
+  async safeActivateBoost(userId: string, packageId: number, rate: number, depositAmount: number, expiresAt?: string): Promise<{
+    success: boolean;
+    message: string;
+    tonFarmingCreated: boolean;
+    usersUpdated: boolean;
+    accumulatedBalance: number;
+  }> {
+    const userIdStr = userId.toString();
+    let tonFarmingCreated = false;
+    let usersUpdated = false;
+    let accumulatedBalance = 0;
+
+    try {
+      logger.info('[TonFarmingRepository] 🔄 SAFE ACTIVATION START', {
+        userId: userIdStr,
+        packageId,
+        depositAmount,
+        rate
+      });
+
+      // ШАГ 1: Получаем существующую запись для накопления баланса
+      const existingRecord = await this.getByUserId(userIdStr);
+      if (existingRecord && existingRecord.farming_balance) {
+        const currentBalance = parseFloat(existingRecord.farming_balance) || 0;
+        accumulatedBalance = currentBalance + depositAmount;
+        logger.info('[TonFarmingRepository] 📈 НАКОПЛЕНИЕ ДЕПОЗИТА', {
+          userId: userIdStr,
+          currentBalance,
+          newDeposit: depositAmount,
+          accumulatedBalance
+        });
+      } else {
+        accumulatedBalance = depositAmount;
+        logger.info('[TonFarmingRepository] 🆕 ПЕРВЫЙ ДЕПОЗИТ', {
+          userId: userIdStr,
+          accumulatedBalance
+        });
+      }
+
+      // ШАГ 2: КРИТИЧЕСКИ ВАЖНО - Создание/обновление записи в ton_farming_data
+      const farmingData = {
+        user_id: userIdStr, // ВАЖНО: строковый формат для совместимости с существующими данными
+        boost_active: true,
+        boost_package_id: packageId,
+        farming_rate: rate.toString(),
+        farming_balance: accumulatedBalance.toString(), // Накопленный баланс
+        boost_expires_at: expiresAt || null,
+        farming_start_timestamp: new Date().toISOString(),
+        farming_last_update: new Date().toISOString(),
+        daily_income: (accumulatedBalance * rate).toString(), // Рассчитываем дневной доход
+        total_earned: '0',
+        farming_accumulated: '0',
+        updated_at: new Date().toISOString()
+      };
+
+      logger.info('[TonFarmingRepository] 📝 СОЗДАНИЕ ЗАПИСИ В ton_farming_data', {
+        userId: userIdStr,
+        farmingData: {
+          farming_balance: farmingData.farming_balance,
+          farming_rate: farmingData.farming_rate,
+          daily_income: farmingData.daily_income,
+          boost_package_id: farmingData.boost_package_id
+        }
+      });
+
+      const { data: farmingResult, error: farmingError } = await supabase
+        .from(this.tableName)
+        .upsert(farmingData, {
+          onConflict: 'user_id'
+        })
+        .select();
+
+      if (farmingError) {
+        logger.error('[TonFarmingRepository] ❌ ОШИБКА СОЗДАНИЯ В ton_farming_data', {
+          error: farmingError,
+          errorCode: farmingError.code,
+          userId: userIdStr
+        });
+        tonFarmingCreated = false;
+      } else {
+        logger.info('[TonFarmingRepository] ✅ УСПЕШНО СОЗДАНА ЗАПИСЬ В ton_farming_data', {
+          userId: userIdStr,
+          recordId: farmingResult?.[0]?.id,
+          farming_balance: farmingResult?.[0]?.farming_balance
+        });
+        tonFarmingCreated = true;
+      }
+
+      // ШАГ 3: Синхронизация с таблицей users для планировщика
+      const { error: usersError } = await supabase
+        .from('users')
+        .update({
+          ton_boost_active: true, // КРИТИЧНО для планировщика
+          ton_boost_package: packageId,
+          ton_boost_package_id: packageId, // Дублируем для совместимости
+          ton_boost_rate: rate,
+          ton_farming_balance: accumulatedBalance.toString(), // Синхронизируем баланс
+          ton_farming_rate: rate.toString(),
+          ton_farming_start_timestamp: new Date().toISOString(),
+          ton_farming_last_update: new Date().toISOString()
+        })
+        .eq('id', parseInt(userIdStr));
+
+      if (usersError) {
+        logger.error('[TonFarmingRepository] ❌ ОШИБКА ОБНОВЛЕНИЯ users', {
+          error: usersError,
+          userId: userIdStr
+        });
+        usersUpdated = false;
+      } else {
+        logger.info('[TonFarmingRepository] ✅ УСПЕШНО ОБНОВЛЕНА ТАБЛИЦА users', {
+          userId: userIdStr,
+          ton_boost_active: true,
+          ton_boost_package: packageId,
+          ton_farming_balance: accumulatedBalance
+        });
+        usersUpdated = true;
+      }
+
+      // ШАГ 4: Анализ результатов
+      const overallSuccess = tonFarmingCreated && usersUpdated;
+      
+      if (overallSuccess) {
+        logger.info('[TonFarmingRepository] 🎉 ПОЛНЫЙ УСПЕХ - ОБЕ ТАБЛИЦЫ ОБНОВЛЕНЫ', {
+          userId: userIdStr,
+          packageId,
+          accumulatedBalance,
+          tonFarmingCreated,
+          usersUpdated
+        });
+        
+        return {
+          success: true,
+          message: `TON Boost успешно активирован. Депозит: ${accumulatedBalance} TON, дневной доход: ${(accumulatedBalance * rate).toFixed(6)} TON`,
+          tonFarmingCreated,
+          usersUpdated,
+          accumulatedBalance
+        };
+      } else {
+        const partialSuccessMsg = [];
+        if (tonFarmingCreated) partialSuccessMsg.push('ton_farming_data ✅');
+        if (usersUpdated) partialSuccessMsg.push('users ✅');
+        
+        logger.warn('[TonFarmingRepository] ⚠️  ЧАСТИЧНЫЙ УСПЕХ', {
+          userId: userIdStr,
+          tonFarmingCreated,
+          usersUpdated,
+          partialSuccessMsg: partialSuccessMsg.join(', ')
+        });
+        
+        return {
+          success: false,
+          message: `Частичная активация: ${partialSuccessMsg.join(', ')}. Требуется ручная проверка.`,
+          tonFarmingCreated,
+          usersUpdated,
+          accumulatedBalance
+        };
+      }
+
+    } catch (error) {
+      logger.error('[TonFarmingRepository] 💥 КРИТИЧЕСКАЯ ОШИБКА В safeActivateBoost', {
+        error,
+        userId: userIdStr,
+        packageId,
+        depositAmount
+      });
+      
+      return {
+        success: false,
+        message: `Критическая ошибка активации: ${error}`,
+        tonFarmingCreated,
+        usersUpdated,
+        accumulatedBalance
+      };
+    }
   }
   
   private async checkTableExists(): Promise<void> {

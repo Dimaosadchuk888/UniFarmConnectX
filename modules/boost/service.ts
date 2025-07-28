@@ -409,24 +409,41 @@ export class BoostService {
         logger.error('[BoostService] Ошибка начисления UNI бонуса');
       }
       
-      // 3. Создаем запись в ton_farming_data
+      // 3. КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем безопасный метод активации
       const { TonFarmingRepository } = await import('./TonFarmingRepository');
       const tonFarmingRepo = new TonFarmingRepository();
       
-      const activationSuccess = await tonFarmingRepo.activateBoost(
+      const activationResult = await tonFarmingRepo.safeActivateBoost(
         userId,
         boostPackage.id,
         boostPackage.daily_rate,
-        new Date(Date.now() + boostPackage.duration_days * 24 * 60 * 60 * 1000).toISOString(),
-        requiredAmount
+        requiredAmount, // depositAmount
+        new Date(Date.now() + boostPackage.duration_days * 24 * 60 * 60 * 1000).toISOString()
       );
       
-      if (activationSuccess) {
-        logger.info('[BoostService] ✅ TON BOOST ПОЛНОСТЬЮ АКТИВИРОВАН', {
-          userId, boostPackageId: boostPackage.id, dailyRate: boostPackage.daily_rate
+      if (activationResult.success) {
+        logger.info('[BoostService] 🎉 TON BOOST ПОЛНОСТЬЮ АКТИВИРОВАН (НОВАЯ СИСТЕМА)', {
+          userId, 
+          boostPackageId: boostPackage.id, 
+          dailyRate: boostPackage.daily_rate,
+          tonFarmingCreated: activationResult.tonFarmingCreated,
+          usersUpdated: activationResult.usersUpdated,
+          accumulatedBalance: activationResult.accumulatedBalance,
+          message: activationResult.message
         });
       } else {
-        logger.error('[BoostService] ❌ Ошибка активации через TonFarmingRepository');
+        logger.error('[BoostService] ❌ ОШИБКА БЕЗОПАСНОЙ АКТИВАЦИИ', {
+          userId,
+          boostPackageId: boostPackage.id,
+          error: activationResult.message,
+          tonFarmingCreated: activationResult.tonFarmingCreated,
+          usersUpdated: activationResult.usersUpdated
+        });
+        
+        // Даже при частичном успехе продолжаем - возможно одна из таблиц обновилась
+        if (activationResult.tonFarmingCreated || activationResult.usersUpdated) {
+          logger.warn('[BoostService] ⚠️ ЧАСТИЧНАЯ АКТИВАЦИЯ - ПРОДОЛЖАЕМ С ПРЕДУПРЕЖДЕНИЕМ');
+        }
       }
 
 
@@ -952,21 +969,39 @@ export class BoostService {
         return false;
       }
       
-      // 2. Создать/обновить запись в ton_farming_data через репозиторий
+      // 2. КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем безопасный метод активации для внешних платежей
       const { TonFarmingRepository } = await import('./TonFarmingRepository');
       const tonFarmingRepo = new TonFarmingRepository();
       
-      const activationSuccess = await tonFarmingRepo.activateBoost(
+      const activationResult = await tonFarmingRepo.safeActivateBoost(
         userId,
         parseInt(boostId),
         boostPackage.daily_rate,
-        new Date(Date.now() + boostPackage.duration_days * 24 * 60 * 60 * 1000).toISOString(),
-        parseFloat(boostPackage.min_amount.toString()) // Передаем минимальную сумму пакета как депозит
+        parseFloat(boostPackage.min_amount.toString()), // depositAmount
+        new Date(Date.now() + boostPackage.duration_days * 24 * 60 * 60 * 1000).toISOString()
       );
       
-      if (!activationSuccess) {
-        logger.error('[BoostService] Ошибка активации через TonFarmingRepository');
-        return false;
+      if (!activationResult.success) {
+        logger.error('[BoostService] ❌ ОШИБКА БЕЗОПАСНОЙ АКТИВАЦИИ (ВНЕШНИЙ ПЛАТЕЖ)', {
+          userId,
+          boostId,
+          error: activationResult.message,
+          tonFarmingCreated: activationResult.tonFarmingCreated,
+          usersUpdated: activationResult.usersUpdated
+        });
+        
+        // Даже при частичном успехе продолжаем
+        if (!activationResult.tonFarmingCreated && !activationResult.usersUpdated) {
+          return false; // Полный провал
+        }
+      } else {
+        logger.info('[BoostService] 🎉 ВНЕШНИЙ ПЛАТЕЖ - TON BOOST АКТИВИРОВАН', {
+          userId,
+          boostId,
+          tonFarmingCreated: activationResult.tonFarmingCreated,
+          usersUpdated: activationResult.usersUpdated,
+          accumulatedBalance: activationResult.accumulatedBalance
+        });
       }
       
       logger.info('[BoostService] Boost успешно активирован', {

@@ -429,6 +429,52 @@ export const insertTonBoostDepositSchema = createInsertSchema(tonBoostDeposits).
 export type InsertTonBoostDeposit = z.infer<typeof insertTonBoostDepositSchema>;
 export type TonBoostDeposit = typeof tonBoostDeposits.$inferSelect;
 
+// Таблица для хранения TON farming данных (основная таблица для планировщика)
+export const tonFarmingData = pgTable("ton_farming_data", {
+  id: serial("id").primaryKey(),
+  user_id: text("user_id").notNull().unique(), // STRING для совместимости с существующими данными
+  farming_balance: numeric("farming_balance", { precision: 18, scale: 6 }).default("0"),
+  farming_rate: numeric("farming_rate", { precision: 18, scale: 6 }).default("0.01"),
+  farming_start_timestamp: timestamp("farming_start_timestamp"),
+  farming_last_update: timestamp("farming_last_update"),
+  farming_accumulated: numeric("farming_accumulated", { precision: 18, scale: 6 }).default("0"),
+  farming_last_claim: timestamp("farming_last_claim"),
+  boost_active: boolean("boost_active").default(false),
+  boost_package_id: integer("boost_package_id"),
+  boost_expires_at: timestamp("boost_expires_at"),
+  daily_income: numeric("daily_income", { precision: 18, scale: 6 }).default("0"),
+  total_earned: numeric("total_earned", { precision: 18, scale: 6 }).default("0"),
+  last_claim: timestamp("last_claim"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow()
+}, (table) => {
+  return {
+    userIdIdx: index("idx_ton_farming_data_user_id").on(table.user_id),
+    boostActiveIdx: index("idx_ton_farming_data_boost_active").on(table.boost_active),
+    boostPackageIdx: index("idx_ton_farming_data_boost_package").on(table.boost_package_id),
+  };
+});
+
+// Схемы для таблицы ton_farming_data
+export const insertTonFarmingDataSchema = createInsertSchema(tonFarmingData).pick({
+  user_id: true,
+  farming_balance: true,
+  farming_rate: true,
+  farming_start_timestamp: true,
+  farming_last_update: true,
+  farming_accumulated: true,
+  farming_last_claim: true,
+  boost_active: true,
+  boost_package_id: true,
+  boost_expires_at: true,
+  daily_income: true,
+  total_earned: true,
+  last_claim: true
+});
+
+export type InsertTonFarmingData = z.infer<typeof insertTonFarmingDataSchema>;
+export type TonFarmingData = typeof tonFarmingData.$inferSelect;
+
 // Таблица для логирования запусков Mini App (Этап 5.1)
 export const launchLogs = pgTable("launch_logs", {
   id: serial("id").primaryKey(),
