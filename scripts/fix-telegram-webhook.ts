@@ -19,8 +19,7 @@ async function fixTelegramWebhook() {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Устанавливаем новый webhook
-    const replotDomain = process.env.REPLIT_DEV_DOMAIN || 'uni-farm-connect-unifarm01010101.replit.app';
-    const newWebhookUrl = `https://${replotDomain}/api/v2/telegram/webhook`;
+    const newWebhookUrl = `https://uni-farm-connect-unifarm01010101.replit.app/api/v2/telegram/webhook`;
     console.log('🔗 Устанавливаем новый webhook:', newWebhookUrl);
     
     const setResult = await telegramService.setWebhook(newWebhookUrl);
