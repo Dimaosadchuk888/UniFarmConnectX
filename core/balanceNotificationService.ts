@@ -80,7 +80,7 @@ export class BalanceNotificationService {
     // Устанавливаем новый таймаут для агрегации изменений
     const timeout = setTimeout(() => {
       this.sendAggregatedUpdate(userId);
-    }, 2000); // Ждем 2 секунды для агрегации
+    }, 100); // Быстрая агрегация - 100мс
 
     this.updateTimeouts.set(userId, timeout);
   }

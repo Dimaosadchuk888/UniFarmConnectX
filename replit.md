@@ -126,6 +126,15 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **VULNERABILITY FIXED** - New TON Boost purchases now create negative transactions correctly. User 25 compensation still required (4 TON + 40,000 UNI).
 
+### WebSocket Balance Update Speed Optimization (July 28, 2025)
+**Issue**: Users experiencing 2-second delays for balance updates due to debounce timeout in BalanceNotificationService.
+
+**Solution Applied**: Reduced WebSocket notification timeout from 2000ms to 100ms in `core/balanceNotificationService.ts` line 83.
+
+**Impact**: Near-instant balance updates through WebSocket instead of 2-second delays. System restarted with optimization.
+
+**Status**: ✅ **OPTIMIZED** - Balance updates now appear within 100ms instead of 2 seconds.
+
 ### Critical Withdrawal System Authorization Fix Applied (July 28, 2025)
 **Issue**: Withdrawal requests were failing due to architectural mismatch between WalletController and telegramAuth middleware. System showed 401 Unauthorized errors despite JWT tokens working correctly for other endpoints.
 
