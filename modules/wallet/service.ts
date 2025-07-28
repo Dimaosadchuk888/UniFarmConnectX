@@ -588,7 +588,7 @@ export class WalletService {
       // Обновляем баланс через централизованный BalanceManager
       const { balanceManager } = await import('../../core/BalanceManager');
       const amount_uni = type === 'UNI' ? withdrawAmount : 0;
-      // Для TON списываем сумму вывода + комиссию за UNI (если есть)
+      // ИСПРАВЛЕНО: Для TON списываем сумму вывода, комиссия только для UNI
       const amount_ton = type === 'TON' ? withdrawAmount : commission;
       
       const result = await balanceManager.subtractBalance(
