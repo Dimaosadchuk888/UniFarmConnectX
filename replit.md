@@ -42,6 +42,34 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **CRITICAL FIX APPLIED** - Withdrawal authorization mismatch resolved. Server restarted with changes.
 
+### JWT Token Page Refresh Diagnostic Completed (July 28, 2025)
+**Issue**: Page refresh in Telegram WebApp and Replit Preview causes JWT authentication failure showing `{"success":false,"error":"Authentication required","need_jwt_token":true}` instead of maintaining user session.
+
+**Diagnostic Results**:
+1. **Backend JWT System**: ✅ FULLY FUNCTIONAL - All auth endpoints, refresh logic, and middleware work correctly
+2. **Root Cause**: Frontend timing issues in UserContext initialization and token state management
+3. **Problem Location**: `client/src/contexts/userContext.tsx` lines 258-289 - Race condition during page refresh
+
+**Key Findings**:
+- **Backend**: All JWT infrastructure working (`/api/v2/auth/refresh`, AuthController, AuthService, telegramAuth middleware)
+- **Frontend Issue #1**: UserContext attempts new authorization instead of checking existing valid JWT token in localStorage
+- **Frontend Issue #2**: correctApiRequest may not send Authorization header in some scenarios  
+- **Frontend Issue #3**: System tries to re-authenticate on refresh instead of using saved session
+
+**Solution Plan Identified**:
+1. **Priority check existing token**: Validate localStorage JWT before attempting new authorization
+2. **Guarantee token transmission**: Ensure all API requests include Authorization header
+3. **Avoid duplicate auth**: Use saved session data instead of re-authorization on page refresh
+
+**Technical Files Analyzed**:
+- `modules/auth/routes.ts` - Confirmed refresh endpoint exists (line 66)
+- `modules/auth/controller.ts` - refreshToken method fully implemented (lines 234-274)  
+- `modules/auth/service.ts` - refreshToken with dual validation (line 548+)
+- `client/src/contexts/userContext.tsx` - Identified timing issues (lines 258-289)
+- `client/src/lib/correctApiRequest.ts` - Token transmission logic (lines 42-60)
+
+**Status**: ✅ **DIAGNOSTIC COMPLETED** - Root cause identified with specific code locations and exact fixes required. No code changes made per user request. Complete solution plan documented.
+
 ### Main Telegram Bot (@UniFarming_Bot) Cleanup and Simplification Completed (July 28, 2025)
 **Issue**: Main Telegram bot (@UniFarming_Bot) needed to be cleaned up and simplified to respond only to /start command with a welcome message and WebApp button, removing all other commands and handlers.
 
