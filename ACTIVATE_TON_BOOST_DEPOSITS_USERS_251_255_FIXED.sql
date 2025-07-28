@@ -1,5 +1,5 @@
 -- 🔧 SQL-запрос для активации TON Boost депозитов по 2 TON для пользователей 251 и 255
--- Основано на анализе логики TonFarmingRepository.activateBoost() и BoostService.activateBoost()
+-- ИСПРАВЛЕННАЯ ВЕРСИЯ - без несуществующих столбцов
 
 -- ========================================
 -- ТАБЛИЦА 1: ОБНОВЛЕНИЕ users 
@@ -8,7 +8,7 @@
 
 UPDATE users 
 SET 
-  ton_boost_package = 1,                    -- ID пакета "Starter Boost" (предполагаем)
+  ton_boost_package = 1,                    -- ID пакета "Starter Boost" 
   ton_boost_rate = 0.03,                    -- Дневная ставка 3%
   ton_boost_active = true                   -- ⭐ КРИТИЧНО: активация для планировщика
 WHERE id IN (251, 255);
@@ -90,8 +90,7 @@ INSERT INTO transactions (
   status,
   description,
   metadata,
-  created_at,
-  updated_at
+  created_at
 ) VALUES 
 -- Депозит для пользователя 251
 (
@@ -109,8 +108,7 @@ INSERT INTO transactions (
     'boost_package_id', 1,
     'activation_date', NOW()::text
   ),                                        -- metadata
-  NOW(),                                    -- created_at
-  NOW()                                     -- updated_at
+  NOW()                                     -- created_at
 ),
 -- Депозит для пользователя 255
 (
@@ -128,8 +126,7 @@ INSERT INTO transactions (
     'boost_package_id', 1,
     'activation_date', NOW()::text
   ),                                        -- metadata
-  NOW(),                                    -- created_at
-  NOW()                                     -- updated_at
+  NOW()                                     -- created_at
 );
 
 -- ========================================
@@ -158,6 +155,10 @@ ORDER BY created_at DESC;
 -- ========================================
 
 /*
+ИСПРАВЛЕНИЯ:
+- Удален несуществующий столбец updated_at из UPDATE users
+- Удален несуществующий столбец updated_at из INSERT transactions
+
 АРХИТЕКТУРНАЯ ЛОГИКА:
 
 1. ТАБЛИЦА users:
