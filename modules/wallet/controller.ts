@@ -193,8 +193,9 @@ export class WalletController extends BaseController {
       const { amount, currency, wallet_address } = req.body;
       
       // Автоматическая регистрация пользователя если нужно
+      // ИСПРАВЛЕНО: Используем правильное поле telegram_id из middleware
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.telegram_id,
+        telegram_id: telegram.user.id,  // Исправлено: id вместо telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name
       });
@@ -203,14 +204,19 @@ export class WalletController extends BaseController {
         return this.sendError(res, 'Не удалось создать или найти пользователя', 500);
       }
       
-      // Детальное логирование для отладки
+      // Детальное логирование для отладки с архитектурной информацией
       logger.info('[Withdraw] Найден пользователь для вывода', {
         userId: user.id,
         telegramId: telegram.user.id,
         amount,
         currency,
         userBalanceUni: user.balance_uni,
-        userBalanceTon: user.balance_ton
+        userBalanceTon: user.balance_ton,
+        telegramStructure: {
+          user_id: telegram.user.id,
+          telegram_id: telegram.user.telegram_id,
+          username: telegram.user.username
+        }
       });
       
       const result = await walletService.processWithdrawal(
