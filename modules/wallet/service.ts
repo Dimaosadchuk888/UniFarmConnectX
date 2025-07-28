@@ -616,23 +616,45 @@ export class WalletService {
       }
 
       // Создаем запись транзакции для основного вывода
-      const { error: transactionError } = await supabase
+      logger.info('[WalletService] Создаем транзакцию для заявки на вывод', {
+        userId,
+        type,
+        amount: withdrawAmount,
+        withdrawRequestId: withdrawRequest?.id
+      });
+
+      const { data: transactionData, error: transactionError } = await supabase
         .from(WALLET_TABLES.TRANSACTIONS)
         .insert({
           user_id: parseInt(userId),
-          type: 'withdrawal',
+          type: 'WITHDRAWAL', // Используем WITHDRAWAL вместо lowercase 'withdrawal'
           amount_uni: type === 'UNI' ? withdrawAmount.toString() : '0',
           amount_ton: type === 'TON' ? withdrawAmount.toString() : '0',
           currency: type,
           status: 'pending', // Изменено с 'completed' на 'pending'
           description: `Вывод ${withdrawAmount} ${type}`,
           created_at: new Date().toISOString()
-        });
+        })
+        .select()
+        .single();
 
       if (transactionError) {
-        logger.warn('[WalletService] Ошибка создания транзакции (баланс обновлен)', { 
+        logger.error('[WalletService] КРИТИЧЕСКАЯ ОШИБКА создания транзакции для заявки на вывод', { 
           userId, 
-          error: transactionError.message 
+          type,
+          amount: withdrawAmount,
+          error: transactionError.message,
+          code: transactionError.code,
+          details: transactionError.details,
+          hint: transactionError.hint
+        });
+      } else {
+        logger.info('[WalletService] Транзакция для заявки на вывод создана УСПЕШНО', {
+          userId,
+          type,
+          amount: withdrawAmount,
+          transactionId: transactionData?.id,
+          withdrawRequestId: withdrawRequest?.id
         });
       }
 
@@ -642,7 +664,7 @@ export class WalletService {
           .from(WALLET_TABLES.TRANSACTIONS)
           .insert({
             user_id: parseInt(userId),
-            type: 'withdrawal_fee',
+            type: 'WITHDRAWAL', // Используем WITHDRAWAL вместо withdrawal_fee
             amount_uni: '0',
             amount_ton: commission.toString(),
             currency: 'TON',

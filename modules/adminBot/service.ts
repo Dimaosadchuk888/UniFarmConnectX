@@ -38,7 +38,7 @@ export class AdminBotService {
         .order('created_at', { ascending: false }); // Get newest first
         
       // If any user with this username is admin, allow access
-      return users && users.length > 0 && users.some(user => user.is_admin === true);
+      return users && users.length > 0 && users.some(user => user.is_admin === true) || false;
     } catch (error) {
       logger.warn('[AdminBot] Database check failed, using hardcoded list', { username, error });
       // If DB check fails, still allow if in hardcoded list

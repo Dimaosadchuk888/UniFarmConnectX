@@ -18,25 +18,40 @@ export class AdminBotController {
       logger.info('[AdminBot] Получено обновление от Telegram', { 
         updateId: update.update_id,
         hasMessage: !!update.message,
-        hasCallbackQuery: !!update.callback_query
+        hasCallbackQuery: !!update.callback_query,
+        messageText: update.message?.text,
+        fromUsername: update.message?.from?.username,
+        fromId: update.message?.from?.id,
+        chatId: update.message?.chat?.id,
+        callbackData: update.callback_query?.data
       });
 
       // Handle message
       if (update.message) {
+        logger.info('[AdminBot] Обрабатываем входящее сообщение');
         await this.handleMessage(update.message);
+        logger.info('[AdminBot] Сообщение обработано успешно');
       }
       
       // Handle callback query
       if (update.callback_query) {
+        logger.info('[AdminBot] Обрабатываем callback query', {
+          data: update.callback_query.data,
+          fromUsername: update.callback_query.from?.username
+        });
         await this.handleCallbackQuery(update.callback_query);
+        logger.info('[AdminBot] Callback query обработан успешно');
       }
 
-      logger.info('[AdminBot] Обновление обработано успешно', { updateId: update.update_id });
+      logger.info('[AdminBot] Обновление обработано ПОЛНОСТЬЮ УСПЕШНО', { updateId: update.update_id });
     } catch (error) {
-      logger.error('[AdminBot] Error handling update', { 
+      logger.error('[AdminBot] КРИТИЧЕСКАЯ ОШИБКА обработки обновления', { 
         error: error instanceof Error ? error.message : String(error),
         updateId: update.update_id,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
+        messageText: update.message?.text,
+        fromUsername: update.message?.from?.username,
+        callbackData: update.callback_query?.data
       });
       // Не бросаем ошибку дальше, чтобы не вызвать 500 в webhook
     }

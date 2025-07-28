@@ -292,9 +292,21 @@ export class TelegramService {
    */
   async processUpdate(update: any): Promise<void> {
     try {
+      logger.info('[TelegramService] Получено обновление от Telegram', {
+        updateId: update.update_id,
+        messageText: update.message?.text,
+        fromUsername: update.message?.from?.username,
+        fromId: update.message?.from?.id,
+        chatId: update.message?.chat?.id,
+        hasMessage: !!update.message,
+        hasCallbackQuery: !!update.callback_query
+      });
+
       // Handle /start command
       if (update.message && update.message.text === '/start') {
+        logger.info('[TelegramService] Обрабатываем команду /start');
         await this.handleStartCommand(update.message);
+        logger.info('[TelegramService] Команда /start обработана успешно');
         return;
       }
 
@@ -304,7 +316,13 @@ export class TelegramService {
         from: update.message?.from?.username
       });
     } catch (error) {
-      logger.error('[TelegramService] Ошибка обработки обновления', error);
+      logger.error('[TelegramService] КРИТИЧЕСКАЯ ОШИБКА обработки обновления', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        updateId: update.update_id,
+        messageText: update.message?.text,
+        fromUsername: update.message?.from?.username
+      });
     }
   }
 
@@ -348,14 +366,29 @@ export class TelegramService {
       };
 
       // Send welcome message
-      await this.sendMessage(chatId, welcomeText, {
+      logger.info('[TelegramService] Отправляем приветственное сообщение', {
+        chatId,
+        username,
+        webAppUrl: `https://t.me/${telegramConfig.botUsername}/${telegramConfig.webAppName}`
+      });
+
+      const sendResult = await this.sendMessage(chatId, welcomeText, {
         reply_markup: keyboard
       });
 
-      logger.info('[TelegramService] Приветственное сообщение отправлено', {
-        chatId,
-        username
-      });
+      if (sendResult.success) {
+        logger.info('[TelegramService] Приветственное сообщение отправлено УСПЕШНО', {
+          chatId,
+          username,
+          messageId: sendResult.messageId
+        });
+      } else {
+        logger.error('[TelegramService] ОШИБКА отправки приветственного сообщения', {
+          chatId,
+          username,
+          error: sendResult.error
+        });
+      }
 
     } catch (error) {
       logger.error('[TelegramService] Ошибка обработки /start команды', error);
