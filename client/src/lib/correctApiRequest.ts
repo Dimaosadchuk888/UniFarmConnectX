@@ -39,8 +39,18 @@ async function makeRequestWithAuth(url: string, config: RequestConfig): Promise<
     ...config.headers
   };
 
-  // Получаем токен из localStorage
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ #2: Гарантированная отправка токена
   let token = localStorage.getItem('unifarm_jwt_token');
+  
+  // Проверяем необходимость токена для данного запроса
+  const requiresAuth = url.includes('/api/v2/') && !url.includes('/auth/telegram') && !url.includes('/auth/guest');
+  
+  if (!token && requiresAuth) {
+    console.error('[correctApiRequest] ❌ КРИТИЧЕСКАЯ ОШИБКА: API запрос требует JWT токен, но токен отсутствует');
+    console.error('[correctApiRequest] URL:', url);
+    console.error('[correctApiRequest] Этот запрос не может быть выполнен без авторизации');
+    throw new Error('JWT токен требуется для авторизованных API запросов');
+  }
   
   // Проверяем, не истекает ли токен скоро (за 1 час до истечения)
   if (token && isTokenExpiringSoon(token)) {
@@ -48,15 +58,20 @@ async function makeRequestWithAuth(url: string, config: RequestConfig): Promise<
     const refreshResult = await handleTokenRefresh();
     if (refreshResult.success && refreshResult.token) {
       token = refreshResult.token;
+      console.log('[correctApiRequest] ✅ Токен успешно обновлен');
     }
   }
   
-  // Добавляем токен в заголовки если он есть
+  // Гарантированно добавляем токен в заголовки для авторизованных запросов
   if (token) {
     requestHeaders['Authorization'] = `Bearer ${token}`;
-    console.log('[correctApiRequest] JWT токен добавлен, длина:', token.length);
+    console.log('[correctApiRequest] ✅ JWT токен добавлен в Authorization header, длина:', token.length);
+  } else if (requiresAuth) {
+    // Этого состояния не должно быть после проверки выше, но добавляем для безопасности
+    console.error('[correctApiRequest] ❌ ФАТАЛЬНАЯ ОШИБКА: Токен отсутствует для авторизованного запроса');
+    throw new Error('Авторизация невозможна: JWT токен отсутствует');
   } else {
-    console.warn('[correctApiRequest] ⚠️ Токен отсутствует, запрос будет выполнен без авторизации');
+    console.log('[correctApiRequest] Публичный API запрос, авторизация не требуется');
   }
 
   // Добавляем Telegram WebApp данные если доступны

@@ -255,13 +255,52 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       //   console.log('[UserContext] Демо-режим деактивирован для production');
       // }
       
-      // Сначала проверяем наличие JWT токена
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ #1: Приоритет существующего токена при page refresh
       const existingToken = localStorage.getItem('unifarm_jwt_token');
       
-      // Если есть Telegram initData и нет токена, сначала авторизуемся
-      if (initData && !existingToken && !authorizationAttemptedRef.current) {
+      if (existingToken) {
+        console.log('[UserContext] Найден существующий JWT токен, проверяем валидность...');
+        try {
+          // Сначала пробуем использовать существующий токен
+          const testResponse = await correctApiRequest('/api/v2/users/profile');
+          if (testResponse.success && testResponse.data) {
+            console.log('[UserContext] ✅ Существующий токен валиден, используем сохраненную сессию');
+            
+            // Обновляем состояние пользователя без повторной авторизации
+            const userData = testResponse.data;
+            dispatch({
+              type: 'SET_USER_DATA',
+              payload: {
+                userId: userData.user?.id || null,
+                username: userData.user?.username || null,
+                guestId: userData.guest_id || null,
+                telegramId: userData.user?.telegram_id || null,
+                refCode: userData.user?.ref_code || null
+              }
+            });
+            
+            dispatch({ type: 'SET_ERROR', payload: null });
+            console.log('[UserContext] Данные пользователя восстановлены из сохраненной сессии');
+            return; // Выходим, токен работает - никакой дополнительной авторизации не нужно
+          }
+        } catch (error) {
+          console.log('[UserContext] ⚠️ Существующий токен не работает, потребуется повторная авторизация:', error);
+          // Продолжаем выполнение для авторизации через Telegram
+        }
+      }
+      
+      // Если есть Telegram initData и нет валидного токена, авторизуемся
+      if (initData && !authorizationAttemptedRef.current) {
+        // ИСПРАВЛЕНИЕ #3: Проверяем предыдущую сессию перед повторной авторизацией
+        const lastSession = localStorage.getItem('unifarm_last_session');
+        if (lastSession && existingToken) {
+          console.log('[UserContext] Найдена предыдущая сессия, пропускаем повторную авторизацию');
+          authorizationAttemptedRef.current = true;
+          return;
+        }
+        
         authorizationAttemptedRef.current = true;
-        console.log('[UserContext] Обнаружен Telegram initData, выполняем авторизацию...');
+        console.log('[UserContext] Обнаружен Telegram initData, выполняем новую авторизацию...');
         
         try {
           const authResponse = await correctApiRequest('/api/v2/auth/telegram', 'POST', {
