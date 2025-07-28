@@ -367,25 +367,29 @@ Manual AdminBot Test Results:
 
 **Status**: ✅ **LIVE TESTING SUCCESSFUL** - Both bots fully functional, admin notifications ready pending chat initialization.
 
-### Critical Withdrawal System Authorization Fix Applied (July 28, 2025)
-**Issue**: Withdrawal requests were failing due to architectural mismatch between WalletController and telegramAuth middleware. System showed 401 Unauthorized errors despite JWT tokens working correctly for other endpoints.
+### Critical Withdrawal Frontend Error Handling Fixed (July 28, 2025)
+**Issue**: Users experiencing "network error" messages during withdrawal attempts instead of proper authentication error messages. Backend was working correctly but frontend incorrectly interpreted HTTP 401 responses.
 
 **Root Cause Discovered**: 
-- WalletController used `telegram.user.telegram_id` (undefined field)
-- telegramAuth middleware provided `telegram.user.id` (correct database field)
-- This mismatch caused user lookup failures during withdrawal processing
+- Backend correctly returned 401 Unauthorized for expired/invalid JWT tokens
+- `correctApiRequest.ts` authentication errors were falling through to generic network error handler
+- Users saw "Проверьте подключение к интернету" instead of "Требуется повторная авторизация"
 
 **Solution Implemented**:
-1. **Fixed Field Mapping**: Changed `telegram_id: telegram.user.telegram_id` to `telegram_id: telegram.user.id` in WalletController.withdraw()
-2. **Enhanced Logging**: Added architectural debugging information to monitor telegram object structure
-3. **Production Safety**: Minimal changes focused only on critical authorization fix
+1. **Fixed Error Handling Order**: Added authentication error check before network error check in catch block
+2. **Proper Authentication Messages**: Authentication failures now show "Требуется повторная авторизация" 
+3. **Enhanced Debugging**: Added specific logging for authentication error detection
 
 **Technical Details**:
-- **File Modified**: `modules/wallet/controller.ts` - Lines 201 and 218-222
-- **Architecture**: Aligned WalletController with telegramAuth middleware expectations
-- **Impact**: Withdrawal processing now uses correct user identification fields
+- **File Modified**: `client/src/lib/correctApiRequest.ts` - Lines 214-235 (catch block)
+- **Architecture**: Authentication errors now properly handled before network errors
+- **Impact**: Users see appropriate authentication messages instead of misleading network errors
 
-**Status**: ✅ **CRITICAL FIX APPLIED** - Withdrawal authorization mismatch resolved. Server restarted with changes.
+**Previous Authorization Fix (July 28, 2025)**:
+- **File Modified**: `modules/wallet/controller.ts` - Fixed `telegram.user.telegram_id` → `telegram.user.id`
+- **Status**: Backend authorization completely working
+
+**Status**: ✅ **FRONTEND ERROR HANDLING FIXED** - Users now see correct authentication error messages instead of "network error".
 
 ### JWT Token Page Refresh Diagnostic Completed (July 28, 2025)
 **Issue**: Page refresh in Telegram WebApp and Replit Preview causes JWT authentication failure showing `{"success":false,"error":"Authentication required","need_jwt_token":true}` instead of maintaining user session.
