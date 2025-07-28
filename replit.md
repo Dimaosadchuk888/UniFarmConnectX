@@ -89,6 +89,34 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **CACHE COMPLETELY CLEARED** - Application now operates on fresh data and settings without any stale cached state interference. All systems synchronized and performing optimally.
 
+### 🚨 CRITICAL FINANCIAL ANOMALY DISCOVERED: User ID 25's 3 TON Deposit Disappeared (July 28, 2025)
+**Issue**: User ID 25 deposited 3 TON via blockchain (hash: `te6cckECAgEAAKoAAeGIAMtaj5JhEoDmTGdtuWKu2Ndd7Q45BQhTz1ozLYdEVqaK...`) on 28.07.2025 at 14:04. Funds appeared in UI then disappeared without any purchases made by user.
+
+**Critical Findings**:
+1. **Transaction NOT FOUND in Database**: Comprehensive search across all transaction tables found no record of the blockchain deposit
+2. **Database Schema Issue**: Column `users.ton_balance` does not exist, preventing balance retrieval  
+3. **Integration Failure**: TON Connect → Backend API chain is broken - frontend showed funds but backend never received notification
+4. **Massive Transaction Volume**: User 25 has 583 transactions since 12:00 (mostly REFERRAL_REWARD), indicating system activity but not the target deposit
+
+**Technical Analysis**:
+- **Frontend Behavior**: TON Connect likely showed deposit success based on blockchain confirmation
+- **Backend Miss**: No corresponding `/api/v2/wallet/ton-deposit` call executed after blockchain transaction
+- **System Flow Break**: Blockchain transaction succeeded → Frontend displayed → Backend never notified → Funds "disappeared" on sync
+
+**User Impact**: User properly completed 3 TON deposit but system failed to register it, resulting in lost funds from user perspective.
+
+**Recovery Required**:
+1. **Immediate**: Manually credit 3 TON to User ID 25 account
+2. **System Fix**: Repair TON Connect → Backend API integration to prevent future occurrences
+3. **Monitoring**: Implement detection for "orphaned" blockchain deposits
+
+**Evidence Created**:
+- `CRITICAL_USER25_3TON_DIAGNOSTIC_REPORT.md` - Complete technical analysis
+- `FINAL_USER25_TON_SEARCH_2025-07-28.ts` - Comprehensive search script
+- Multiple diagnostic attempts confirming transaction absence in all system components
+
+**Status**: 🔴 **CRITICAL FINANCIAL ISSUE** - User's legitimate 3 TON deposit not registered in system. Requires immediate manual compensation and system integration repair.
+
 ### TON Boost Activation for Users 251 & 255 Successfully Completed (July 28, 2025)
 **Issue**: Users 251 and 255 required safe activation of TON Boost packages with 2 TON deposits each, ensuring proper data synchronization and dashboard visibility.
 
