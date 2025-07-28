@@ -3,6 +3,8 @@ import { useUser } from '@/contexts/userContext';
 import { useWebSocket } from '@/contexts/webSocketContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { formatAmount, formatUniNumber, formatTonNumber, getUSDEquivalent } from '@/utils/formatters';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 /**
  * Компонент карточки баланса согласно UX спецификации
@@ -242,23 +244,27 @@ const BalanceCard: React.FC = () => {
           <span className="truncate">Ваш баланс</span>
         </div>
         <div className="flex space-x-2">
-          <button 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleManualRefresh}
-            className="text-sm text-gray-400 hover:text-primary transition-colors"
             disabled={isBalanceFetching}
+            className="text-gray-400 hover:text-primary hover:bg-primary/10 p-2 h-8 w-8"
             title="Обновить баланс"
           >
-            <i className={`fas fa-sync-alt ${isBalanceFetching ? 'animate-spin' : ''}`}></i>
-          </button>
+            <RefreshCw className={`h-4 w-4 ${isBalanceFetching ? 'animate-spin' : ''}`} />
+          </Button>
           
-          <button 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleFullRefresh}
-            className="text-sm text-gray-400 hover:text-primary transition-colors"
             disabled={isBalanceFetching}
+            className="text-gray-400 hover:text-primary hover:bg-primary/10 p-2 h-8 w-8"
             title="Полное обновление"
           >
-            <i className="fas fa-redo-alt"></i>
-          </button>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
       </h2>
       

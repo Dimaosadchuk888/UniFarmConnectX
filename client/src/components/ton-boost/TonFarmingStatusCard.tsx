@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { formatNumberWithPrecision } from '@/lib/utils';
 import { getUserIdFromJWT } from '@/lib/getUserIdFromJWT';
-import { Progress } from "@/components/ui/progress"
+import { Progress } from "@/components/ui/progress";
+import { useUser } from '@/contexts/userContext';
 
 interface TonFarmingInfo {
   totalTonRatePerSecond: string;
@@ -28,6 +30,10 @@ const TonFarmingStatusCard: React.FC = () => {
   const userId = getUserIdFromJWT() || '1';
   console.log('[TonFarmingStatusCard] Получен userId:', userId);
 
+  // Получаем функцию обновления баланса из контекста
+  const { refreshBalance } = useUser();
+  const queryClient = useQueryClient();
+
   // Анимация числовых значений
   const [dailyYield, setDailyYield] = useState(0);
   const [perSecond, setPerSecond] = useState(0);
@@ -39,13 +45,38 @@ const TonFarmingStatusCard: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
   const [dotOpacity, setDotOpacity] = useState(0.5);
 
+  // Состояние кнопки обновления
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   // Получаем информацию о TON фарминге с правильным prefixes API v2
   const apiUrl = `/api/v2/boost/farming-status?user_id=${userId}`;
 
-  const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
+  const { data: farmingInfo, isLoading: isLoadingFarmingInfo, refetch } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
     queryKey: [apiUrl],
     refetchInterval: 5000, // Обновляем каждые 5 секунд
   });
+
+  // Функция ручного обновления данных
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    
+    try {
+      // Обновляем данные фарминга
+      await refetch();
+      
+      // Обновляем баланс пользователя с принудительным обновлением
+      refreshBalance(true);
+      
+      console.log('[TonFarmingStatusCard] Ручное обновление выполнено');
+    } catch (error) {
+      console.error('[TonFarmingStatusCard] Ошибка при ручном обновлении:', error);
+    } finally {
+      // Убираем анимацию через 1 секунду
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 1000);
+    }
+  };
 
   // Анимация статуса активности фарминга
   useEffect(() => {
@@ -221,6 +252,20 @@ const TonFarmingStatusCard: React.FC = () => {
               })()}
             </CardDescription>
           </div>
+          
+          {/* Кнопка ручного обновления */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing || isLoadingFarmingInfo}
+            className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 p-2 h-8 w-8"
+            title="Обновить данные фарминга"
+          >
+            <RefreshCw 
+              className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} 
+            />
+          </Button>
         </div>
       </CardHeader>
 

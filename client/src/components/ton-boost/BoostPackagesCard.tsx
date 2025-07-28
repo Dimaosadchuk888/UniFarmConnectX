@@ -415,11 +415,16 @@ const BoostPackagesCard: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => {
+                // Обновляем все связанные query
                 queryClient.invalidateQueries({ queryKey: ['/api/v2/boost/packages'] });
                 queryClient.invalidateQueries({ queryKey: ['/api/v2/ton-farming/boosts'] });
+                
+                // Обновляем баланс пользователя с принудительным обновлением
+                refreshBalance(true);
+                
                 toast({
                   title: "Данные обновлены",
-                  description: "TON Boost пакеты перезагружены",
+                  description: "TON Boost пакеты и баланс перезагружены",
                   variant: "default"
                 });
               }}
