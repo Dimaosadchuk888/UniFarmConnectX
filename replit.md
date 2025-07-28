@@ -113,7 +113,7 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 - 40,000 UNI bonuses awarded without payment
 - TON Boost package active and generating income without payment
 
-**Root Cause**: processWithdrawal() method in WalletService calls BalanceManager.subtractBalance() but actual TON deduction fails silently.
+**Root Cause**: In `modules/boost/service.ts` line 464, BOOST_PURCHASE transactions are created with positive amounts (`requiredAmount.toString()`) instead of negative amounts (`(-requiredAmount).toString()`), causing the system to credit users back the money they spend on TON Boost packages.
 
 **Immediate Actions Required**:
 1. DISABLE all TON Boost purchases immediately
