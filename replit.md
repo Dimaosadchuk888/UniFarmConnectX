@@ -122,7 +122,9 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 4. Audit all TON Boost users for legitimacy
 5. Investigate BalanceManager TON subtraction logic
 
-**Status**: ⚠️ **SYSTEM COMPROMISED** - Financial vulnerability allows free TON Boost purchases. Immediate intervention required.
+**CRITICAL FIX APPLIED**: Changed `amount: requiredAmount.toString()` to `amount: (-requiredAmount).toString()` in `modules/boost/service.ts` line 467. System restarted with fix.
+
+**Status**: ✅ **VULNERABILITY FIXED** - New TON Boost purchases now create negative transactions correctly. User 25 compensation still required (4 TON + 40,000 UNI).
 
 ### Critical Withdrawal System Authorization Fix Applied (July 28, 2025)
 **Issue**: Withdrawal requests were failing due to architectural mismatch between WalletController and telegramAuth middleware. System showed 401 Unauthorized errors despite JWT tokens working correctly for other endpoints.

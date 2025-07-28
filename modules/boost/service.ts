@@ -461,7 +461,7 @@ export class BoostService {
           .insert({
             user_id: parseInt(userId),
             type: 'BOOST_PURCHASE', // Новый тип для покупок TON Boost
-            amount: requiredAmount.toString(),
+            amount: (-requiredAmount).toString(),
             currency: 'TON',
             status: 'completed',
             description: `Покупка TON Boost "${boostPackage.name}" (-${requiredAmount} TON)`,
