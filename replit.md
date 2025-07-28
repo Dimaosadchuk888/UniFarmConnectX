@@ -22,6 +22,26 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Critical Withdrawal System Authorization Fix Applied (July 28, 2025)
+**Issue**: Withdrawal requests were failing due to architectural mismatch between WalletController and telegramAuth middleware. System showed 401 Unauthorized errors despite JWT tokens working correctly for other endpoints.
+
+**Root Cause Discovered**: 
+- WalletController used `telegram.user.telegram_id` (undefined field)
+- telegramAuth middleware provided `telegram.user.id` (correct database field)
+- This mismatch caused user lookup failures during withdrawal processing
+
+**Solution Implemented**:
+1. **Fixed Field Mapping**: Changed `telegram_id: telegram.user.telegram_id` to `telegram_id: telegram.user.id` in WalletController.withdraw()
+2. **Enhanced Logging**: Added architectural debugging information to monitor telegram object structure
+3. **Production Safety**: Minimal changes focused only on critical authorization fix
+
+**Technical Details**:
+- **File Modified**: `modules/wallet/controller.ts` - Lines 201 and 218-222
+- **Architecture**: Aligned WalletController with telegramAuth middleware expectations
+- **Impact**: Withdrawal processing now uses correct user identification fields
+
+**Status**: ✅ **CRITICAL FIX APPLIED** - Withdrawal authorization mismatch resolved. Server restarted with changes.
+
 ### Main Telegram Bot (@UniFarming_Bot) Cleanup and Simplification Completed (July 28, 2025)
 **Issue**: Main Telegram bot (@UniFarming_Bot) needed to be cleaned up and simplified to respond only to /start command with a welcome message and WebApp button, removing all other commands and handlers.
 
