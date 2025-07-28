@@ -135,6 +135,38 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 **Status**: ✅ **OPTIMIZED** - Balance updates now appear within 100ms instead of 2 seconds.
 
+### Bot Functionality Diagnostic Completed (July 28, 2025)
+**Task**: Comprehensive testing of main Telegram bot (@UniFarming_Bot) and admin bot functionality without code changes, per technical specification.
+
+**Main Bot (@UniFarming_Bot) Results**:
+- ❌ **CRITICAL ISSUE**: Webhook returns 404 Not Found errors
+- ✅ **Code Ready**: Complete /start handler with welcome message and WebApp button implemented
+- ✅ **Technical Structure**: TelegramService.processUpdate() and handleStartCommand() methods exist
+- ❌ **User Impact**: /start commands fail due to webhook 404 errors
+
+**Admin Bot Results**:
+- ❌ **CRITICAL ISSUE**: Webhook returns 500 Internal Server Error
+- ✅ **Code Ready**: Full AdminBotService with notifyWithdrawal() method implemented
+- ✅ **Integration Ready**: Complete withdrawal notification system with inline buttons
+- ❌ **Admin Impact**: No notifications received for withdrawal requests
+
+**Infrastructure Analysis**:
+- ✅ **Server Running**: Main application operational (tsx server/index.ts active)
+- ✅ **API Functional**: User-facing features working correctly
+- ✅ **Routes Configured**: Both webhook endpoints properly defined in routing
+- ❌ **Telegram Integration Broken**: Both bots inaccessible due to webhook failures
+
+**Root Causes Identified**:
+1. **Main Bot**: Webhook endpoint configured but returns 404, suggesting routing or server configuration issues
+2. **Admin Bot**: 500 errors indicate internal server errors during webhook processing
+3. **Database Access**: Limited diagnostic capabilities due to DATABASE_URL configuration issues
+
+**Expected Functionality (When Fixed)**:
+- **Main Bot**: Should respond to /start with farming-themed welcome message and "🚀 Запустить UniFarm" WebApp button
+- **Admin Bot**: Should send rich HTML notifications to all admins for new withdrawal requests with approve/reject buttons
+
+**Status**: ❌ **BOTH BOTS NON-FUNCTIONAL** - Webhook infrastructure issues prevent Telegram integration despite complete code implementation.
+
 ### Critical Withdrawal System Authorization Fix Applied (July 28, 2025)
 **Issue**: Withdrawal requests were failing due to architectural mismatch between WalletController and telegramAuth middleware. System showed 401 Unauthorized errors despite JWT tokens working correctly for other endpoints.
 
