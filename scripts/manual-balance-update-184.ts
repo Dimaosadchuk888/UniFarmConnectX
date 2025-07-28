@@ -35,8 +35,7 @@ async function manualBalanceUpdate() {
     const { data: updateResult, error: updateError } = await supabase
       .from('users')
       .update({ 
-        balance_ton: newBalance.toString(),
-        updated_at: new Date().toISOString()
+        balance_ton: newBalance.toString()
       })
       .eq('id', userId)
       .select('balance_ton');
