@@ -218,19 +218,7 @@ export async function correctApiRequest(
       stack: error instanceof Error ? error.stack : undefined
     });
     
-    // ИСПРАВЛЕНИЕ: Обработка authentication errors перед network errors
-    if ((error as any).status === 401 || (error as any).needAuth) {
-      console.log('[correctApiRequest] 🔐 Authentication error detected, showing proper auth message');
-      if (appInitialized) {
-        toast({
-          title: "Требуется повторная авторизация",
-          description: "Войдите в приложение заново",
-          variant: "destructive",
-          duration: 5000
-        });
-      }
-      throw error;
-    }
+
     
     // Обработка сетевых ошибок
     if (error instanceof Error && error.name === 'TypeError' && error.message.includes('fetch')) {
