@@ -261,13 +261,9 @@ const BoostPackagesCard: React.FC = () => {
             }
 
             // Обновляем данные
-            queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
             queryClient.invalidateQueries({ queryKey: ['/api/v2/boost'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
-            
-            // Обновляем баланс пользователя
-            refreshBalance();
           } else {
             toast({
               title: "Транзакция отменена",
@@ -329,7 +325,6 @@ const BoostPackagesCard: React.FC = () => {
             }
 
             // Обновляем кэш пользователя и связанные данные для синхронизации
-            queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });
             queryClient.invalidateQueries({ queryKey: ['/api/v2/boost'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
