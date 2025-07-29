@@ -230,10 +230,6 @@ export class TONBoostIncomeScheduler {
 
           logger.info(`[TON_BOOST_SCHEDULER] User ${user.user_id} (${user.boost_package_id}): +${fiveMinuteIncome.toFixed(6)} TON (депозит: ${userDeposit} TON)`);
 
-          // Получаем текущий баланс для WebSocket уведомления
-          const userCurrentBalance = parseFloat(userBalance.balance_ton || '0');
-          const userNewBalance = userCurrentBalance + fiveMinuteIncome;
-
           // Создаем транзакцию через UnifiedTransactionService
           const { UnifiedTransactionService } = await import('../../core/TransactionService');
           const transactionService = UnifiedTransactionService.getInstance();
@@ -260,12 +256,13 @@ export class TONBoostIncomeScheduler {
             continue;
           }
 
-          // Отправляем WebSocket уведомление об обновлении баланса
+          // Отправляем WebSocket уведомление с ТЕКУЩИМИ балансами (не рассчитанными)
+          // Это устраняет race condition - frontend получит актуальные балансы
           const balanceService = BalanceNotificationService.getInstance();
           balanceService.notifyBalanceUpdate({
             userId: userId,  // Используем числовой ID
-            balanceUni: parseFloat(userBalance.balance_uni || '0'),
-            balanceTon: userNewBalance,
+            balanceUni: parseFloat(userBalance.balance_uni || '0'),  // Текущий баланс UNI
+            balanceTon: parseFloat(userBalance.balance_ton || '0'),  // Текущий баланс TON (до обновления)
             changeAmount: fiveMinuteIncome,
             currency: 'TON',
             source: 'boost_income',

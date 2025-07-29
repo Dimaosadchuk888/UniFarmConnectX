@@ -389,6 +389,10 @@ export class BoostService {
           message: 'Ошибка списания средств с внутреннего баланса'
         };
       }
+      
+      // Сохраняем новый баланс из результата операции для использования в ответе
+      const newTonBalance = balanceResult.newBalance?.balance_ton || 0;
+      const newUniBalance = balanceResult.newBalance?.balance_uni || 0;
 
       // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: НЕМЕДЛЕННАЯ АКТИВАЦИЯ после списания
       logger.info('[BoostService] АКТИВАЦИЯ СРАЗУ после списания средств', {
@@ -512,16 +516,13 @@ export class BoostService {
         reason: 'Партнёрские начисления теперь происходят только от дохода, не от покупки'
       });
 
-      // Получаем обновленный баланс пользователя для мгновенного обновления UI
-      const updatedWalletData = await walletService.getWalletDataByUserId(userId);
-      
       logger.info('[BoostService] Успешная покупка через внутренний кошелек', {
         userId,
         boostPackageId: boostPackage.id,
         amount: requiredAmount,
         purchaseId: purchase?.id,
         oldBalance: walletData.ton_balance,
-        newBalance: updatedWalletData.ton_balance
+        newBalance: newTonBalance
       });
 
       // ИСПРАВЛЕНО: Удалена дублированная активация TON Boost (уже выполнена на строке 413)
@@ -535,10 +536,10 @@ export class BoostService {
         success: true,
         message: `Boost "${boostPackage.name}" успешно активирован`,
         purchase,
-        // Добавляем обновленные балансы для мгновенного обновления UI
+        // Используем балансы из результата операции списания (устраняет race condition)
         balanceUpdate: {
-          tonBalance: updatedWalletData.ton_balance,
-          uniBalance: updatedWalletData.uni_balance,
+          tonBalance: newTonBalance,  // Гарантированно актуальный баланс из balanceResult
+          uniBalance: newUniBalance,  // Гарантированно актуальный баланс из balanceResult
           previousTonBalance: walletData.ton_balance,
           deductedAmount: requiredAmount
         }
