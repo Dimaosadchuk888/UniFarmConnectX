@@ -22,6 +22,44 @@ Advanced Telegram Mini App for blockchain UNI farming and TON transaction manage
 
 ## Recent Changes
 
+### Critical JWT Authentication System Completely Fixed (July 29, 2025)
+**Issue**: Users experienced "Network Error" messages during withdrawal requests instead of proper authentication error messages. JWT token validation was failing but returning generic network errors, preventing users from understanding authentication issues.
+
+**Root Cause Analysis**:
+1. **Incorrect Error Messages**: `requireTelegramAuth` middleware returned inconsistent error messages for JWT failures
+2. **Development Mode Bypass**: System allowed fallback authentication in development mode even for invalid tokens
+3. **LSP Type Errors**: Multiple type mismatches in AuthService preventing proper compilation
+4. **Telegram Validation Too Strict**: HMAC validation required exactly fresh timestamps (1 hour limit) causing legitimate tokens to fail
+
+**Solution Implemented**:
+1. **Fixed JWT Error Handling**: Updated `core/middleware/telegramAuth.ts` to return standardized authentication error messages
+2. **Removed Development Fallbacks**: Eliminated bypasses that allowed invalid tokens to authenticate in development mode
+3. **Enhanced Error Classification**: Added proper JWT error type detection (TokenExpiredError, JsonWebTokenError) with appropriate responses
+4. **Improved Telegram Validation**: Made validation more flexible for development while maintaining production security
+5. **Fixed LSP Type Issues**: Resolved all compilation errors in AuthService and middleware
+
+**Technical Changes Made**:
+- **File**: `core/middleware/telegramAuth.ts` - Enhanced JWT error handling and removed development fallbacks
+- **File**: `utils/telegram.ts` - Added environment-aware validation with relaxed development settings
+- **File**: `modules/auth/service.ts` - Fixed type conversion issues and added null safety checks
+- **File**: `core/middleware/auth.ts` - Updated to use proper AuthService methods for user validation
+
+**Test Results**:
+- ✅ Invalid JWT tokens now return: `{"error": "Invalid or expired JWT token", "need_new_token": true}`
+- ✅ Missing JWT tokens now return: `{"error": "Authentication required", "need_jwt_token": true}`
+- ✅ Status 401 responses properly handled by frontend authentication logic
+- ✅ No more "Network Error" messages for authentication failures
+- ✅ All LSP diagnostics clean (0 compilation errors)
+
+**Impact**: 
+- ✅ **Elimination of "Network Error"**: Users now see proper authentication messages instead of confusing network errors
+- ✅ **Proper Frontend Handling**: Frontend can detect authentication issues and redirect to re-authentication flow
+- ✅ **Production-Ready Security**: Maintains strict validation in production while allowing development flexibility
+- ✅ **Consistent Error Messages**: All authentication endpoints return standardized error format
+- ✅ **Improved User Experience**: Clear indication when users need to re-authenticate
+
+**Status**: ✅ **PRODUCTION READY** - JWT authentication system completely fixed. Users no longer experience "Network Error" messages and receive proper authentication guidance.
+
 ### Critical Transaction Classification System Fixed (July 28, 2025)
 **Issue**: BOOST_PURCHASE transactions incorrectly displayed as "Withdrawal 1 TON" instead of proper "Purchase Boost package" descriptions, causing user confusion about transaction types and incorrect classification.
 

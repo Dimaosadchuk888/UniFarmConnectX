@@ -268,17 +268,6 @@ export class AuthService {
       const validation = validateTelegramInitData(initData, process.env.TELEGRAM_BOT_TOKEN);
       if (!validation.valid || !validation.user) {
         logger.warn('[AuthService] Невалидные данные Telegram', { validation, error: validation.error });
-        
-        // Development fallback: try to parse basic user data from initData
-        const isDevelopment = process.env.NODE_ENV !== 'production';
-        if (isDevelopment && validation.error) {
-          logger.info('[AuthService] Attempting development fallback authentication');
-          const fallbackResult = await this.tryFallbackAuthentication(initData, options);
-          if (fallbackResult.success) {
-            return fallbackResult;
-          }
-        }
-        
         return {
           success: false,
           error: 'Невалидные данные авторизации'

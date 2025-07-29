@@ -95,27 +95,42 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
           console.log('[TelegramAuth] User not found in database for telegram_id:', telegramId);
           res.status(401).json({ 
             success: false, 
-            error: 'Invalid JWT token - user not found',
-            need_new_token: true 
+            error: 'Authentication required',
+            need_jwt_token: true 
           });
           return;
         } catch (jwtError: any) {
           console.log('[TelegramAuth] JWT verification failed:', jwtError.message);
           console.log('[TelegramAuth] Full error:', jwtError);
-          // Если JWT токен был предоставлен, но невалиден - возвращаем специфичную ошибку
+          
+          // Проверяем тип ошибки JWT
+          let errorMessage = 'Authentication required';
+          let needJwtToken = true;
+          
+          if (jwtError.name === 'TokenExpiredError') {
+            errorMessage = 'JWT token expired';
+            needJwtToken = true;
+          } else if (jwtError.name === 'JsonWebTokenError') {
+            errorMessage = 'Invalid JWT token';
+            needJwtToken = true;
+          } else {
+            errorMessage = 'Authentication required';
+            needJwtToken = true;
+          }
+          
+          // Возвращаем стандартную ошибку для фронтенда
           res.status(401).json({ 
             success: false, 
-            error: 'Invalid or expired JWT token',
-            jwt_error: jwtError.message,
-            need_new_token: true 
+            error: errorMessage,
+            need_jwt_token: needJwtToken 
           });
           return;
         }
     }
     
-    // Если JWT токен отсутствует или невалиден, проверяем режим работы
-    if (process.env.NODE_ENV === 'production' && !authHeader) {
-      console.log('[TelegramAuth] Production mode - no auth header provided');
+    // Если JWT токен отсутствует, требуем аутентификацию во всех режимах
+    if (!authHeader) {
+      console.log('[TelegramAuth] No auth header provided');
       res.status(401).json({ 
         success: false, 
         error: 'Authentication required',
@@ -124,9 +139,13 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
       return;
     }
     
-    // В development режиме разрешаем доступ для тестирования
-    console.log('[TelegramAuth] Development mode - using fallback auth');
-    next();
+    // Если мы дошли до этой точки, значит JWT токен был предоставлен, но невалиден
+    console.log('[TelegramAuth] JWT token provided but invalid');
+    res.status(401).json({ 
+      success: false, 
+      error: 'Authentication required',
+      need_jwt_token: true 
+    });
     return;
 
     // Если мы не обработали JWT токен выше, проверяем дополнительные методы авторизации

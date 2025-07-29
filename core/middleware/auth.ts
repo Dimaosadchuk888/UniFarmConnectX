@@ -196,21 +196,31 @@ export async function authenticateJWT(req: AuthenticatedRequest, res: Response, 
   try {
     console.log('✅ Validating JWT token...');
     const authService = new AuthService();
-    const user = await authService.getUserFromToken(token);
+    const validation = await authService.validateToken(token);
     
-    if (!user) {
-      console.log('❌ JWT token validation failed - no user found');
+    if (!validation.valid || !validation.payload) {
+      console.log('❌ JWT token validation failed');
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
     
-    console.log('✅ JWT token valid, user authenticated:', { id: user.id, telegram_id: user.telegram_id });
+    // Получаем пользователя из базы данных по telegram_id из JWT через публичный метод
+    const checkResult = await authService.checkToken(token);
+    
+    if (!checkResult.success || !checkResult.user) {
+      console.log('❌ Failed to get user from token');
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    
+    const userInfo = checkResult.user;
+    
+    console.log('✅ JWT token valid, user authenticated:', { id: userInfo.id, telegram_id: userInfo.telegram_id });
     
     // Конвертируем User в AuthUser для middleware
     req.user = {
-      id: user.id,
-      telegram_id: user.telegram_id,
-      username: user.username,
-      ref_code: user.ref_code
+      id: userInfo.id,
+      telegram_id: userInfo.telegram_id,
+      username: userInfo.username,
+      ref_code: userInfo.ref_code
     };
     next();
   } catch (error) {
