@@ -53,7 +53,9 @@ export class BatchBalanceProcessor {
     // Разбиваем на батчи
     const batches = this.chunkArray(operations, this.BATCH_SIZE);
 
-    for (const [index, batch] of batches.entries()) {
+    for (let i = 0; i < batches.length; i++) {
+      const index = i;
+      const batch = batches[i];
       logger.info(`[BatchBalanceProcessor] Обработка батча ${index + 1}/${batches.length}`, {
         batchSize: batch.length
       });
@@ -62,9 +64,16 @@ export class BatchBalanceProcessor {
         await this.processSingleBatch(batch);
         processed += batch.length;
         
-        // Инвалидируем кеш для обработанных пользователей
-        const userIds = batch.map(op => op.userId);
-        balanceCache.invalidateBatch(userIds);
+        // ОТКЛЮЧЕНО: Инвалидация кеша для предотвращения потери балансов
+        // Старый код: balanceCache.invalidateBatch(userIds)
+        const userIds = batch.map((op: BatchOperation) => op.userId);
+        logger.info('[ANTI_ROLLBACK_PROTECTION] Массовая инвалидация кеша ОТКЛЮЧЕНА', {
+          userIds: userIds.slice(0, 5), // Логируем первые 5 ID для контроля
+          totalUsers: userIds.length,
+          batchIndex: index,
+          reason: 'Предотвращение потери кешированных балансов'
+        });
+        // balanceCache.invalidateBatch(userIds); // ОТКЛЮЧЕНО
         
       } catch (error) {
         logger.error('[BatchBalanceProcessor] Ошибка обработки батча', {

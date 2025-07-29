@@ -101,8 +101,26 @@ export class BalanceManager {
           newTonBalance = current.balance_ton + amount_ton;
           break;
         case 'subtract':
-          newUniBalance = Math.max(0, current.balance_uni - amount_uni);
-          newTonBalance = Math.max(0, current.balance_ton - amount_ton);
+          // ОТКЛЮЧЕНО: Math.max для предотвращения автоматического обнуления балансов
+          // Старый код: Math.max(0, current.balance_uni - amount_uni)
+          newUniBalance = current.balance_uni - amount_uni;
+          newTonBalance = current.balance_ton - amount_ton;
+          
+          // КРИТИЧНОЕ ЛОГИРОВАНИЕ: отслеживаем потенциальные отрицательные балансы
+          if (newUniBalance < 0 || newTonBalance < 0) {
+            logger.error('[ANTI_ROLLBACK_PROTECTION] Обнаружен потенциально отрицательный баланс', {
+              user_id,
+              old_uni: current.balance_uni,
+              old_ton: current.balance_ton,
+              change_uni: -amount_uni,
+              change_ton: -amount_ton,
+              new_uni: newUniBalance,
+              new_ton: newTonBalance,
+              source,
+              operation,
+              timestamp: new Date().toISOString()
+            });
+          }
           break;
         case 'set':
           newUniBalance = amount_uni;

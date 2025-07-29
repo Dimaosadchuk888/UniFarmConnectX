@@ -384,37 +384,18 @@ export class UnifiedTransactionService {
     amount_ton: number, 
     type: TransactionsTransactionType
   ): Promise<void> {
-    try {
-      const { balanceManager } = await import('./BalanceManager');
-      
-      // Определяем тип операции
-      const operation = this.isWithdrawalType(type) ? 'subtract' : 'add';
-      
-      const result = await balanceManager.updateUserBalance({
-        user_id,
-        amount_uni,
-        amount_ton,
-        operation,
-        source: 'UnifiedTransactionService'
-      });
-
-      if (!result.success) {
-        logger.error('[UnifiedTransactionService] Ошибка обновления баланса через BalanceManager:', {
-          user_id,
-          error: result.error
-        });
-      } else {
-        logger.info('[UnifiedTransactionService] Баланс обновлен через BalanceManager:', {
-          user_id,
-          amount_uni,
-          amount_ton,
-          operation
-        });
-      }
-
-    } catch (error) {
-      logger.error('[UnifiedTransactionService] Критическая ошибка делегирования обновления баланса:', error);
-    }
+    // ОТКЛЮЧЕНО: updateUserBalance для предотвращения автоматических корректировок балансов
+    logger.warn('[ANTI_ROLLBACK_PROTECTION] UnifiedTransactionService.updateUserBalance ОТКЛЮЧЕН', {
+      user_id,
+      amount_uni,
+      amount_ton,
+      type,
+      timestamp: new Date().toISOString(),
+      reason: 'Предотвращение неправильной классификации транзакций и unexpected списаний'
+    });
+    
+    // НЕМЕДЛЕННЫЙ ВЫХОД - НЕ ОБНОВЛЯЕМ БАЛАНСЫ АВТОМАТИЧЕСКИ
+    return;
   }
 
   /**

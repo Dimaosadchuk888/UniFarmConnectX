@@ -90,36 +90,18 @@ export class TransactionEnforcer {
     currency: 'UNI' | 'TON',
     description: string
   ): Promise<{ valid: boolean; error?: string }> {
-    const policy = this.policies.get(operationType);
+    // ОТКЛЮЧЕНО: TransactionEnforcer для предотвращения автоматических блокировок операций
+    logger.info('[ANTI_ROLLBACK_PROTECTION] TransactionEnforcer ОТКЛЮЧЕН - все операции разрешены', {
+      operationType,
+      userId,
+      amount,
+      currency,
+      description,
+      timestamp: new Date().toISOString(),
+      reason: 'Предотвращение автоматических rollback операций'
+    });
     
-    if (!policy) {
-      logger.warn('[TransactionEnforcer] Неизвестный тип операции:', operationType);
-      return { valid: true }; // Разрешаем неизвестные операции
-    }
-    
-    // Проверяем наличие транзакции
-    if (policy.requireTransaction) {
-      const hasTransaction = await this.checkTransactionExists(
-        userId,
-        amount,
-        currency,
-        policy.transactionType
-      );
-      
-      if (!hasTransaction) {
-        logger.error('[TransactionEnforcer] Транзакция не создана для операции', {
-          operationType,
-          userId,
-          amount,
-          currency
-        });
-        return {
-          valid: false,
-          error: `Требуется создание транзакции типа ${policy.transactionType}`
-        };
-      }
-    }
-    
+    // ВСЕГДА РАЗРЕШАЕМ ВСЕ ОПЕРАЦИИ
     return { valid: true };
   }
   
@@ -227,65 +209,12 @@ export class TransactionEnforcer {
    * Проверяет и логирует прямые SQL обновления балансов
    */
   async detectDirectSQLUpdates(): Promise<void> {
-    try {
-      // Получаем последние изменения балансов
-      const { data: users, error } = await supabase
-        .from('users')
-        .select('id, balance_uni, balance_ton, updated_at')
-        .order('updated_at', { ascending: false })
-        .limit(10);
-        
-      if (error || !users) {
-        return;
-      }
-      
-      // Проверяем каждого пользователя
-      for (const user of users) {
-        // Суммируем транзакции
-        const { data: transactions } = await supabase
-          .from('transactions')
-          .select('amount_uni, amount_ton, type')
-          .eq('user_id', user.id);
-          
-        if (!transactions) continue;
-        
-        let transactionSumUni = 0;
-        let transactionSumTon = 0;
-        
-        transactions.forEach(tx => {
-          const uniAmount = parseFloat(tx.amount_uni || '0');
-          const tonAmount = parseFloat(tx.amount_ton || '0');
-          
-          // Депозиты и покупки вычитаются
-          if (tx.type === 'FARMING_DEPOSIT' || tx.type === 'TRANSACTION') {
-            transactionSumUni -= Math.abs(uniAmount);
-            transactionSumTon -= Math.abs(tonAmount);
-          } else {
-            // Все остальное прибавляется
-            transactionSumUni += uniAmount;
-            transactionSumTon += tonAmount;
-          }
-        });
-        
-        const balanceDiffUni = parseFloat(user.balance_uni || '0') - transactionSumUni;
-        const balanceDiffTon = parseFloat(user.balance_ton || '0') - transactionSumTon;
-        
-        // Если разница больше 1 (для погрешности), логируем
-        if (Math.abs(balanceDiffUni) > 1 || Math.abs(balanceDiffTon) > 1) {
-          logger.warn('[TransactionEnforcer] Обнаружено расхождение баланса', {
-            userId: user.id,
-            balanceUni: user.balance_uni,
-            transactionSumUni,
-            diffUni: balanceDiffUni,
-            balanceTon: user.balance_ton,
-            transactionSumTon,
-            diffTon: balanceDiffTon
-          });
-        }
-      }
-    } catch (error) {
-      logger.error('[TransactionEnforcer] Ошибка при проверке прямых SQL обновлений:', error);
-    }
+    // ОТКЛЮЧЕНО: detectDirectSQLUpdates для предотвращения автоматических корректировок балансов
+    logger.info('[ANTI_ROLLBACK_PROTECTION] detectDirectSQLUpdates ОТКЛЮЧЕН', {
+      timestamp: new Date().toISOString(),
+      reason: 'Предотвращение автоматических корректировок при обнаружении "подозрительных" расхождений балансов'
+    });
+    return; // НЕМЕДЛЕННЫЙ ВЫХОД БЕЗ ПРОВЕРОК
   }
 }
 

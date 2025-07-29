@@ -217,20 +217,15 @@ export class TransactionsService {
    * УСТРАНЕНО ДУБЛИРОВАНИЕ: делегирует на централизованный сервис управления балансом
    */
   async recalculateUserBalance(userId: number): Promise<{ uni: number; ton: number }> {
-    try {
-      logger.info('[TransactionsService] Пересчет баланса делегирован на UnifiedTransactionService', { userId });
-      
-      // Логика пересчета баланса должна быть в UnifiedTransactionService или BalanceManager
-      logger.warn('[TransactionsService] recalculateUserBalance требует BalanceManager для полной централизации');
-      
-      return { uni: 0, ton: 0 };
-    } catch (error) {
-      logger.error('[TransactionsService] Ошибка пересчета баланса:', {
-        userId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return { uni: 0, ton: 0 };
-    }
+    // ОТКЛЮЧЕНО: recalculateUserBalance для предотвращения сброса балансов к нулю
+    logger.error('[ANTI_ROLLBACK_PROTECTION] recalculateUserBalance ПОЛНОСТЬЮ ОТКЛЮЧЕН', {
+      userId,
+      timestamp: new Date().toISOString(),
+      reason: 'Функция возвращала нулевые балансы, что вызывало потерю средств пользователей'
+    });
+    
+    // БЛОКИРУЕМ ФУНКЦИЮ - ВЫБРАСЫВАЕМ ОШИБКУ
+    throw new Error(`[ANTI_ROLLBACK_PROTECTION] recalculateUserBalance отключен для пользователя ${userId} - предотвращение потери средств`);
   }
 
   /**
@@ -241,7 +236,7 @@ export class TransactionsService {
       logger.info('[TransactionsService] Получение сводки транзакций', { userId });
       
       // Получаем все транзакции пользователя
-      const transactions = await unifiedTransactionService.getUserTransactions(userId, 100);
+      const transactions = await transactionService.getUserTransactions(userId, 1, 100);
       
       // Группируем транзакции по типам
       const summary = {
@@ -255,7 +250,7 @@ export class TransactionsService {
       };
 
       // Подсчитываем статистику
-      transactions.transactions.forEach(tx => {
+      transactions.transactions.forEach((tx: any) => {
         // По типам
         summary.by_type[tx.type] = (summary.by_type[tx.type] || 0) + 1;
         
