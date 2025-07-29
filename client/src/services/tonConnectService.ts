@@ -423,6 +423,37 @@ export async function sendTonTransaction(
       
 
 
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Уведомляем backend о успешном TON депозите
+      // Это предотвращает исчезновение депозитов из-за разрыва Frontend-Backend интеграции
+      try {
+        const { correctApiRequest } = await import('../../lib/correctApiRequest');
+        
+        console.log('[TON_DEPOSIT_FIX] Отправка депозита на backend...', {
+          txHash: result.boc,
+          amount: tonAmount,
+          walletAddress: tonConnectUI.account?.address || 'unknown'
+        });
+        
+        const backendResponse = await correctApiRequest('/api/v2/wallet/ton-deposit', 'POST', {
+          ton_tx_hash: result.boc,
+          amount: tonAmount,
+          wallet_address: tonConnectUI.account?.address || 'unknown'
+        });
+        
+        console.log('✅ Backend депозит успешно обработан:', backendResponse);
+      } catch (backendError) {
+        // КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ: Записываем все неудачные попытки депозита
+        console.error('❌ [CRITICAL] TON депозит НЕ ОБРАБОТАН backend:', {
+          txHash: result.boc,
+          amount: tonAmount,
+          error: backendError,
+          timestamp: new Date().toISOString()
+        });
+        
+        // НЕ выбрасываем ошибку - blockchain транзакция уже прошла успешно
+        // Пользователь может обратиться в поддержку с этим hash для ручной обработки
+      }
+
       return {
         txHash: result.boc,
         status: 'success'
