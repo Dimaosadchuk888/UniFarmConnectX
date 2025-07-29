@@ -113,7 +113,6 @@ export function validateTelegramInitData(initData: string, botToken: string): Va
     console.log('Expected hash:', expectedHash);
     console.log('Received hash:', hash);
     
-    const isDevelopment = process.env.NODE_ENV !== 'production';
     const hashMatches = expectedHash === hash;
     
     if (!hashMatches && !isDevelopment) {
