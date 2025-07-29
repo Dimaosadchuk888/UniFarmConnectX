@@ -333,39 +333,22 @@ export class BalanceManager {
    * Списание с баланса (вычитание средств)
    */
   async subtractBalance(user_id: number, amount_uni: number = 0, amount_ton: number = 0, source?: string, operationType?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
-    // Сначала обновляем баланс
-    const result = await this.updateUserBalance({
+    // [ANTI_ROLLBACK_PROTECTION] КРИТИЧЕСКОЕ СПИСАНИЕ ОТКЛЮЧЕНО!
+    logger.error('[CRITICAL] [ANTI_ROLLBACK_PROTECTION] Попытка автоматического списания ЗАБЛОКИРОВАНА!', {
       user_id,
       amount_uni,
       amount_ton,
-      operation: 'subtract',
-      source: source || 'subtractBalance'
+      source: source || 'subtractBalance',
+      operationType,
+      blocked_at: new Date().toISOString(),
+      stack_trace: (new Error().stack?.split('\n').slice(2, 8).join('\n')) || 'no stack'
     });
     
-    // Если успешно и указан тип операции, создаем транзакцию согласно политике
-    if (result.success && operationType) {
-      const currency = amount_uni > 0 ? 'UNI' : 'TON';
-      const amount = amount_uni > 0 ? amount_uni : amount_ton;
-      
-      const transactionResult = await transactionEnforcer.createRequiredTransaction(
-        operationType,
-        user_id,
-        amount,
-        currency,
-        source || 'Balance deduction',
-        { source }
-      );
-      
-      if (!transactionResult.success) {
-        logger.warn('[BalanceManager] Не удалось создать транзакцию', {
-          operationType,
-          user_id,
-          error: transactionResult.error
-        });
-      }
-    }
-    
-    return result;
+    // Возвращаем success: false чтобы НЕ списывать деньги
+    return { 
+      success: false, 
+      error: '[ANTI_ROLLBACK_PROTECTION] Автоматическое списание средств отключено для защиты пользователей' 
+    };
   }
 
   /**
