@@ -193,6 +193,9 @@ const WithdrawalForm: React.FC = () => {
         } else if (errorType === 'network_error') {
           // Реальные сетевые ошибки
           showError(`Проблемы с сетью: ${errorMessage}`);
+        } else if (errorType === 'business_logic_error') {
+          // Business logic errors - показываем точное сообщение от API
+          showError(errorMessage);
         } else {
           // Общие ошибки
           showError(`Ошибка создания заявки: ${errorMessage}`);

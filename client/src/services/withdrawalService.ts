@@ -21,7 +21,7 @@ interface WithdrawalResponse {
 export interface WithdrawalError {
   message: string;
   field?: string;
-  error_type?: 'authentication_required' | 'validation_error' | 'server_error' | 'network_error' | 'unknown_error';
+  error_type?: 'authentication_required' | 'validation_error' | 'server_error' | 'network_error' | 'business_logic_error' | 'unknown_error';
 }
 
 /**
@@ -140,6 +140,15 @@ export async function submitWithdrawal(
         return {
           message: 'Временные проблемы с сервером. Попробуйте позже',
           error_type: 'server_error'
+        };
+      }
+      
+      // ИСПРАВЛЕНИЕ: Обработка business logic errors (API возвращает содержательные сообщения)
+      if ((error as any).error && typeof (error as any).error === 'string') {
+        console.log(`[submitWithdrawal] [${requestId}] Business logic error detected:`, (error as any).error);
+        return {
+          message: (error as any).error, // Показываем точное сообщение от API ("Недостаточно средств. Доступно: X TON")
+          error_type: 'business_logic_error'
         };
       }
       
