@@ -426,7 +426,7 @@ export async function sendTonTransaction(
       // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Уведомляем backend о успешном TON депозите
       // Это предотвращает исчезновение депозитов из-за разрыва Frontend-Backend интеграции
       try {
-        const { correctApiRequest } = await import('../../lib/correctApiRequest');
+        const { correctApiRequest } = await import('@/lib/correctApiRequest');
         
         console.log('[TON_DEPOSIT_FIX] Отправка депозита на backend...', {
           txHash: result.boc,

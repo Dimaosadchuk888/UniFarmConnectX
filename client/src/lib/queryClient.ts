@@ -125,7 +125,7 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
  */
 export async function apiRequest(url: string, options?: RequestInit): Promise<any> {
   // Используем correctApiRequest для всех API запросов
-  const { correctApiRequest } = await import('./correctApiRequest');
+  const { correctApiRequest } = await import('@/lib/correctApiRequest');
 
   console.log('[queryClient] apiRequest to', url);
 
