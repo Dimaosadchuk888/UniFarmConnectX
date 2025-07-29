@@ -113,10 +113,64 @@ export async function submitWithdrawal(
       
       console.log(`[submitWithdrawal] [${requestId}] Получен ответ от сервера:`, 
                    typeof response === 'object' ? JSON.stringify(response).slice(0, 100) + '...' : response);
-    } catch (networkError) {
-      console.error(`[submitWithdrawal] [${requestId}] Ошибка при выполнении запроса:`, networkError);
+    } catch (error) {
+      console.error(`[submitWithdrawal] [${requestId}] Ошибка при выполнении запроса:`, error);
+      
+      // Проверяем тип ошибки для правильной классификации
+      const errorObj = error as any;
+      
+      // Ошибки авторизации (401)
+      if (errorObj.status === 401 || (errorObj.need_jwt_token || errorObj.need_new_token)) {
+        return {
+          message: 'Требуется повторная авторизация. Войдите в приложение заново',
+          error_type: 'authentication_required'
+        };
+      }
+      
+      // Ошибки сервера (5xx)
+      if (errorObj.status >= 500) {
+        return {
+          message: 'Временные проблемы с сервером. Попробуйте позже',
+          error_type: 'server_error'
+        };
+      }
+      
+      // Бизнес-логика ошибки (недостаточно средств и т.д.) - проверяем ПЕРЕД валидацией
+      if (errorObj.message && typeof errorObj.message === 'string' && !errorObj.message.includes('fetch')) {
+        // Проверяем характерные фразы для business logic ошибок
+        const businessLogicKeywords = ['недостаточно средств', 'доступно:', 'insufficient funds', 'balance'];
+        const isBusinessLogic = businessLogicKeywords.some(keyword => 
+          errorObj.message.toLowerCase().includes(keyword.toLowerCase())
+        );
+        
+        if (isBusinessLogic) {
+          return {
+            message: errorObj.message,
+            error_type: 'business_logic_error'
+          };
+        }
+      }
+      
+      // Ошибки валидации данных (400) - проверяем ПОСЛЕ business logic
+      if (errorObj.status === 400) {
+        return {
+          message: errorObj.message || errorObj.error || 'Некорректные данные запроса',
+          error_type: 'validation_error'
+        };
+      }
+      
+      // Только реальные сетевые ошибки показываем как network error
+      if (error instanceof Error && (error.name === 'TypeError' || error.message.includes('fetch'))) {
+        return {
+          message: 'Проблемы с сетью. Проверьте подключение к интернету',
+          error_type: 'network_error'
+        };
+      }
+      
+      // Fallback для неизвестных ошибок
       return {
-        message: 'Ошибка сети при отправке запроса. Пожалуйста, проверьте подключение к интернету',
+        message: errorObj.message || errorObj.error || 'Произошла неожиданная ошибка',
+        error_type: 'unknown_error'
       };
     }
     
