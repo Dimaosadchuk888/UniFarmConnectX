@@ -384,36 +384,18 @@ export class UnifiedTransactionService {
     amount_ton: number, 
     type: TransactionsTransactionType
   ): Promise<void> {
-    try {
-      // Используем BalanceManager для централизованного обновления баланса
-      const { BalanceManager } = await import('./BalanceManager');
-      const balanceManager = BalanceManager.getInstance();
-      
-      if (amount_uni > 0) {
-        await balanceManager.addBalance(user_id, amount_uni, 0);
-      }
-      
-      if (amount_ton > 0) {
-        await balanceManager.addBalance(user_id, 0, amount_ton);
-      }
-
-      logger.info('[UnifiedTransactionService] Баланс обновлен успешно', {
-        user_id,
-        amount_uni,
-        amount_ton,
-        type
-      });
-
-    } catch (error) {
-      logger.error('[UnifiedTransactionService] Ошибка обновления баланса', {
-        user_id,
-        amount_uni,
-        amount_ton,
-        type,
-        error
-      });
-      // НЕ блокируем создание транзакции при ошибке баланса
-    }
+    // ОТКЛЮЧЕНО: updateUserBalance для предотвращения автоматических корректировок балансов
+    logger.warn('[ANTI_ROLLBACK_PROTECTION] UnifiedTransactionService.updateUserBalance ОТКЛЮЧЕН', {
+      user_id,
+      amount_uni,
+      amount_ton,
+      type,
+      timestamp: new Date().toISOString(),
+      reason: 'Предотвращение неправильной классификации транзакций и unexpected списаний'
+    });
+    
+    // НЕМЕДЛЕННЫЙ ВЫХОД - НЕ ОБНОВЛЯЕМ БАЛАНСЫ АВТОМАТИЧЕСКИ
+    return;
   }
 
   /**
