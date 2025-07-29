@@ -21,6 +21,7 @@ interface WithdrawalResponse {
 export interface WithdrawalError {
   message: string;
   field?: string;
+  error_type?: 'authentication_required' | 'validation_error' | 'server_error' | 'network_error' | 'unknown_error';
 }
 
 /**
@@ -112,11 +113,50 @@ export async function submitWithdrawal(
       
       console.log(`[submitWithdrawal] [${requestId}] Получен ответ от сервера:`, 
                    typeof response === 'object' ? JSON.stringify(response).slice(0, 100) + '...' : response);
-    } catch (networkError) {
-      // correctApiRequest должен сам обрабатывать ошибки, но добавляем дополнительную защиту
-      console.error(`[submitWithdrawal] [${requestId}] Критическая ошибка в сетевом слое:`, networkError);
+    } catch (error) {
+      console.error(`[submitWithdrawal] [${requestId}] Ошибка при выполнении запроса:`, error);
+      
+      // Проверяем тип ошибки для правильной обработки
+      if ((error as any).status === 401 || (error as any).needAuth) {
+        console.log(`[submitWithdrawal] [${requestId}] Authentication error detected`);
+        return {
+          message: 'Требуется повторная авторизация. Войдите в приложение заново',
+          error_type: 'authentication_required'
+        };
+      }
+      
+      // Проверяем валидационные ошибки
+      if ((error as any).status === 400) {
+        console.log(`[submitWithdrawal] [${requestId}] Validation error detected`);
+        return {
+          message: (error as any).message || 'Ошибка валидации данных',
+          error_type: 'validation_error'
+        };
+      }
+      
+      // Проверяем серверные ошибки
+      if ((error as any).status >= 500) {
+        console.log(`[submitWithdrawal] [${requestId}] Server error detected`);
+        return {
+          message: 'Временные проблемы с сервером. Попробуйте позже',
+          error_type: 'server_error'
+        };
+      }
+      
+      // Только для реальных network errors (TypeError from fetch)
+      if (error instanceof Error && error.name === 'TypeError' && error.message.includes('fetch')) {
+        console.log(`[submitWithdrawal] [${requestId}] Network error detected`);
+        return {
+          message: 'Ошибка сети при отправке запроса. Пожалуйста, проверьте подключение к интернету',
+          error_type: 'network_error'
+        };
+      }
+      
+      // Общая обработка для неизвестных ошибок
+      console.log(`[submitWithdrawal] [${requestId}] Unknown error type detected`);
       return {
-        message: 'Ошибка сети при отправке запроса. Пожалуйста, проверьте подключение к интернету',
+        message: (error as any).message || 'Произошла неожиданная ошибка. Попробуйте еще раз',
+        error_type: 'unknown_error'
       };
     }
     

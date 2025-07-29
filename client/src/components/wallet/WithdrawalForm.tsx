@@ -171,8 +171,34 @@ const WithdrawalForm: React.FC = () => {
         // Обновляем баланс
         refreshBalance();
       } else {
-        // Ошибка вывода
-        throw new Error(result.message || 'Неизвестная ошибка при выводе средств');
+        // Ошибка вывода - улучшенная обработка разных типов ошибок
+        const errorType = (result as any).error_type;
+        let errorMessage = result.message || 'Неизвестная ошибка при выводе средств';
+        
+        // Специальная обработка для разных типов ошибок
+        if (errorType === 'authentication_required') {
+          // Для auth errors показываем специальное сообщение и перенаправляем на авторизацию
+          showError('Требуется повторная авторизация. Войдите в приложение заново');
+          setTimeout(() => {
+            // Можно добавить логику перенаправления на авторизацию
+            window.location.reload();
+          }, 3000);
+          return;
+        } else if (errorType === 'validation_error') {
+          // Валидационные ошибки
+          showError(`Ошибка валидации: ${errorMessage}`);
+        } else if (errorType === 'server_error') {
+          // Серверные ошибки
+          showError(`Проблемы с сервером: ${errorMessage}`);
+        } else if (errorType === 'network_error') {
+          // Реальные сетевые ошибки
+          showError(`Проблемы с сетью: ${errorMessage}`);
+        } else {
+          // Общие ошибки
+          showError(`Ошибка создания заявки: ${errorMessage}`);
+        }
+        
+        throw new Error(errorMessage);
       }
       
     } catch (error) {
