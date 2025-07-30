@@ -329,16 +329,10 @@ export class AdminBotService {
    */
   async getWithdrawalRequests(status?: string, limit?: number): Promise<any[]> {
     try {
+      // Получаем заявки на вывод
       let query = supabase
         .from('withdraw_requests')
-        .select(`
-          *,
-          users!inner(
-            telegram_id,
-            username,
-            first_name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
         
       if (status) {
@@ -349,22 +343,40 @@ export class AdminBotService {
         query = query.limit(limit);
       }
       
-      const { data, error } = await query;
+      const { data: requests, error: requestsError } = await query;
       
-      if (error) {
-        logger.error('[AdminBot] Error getting withdrawal requests', { error });
+      if (requestsError || !requests) {
+        logger.error('[AdminBot] Error getting withdrawal requests', { error: requestsError });
         return [];
       }
       
-      // Flatten user data for easier access
-      const flattenedData = (data || []).map(request => ({
-        ...request,
-        telegram_id: request.users?.telegram_id,
-        username: request.users?.username,
-        first_name: request.users?.first_name
-      }));
+      // Получаем данные пользователей для всех заявок одним запросом
+      const userIds = [...new Set(requests.map(r => r.user_id))];
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, telegram_id, username, first_name')
+        .in('id', userIds);
+        
+      if (usersError) {
+        logger.warn('[AdminBot] Could not fetch user data for withdrawals', { error: usersError });
+      }
       
-      return flattenedData;
+      // Создаем мапу пользователей для быстрого поиска
+      const usersMap = new Map();
+      (users || []).forEach(user => usersMap.set(user.id, user));
+      
+      // Объединяем данные заявок с данными пользователей
+      const enrichedRequests = requests.map(request => {
+        const user = usersMap.get(request.user_id);
+        return {
+          ...request,
+          telegram_id: user?.telegram_id || request.user_id,
+          username: user?.username || null,
+          first_name: user?.first_name || null
+        };
+      });
+      
+      return enrichedRequests;
     } catch (error) {
       logger.error('[AdminBot] Error in getWithdrawalRequests', { error: error instanceof Error ? error.message : String(error) });
       return [];
