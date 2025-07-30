@@ -485,6 +485,19 @@ export class WalletService {
         currentBalance = parseFloat(user.balance_uni || "0");
         balanceField = 'balance_uni';
       } else if (type === 'TON') {
+        // КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ ДЛЯ ОТЛАДКИ ПРОБЛЕМЫ С 0.01 TON
+        logger.error('[CRITICAL_BALANCE_DEBUG] Получение TON баланса для валидации вывода', {
+          userId: user.id,
+          userIdParam: userId,
+          telegram_id: user.telegram_id,
+          username: user.username,
+          balance_ton_raw: user.balance_ton,
+          balance_ton_type: typeof user.balance_ton,
+          balance_ton_parsed: parseFloat(user.balance_ton || "0"),
+          default_used: !user.balance_ton,
+          full_user_object: JSON.stringify(user)
+        });
+        
         currentBalance = parseFloat(user.balance_ton || "0");
         balanceField = 'balance_ton';
       }

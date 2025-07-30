@@ -1,75 +1,91 @@
+/**
+ * Direct Balance Handler - временный диагностический обработчик
+ * для проверки проблемы с балансом 0.01 TON
+ */
+
 import { Request, Response } from 'express';
-import { SupabaseUserRepository } from '../user/service';
+import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
 
-const userRepository = new SupabaseUserRepository();
-
-/**
- * Обработчик для получения баланса пользователя с обязательной авторизацией
- * Принимает user_id через query параметр или использует ID из JWT токена
- */
-export const getDirectBalance = async (req: Request, res: Response) => {
+export async function directBalanceCheck(req: Request, res: Response) {
   try {
-    // Получаем ID авторизованного пользователя из JWT
-    const authenticatedUserId = (req as any).user?.id;
+    const telegram = (req as any).telegram;
+    const telegramUser = (req as any).telegramUser;
+    const user = (req as any).user;
     
-    if (!authenticatedUserId) {
-      return res.status(401).json({
+    // Логируем все доступные данные пользователя из middleware
+    logger.error('[DIRECT_BALANCE_CHECK] Данные из middleware', {
+      telegram: telegram ? JSON.stringify(telegram) : 'null',
+      telegramUser: telegramUser ? JSON.stringify(telegramUser) : 'null',
+      user: user ? JSON.stringify(user) : 'null',
+      headers: req.headers
+    });
+    
+    // Определяем ID пользователя
+    const userId = telegram?.user?.id || telegramUser?.id || user?.id;
+    
+    if (!userId) {
+      return res.status(400).json({
         success: false,
-        error: 'Требуется авторизация'
+        error: 'User ID not found in request',
+        availableData: {
+          hasTelegram: !!telegram,
+          hasTelegramUser: !!telegramUser,
+          hasUser: !!user
+        }
       });
     }
     
-    // Получаем запрошенный user_id из параметров или используем ID из JWT
-    const requestedUserId = req.query.user_id as string;
-    const userId = requestedUserId || authenticatedUserId.toString();
-    
-    // КРИТИЧЕСКАЯ ПРОВЕРКА: пользователь может получать только свой баланс
-    if (userId !== authenticatedUserId.toString()) {
-      logger.warn('[Wallet] Попытка несанкционированного доступа к балансу', {
-        authenticated_user_id: authenticatedUserId,
-        requested_user_id: userId,
-        ip: req.ip
-      });
-      return res.status(403).json({
-        success: false,
-        error: 'Доступ запрещен. Вы можете просматривать только свой баланс'
-      });
-    }
-
-    // Получаем данные пользователя из базы
-    const user = await userRepository.getUserById(parseInt(userId));
-    
-    if (!user) {
+    // Получаем данные из БД напрямую
+    const { data: dbUser, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+      
+    if (error || !dbUser) {
       return res.status(404).json({
         success: false,
-        error: 'Пользователь не найден'
+        error: 'User not found in database',
+        userId,
+        dbError: error?.message
       });
     }
-
-    const balanceData = {
-      uniBalance: parseFloat(user.balance_uni?.toString() || "0"),
-      tonBalance: parseFloat(user.balance_ton?.toString() || "0"),
-      uniFarmingActive: user.uni_farming_active || false,
-      uniDepositAmount: parseFloat(user.uni_deposit_amount?.toString() || "0"),
-      uniFarmingBalance: parseFloat(user.uni_farming_balance?.toString() || "0")
-    };
-
-    logger.info('[Wallet] Баланс пользователя получен', {
-      user_id: userId,
-      uniBalance: balanceData.uniBalance,
-      tonBalance: balanceData.tonBalance
-    });
-
-    return res.status(200).json({
+    
+    // Парсим баланс точно так же как в processWithdrawal
+    const currentBalance = parseFloat(dbUser.balance_ton || "0");
+    
+    // Возвращаем полную диагностическую информацию
+    return res.json({
       success: true,
-      data: balanceData
+      diagnostic: {
+        middlewareUser: {
+          id: userId,
+          telegram_id: telegram?.user?.telegram_id || telegramUser?.telegram_id,
+          balance_from_middleware: telegram?.user?.balance_ton || telegramUser?.balance_ton || user?.balance_ton
+        },
+        databaseUser: {
+          id: dbUser.id,
+          telegram_id: dbUser.telegram_id,
+          username: dbUser.username,
+          balance_ton_raw: dbUser.balance_ton,
+          balance_ton_type: typeof dbUser.balance_ton,
+          balance_ton_parsed: currentBalance
+        },
+        validation: {
+          canWithdraw1TON: currentBalance >= 1,
+          availableForWithdrawal: currentBalance
+        },
+        timestamp: new Date().toISOString()
+      }
     });
+    
   } catch (error) {
-    logger.error('[Wallet] Ошибка получения баланса', { error });
+    logger.error('[DIRECT_BALANCE_CHECK] Ошибка', { error });
     return res.status(500).json({
       success: false,
-      error: 'Внутренняя ошибка сервера'
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
-};
+}

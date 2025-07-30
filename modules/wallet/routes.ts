@@ -3,7 +3,7 @@ import { WalletController } from './controller';
 import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
 import { validateBody, validateParams } from '../../core/middleware/validate';
 import { strictRateLimit, liberalRateLimit, massOperationsRateLimit } from '../../core/middleware/rateLimiting';
-import { getDirectBalance } from './directBalanceHandler';
+import { getDirectBalance, directBalanceCheck } from './directBalanceHandler';
 import { z } from 'zod';
 
 const router = Router();
@@ -67,6 +67,9 @@ const tonDepositSchema = z.object({
 
 // Обработчик для получения баланса с обязательной авторизацией
 router.get('/balance', requireTelegramAuth, massOperationsRateLimit, getDirectBalance);
+
+// Диагностический обработчик для проблемы с 0.01 TON
+router.get('/debug-balance-check', requireTelegramAuth, directBalanceCheck);
 
 // Маршруты кошелька с обязательной авторизацией, валидацией и оптимизированным rate limiting
 router.get('/', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController));
