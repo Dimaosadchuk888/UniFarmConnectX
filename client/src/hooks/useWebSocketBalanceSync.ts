@@ -18,14 +18,14 @@ export function useWebSocketBalanceSync() {
     }
   }, [userId, connectionStatus, subscribeToUserUpdates]);
   
-  // Добавляем периодическое обновление баланса каждые 30 секунд для снижения нагрузки
+  // ТЕСТ ГИПОТЕЗЫ: Увеличиваем интервал до 5 минут для проверки race condition
   useEffect(() => {
     if (!userId) return;
     
     const interval = setInterval(() => {
-      console.log('[useWebSocketBalanceSync] Автообновление баланса через интервал');
+      console.log('[useWebSocketBalanceSync] Автообновление баланса через интервал (ТЕСТ: 5 мин)');
       refreshBalance(true);
-    }, 30000); // 30 секунд (оптимизировано с 15 сек)
+    }, 300000); // 300 секунд = 5 минут (было 30 сек)
     
     return () => clearInterval(interval);
   }, [userId, refreshBalance]);
