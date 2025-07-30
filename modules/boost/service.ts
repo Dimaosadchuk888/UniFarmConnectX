@@ -474,7 +474,7 @@ export class BoostService {
         const transactionResult = await transactionService.createTransaction({
           user_id: parseInt(userId),
           type: 'BOOST_PURCHASE',
-          amount_ton: requiredAmount,
+          amount_ton: -requiredAmount,  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: отрицательная сумма для покупки
           amount_uni: 0,
           currency: 'TON',
           status: 'completed',
@@ -904,7 +904,7 @@ export class BoostService {
           user_id: parseInt(userId),
           type: 'boost_purchase',
           amount_uni: '0',
-          amount_ton: amount || '0',
+          amount_ton: amount ? `-${amount}` : '0',  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ #2: отрицательная сумма для покупки
           currency: 'TON',
           status: 'completed',
           tx_hash: txHash,
