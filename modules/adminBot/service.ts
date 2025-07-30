@@ -277,30 +277,46 @@ export class AdminBotService {
    */
   async getWithdrawalById(requestId: string): Promise<any | null> {
     try {
-      const { data, error } = await supabase
+      // Получаем заявку на вывод
+      const { data: withdrawal, error: withdrawalError } = await supabase
         .from('withdraw_requests')
-        .select(`
-          *,
-          users!inner(
-            telegram_id,
-            username,
-            first_name
-          )
-        `)
+        .select('*')
         .eq('id', requestId)
         .single();
         
-      if (error) {
-        logger.error('[AdminBot] Error getting withdrawal by id', { error });
+      if (withdrawalError || !withdrawal) {
+        logger.error('[AdminBot] Error getting withdrawal by id', { error: withdrawalError });
         return null;
       }
       
-      // Flatten user data
+      // Получаем данные пользователя отдельным запросом
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('telegram_id, username, first_name')
+        .eq('id', withdrawal.user_id)
+        .single();
+        
+      if (userError) {
+        logger.warn('[AdminBot] Could not find user data for withdrawal', { 
+          requestId, 
+          userId: withdrawal.user_id, 
+          error: userError 
+        });
+        // Возвращаем заявку без данных пользователя, если пользователь не найден
+        return {
+          ...withdrawal,
+          telegram_id: withdrawal.user_id, // fallback
+          username: null,
+          first_name: null
+        };
+      }
+      
+      // Объединяем данные заявки и пользователя
       return {
-        ...data,
-        telegram_id: data.users?.telegram_id,
-        username: data.users?.username,
-        first_name: data.users?.first_name
+        ...withdrawal,
+        telegram_id: user.telegram_id,
+        username: user.username,
+        first_name: user.first_name
       };
     } catch (error) {
       logger.error('[AdminBot] Error in getWithdrawalById', { error: error instanceof Error ? error.message : String(error) });
