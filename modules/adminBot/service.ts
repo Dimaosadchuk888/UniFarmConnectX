@@ -503,6 +503,57 @@ export class AdminBotService {
   }
 
   /**
+   * НОВЫЙ МЕТОД: Отметить выплату как сделанную вручную (ТОЛЬКО статус, НЕ трогаем балансы)
+   */
+  async markAsManuallyPaid(requestId: string, adminUsername?: string): Promise<boolean> {
+    try {
+      // Проверяем, что заявка существует и в статусе pending
+      const { data: request, error: fetchError } = await supabase
+        .from('withdraw_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+        
+      if (fetchError || !request) {
+        logger.error('[AdminBot] Withdrawal request not found', { requestId });
+        return false;
+      }
+      
+      if (request.status !== 'pending') {
+        logger.warn('[AdminBot] Cannot mark non-pending withdrawal as paid', { requestId, status: request.status });
+        return false;
+      }
+      
+      // ВАЖНО: Только меняем статус в боте, НЕ трогаем баланс пользователя
+      // Админ уже сделал выплату вручную, мы только отмечаем это в системе
+      const { error: updateError } = await supabase
+        .from('withdraw_requests')
+        .update({ 
+          status: 'approved',
+          processed_at: new Date().toISOString(),
+          processed_by: adminUsername || 'admin'
+        })
+        .eq('id', requestId);
+        
+      if (updateError) {
+        logger.error('[AdminBot] Error marking withdrawal as manually paid', { error: updateError });
+        return false;
+      }
+      
+      logger.info('[AdminBot] Withdrawal marked as manually paid (status only)', { 
+        requestId, 
+        admin: adminUsername,
+        amount: request.amount 
+      });
+      
+      return true;
+    } catch (error) {
+      logger.error('[AdminBot] Error in markAsManuallyPaid', { error: error instanceof Error ? error.message : String(error) });
+      return false;
+    }
+  }
+
+  /**
    * Notify admin bot about new withdrawal request
    */
   async notifyWithdrawal(withdrawRequest: any): Promise<boolean> {

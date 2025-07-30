@@ -179,18 +179,7 @@ export class AdminBotController {
         await this.adminBotService.answerCallbackQuery(callbackQuery.id);
         break;
         
-      case 'withdrawals':
-        const filterStatus = params[0] || 'menu';
-        
-        if (filterStatus === 'menu') {
-          // Показываем меню выбора фильтров с pending по умолчанию
-          await this.displayWithdrawalsMenu(chatId);
-        } else {
-          // Показываем отфильтрованные заявки
-          await this.handleWithdrawalsCommand(chatId, [filterStatus]);
-        }
-        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
-        break;
+
         
       case 'ban_prompt':
         await this.adminBotService.sendMessage(
@@ -285,12 +274,28 @@ export class AdminBotController {
         await this.handleRejectWithdrawal(chatId, params[0], username, callbackQuery.id);
         break;
         
-      case 'approve_all_pending':
-        await this.handleApproveAllPending(chatId, username, callbackQuery.id);
+
+        
+      case 'manual_paid':
+        // НОВАЯ КНОПКА: Отметить выплату как сделанную вручную (только статус в боте)
+        await this.handleManualPaid(chatId, params[0], username, callbackQuery.id);
         break;
         
-      case 'reject_all_pending':
-        await this.handleRejectAllPending(chatId, username, callbackQuery.id);
+      case 'withdrawals':
+        if (params[0] === 'refresh') {
+          // Обновляем простой список заявок
+          const requests = await this.adminBotService.getWithdrawalRequests(undefined, 50);
+          await this.showSimpleWithdrawalsList(chatId, requests);
+          await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Список обновлен');
+        } else {
+          const filterStatus = params[0] || 'menu';
+          if (filterStatus === 'menu') {
+            await this.displayWithdrawalsMenu(chatId);
+          } else {
+            await this.handleWithdrawalsCommand(chatId, [filterStatus]);
+          }
+          await this.adminBotService.answerCallbackQuery(callbackQuery.id);
+        }
         break;
         
       case 'confirm_approve_withdrawal':
@@ -605,26 +610,15 @@ export class AdminBotController {
   }
 
   /**
-   * Handle /withdrawals command - НОВЫЙ УПРОЩЕННЫЙ ИНТЕРФЕЙС
+   * Handle /withdrawals command - ПРОСТОЙ СПИСОК ЗАЯВОК
    */
   private async handleWithdrawalsCommand(chatId: number, args: string[]): Promise<void> {
     try {
-      const filterStatus = args[0]; // 'pending', 'approved', 'rejected', 'all' или undefined для главного меню
+      // Получаем все заявки одним списком (без фильтров)
+      const requests = await this.adminBotService.getWithdrawalRequests(undefined, 50);
       
-      // Если не указан фильтр - показываем главное меню с кнопками-фильтрами
-      if (!filterStatus || filterStatus === 'menu') {
-        await this.showWithdrawalsMenu(chatId);
-        return;
-      }
-      
-      // Получаем заявки по указанному статусу
-      const requests = await this.adminBotService.getWithdrawalRequests(
-        filterStatus === 'all' ? undefined : filterStatus, 
-        50
-      );
-      
-      // Показываем список заявок с упрощенными кнопками
-      await this.showWithdrawalsList(chatId, requests, filterStatus);
+      // Показываем простой список заявок
+      await this.showSimpleWithdrawalsList(chatId, requests);
       
     } catch (error) {
       await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения заявок на вывод');
@@ -632,168 +626,87 @@ export class AdminBotController {
   }
 
   /**
-   * Показать главное меню заявок с фильтрами и статистикой
+   * ПРОСТОЙ СПИСОК всех заявок без фильтров
    */
-  private async showWithdrawalsMenu(chatId: number): Promise<void> {
-    try {
-      // Получаем статистику для отображения счетчиков
-      const stats = await this.adminBotService.getWithdrawalStats();
-      
-      if (!stats) {
-        await this.adminBotService.sendMessage(chatId, '❌ Ошибка получения статистики');
-        return;
-      }
-      
-      const message = `💸 <b>ЗАЯВКИ НА ВЫВОД</b>\n\n` +
-        `🔄 Ожидают обработки: <b>${stats.pending}</b>\n` +
-        `✅ Оплаченные: <b>${stats.approved}</b>\n` +
-        `❌ Отклоненные: <b>${stats.rejected}</b>\n` +
-        `📋 Всего заявок: <b>${stats.total}</b>\n\n` +
-        `💰 Сумма ожидающих: <b>${stats.pendingAmount?.toFixed(4) || 0} TON</b>\n` +
-        `💰 Сумма выплаченных: <b>${stats.approvedAmount?.toFixed(4) || 0} TON</b>`;
-      
-      const keyboard: InlineKeyboardMarkup = {
-        inline_keyboard: [
-          [
-            { 
-              text: `🔄 Ожидают (${stats.pending})`, 
-              callback_data: 'withdrawals:pending' 
-            },
-            { 
-              text: `✅ Оплачены (${stats.approved})`, 
-              callback_data: 'withdrawals:approved' 
-            }
-          ],
-          [
-            { 
-              text: `❌ Отклонены (${stats.rejected})`, 
-              callback_data: 'withdrawals:rejected' 
-            },
-            { 
-              text: `📋 Все (${stats.total})`, 
-              callback_data: 'withdrawals:all' 
-            }
-          ],
-          [
-            { text: '📊 Подробная статистика', callback_data: 'withdrawal_stats' },
-            { text: '🔍 Поиск заявок', callback_data: 'withdrawal_search_prompt' }
-          ],
-          [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
-        ]
-      };
-      
-      await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
-      
-    } catch (error) {
-      await this.adminBotService.sendMessage(chatId, '❌ Ошибка отображения меню заявок');
-    }
-  }
-
-  /**
-   * УПРОЩЕННЫЙ ИНТЕРФЕЙС: Показать список заявок с умными кнопками
-   */
-  private async showWithdrawalsList(chatId: number, requests: any[], status: string): Promise<void> {
+  private async showSimpleWithdrawalsList(chatId: number, requests: any[]): Promise<void> {
     if (requests.length === 0) {
-      const statusText = this.getStatusText(status);
       const keyboard: InlineKeyboardMarkup = {
         inline_keyboard: [
-          [{ text: '🔙 К фильтрам', callback_data: 'withdrawals:menu' }],
           [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
         ]
       };
       
       await this.adminBotService.sendMessage(
         chatId, 
-        `📭 <b>Нет заявок ${statusText}</b>`, 
+        `📭 <b>Нет заявок на вывод</b>`, 
         { reply_markup: keyboard }
       );
       return;
     }
     
-    // ОПТИМАЛЬНАЯ СОРТИРОВКА: pending первыми (по возрасту), обработанные - по дате обработки (новые первыми)
+    // ПРОСТАЯ СОРТИРОВКА: pending первыми, затем по дате
     const sortedRequests = requests.sort((a, b) => {
-      // Приоритет: pending заявки всегда первыми
       if (a.status === 'pending' && b.status !== 'pending') return -1;
       if (a.status !== 'pending' && b.status === 'pending') return 1;
-      
-      // Для pending: старые первыми (кто раньше подал заявку)
-      if (a.status === 'pending' && b.status === 'pending') {
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      }
-      
-      // Для обработанных: новые первыми
-      const aProcessed = new Date(a.processed_at || a.created_at).getTime();
-      const bProcessed = new Date(b.processed_at || b.created_at).getTime();
-      return bProcessed - aProcessed;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     
-    let message = `💸 <b>ЗАЯВКИ ${this.getStatusText(status).toUpperCase()}</b>\n`;
-    message += `<i>Показано: ${requests.length} заявок</i>\n\n`;
+    let message = `💸 <b>ЗАЯВКИ НА ВЫВОД</b>\n`;
+    message += `<i>Всего заявок: ${requests.length}</i>\n\n`;
     
-    // КОМПАКТНОЕ ОТОБРАЖЕНИЕ заявок
-    for (let i = 0; i < Math.min(sortedRequests.length, 15); i++) {
+    // ПРОСТОЕ ОТОБРАЖЕНИЕ заявок (максимум 20)
+    for (let i = 0; i < Math.min(sortedRequests.length, 20); i++) {
       const request = sortedRequests[i];
       const num = i + 1;
       
-      // Статус с эмодзи  
+      // Определяем статус
       const statusEmoji = this.getStatusEmoji(request.status);
+      const statusText = this.getSimpleStatusText(request.status);
       
-      // Основная строка: номер, статус, сумма, пользователь
+      // Пользователь
       const userDisplay = request.username ? `@${request.username}` : 
                          request.first_name || `ID${request.telegram_id}`;
-      message += `<b>${num}. ${statusEmoji} ${parseFloat(request.amount).toFixed(4)} TON</b> • ${userDisplay}\n`;
       
-      // Кошелек (сокращенный) + время
-      const shortWallet = request.wallet_address ? 
-        `${request.wallet_address.slice(0, 6)}...${request.wallet_address.slice(-4)}` : 'N/A';
+      // Дата заявки
+      const requestDate = new Date(request.created_at).toLocaleDateString('ru-RU', { 
+        day: '2-digit', 
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
       
-      if (request.status === 'pending') {
-        // Для pending: показываем возраст заявки
-        const hoursAgo = Math.floor((Date.now() - new Date(request.created_at).getTime()) / (1000 * 60 * 60));
-        message += `🏦 <code>${shortWallet}</code> • ${hoursAgo}ч назад\n`;
-      } else {
-        // Для обработанных: показываем дату обработки
-        const processDate = request.processed_at ? 
-          new Date(request.processed_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : 
-          new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-        message += `🏦 <code>${shortWallet}</code> • ${processDate}\n`;
+      message += `<b>${num}. ${statusEmoji} ${parseFloat(request.amount).toFixed(4)} TON</b>\n`;
+      message += `👤 ${userDisplay}\n`;
+      message += `📅 ${requestDate} • ${statusText}\n`;
+      
+      // Кошелек (сокращенный)
+      if (request.wallet_address) {
+        const shortWallet = `${request.wallet_address.slice(0, 6)}...${request.wallet_address.slice(-4)}`;
+        message += `🏦 <code>${shortWallet}</code>\n`;
       }
       
-      message += `━━━━━━━━━━━━━━━━━━━━━\n`;
+      message += `\n`;
     }
     
-    // УМНЫЕ КНОПКИ: меняются в зависимости от статуса
+    // ПРОСТЫЕ КНОПКИ: только для pending заявок
     const keyboard: InlineKeyboardMarkup = {
       inline_keyboard: []
     };
     
-    // Кнопки действий для PENDING заявок
-    const pendingRequests = sortedRequests.filter(r => r.status === 'pending').slice(0, 8);
+    const pendingRequests = sortedRequests.filter(r => r.status === 'pending').slice(0, 10);
     for (const request of pendingRequests) {
+      const shortId = request.id.slice(-6);
       keyboard.inline_keyboard.push([
         {
-          text: `💸 Одобрить ${request.id.slice(-6)}`,
-          callback_data: `approve_withdrawal:${request.id}`
-        },
-        {
-          text: `❌ Отклонить ${request.id.slice(-6)}`,
-          callback_data: `reject_withdrawal:${request.id}`
+          text: `✅ Выплата сделана ${shortId}`,
+          callback_data: `manual_paid:${request.id}`
         }
-      ]);
-    }
-    
-    // Массовые операции (только если есть несколько pending)
-    if (pendingRequests.length > 1) {
-      keyboard.inline_keyboard.push([
-        { text: `✅ Одобрить все (${pendingRequests.length})`, callback_data: 'approve_all_pending' },
-        { text: `❌ Отклонить все (${pendingRequests.length})`, callback_data: 'reject_all_pending' }
       ]);
     }
     
     // Кнопки навигации
     keyboard.inline_keyboard.push([
-      { text: '🔙 К фильтрам', callback_data: 'withdrawals:menu' },
-      { text: '🔄 Обновить', callback_data: `withdrawals:${status}` }
+      { text: '🔄 Обновить список', callback_data: 'withdrawals:refresh' }
     ]);
     keyboard.inline_keyboard.push([
       { text: '🏠 Главное меню', callback_data: 'refresh_admin' }
@@ -801,6 +714,8 @@ export class AdminBotController {
     
     await this.adminBotService.sendMessage(chatId, message, { reply_markup: keyboard });
   }
+
+
 
   /**
    * Получить текст статуса для отображения
@@ -824,6 +739,18 @@ export class AdminBotController {
       case 'approved': return '✅';
       case 'rejected': return '❌';
       default: return '❓';
+    }
+  }
+
+  /**
+   * Получить простой текст статуса
+   */
+  private getSimpleStatusText(status: string): string {
+    switch (status) {
+      case 'pending': return 'Ожидает выплаты';
+      case 'approved': return 'Выплата сделана';
+      case 'rejected': return 'Отклонена';
+      default: return 'Неизвестно';
     }
   }
 
@@ -1078,71 +1005,34 @@ export class AdminBotController {
     }
   }
 
-  private async handleApproveAllPending(chatId: number, adminUsername?: string, callbackQueryId?: string): Promise<void> {
+  /**
+   * НОВАЯ ФУНКЦИЯ: Отметить выплату как сделанную вручную (только статус в боте)
+   */
+  private async handleManualPaid(chatId: number, requestId: string, adminUsername?: string, callbackQueryId?: string): Promise<void> {
     try {
-      const allRequests = await this.adminBotService.getWithdrawalRequests();
-      const pendingRequests = allRequests.filter(r => r.status === 'pending');
+      // ВАЖНО: Только меняем статус в боте, НЕ трогаем механики приложения
+      const success = await this.adminBotService.markAsManuallyPaid(requestId, adminUsername || 'admin');
       
-      if (pendingRequests.length === 0) {
+      if (success) {
+        // Автоматически показываем обновленный список
+        await this.showSimpleWithdrawalsList(chatId, await this.adminBotService.getWithdrawalRequests(undefined, 50));
+        
         if (callbackQueryId) {
-          await this.adminBotService.answerCallbackQuery(callbackQueryId, 'Нет pending заявок');
+          await this.adminBotService.answerCallbackQuery(callbackQueryId, `✅ Выплата ${requestId.slice(-6)} отмечена как сделанная`);
         }
-        return;
-      }
-
-      let approvedCount = 0;
-      for (const request of pendingRequests) {
-        const success = await this.adminBotService.approveWithdrawal(request.id, adminUsername || 'admin');
-        if (success) approvedCount++;
-      }
-      
-      // Показываем обновленный список
-      await this.handleWithdrawalsCommand(chatId, ['pending']);
-      
-      if (callbackQueryId) {
-        await this.adminBotService.answerCallbackQuery(
-          callbackQueryId, 
-          `✅ Одобрено ${approvedCount} из ${pendingRequests.length} заявок`
-        );
+      } else {
+        if (callbackQueryId) {
+          await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка отметки выплаты');
+        }
+        await this.adminBotService.sendMessage(chatId, '❌ Ошибка отметки выплаты');
       }
     } catch (error) {
       if (callbackQueryId) {
-        await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка массового одобрения');
+        await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка');
       }
+      await this.adminBotService.sendMessage(chatId, '❌ Ошибка выполнения операции');
     }
   }
 
-  private async handleRejectAllPending(chatId: number, adminUsername?: string, callbackQueryId?: string): Promise<void> {
-    try {
-      const allRequests = await this.adminBotService.getWithdrawalRequests();
-      const pendingRequests = allRequests.filter(r => r.status === 'pending');
-      
-      if (pendingRequests.length === 0) {
-        if (callbackQueryId) {
-          await this.adminBotService.answerCallbackQuery(callbackQueryId, 'Нет pending заявок');
-        }
-        return;
-      }
 
-      let rejectedCount = 0;
-      for (const request of pendingRequests) {
-        const success = await this.adminBotService.rejectWithdrawal(request.id, adminUsername || 'admin');
-        if (success) rejectedCount++;
-      }
-      
-      // Показываем обновленный список
-      await this.handleWithdrawalsCommand(chatId, ['pending']);
-      
-      if (callbackQueryId) {
-        await this.adminBotService.answerCallbackQuery(
-          callbackQueryId, 
-          `❌ Отклонено ${rejectedCount} из ${pendingRequests.length} заявок`
-        );
-      }
-    } catch (error) {
-      if (callbackQueryId) {
-        await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка массового отклонения');
-      }
-    }
-  }
 }
