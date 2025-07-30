@@ -28,7 +28,7 @@ export class WalletController extends BaseController {
         
         // Получаем пользователя
         const user = await userRepository.getOrCreateUserFromTelegram({
-          telegram_id: telegram.user.id,
+          telegram_id: telegram.user.telegram_id,
           username: telegram.user.username,
           first_name: telegram.user.first_name
         });
@@ -75,7 +75,7 @@ export class WalletController extends BaseController {
 
       // Автоматическая регистрация пользователя
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,
         username: telegram.user.username,
         first_name: telegram.user.first_name,
         ref_by: req.query.start_param as string
@@ -113,7 +113,7 @@ export class WalletController extends BaseController {
 
         // Получаем пользователя
         const user = await userRepository.getOrCreateUserFromTelegram({
-          telegram_id: telegram.user.id,
+          telegram_id: telegram.user.telegram_id,
           username: telegram.user.username,
           first_name: telegram.user.first_name
         });
@@ -193,9 +193,8 @@ export class WalletController extends BaseController {
       const { amount, currency, wallet_address } = req.body;
       
       // Автоматическая регистрация пользователя если нужно
-      // ИСПРАВЛЕНО: Используем правильное поле telegram_id из middleware
       const user = await userRepository.getOrCreateUserFromTelegram({
-        telegram_id: telegram.user.id,  // Исправлено: id вместо telegram_id
+        telegram_id: telegram.user.telegram_id,  // Используем правильное поле telegram_id
         username: telegram.user.username,
         first_name: telegram.user.first_name
       });
