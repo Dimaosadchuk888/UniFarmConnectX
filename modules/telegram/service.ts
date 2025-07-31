@@ -358,7 +358,7 @@ export class TelegramService {
             {
               text: '🚀 Запустить UniFarm',
               web_app: {
-                url: `https://t.me/${telegramConfig.botUsername}/${telegramConfig.webAppName}`
+                url: `https://uni-farm-connect-unifarm01010101.replit.app`
               }
             }
           ]
