@@ -20,7 +20,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 import { WebSocketBalanceSync } from "@/components/WebSocketBalanceSync";
-import { JwtTokenStatus } from "@/components/JwtTokenStatus";
+// import { JwtTokenStatus } from "@/components/JwtTokenStatus"; // УБРАН ИЗ UI - JWT защита работает в фоне
 
 
 // Pages
@@ -318,7 +318,7 @@ function App() {
                     >
                       {renderPage()}
                     </MainLayout>
-                    <JwtTokenStatus />
+                    {/* <JwtTokenStatus /> - СКРЫТО: JWT защита работает в фоне без отображения */}
                     {/* <NetworkStatusIndicator /> */}
                     <Toaster />
                   </TelegramWebAppCheck>
