@@ -978,8 +978,8 @@ export class AdminBotController {
         
         const editedMessage = `💸 <b>Заявка на вывод</b>\n\n` +
           `👤 Пользователь: ${userDisplay}\n` +
-          `💰 Сумма: <b>${parseFloat(withdrawal.amount).toFixed(4)} TON</b>\n` +
-          `🏦 Кошелек: <code>${withdrawal.wallet_address}</code>\n` +
+          `💰 Сумма: <b>${parseFloat(withdrawal.amount_ton).toFixed(4)} TON</b>\n` +
+          `🏦 Кошелек: <code>${withdrawal.ton_wallet}</code>\n` +
           `📅 Дата: ${new Date(withdrawal.created_at).toLocaleDateString('ru-RU')}\n\n` +
           `✅ <b>ВЫПЛАЧЕНО</b>`;
 
@@ -1022,8 +1022,8 @@ export class AdminBotController {
         
         const editedMessage = `💸 <b>Заявка на вывод</b>\n\n` +
           `👤 Пользователь: ${userDisplay}\n` +
-          `💰 Сумма: <b>${parseFloat(withdrawal.amount).toFixed(4)} TON</b>\n` +
-          `🏦 Кошелек: <code>${withdrawal.wallet_address}</code>\n` +
+          `💰 Сумма: <b>${parseFloat(withdrawal.amount_ton).toFixed(4)} TON</b>\n` +
+          `🏦 Кошелек: <code>${withdrawal.ton_wallet}</code>\n` +
           `📅 Дата: ${new Date(withdrawal.created_at).toLocaleDateString('ru-RU')}\n\n` +
           `❌ <b>ОТКЛОНЕНО</b>`;
 
