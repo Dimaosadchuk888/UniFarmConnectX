@@ -266,12 +266,12 @@ export class AdminBotController {
         
       case 'approve_withdrawal':
         // УПРОЩЕННЫЙ ПОДХОД: одобряем и автоматически обновляем интерфейс
-        await this.handleApproveWithdrawal(chatId, params[0], username, callbackQuery.id);
+        await this.handleApproveWithdrawal(chatId, params[0], username, callbackQuery);
         break;
         
       case 'reject_withdrawal':
         // УПРОЩЕННЫЙ ПОДХОД: отклоняем и автоматически обновляем интерфейс
-        await this.handleRejectWithdrawal(chatId, params[0], username, callbackQuery.id);
+        await this.handleRejectWithdrawal(chatId, params[0], username, callbackQuery);
         break;
         
 
@@ -282,21 +282,23 @@ export class AdminBotController {
         break;
         
       case 'withdrawals':
-        if (params[0] === 'refresh') {
-          // Обновляем простой список заявок
-          const requests = await this.adminBotService.getWithdrawalRequests(undefined, 50);
-          await this.showSimpleWithdrawalsList(chatId, requests);
-          await this.adminBotService.answerCallbackQuery(callbackQuery.id, 'Список обновлен');
-        } else {
-          const filterStatus = params[0] || 'menu';
-          if (filterStatus === 'menu') {
-            // Показываем простой список заявок без фильтров (исправлено: метод displayWithdrawalsMenu не существовал)
-            await this.handleWithdrawalsCommand(chatId, []);
-          } else {
-            await this.handleWithdrawalsCommand(chatId, [filterStatus]);
+        // УБИРАЕМ БОЛЬШОЙ СПИСОК: Теперь показываем только инструкцию
+        await this.adminBotService.sendMessage(
+          chatId,
+          `💸 <b>Заявки на вывод</b>\n\n` +
+          `📋 Каждая заявка приходит отдельным сообщением\n` +
+          `✅ Нажмите "Одобрить" → статус изменится на "Выплачено"\n` +
+          `❌ Нажмите "Отклонить" → статус изменится на "Отклонено"\n\n` +
+          `<i>Ожидайте новые заявки в чате</i>`,
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🏠 Главное меню', callback_data: 'refresh_admin' }]
+              ]
+            }
           }
-          await this.adminBotService.answerCallbackQuery(callbackQuery.id);
-        }
+        );
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id);
         break;
         
       case 'confirm_approve_withdrawal':
@@ -956,59 +958,91 @@ export class AdminBotController {
   /**
    * УПРОЩЕННЫЕ МЕТОДЫ: Одобрение с автоматическим обновлением интерфейса
    */
-  private async handleApproveWithdrawal(chatId: number, requestId: string, adminUsername?: string, callbackQueryId?: string): Promise<void> {
+  private async handleApproveWithdrawal(chatId: number, requestId: string, adminUsername?: string, callbackQuery?: any): Promise<void> {
     try {
+      // НОВЫЙ ПОДХОД: Сначала получаем данные заявки для редактирования сообщения
+      const withdrawal = await this.adminBotService.getWithdrawalById(requestId);
+      if (!withdrawal) {
+        if (callbackQuery) {
+          await this.adminBotService.answerCallbackQuery(callbackQuery.id, '❌ Заявка не найдена');
+        }
+        return;
+      }
+
       const success = await this.adminBotService.approveWithdrawal(requestId, adminUsername || 'admin');
       
-      if (success) {
-        // ИСПРАВЛЕНО: НЕ отправляем автоматический список после одобрения
-        // Только уведомление об успехе - список отправляется лишь при необходимости
+      if (success && callbackQuery) {
+        // ГЛАВНОЕ ИЗМЕНЕНИЕ: Редактируем ТО ЖЕ сообщение вместо отправки нового
+        const userDisplay = withdrawal.username ? `@${withdrawal.username}` : 
+                           withdrawal.first_name || `ID${withdrawal.telegram_id}`;
         
-        if (callbackQueryId) {
-          await this.adminBotService.answerCallbackQuery(callbackQueryId, `✅ Заявка ${requestId.slice(-6)} одобрена`);
-        }
-        
-        // Отправляем простое подтверждение без списка
-        await this.adminBotService.sendMessage(chatId, `✅ Выплата одобрена (ID: ${requestId.slice(-6)})`);
-      } else {
-        if (callbackQueryId) {
-          await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка одобрения');
-        }
-        await this.adminBotService.sendMessage(chatId, '❌ Ошибка одобрения заявки');
+        const editedMessage = `💸 <b>Заявка на вывод</b>\n\n` +
+          `👤 Пользователь: ${userDisplay}\n` +
+          `💰 Сумма: <b>${parseFloat(withdrawal.amount).toFixed(4)} TON</b>\n` +
+          `🏦 Кошелек: <code>${withdrawal.wallet_address}</code>\n` +
+          `📅 Дата: ${new Date(withdrawal.created_at).toLocaleDateString('ru-RU')}\n\n` +
+          `✅ <b>ВЫПЛАЧЕНО</b>`;
+
+        // Новая клавиатура только с кнопкой "Выплачено" (неактивной)
+        const newKeyboard = {
+          inline_keyboard: [
+            [{ text: '✅ Выплачено', callback_data: 'already_paid' }]
+          ]
+        };
+
+        await this.adminBotService.editMessage(chatId, callbackQuery.message?.message_id, editedMessage, newKeyboard);
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id, '✅ Выплата одобрена');
+      } else if (!success && callbackQuery) {
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id, '❌ Ошибка одобрения');
       }
     } catch (error) {
-      if (callbackQueryId) {
-        await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка');
+      if (callbackQuery) {
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id, '❌ Ошибка');
       }
-      await this.adminBotService.sendMessage(chatId, '❌ Ошибка выполнения операции');
     }
   }
 
-  private async handleRejectWithdrawal(chatId: number, requestId: string, adminUsername?: string, callbackQueryId?: string): Promise<void> {
+  private async handleRejectWithdrawal(chatId: number, requestId: string, adminUsername?: string, callbackQuery?: any): Promise<void> {
     try {
+      // НОВЫЙ ПОДХОД: Сначала получаем данные заявки для редактирования сообщения
+      const withdrawal = await this.adminBotService.getWithdrawalById(requestId);
+      if (!withdrawal) {
+        if (callbackQuery) {
+          await this.adminBotService.answerCallbackQuery(callbackQuery.id, '❌ Заявка не найдена');
+        }
+        return;
+      }
+
       const success = await this.adminBotService.rejectWithdrawal(requestId, adminUsername || 'admin');
       
-      if (success) {
-        // ИСПРАВЛЕНО: НЕ отправляем автоматический список после отклонения
-        // Только уведомление об успехе - список отправляется лишь при необходимости
+      if (success && callbackQuery) {
+        // ГЛАВНОЕ ИЗМЕНЕНИЕ: Редактируем ТО ЖЕ сообщение вместо отправки нового
+        const userDisplay = withdrawal.username ? `@${withdrawal.username}` : 
+                           withdrawal.first_name || `ID${withdrawal.telegram_id}`;
         
-        if (callbackQueryId) {
-          await this.adminBotService.answerCallbackQuery(callbackQueryId, `❌ Заявка ${requestId.slice(-6)} отклонена`);
-        }
-        
-        // Отправляем простое подтверждение без списка
-        await this.adminBotService.sendMessage(chatId, `❌ Выплата отклонена (ID: ${requestId.slice(-6)})`);
-      } else {
-        if (callbackQueryId) {
-          await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка отклонения');
-        }
-        await this.adminBotService.sendMessage(chatId, '❌ Ошибка отклонения заявки');
+        const editedMessage = `💸 <b>Заявка на вывод</b>\n\n` +
+          `👤 Пользователь: ${userDisplay}\n` +
+          `💰 Сумма: <b>${parseFloat(withdrawal.amount).toFixed(4)} TON</b>\n` +
+          `🏦 Кошелек: <code>${withdrawal.wallet_address}</code>\n` +
+          `📅 Дата: ${new Date(withdrawal.created_at).toLocaleDateString('ru-RU')}\n\n` +
+          `❌ <b>ОТКЛОНЕНО</b>`;
+
+        // Новая клавиатура только с кнопкой "Отклонено" (неактивной)
+        const newKeyboard = {
+          inline_keyboard: [
+            [{ text: '❌ Отклонено', callback_data: 'already_rejected' }]
+          ]
+        };
+
+        await this.adminBotService.editMessage(chatId, callbackQuery.message?.message_id, editedMessage, newKeyboard);
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id, '❌ Выплата отклонена');
+      } else if (!success && callbackQuery) {
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id, '❌ Ошибка отклонения');
       }
     } catch (error) {
-      if (callbackQueryId) {
-        await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка');
+      if (callbackQuery) {
+        await this.adminBotService.answerCallbackQuery(callbackQuery.id, '❌ Ошибка');
       }
-      await this.adminBotService.sendMessage(chatId, '❌ Ошибка выполнения операции');
     }
   }
 

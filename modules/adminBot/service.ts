@@ -97,6 +97,33 @@ export class AdminBotService {
   }
 
   /**
+   * НОВЫЙ МЕТОД: Редактировать существующее сообщение
+   */
+  async editMessage(chatId: number, messageId: number, text: string, keyboard?: any): Promise<boolean> {
+    try {
+      const response = await fetch(`${adminBotConfig.apiUrl}/bot${this.botToken}/editMessageText`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+          text: text,
+          parse_mode: 'HTML',
+          reply_markup: keyboard
+        })
+      });
+      
+      const result = await response.json();
+      return result.ok;
+    } catch (error) {
+      logger.error('[AdminBot] Error editing message', { error: error instanceof Error ? error.message : String(error) });
+      return false;
+    }
+  }
+
+  /**
    * Setup webhook for admin bot
    */
   async setupWebhook(url: string): Promise<boolean> {
@@ -351,7 +378,7 @@ export class AdminBotService {
       }
       
       // Получаем данные пользователей для всех заявок одним запросом
-      const userIds = [...new Set(requests.map(r => r.user_id))];
+      const userIds = Array.from(new Set(requests.map(r => r.user_id)));
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, telegram_id, username, first_name')
