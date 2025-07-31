@@ -290,7 +290,8 @@ export class AdminBotController {
         } else {
           const filterStatus = params[0] || 'menu';
           if (filterStatus === 'menu') {
-            await this.displayWithdrawalsMenu(chatId);
+            // Показываем простой список заявок без фильтров (исправлено: метод displayWithdrawalsMenu не существовал)
+            await this.handleWithdrawalsCommand(chatId, []);
           } else {
             await this.handleWithdrawalsCommand(chatId, [filterStatus]);
           }
