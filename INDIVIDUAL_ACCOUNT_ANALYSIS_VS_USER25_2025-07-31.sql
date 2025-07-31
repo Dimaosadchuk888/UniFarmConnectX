@@ -45,7 +45,6 @@ SELECT
     u.telegram_id,
     u.first_name,
     u.ref_code,
-    u.parent_ref_code,
     u.balance_uni,
     u.balance_ton,
     u.ton_farming_balance,
