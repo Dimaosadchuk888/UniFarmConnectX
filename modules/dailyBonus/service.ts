@@ -146,7 +146,7 @@ export class DailyBonusService {
       const { balanceManager } = await import('../../core/BalanceManager');
       const result = await balanceManager.addBalance(
         userIdNumber,
-        parseFloat(bonusAmount),
+        Math.floor(parseFloat(bonusAmount)), // Гарантия целых чисел
         0,
         'DailyBonusService.claim'
       );
@@ -157,7 +157,7 @@ export class DailyBonusService {
       }
       
       // Вычисляем новый баланс
-      const newBalance = currentBalance + parseFloat(bonusAmount);
+      const newBalance = currentBalance + Math.floor(parseFloat(bonusAmount));
 
       // Update streak and last claim date separately
       const { error: updateError } = await supabase
@@ -183,15 +183,15 @@ export class DailyBonusService {
       try {
         await transactionService.createTransaction({
           user_id: userIdNumber,
-          type: 'daily_bonus',  // Исправлен тип согласно модели
-          amount_uni: parseFloat(bonusAmount),
+          type: 'DAILY_BONUS',  // Исправлен тип согласно ExtendedTransactionType
+          amount_uni: Math.floor(parseFloat(bonusAmount)), // Целые числа
           amount_ton: 0,
           currency: 'UNI',
           status: 'completed',
           description: `Daily bonus day ${newStreak}`,
           metadata: {
             streak: newStreak,
-            bonus_amount: parseFloat(bonusAmount)
+            bonus_amount: Math.floor(parseFloat(bonusAmount)) // Целые числа
           }
         });
       } catch (txError) {
@@ -203,7 +203,7 @@ export class DailyBonusService {
         .from('daily_bonus_logs')
         .insert({
           user_id: userIdNumber,
-          amount: parseFloat(bonusAmount),
+          amount: Math.floor(parseFloat(bonusAmount)), // Целые числа
           streak_day: newStreak,
           claimed_at: now.toISOString(),
           bonus_type: 'DAILY_CHECKIN',
@@ -242,7 +242,7 @@ export class DailyBonusService {
         .from(DAILY_BONUS_TABLES.TRANSACTIONS)
         .select('*')
         .eq('user_id', parseInt(userId))
-        .eq('type', 'daily_bonus')  // Исправлен тип согласно модели
+        .eq('type', 'DAILY_BONUS')  // Исправлен тип согласно ExtendedTransactionType
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -262,11 +262,11 @@ export class DailyBonusService {
    * Calculate bonus amount based on streak days
    */
   private calculateBonusAmount(streakDays: number): string {
-    const baseAmount = 500; // Base 500 UNI
+    const baseAmount = 600; // Base 600 UNI - исправлено с 500
     const bonusMultiplier = Math.min(streakDays * 0.1, 2.0); // Max 200% bonus at 20 days
     const finalAmount = baseAmount * (1 + bonusMultiplier);
     
-    return finalAmount.toFixed(6);
+    return Math.floor(finalAmount).toString(); // Целые числа без дробей
   }
 
   /**
@@ -294,7 +294,7 @@ export class DailyBonusService {
         .from(DAILY_BONUS_TABLES.TRANSACTIONS)
         .select('amount_uni')
         .eq('user_id', parseInt(userId))
-        .eq('type', 'daily_bonus');  // Исправлен тип согласно модели
+        .eq('type', 'DAILY_BONUS');  // Исправлен тип согласно ExtendedTransactionType
 
       if (txError) {
         logger.error('[DailyBonusService] Ошибка получения транзакций:', txError.message);
