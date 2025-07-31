@@ -961,12 +961,15 @@ export class AdminBotController {
       const success = await this.adminBotService.approveWithdrawal(requestId, adminUsername || 'admin');
       
       if (success) {
-        // Автоматически показываем обновленный список pending заявок
-        await this.handleWithdrawalsCommand(chatId, ['pending']);
+        // ИСПРАВЛЕНО: НЕ отправляем автоматический список после одобрения
+        // Только уведомление об успехе - список отправляется лишь при необходимости
         
         if (callbackQueryId) {
           await this.adminBotService.answerCallbackQuery(callbackQueryId, `✅ Заявка ${requestId.slice(-6)} одобрена`);
         }
+        
+        // Отправляем простое подтверждение без списка
+        await this.adminBotService.sendMessage(chatId, `✅ Выплата одобрена (ID: ${requestId.slice(-6)})`);
       } else {
         if (callbackQueryId) {
           await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка одобрения');
@@ -986,12 +989,15 @@ export class AdminBotController {
       const success = await this.adminBotService.rejectWithdrawal(requestId, adminUsername || 'admin');
       
       if (success) {
-        // Автоматически показываем обновленный список pending заявок
-        await this.handleWithdrawalsCommand(chatId, ['pending']);
+        // ИСПРАВЛЕНО: НЕ отправляем автоматический список после отклонения
+        // Только уведомление об успехе - список отправляется лишь при необходимости
         
         if (callbackQueryId) {
           await this.adminBotService.answerCallbackQuery(callbackQueryId, `❌ Заявка ${requestId.slice(-6)} отклонена`);
         }
+        
+        // Отправляем простое подтверждение без списка
+        await this.adminBotService.sendMessage(chatId, `❌ Выплата отклонена (ID: ${requestId.slice(-6)})`);
       } else {
         if (callbackQueryId) {
           await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка отклонения');
@@ -1015,12 +1021,15 @@ export class AdminBotController {
       const success = await this.adminBotService.markAsManuallyPaid(requestId, adminUsername || 'admin');
       
       if (success) {
-        // Автоматически показываем обновленный список
-        await this.showSimpleWithdrawalsList(chatId, await this.adminBotService.getWithdrawalRequests(undefined, 50));
+        // ИСПРАВЛЕНО: НЕ отправляем автоматический список после отметки "Выплата сделана"
+        // Только уведомление об успехе
         
         if (callbackQueryId) {
           await this.adminBotService.answerCallbackQuery(callbackQueryId, `✅ Выплата ${requestId.slice(-6)} отмечена как сделанная`);
         }
+        
+        // Отправляем простое подтверждение без списка
+        await this.adminBotService.sendMessage(chatId, `✅ Выплата сделана (ID: ${requestId.slice(-6)})`);
       } else {
         if (callbackQueryId) {
           await this.adminBotService.answerCallbackQuery(callbackQueryId, '❌ Ошибка отметки выплаты');
