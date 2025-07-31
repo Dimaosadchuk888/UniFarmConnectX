@@ -7,6 +7,7 @@ import {
   THEME
 } from '@tonconnect/ui-react';
 import { CHAIN } from '@tonconnect/protocol';
+import { criticalOperationGuard } from '../utils/criticalOperationGuard';
 // Динамический импорт @ton/core будет происходить только при необходимости
 
 // Для отладки - логирование операций TonConnect
@@ -312,6 +313,10 @@ export async function sendTonTransaction(
   amount: string,
   comment: string
 ): Promise<{txHash: string; status: 'success' | 'error'} | null> {
+  // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА: Защищаем TON депозиты от JWT token timeout
+  return await criticalOperationGuard.guardTonDeposit(async () => {
+    console.log('[TON_DEPOSIT_PROTECTION] 🔒 Депозит защищен системой JWT мониторинга');
+    
   try {
     // Извлекаем userId и boostId из комментария (примем что комментарий в формате UniFarmBoost:userId:boostId)
     const parts = comment.split(':');
@@ -496,6 +501,7 @@ export async function sendTonTransaction(
     
     return null;
   }
+  }); // Конец criticalOperationGuard.guardTonDeposit
 }
 
 /**

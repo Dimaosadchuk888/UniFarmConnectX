@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import MainLayout from "@/layouts/MainLayout";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useAutoAuth } from "@/hooks/useAutoAuth";
+import { useJwtTokenWatcher } from "@/hooks/useJwtTokenWatcher";
 
 // Components
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
@@ -19,6 +20,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 import { WebSocketBalanceSync } from "@/components/WebSocketBalanceSync";
+import { JwtTokenStatus } from "@/components/JwtTokenStatus";
 
 
 // Pages
@@ -58,6 +60,14 @@ function App() {
 
   const { isReady: telegramReady, user: telegramUser, initData } = useTelegram();
   const { isAuthenticating, authError: autoAuthError } = useAutoAuth();
+  
+  // JWT Token Protection System - предотвращает потерю депозитов
+  const { isWatching } = useJwtTokenWatcher();
+  
+  // Логируем статус JWT мониторинга
+  useEffect(() => {
+    console.log(`[JWT_PROTECTION] Система мониторинга JWT токенов: ${isWatching ? 'АКТИВНА' : 'НЕАКТИВНА'}`);
+  }, [isWatching]);
 
   // Initialize app
   useEffect(() => {
@@ -308,6 +318,7 @@ function App() {
                     >
                       {renderPage()}
                     </MainLayout>
+                    <JwtTokenStatus />
                     {/* <NetworkStatusIndicator /> */}
                     <Toaster />
                   </TelegramWebAppCheck>
