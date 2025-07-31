@@ -502,14 +502,15 @@ export class WalletService {
         balanceField = 'balance_ton';
       }
 
-      // Проверка минимальной суммы
+      // Проверка минимальной суммы (поддержка дробных значений для TON)
       if (type === 'TON' && withdrawAmount < 1) {
         logger.warn('[WalletService] Сумма вывода TON меньше минимальной', { 
           userId, 
           requested: withdrawAmount, 
-          minimum: 1
+          minimum: 1,
+          formatted_requested: withdrawAmount.toFixed(2)
         });
-        return { success: false, error: 'Минимальная сумма вывода должна быть больше или равна 1 TON' };
+        return { success: false, error: 'Минимальная сумма вывода должна быть больше или равна 1.00 TON' };
       }
 
       if (type === 'UNI' && withdrawAmount < 1000) {
@@ -552,15 +553,17 @@ export class WalletService {
         }
       }
 
-      // Проверяем достаточность средств
+      // Проверяем достаточность средств (с точным форматированием для TON)
       if (currentBalance < withdrawAmount) {
         logger.warn('[WalletService] Недостаточно средств для вывода', { 
           userId, 
           requested: withdrawAmount, 
           available: currentBalance,
-          type 
+          type,
+          formatted_requested: type === 'TON' ? withdrawAmount.toFixed(2) : withdrawAmount.toString(),
+          formatted_available: type === 'TON' ? currentBalance.toFixed(2) : currentBalance.toString()
         });
-        return { success: false, error: `Недостаточно средств. Доступно: ${currentBalance} ${type}` };
+        return { success: false, error: `Недостаточно средств. Доступно: ${type === 'TON' ? currentBalance.toFixed(2) : currentBalance} ${type}` };
       }
 
       // Создаем заявку на вывод для обеих валют

@@ -72,7 +72,7 @@ const WithdrawalForm: React.FC = () => {
     resolver: zodResolver(createWithdrawalSchema(selectedCurrency)),
     defaultValues: {
       walletAddress: walletAddress || '',
-      amount: selectedCurrency === 'TON' ? 1 : 1000,
+      amount: selectedCurrency === 'TON' ? 1.00 : 1000,
       currency: selectedCurrency
     },
     mode: 'onChange'
@@ -100,7 +100,7 @@ const WithdrawalForm: React.FC = () => {
   const handleCurrencyChange = (currency: 'UNI' | 'TON') => {
     setSelectedCurrency(currency);
     setValue('currency', currency);
-    setValue('amount', getMinAmount());
+    setValue('amount', currency === 'TON' ? 1.00 : 1000);
     clearErrors();
     setErrorMessage(null);
     
@@ -161,7 +161,7 @@ const WithdrawalForm: React.FC = () => {
         setTimeout(() => {
           reset({
             walletAddress: walletAddress || '',
-            amount: getMinAmount(),
+            amount: selectedCurrency === 'TON' ? 1.00 : 1000,
             currency: selectedCurrency
           });
           setSubmitState(SubmitState.IDLE);
@@ -305,10 +305,10 @@ const WithdrawalForm: React.FC = () => {
             <Input
               {...register('amount', { valueAsNumber: true })}
               type="number"
-              step={selectedCurrency === 'TON' ? '1' : '1000'}
+              step={selectedCurrency === 'TON' ? '0.01' : '1000'}
               min={getMinAmount()}
               max={getAvailableBalance()}
-              placeholder={`${getMinAmount()}`}
+              placeholder={selectedCurrency === 'TON' ? '1.00' : `${getMinAmount()}`}
               className={`w-full bg-gray-800 border-gray-600 text-white placeholder-gray-400 pr-16 transition-all duration-200 ${
                 amountFocused ? 'border-primary shadow-lg shadow-primary/25' : ''
               } ${errors.amount ? 'border-red-500' : ''}`}
@@ -323,7 +323,7 @@ const WithdrawalForm: React.FC = () => {
             )}
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Доступно: {getAvailableBalance().toFixed(selectedCurrency === 'TON' ? 6 : 2)} {selectedCurrency}
+            Доступно: {getAvailableBalance().toFixed(selectedCurrency === 'TON' ? 2 : 2)} {selectedCurrency}
           </p>
           {selectedCurrency === 'UNI' && watchedAmount > 0 && (
             <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
