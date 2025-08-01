@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useUser } from '@/contexts/userContext';
+import { fetchUniFarmingStatus, fetchTonFarmingStatus } from '@/services/farmingService';
 
 // Интерфейсы для данных API
 interface UniFarmingInfo {
@@ -49,16 +50,60 @@ const IncomeCardNew: React.FC = () => {
   const [targetTonHourRate, setTargetTonHourRate] = useState(0);
   const [targetTonDayRate, setTargetTonDayRate] = useState(0);
   
-  // Получаем данные фарминга с правильными API v2 endpoints
+  // Получаем данные фарминга через кешированные сервисы
   const { data: uniFarmingInfo } = useQuery({
     queryKey: ['/api/v2/farming/status', validUserId],
-    queryFn: () => correctApiRequest(`/api/v2/farming/status?user_id=${validUserId}`),
+    queryFn: async () => {
+      console.log('[IncomeCardNew] Запрос UNI фарминга через кешированный сервис');
+      const result = await fetchUniFarmingStatus(parseInt(validUserId));
+      
+      // Адаптируем данные для совместимости с компонентом
+      if (!result) {
+        return { data: {} };
+      }
+      
+      const adaptedData: UniFarmingInfo = {
+        isActive: result.uni_farming_active,
+        depositAmount: result.uni_deposit_amount?.toString(),
+        ratePerSecond: result.uni_farming_rate?.toString(),
+        dailyIncomeUni: (result.uni_farming_rate * 86400).toString(),
+        uni_farming_start_timestamp: result.uni_farming_start_timestamp
+      };
+      
+      return { data: adaptedData };
+    },
     refetchInterval: 5000,
   });
 
   const { data: tonFarmingInfo } = useQuery({
     queryKey: ['/api/v2/boost/farming-status', validUserId],
-    queryFn: () => correctApiRequest(`/api/v2/boost/farming-status?user_id=${validUserId}`),
+    queryFn: async () => {
+      console.log('[IncomeCardNew] Запрос TON фарминга через кешированный сервис');
+      const result = await fetchTonFarmingStatus(parseInt(validUserId));
+      
+      // Адаптируем данные для совместимости с компонентом
+      if (!result) {
+        return { 
+          data: {
+            totalTonRatePerSecond: '0',
+            totalUniRatePerSecond: '0',
+            dailyIncomeTon: '0',
+            dailyIncomeUni: '0',
+            deposits: []
+          }
+        };
+      }
+      
+      const adaptedData: TonFarmingInfo = {
+        totalTonRatePerSecond: result.totalRatePerSecond?.toString() || '0',
+        totalUniRatePerSecond: '0', // В TON boost нет UNI
+        dailyIncomeTon: result.dailyIncome?.toString() || '0',
+        dailyIncomeUni: '0', // В TON boost нет UNI
+        deposits: []
+      };
+      
+      return { data: adaptedData };
+    },
     refetchInterval: 5000,
   });
 
