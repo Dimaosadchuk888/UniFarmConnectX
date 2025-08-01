@@ -72,16 +72,23 @@ export class TonFarmingRepository {
         }
         
         if (error.code === 'PGRST116') {
-          // Нет данных - создаем запись
+          // Нет данных - создаем запись с расчетом из депозитов
+          logger.info(`[TonFarmingRepository] Создание новой записи для User ${userId} с расчетом депозитов`);
+          
+          // 🚨 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Рассчитываем farming_balance из TON депозитов
+          const calculatedBalance = await this.calculateUserTonDeposits(parseInt(userId));
+          
           const newData: Partial<TonFarmingData> = {
             user_id: parseInt(userId),
-            farming_balance: '0',
+            farming_balance: calculatedBalance.toString(), // ✅ Рассчитано из депозитов
             farming_rate: '0.01',
             farming_accumulated: '0',
-            boost_active: false,
+            boost_active: calculatedBalance > 0, // ✅ Активируем boost если есть депозиты
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
+          
+          logger.info(`[TonFarmingRepository] Создана запись с farming_balance: ${calculatedBalance} TON для User ${userId}`);
           
           await this.upsert(newData);
           return this.getByUserId(userId);
@@ -98,6 +105,47 @@ export class TonFarmingRepository {
     }
   }
   
+  /**
+   * 🚨 КРИТИЧЕСКАЯ ФУНКЦИЯ: Расчет TON депозитов пользователя
+   * Используется для корректного создания farming_balance
+   */
+  private async calculateUserTonDeposits(userId: number): Promise<number> {
+    try {
+      logger.info(`[TonFarmingRepository] Расчет TON депозитов для User ${userId}`);
+      
+      const { data: deposits, error } = await supabase
+        .from('transactions')
+        .select('amount_ton, created_at, type, description')
+        .eq('user_id', userId)
+        .in('type', ['DEPOSIT', 'TON_DEPOSIT', 'FARMING_REWARD'])
+        .gte('amount_ton', '0.1') // Минимум 0.1 TON
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        logger.error(`[TonFarmingRepository] Ошибка при расчете депозитов для User ${userId}:`, error);
+        return 0;
+      }
+      
+      if (deposits && deposits.length > 0) {
+        const totalTon = deposits.reduce((sum, tx) => sum + parseFloat(tx.amount_ton || '0'), 0);
+        logger.info(`[TonFarmingRepository] User ${userId}: найдено ${deposits.length} депозитов, сумма: ${totalTon.toFixed(3)} TON`);
+        
+        // Логируем детали для диагностики
+        deposits.forEach((tx, i) => {
+          logger.info(`[TonFarmingRepository] User ${userId} депозит ${i+1}: ${tx.amount_ton} TON (${tx.type}) - ${tx.created_at}`);
+        });
+        
+        return totalTon;
+      } else {
+        logger.info(`[TonFarmingRepository] User ${userId}: депозитов не найдено`);
+        return 0;
+      }
+    } catch (error) {
+      logger.error(`[TonFarmingRepository] Исключение при расчете депозитов для User ${userId}:`, error);
+      return 0;
+    }
+  }
+
   /**
    * Fallback метод для получения данных из таблицы users
    */
