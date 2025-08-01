@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-08-01T19:17:22.543Z",
+  "indexes": {
+    "status": "✅ Дубликаты удалены, основные индексы на месте",
+    "duplicates": 0,
+    "total": 0
+  },
+  "performance": {
+    "tests": [
+      {
+        "name": "Поиск по telegram_id",
+        "time": 566
+      },
+      {
+        "name": "История транзакций (50)",
+        "time": 302
+      },
+      {
+        "name": "Фильтр TON депозитов",
+        "time": 292
+      },
+      {
+        "name": "Активные UNI фермеры",
+        "time": 308
+      },
+      {
+        "name": "TON farming запрос",
+        "time": 280
+      }
+    ],
+    "avgTime": 349.6
+  },
+  "dataIntegrity": {
+    "status": "✅ Данные целостны",
+    "issues": []
+  },
+  "systemHealth": {
+    "status": "✅ Система работает корректно",
+    "details": {}
+  }
+}
