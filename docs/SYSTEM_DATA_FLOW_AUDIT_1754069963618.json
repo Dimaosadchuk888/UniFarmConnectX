@@ -1,0 +1,399 @@
+{
+  "timestamp": "2025-08-01T17:39:14.175Z",
+  "currentTables": [
+    {
+      "tableName": "users",
+      "recordCount": 103,
+      "columns": [
+        "id",
+        "telegram_id",
+        "username",
+        "first_name",
+        "wallet",
+        "ref_code",
+        "referred_by",
+        "balance_uni",
+        "balance_ton",
+        "uni_deposit_amount",
+        "uni_farming_start_timestamp",
+        "uni_farming_balance",
+        "uni_farming_rate",
+        "uni_farming_last_update",
+        "uni_farming_deposit",
+        "created_at",
+        "checkin_last_date",
+        "checkin_streak",
+        "is_admin",
+        "ton_boost_package",
+        "ton_farming_balance",
+        "ton_farming_rate",
+        "ton_farming_start_timestamp",
+        "ton_farming_last_update",
+        "ton_farming_accumulated",
+        "ton_farming_last_claim",
+        "ton_boost_active",
+        "ton_boost_package_id",
+        "ton_boost_rate",
+        "ton_boost_expires_at",
+        "uni_farming_active",
+        "last_active",
+        "referrer_id",
+        "ton_wallet_address",
+        "ton_wallet_verified",
+        "ton_wallet_linked_at",
+        "status",
+        "processed_at",
+        "processed_by",
+        "guest_id",
+        "is_active"
+      ],
+      "primaryKey": "id",
+      "foreignKeys": [],
+      "dataFlow": {
+        "writtenBy": [
+          "SupabaseUserRepository.createUser",
+          "SupabaseUserRepository.updateUser",
+          "BalanceManager.modifyBalance",
+          "UniFarmingRepository.updateFarmingData",
+          "TonFarmingRepository.updateFarmingData",
+          "TonWalletService.linkWallet"
+        ],
+        "readBy": [
+          "SupabaseUserRepository.getUserByTelegramId",
+          "AuthController.getCurrentUser",
+          "UniFarmingRepository.getByUserId",
+          "TonFarmingRepository.getByUserId",
+          "ReferralService.getReferralPath",
+          "WithdrawController.getBalance"
+        ]
+      }
+    },
+    {
+      "tableName": "transactions",
+      "recordCount": 842487,
+      "columns": [
+        "id",
+        "user_id",
+        "type",
+        "amount_uni",
+        "amount_ton",
+        "description",
+        "created_at",
+        "metadata",
+        "status",
+        "source",
+        "tx_hash",
+        "source_user_id",
+        "action",
+        "currency",
+        "amount",
+        "updated_at",
+        "tx_hash_unique",
+        "is_duplicate",
+        "duplicate_of_id"
+      ],
+      "primaryKey": "id",
+      "foreignKeys": [
+        {
+          "column": "user_id",
+          "referencedTable": "users",
+          "referencedColumn": "id"
+        }
+      ],
+      "dataFlow": {
+        "writtenBy": [
+          "TransactionEnforcer.logTransaction",
+          "UnifiedTransactionService.recordTransaction",
+          "ReferralService.processReferralRewards",
+          "BalanceManager.modifyBalance"
+        ],
+        "readBy": [
+          "TransactionController.getUserTransactions",
+          "StatsController.getTransactionStats",
+          "AdminController.getSystemTransactions"
+        ]
+      }
+    },
+    {
+      "tableName": "withdraw_requests",
+      "recordCount": 159,
+      "columns": [
+        "id",
+        "user_id",
+        "telegram_id",
+        "username",
+        "amount_ton",
+        "ton_wallet",
+        "status",
+        "created_at",
+        "processed_at",
+        "processed_by"
+      ],
+      "primaryKey": "id",
+      "foreignKeys": [
+        {
+          "column": "user_id",
+          "referencedTable": "users",
+          "referencedColumn": "id"
+        }
+      ],
+      "dataFlow": {
+        "writtenBy": [
+          "WithdrawController.createWithdrawRequest",
+          "AdminWithdrawService.updateStatus"
+        ],
+        "readBy": [
+          "WithdrawController.getUserWithdrawals",
+          "AdminController.getPendingWithdrawals"
+        ]
+      }
+    },
+    {
+      "tableName": "uni_farming_data",
+      "recordCount": 98,
+      "columns": [
+        "id",
+        "user_id",
+        "deposit_amount",
+        "farming_balance",
+        "total_earned",
+        "last_claim_at",
+        "is_active",
+        "farming_start",
+        "created_at",
+        "updated_at",
+        "farming_rate",
+        "farming_start_timestamp",
+        "farming_last_update",
+        "farming_deposit"
+      ],
+      "primaryKey": "id",
+      "foreignKeys": [],
+      "dataFlow": {
+        "writtenBy": [],
+        "readBy": []
+      }
+    },
+    {
+      "tableName": "ton_farming_data",
+      "recordCount": 44,
+      "columns": [
+        "id",
+        "user_id",
+        "boost_active",
+        "boost_package_id",
+        "boost_expires_at",
+        "farming_balance",
+        "total_earned",
+        "last_claim_at",
+        "created_at",
+        "updated_at",
+        "farming_rate",
+        "farming_start_timestamp",
+        "farming_last_update"
+      ],
+      "primaryKey": "id",
+      "foreignKeys": [],
+      "dataFlow": {
+        "writtenBy": [],
+        "readBy": []
+      }
+    },
+    {
+      "tableName": "referrals",
+      "recordCount": 52,
+      "columns": [
+        "id",
+        "user_id",
+        "referred_user_id",
+        "level",
+        "created_at",
+        "inviter_id",
+        "reward_uni",
+        "reward_ton",
+        "ref_path",
+        "updated_at"
+      ],
+      "primaryKey": "id",
+      "foreignKeys": [],
+      "dataFlow": {
+        "writtenBy": [],
+        "readBy": []
+      }
+    },
+    {
+      "tableName": "missions",
+      "recordCount": 5,
+      "columns": [
+        "id",
+        "title",
+        "description",
+        "mission_type",
+        "target_value",
+        "reward_amount",
+        "reward_type",
+        "requirements",
+        "start_date",
+        "end_date",
+        "is_active",
+        "is_repeatable",
+        "sort_order",
+        "created_at",
+        "updated_at",
+        "reward_uni",
+        "reward_ton",
+        "status"
+      ],
+      "primaryKey": "id",
+      "foreignKeys": [],
+      "dataFlow": {
+        "writtenBy": [],
+        "readBy": []
+      }
+    }
+  ],
+  "dataFlowMap": {},
+  "duplications": [
+    {
+      "field1": "balance_uni",
+      "field2": "uni_farming_balance",
+      "table1": "users",
+      "table2": "users",
+      "description": "Баланс UNI хранится в двух полях одной таблицы",
+      "recommendation": "Использовать только balance_uni, uni_farming_balance для накопленного фарминга"
+    },
+    {
+      "field1": "telegram_id",
+      "field2": "telegram_id",
+      "table1": "users",
+      "table2": "withdraw_requests",
+      "description": "telegram_id дублируется в withdraw_requests",
+      "recommendation": "Удалить telegram_id из withdraw_requests, использовать JOIN с users"
+    },
+    {
+      "field1": "username",
+      "field2": "username",
+      "table1": "users",
+      "table2": "withdraw_requests",
+      "description": "username дублируется в withdraw_requests",
+      "recommendation": "Удалить username из withdraw_requests, использовать JOIN с users"
+    },
+    {
+      "field1": "ref_code + parent_ref_code + referred_by",
+      "field2": "таблица referrals",
+      "table1": "users",
+      "table2": "referrals",
+      "description": "Реферальная информация дублируется в двух местах",
+      "recommendation": "Консолидировать в одном месте - либо в users, либо в referrals"
+    },
+    {
+      "field1": "amount_uni + amount_ton",
+      "field2": "amount + currency",
+      "table1": "transactions",
+      "table2": "transactions",
+      "description": "Гибридная структура транзакций - два способа хранения суммы",
+      "recommendation": "Мигрировать на единый формат: amount + currency"
+    }
+  ],
+  "systemDependencies": {
+    "users.balance_uni": [
+      "BalanceManager.modifyBalance",
+      "UniFarmingService.calculateIncome",
+      "WithdrawController.validateBalance",
+      "Frontend: BalanceDisplay component"
+    ],
+    "users.balance_ton": [
+      "BalanceManager.modifyBalance",
+      "TonBoostService.processIncome",
+      "WithdrawController.validateTonBalance",
+      "Frontend: TON balance display"
+    ],
+    "users.telegram_id": [
+      "AuthService.authenticate",
+      "UserRepository.findByTelegramId",
+      "КРИТИЧНО: Primary user identifier"
+    ],
+    "users.ref_code": [
+      "ReferralService.processNewUser",
+      "ReferralLinkGenerator",
+      "Frontend: Referral link display"
+    ],
+    "users.referred_by": [
+      "ReferralService.calculateRewards",
+      "ReferralChainBuilder",
+      "StatsService.getReferralStats"
+    ],
+    "transactions.user_id": [
+      "FOREIGN KEY to users.id",
+      "TransactionHistory.getUserTransactions",
+      "AdminPanel.getTransactionStats"
+    ],
+    "transactions.type": [
+      "TransactionClassifier",
+      "RewardCalculator",
+      "Frontend: Transaction list filter"
+    ],
+    "withdraw_requests.status": [
+      "AdminWithdrawService.processPending",
+      "UserWithdrawStatus.check",
+      "NotificationService.sendStatusUpdate"
+    ]
+  },
+  "recommendations": [
+    "1. КРИТИЧНО: Сделать backup перед любыми изменениями",
+    "2. Определить единственный источник правды для каждого типа данных",
+    "3. Удалить пустые таблицы: user_sessions если не используется",
+    "4. Консолидировать farming данные в users если отдельные таблицы пустые",
+    "5. Стандартизировать структуру transactions на amount + currency",
+    "6. Удалить дублирующие поля из withdraw_requests",
+    "7. Добавить недостающие индексы для производительности",
+    "8. Создать views для обратной совместимости при необходимости",
+    "9. Документировать все изменения в migration скриптах",
+    "10. Тестировать каждое изменение на staging среде"
+  ],
+  "optimizationPlan": {
+    "phase1_cleanup": {
+      "priority": "HIGH",
+      "actions": [
+        {
+          "action": "Удалить дублирующие поля из withdraw_requests",
+          "sql": "ALTER TABLE withdraw_requests \n                DROP COLUMN IF EXISTS telegram_id,\n                DROP COLUMN IF EXISTS username;",
+          "impact": "Убирает дублирование, требует JOIN для отображения"
+        },
+        {
+          "action": "Выбрать основное место для реферальных данных",
+          "decision": "Оставить в users, удалить таблицу referrals если пустая",
+          "reason": "Упрощает запросы, все данные пользователя в одном месте"
+        }
+      ]
+    },
+    "phase2_consolidation": {
+      "priority": "MEDIUM",
+      "actions": [
+        {
+          "action": "Консолидировать farming данные",
+          "recommendation": "Если uni_farming_data и ton_farming_data пустые - удалить",
+          "alternative": "Если содержат данные - мигрировать в users таблицу"
+        },
+        {
+          "action": "Унифицировать структуру transactions",
+          "migration": "-- Добавить вычисляемое поле для совместимости\n                     ALTER TABLE transactions \n                     ADD COLUMN IF NOT EXISTS unified_amount DECIMAL(20,6) \n                     GENERATED ALWAYS AS (COALESCE(amount, amount_uni + amount_ton)) STORED;",
+          "longTerm": "Постепенно мигрировать на amount + currency"
+        }
+      ]
+    },
+    "phase3_optimization": {
+      "priority": "LOW",
+      "actions": [
+        {
+          "action": "Добавить индексы для производительности",
+          "sql": "CREATE INDEX IF NOT EXISTS idx_transactions_user_created \n                ON transactions(user_id, created_at DESC);\n                \n                CREATE INDEX IF NOT EXISTS idx_users_telegram_id \n                ON users(telegram_id);\n                \n                CREATE INDEX IF NOT EXISTS idx_users_referred_by\n                ON users(referred_by) WHERE referred_by IS NOT NULL;"
+        },
+        {
+          "action": "Создать материализованные представления",
+          "sql": "CREATE MATERIALIZED VIEW IF NOT EXISTS user_stats AS\n                SELECT \n                  u.id,\n                  u.telegram_id,\n                  COUNT(DISTINCT t.id) as transaction_count,\n                  SUM(CASE WHEN t.currency = 'UNI' THEN t.amount ELSE 0 END) as total_uni_earned,\n                  SUM(CASE WHEN t.currency = 'TON' THEN t.amount ELSE 0 END) as total_ton_earned\n                FROM users u\n                LEFT JOIN transactions t ON u.id = t.user_id\n                GROUP BY u.id, u.telegram_id;"
+        }
+      ]
+    }
+  }
+}
