@@ -1,4 +1,5 @@
 import { correctApiRequest } from '@/lib/correctApiRequest';
+import { cacheService } from './cacheService';
 
 /**
  * Интерфейс для данных баланса пользователя
@@ -11,12 +12,11 @@ export interface Balance {
   uniFarmingBalance: number;
 }
 
-// Создаем кэш для хранения последних полученных данных баланса
-let balanceCache: {
-  userId?: number;
-  timestamp?: number;
-  data?: Balance;
-} = {};
+// Константы кеширования
+const CACHE_CONFIG = {
+  BALANCE_KEY: (userId: number) => `balance:${userId}`,
+  BALANCE_TTL: 30000 // 30 секунд вместо 10
+};
 
 /**
  * Получает информацию о балансе пользователя
@@ -25,40 +25,39 @@ let balanceCache: {
  * @returns Промис с данными баланса
  */
 export async function fetchBalance(userId: number, forceRefresh: boolean = false): Promise<Balance> {
-  try {
-    // Получаем user_id из JWT токена в localStorage
-    const jwtToken = localStorage.getItem('unifarm_jwt_token');
-    let targetUserId = userId;
-    
-    // Если userId не передан, получаем из JWT
-    if (!targetUserId && jwtToken) {
-      try {
-        const payload = JSON.parse(atob(jwtToken.split('.')[1]));
-        targetUserId = payload.userId || payload.user_id;
-        console.log('[balanceService] User ID получен из JWT:', targetUserId);
-      } catch (error) {
-        console.error('[balanceService] Ошибка декодирования JWT:', error);
-        targetUserId = userId || 1; // fallback
-      }
+  // Получаем user_id из JWT токена в localStorage
+  const jwtToken = localStorage.getItem('unifarm_jwt_token');
+  let targetUserId = userId;
+  
+  // Если userId не передан, получаем из JWT
+  if (!targetUserId && jwtToken) {
+    try {
+      const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+      targetUserId = payload.userId || payload.user_id;
+      console.log('[balanceService] User ID получен из JWT:', targetUserId);
+    } catch (error) {
+      console.error('[balanceService] Ошибка декодирования JWT:', error);
+      targetUserId = userId || 1; // fallback
     }
-    
-    console.log('[balanceService] Запрос баланса для userId:', targetUserId, 'forceRefresh:', forceRefresh);
+  }
+  
+  console.log('[balanceService] Запрос баланса для userId:', targetUserId, 'forceRefresh:', forceRefresh);
+  
+  // Ключ кеша для данного пользователя
+  const cacheKey = CACHE_CONFIG.BALANCE_KEY(targetUserId);
+  
+  try {
     
     // Проверяем кэш, если не требуется принудительное обновление
-    const now = Date.now();
-    if (!forceRefresh && 
-        balanceCache.userId === userId && 
-        balanceCache.data && 
-        balanceCache.timestamp && 
-        (now - balanceCache.timestamp) < 10000) { // Кэш действителен только 10 секунд для быстрого обновления
-      console.log('[balanceService] Использование кэшированных данных баланса');
-      return balanceCache.data;
-    }
-    
-    // Если forceRefresh=true, очищаем кэш принудительно
-    if (forceRefresh) {
+    if (!forceRefresh) {
+      const cachedBalance = cacheService.get<Balance>(cacheKey);
+      if (cachedBalance) {
+        return cachedBalance;
+      }
+    } else {
+      // Если forceRefresh=true, очищаем кэш принудительно
       console.log('[balanceService] Принудительная очистка кэша баланса');
-      balanceCache = {};
+      cacheService.invalidate(cacheKey);
     }
     
     // Выполняем запрос к API
@@ -69,9 +68,10 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
       console.error('[balanceService] Ошибка получения баланса:', response.error || 'Unknown error');
       
       // Если у нас есть кэшированные данные для этого пользователя, возвращаем их как запасной вариант
-      if (balanceCache.userId === userId && balanceCache.data) {
+      const cachedFallback = cacheService.get<Balance>(cacheKey);
+      if (cachedFallback) {
         console.log('[balanceService] Возвращаем кэшированные данные после ошибки API');
-        return balanceCache.data;
+        return cachedFallback;
       }
       
       throw new Error(response.error || 'Failed to fetch balance');
@@ -89,21 +89,18 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
       uniFarmingBalance: parseFloat(data.uniFarmingBalance || data.uni_farming_balance) || 0
     };
     
-    // Обновляем кэш
-    balanceCache = {
-      userId,
-      timestamp: now,
-      data: balance
-    };
+    // Сохраняем в кеш
+    cacheService.set(cacheKey, balance, CACHE_CONFIG.BALANCE_TTL);
     
     return balance;
   } catch (error) {
     console.error('[balanceService] Ошибка в fetchBalance:', error);
     
     // В случае ошибки проверяем, есть ли кэшированные данные
-    if (balanceCache.userId === userId && balanceCache.data) {
+    const cachedError = cacheService.get<Balance>(cacheKey);
+    if (cachedError) {
       console.log('[balanceService] Возвращаем кэшированные данные после исключения');
-      return balanceCache.data;
+      return cachedError;
     }
     
     // Если кэша нет, создаем пустой объект баланса

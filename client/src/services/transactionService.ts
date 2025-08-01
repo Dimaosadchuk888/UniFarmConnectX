@@ -1,5 +1,13 @@
 import { apiRequest } from '@/lib/queryClient';
 import { correctApiRequest } from '@/lib/correctApiRequest';
+import { cacheService } from './cacheService';
+
+// Константы кеширования
+const CACHE_CONFIG = {
+  TRANSACTIONS_KEY: (userId: number, limit: number, offset: number) => `transactions:${userId}:${limit}:${offset}`,
+  TON_TRANSACTIONS_KEY: (userId: number, limit: number, offset: number) => `ton-transactions:${userId}:${limit}:${offset}`,
+  TRANSACTIONS_TTL: 60000 // 60 секунд, как указано в компоненте
+};
 
 /**
  * Типы транзакций
@@ -56,8 +64,11 @@ export interface Transaction {
 export async function fetchTransactions(
   userId: number,
   limit: number = 10,
-  offset: number = 0
+  offset: number = 0,
+  forceRefresh: boolean = false
 ): Promise<Transaction[]> {
+  const cacheKey = CACHE_CONFIG.TRANSACTIONS_KEY(userId, limit, offset);
+  
   try {
     console.log('[transactionService] Запрос транзакций для userId:', userId);
     
@@ -66,18 +77,22 @@ export async function fetchTransactions(
       throw new Error('userId is required to fetch transactions');
     }
     
+    // Проверяем кеш
+    if (!forceRefresh) {
+      const cached = cacheService.get<Transaction[]>(cacheKey);
+      if (cached) {
+        console.log('[transactionService] Возвращаем кешированные транзакции');
+        return cached;
+      }
+    } else {
+      cacheService.invalidate(cacheKey);
+    }
+    
     // Используем улучшенный метод correctApiRequest с обработкой ошибок
     console.log('[transactionService] Запрос транзакций через correctApiRequest');
     
     // Добавляем поддержку как старого, так и нового пути API
-    const response = await correctApiRequest(`/api/transactions?user_id=${userId}&limit=${limit}&offset=${offset}`, 'GET', null, {
-      additionalLogging: true,
-      errorHandling: {
-        report404: true,
-        detailed: true,
-        traceId: `transactions-${Date.now()}`
-      }
-    });
+    const response = await correctApiRequest(`/api/transactions?user_id=${userId}&limit=${limit}&offset=${offset}`, 'GET');
     
     // Для отладки: вывести полный ответ
     console.log('[transactionService] Полный ответ API:', JSON.stringify(response));
@@ -98,9 +113,22 @@ export async function fetchTransactions(
     }
     
     // Преобразуем данные в нужный формат
-    return response.data.transactions.map((tx: any) => formatTransaction(tx));
+    const transactions = response.data.transactions.map((tx: any) => formatTransaction(tx));
+    
+    // Сохраняем в кеш
+    cacheService.set(cacheKey, transactions, CACHE_CONFIG.TRANSACTIONS_TTL);
+    
+    return transactions;
   } catch (error) {
     console.error('[transactionService] Ошибка в fetchTransactions:', error);
+    
+    // Пытаемся вернуть кешированные данные при ошибке
+    const cachedError = cacheService.get<Transaction[]>(cacheKey);
+    if (cachedError) {
+      console.log('[transactionService] Возвращаем кешированные транзакции после ошибки');
+      return cachedError;
+    }
+    
     throw error;
   }
 }
@@ -115,8 +143,11 @@ export async function fetchTransactions(
 export async function fetchTonTransactions(
   userId: number,
   limit: number = 50,  // Увеличенный лимит для TON транзакций
-  offset: number = 0
+  offset: number = 0,
+  forceRefresh: boolean = false
 ): Promise<Transaction[]> {
+  const cacheKey = CACHE_CONFIG.TON_TRANSACTIONS_KEY(userId, limit, offset);
+  
   try {
     console.log('[transactionService] Запрос TON транзакций для userId:', userId);
     
@@ -125,15 +156,19 @@ export async function fetchTonTransactions(
       throw new Error('userId is required to fetch TON transactions');
     }
     
-    // Делаем прямой запрос на API для получения всех транзакций
-    const response = await correctApiRequest(`/api/transactions?user_id=${userId}&limit=${limit}&offset=${offset}`, 'GET', null, {
-      additionalLogging: true,
-      errorHandling: {
-        report404: true,
-        detailed: true,
-        traceId: `ton-transactions-${Date.now()}`
+    // Проверяем кеш
+    if (!forceRefresh) {
+      const cached = cacheService.get<Transaction[]>(cacheKey);
+      if (cached) {
+        console.log('[transactionService] Возвращаем кешированные TON транзакции');
+        return cached;
       }
-    });
+    } else {
+      cacheService.invalidate(cacheKey);
+    }
+    
+    // Делаем прямой запрос на API для получения всех транзакций
+    const response = await correctApiRequest(`/api/transactions?user_id=${userId}&limit=${limit}&offset=${offset}`, 'GET');
     
     console.log('[transactionService] Получен ответ API для TON транзакций:', JSON.stringify(response));
     
@@ -240,9 +275,22 @@ export async function fetchTonTransactions(
     }
     
     // Преобразуем данные в нужный формат
-    return tonTransactions.map((tx: any) => formatTransaction(tx));
+    const formattedTransactions = tonTransactions.map((tx: any) => formatTransaction(tx));
+    
+    // Сохраняем в кеш
+    cacheService.set(cacheKey, formattedTransactions, CACHE_CONFIG.TRANSACTIONS_TTL);
+    
+    return formattedTransactions;
   } catch (error) {
     console.error('[transactionService] Ошибка в fetchTonTransactions:', error);
+    
+    // Пытаемся вернуть кешированные данные при ошибке
+    const cachedError = cacheService.get<Transaction[]>(cacheKey);
+    if (cachedError) {
+      console.log('[transactionService] Возвращаем кешированные TON транзакции после ошибки');
+      return cachedError;
+    }
+    
     return []; // Возвращаем пустой массив вместо выброса ошибки для устойчивости
   }
 }

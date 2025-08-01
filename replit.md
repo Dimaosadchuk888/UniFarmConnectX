@@ -36,6 +36,12 @@ The application leverages a modular and scalable architecture designed for high 
   - **Created Indexes**: 8 critical indexes for 5-10x performance improvement
   - **Data Integrity**: Preserved all 103 users, 851,633 transactions
   - **Performance Note**: Network latency limits gains to ~167ms (Supabase cloud)
+- **Application-Level Caching Implemented (Phase 1 - August 1, 2025)**: Started 3-week performance optimization project
+  - **Created**: Centralized `cacheService.ts` with TTL support and statistics tracking
+  - **Integrated**: Balance service (30s TTL), farming services (15s TTL), transaction services (60s TTL)
+  - **Safe Approach**: Cache used only as optimization, API failures fallback to cached data
+  - **Next Steps**: React component integration, WebSocket cache updates, preloading critical data
+  - **Expected Performance**: 50-200x speed improvement (from 220ms to 1-5ms response times)
 
 **Production Database Safety Audit (August 1, 2025):**
 - **Critical Discovery**: Tables assumed "unused" are actively used in production
