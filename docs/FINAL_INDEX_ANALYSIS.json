@@ -1,0 +1,52 @@
+{
+  "timestamp": "2025-08-01T19:08:31.288Z",
+  "total_indexes": 30,
+  "our_indexes": {
+    "count": 8,
+    "all_created": true,
+    "list": [
+      "idx_users_telegram_id",
+      "idx_transactions_user_id__created_at_desc",
+      "idx_users_balance_uni__balance_ton",
+      "idx_users_uni_farming_active",
+      "idx_users_referred_by",
+      "idx_transactions_type",
+      "idx_withdraw_requests_status",
+      "idx_withdraw_requests_user_id"
+    ]
+  },
+  "duplicates": [
+    {
+      "table": "ton_farming_data",
+      "field": "user_id",
+      "indexes": [
+        "idx_ton_farming_user",
+        "idx_ton_farming_user_id"
+      ]
+    },
+    {
+      "table": "uni_farming_data",
+      "field": "user_id",
+      "indexes": [
+        "idx_uni_farming_user",
+        "idx_uni_farming_user_id"
+      ]
+    }
+  ],
+  "tables_with_indexes": [
+    "airdrop_missions",
+    "missions",
+    "referrals",
+    "ton_farming_data",
+    "transactions",
+    "uni_farming_data",
+    "users",
+    "withdraw_requests"
+  ],
+  "recommendations": [
+    "Все необходимые индексы созданы",
+    "Удалите дублирующиеся индексы для оптимизации",
+    "Обновите статистику таблиц командой ANALYZE",
+    "Рассмотрите кеширование на уровне приложения"
+  ]
+}
