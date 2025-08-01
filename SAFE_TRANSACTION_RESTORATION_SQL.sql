@@ -20,7 +20,7 @@ SELECT
         ELSE 'ОК' 
     END as status
 FROM users u
-LEFT JOIN transactions t ON u.id::text = t.user_id
+LEFT JOIN transactions t ON t.user_id = u.id::text
 WHERE u.id BETWEEN 191 AND 303
     AND u.balance_ton > 0
 GROUP BY u.id, u.balance_ton, u.created_at
@@ -32,7 +32,7 @@ SELECT
     COUNT(*) as users_need_restoration,
     SUM(u.balance_ton) as total_ton_to_restore
 FROM users u
-LEFT JOIN transactions t ON u.id::text = t.user_id AND t.type = 'TON_DEPOSIT'
+LEFT JOIN transactions t ON t.user_id = u.id::text AND t.type = 'TON_DEPOSIT'
 WHERE u.id BETWEEN 191 AND 303
     AND u.balance_ton > 0
     AND t.id IS NULL;
@@ -87,7 +87,7 @@ SELECT
         'data_source', 'user_balance_table'
     ) as metadata
 FROM users u
-LEFT JOIN transactions t ON u.id::text = t.user_id AND t.type = 'TON_DEPOSIT'
+LEFT JOIN transactions t ON t.user_id = u.id::text AND t.type = 'TON_DEPOSIT'
 WHERE u.id BETWEEN 191 AND 303
     AND u.balance_ton > 0
     AND t.id IS NULL  -- Только если нет существующих TON_DEPOSIT транзакций
@@ -104,7 +104,7 @@ SELECT
     MAX(CASE WHEN t.type = 'TON_DEPOSIT' THEN t.amount END) as restored_amount,
     MAX(CASE WHEN t.type = 'TON_DEPOSIT' THEN t.created_at END) as restoration_date
 FROM users u
-LEFT JOIN transactions t ON u.id::text = t.user_id
+LEFT JOIN transactions t ON t.user_id = u.id::text
 WHERE u.id BETWEEN 191 AND 303
     AND u.balance_ton > 0
 GROUP BY u.id, u.balance_ton
