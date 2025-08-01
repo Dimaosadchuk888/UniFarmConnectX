@@ -100,32 +100,51 @@ export class UnifiedTransactionService {
       const amount = amount_uni > 0 ? amount_uni : amount_ton;
       const transactionCurrency = amount_uni > 0 ? 'UNI' : 'TON';
 
-      // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ
+      // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ (УСИЛЕННАЯ)
       // Проверяем существование записи с таким же tx_hash_unique
       const txHashToCheck = metadata?.tx_hash || metadata?.ton_tx_hash;
       if (txHashToCheck) {
         logger.info('[UnifiedTransactionService] Проверка дублирования для tx_hash:', txHashToCheck);
         
-        const { data: existingTransaction, error: checkError } = await supabase
+        // Множественная проверка дублирования
+        const { data: existingTransactions, error: checkError } = await supabase
           .from('transactions')
-          .select('id, created_at, user_id, amount_ton')
-          .eq('tx_hash_unique', txHashToCheck)
-          .single();
+          .select('id, created_at, user_id, amount_ton, type, description')
+          .or(`tx_hash_unique.eq.${txHashToCheck},metadata->>tx_hash.eq.${txHashToCheck},metadata->>ton_tx_hash.eq.${txHashToCheck}`)
+          .order('created_at', { ascending: false });
           
-        if (existingTransaction && !checkError) {
-          logger.warn('[UnifiedTransactionService] ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО:', {
-            existing_id: existingTransaction.id,
-            existing_date: existingTransaction.created_at,
-            existing_user: existingTransaction.user_id,
-            existing_amount: existingTransaction.amount_ton,
+        if (existingTransactions && existingTransactions.length > 0 && !checkError) {
+          const existing = existingTransactions[0];
+          logger.warn('[UnifiedTransactionService] ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО (УСИЛЕННАЯ ПРОВЕРКА):', {
+            existing_id: existing.id,
+            existing_date: existing.created_at,
+            existing_user: existing.user_id,
+            existing_amount: existing.amount_ton,
+            existing_type: existing.type,
             attempted_user: user_id,
             attempted_amount: amount_ton,
-            tx_hash: txHashToCheck
+            attempted_type: type,
+            tx_hash: txHashToCheck,
+            total_found: existingTransactions.length
           });
+          
+          // Дополнительная проверка на короткие интервалы времени для одного пользователя
+          const recentDuplicates = existingTransactions.filter(tx => 
+            tx.user_id === user_id && 
+            (new Date().getTime() - new Date(tx.created_at).getTime()) < 30000 // 30 секунд
+          );
+          
+          if (recentDuplicates.length > 0) {
+            logger.error('[UnifiedTransactionService] КРИТИЧЕСКОЕ ДУБЛИРОВАНИЕ - Попытка повторного депозита в течение 30 секунд!', {
+              user_id,
+              tx_hash: txHashToCheck,
+              recent_duplicates: recentDuplicates.length
+            });
+          }
           
           return { 
             success: false, 
-            error: 'Транзакция с таким hash уже существует'
+            error: `Транзакция с hash ${txHashToCheck.substring(0, 20)}... уже существует`
           };
         }
         

@@ -433,14 +433,20 @@ export async function sendTonTransaction(
       try {
         const { correctApiRequest } = await import('@/lib/correctApiRequest');
         
+        // 🚨 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем уникальный идентификатор для предотвращения дублей
+        const uniqueDepositId = `${result.boc}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
         console.log('[TON_DEPOSIT_FIX] Отправка депозита на backend...', {
           txHash: result.boc,
+          uniqueId: uniqueDepositId,
           amount: tonAmount,
-          walletAddress: tonConnectUI.account?.address || 'unknown'
+          walletAddress: tonConnectUI.account?.address || 'unknown',
+          bocLength: result.boc.length,
+          isBocData: result.boc.startsWith('te6')
         });
         
         const backendResponse = await correctApiRequest('/api/v2/wallet/ton-deposit', 'POST', {
-          ton_tx_hash: result.boc,
+          ton_tx_hash: uniqueDepositId, // Используем уникальный ID вместо BOC
           amount: tonAmount,
           wallet_address: tonConnectUI.account?.address || 'unknown'
         });

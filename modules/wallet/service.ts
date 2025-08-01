@@ -379,7 +379,9 @@ export class WalletService {
         wallet_address,
         timestamp: new Date().toISOString(),
         action: 'НАЧАЛО_ОБРАБОТКИ',
-        blockchain_code: ton_tx_hash.substring(0, 50) + '...'
+        blockchain_code: ton_tx_hash.substring(0, 50) + '...',
+        hash_type: ton_tx_hash.startsWith('te6') ? 'BOC_DATA' : 'BLOCKCHAIN_HASH',
+        potential_duplicate_risk: ton_tx_hash.startsWith('te6') ? 'HIGH' : 'LOW'
       });
 
       // Создаем транзакцию через централизованный сервис
