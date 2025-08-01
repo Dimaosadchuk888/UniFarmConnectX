@@ -17,7 +17,7 @@ const TRANSACTION_TYPE_MAPPING: Record<ExtendedTransactionType, TransactionsTran
   'WITHDRAWAL': 'WITHDRAWAL',              // Добавлен прямой маппинг для выводов
   'DEPOSIT': 'DEPOSIT',                    // Добавлен прямой маппинг для депозитов
   'BOOST_PAYMENT': 'BOOST_PAYMENT',        // Добавлен прямой маппинг для платежей
-  'TON_DEPOSIT': 'FARMING_REWARD',         // 🔥 ВОССТАНОВЛЕНО: TON депозиты мапятся в FARMING_REWARD как в июле 2025
+  'TON_DEPOSIT': 'TON_DEPOSIT',            // 🚨 КРИТИЧНО: НЕ мапить в FARMING_REWARD! Это создает двойное начисление!
   'TON_BOOST_PURCHASE': 'TON_BOOST_PURCHASE', // TON Boost покупки → TON_BOOST_PURCHASE
   // Маппинг расширенных типов на базовые
   'TON_BOOST_INCOME': 'FARMING_REWARD',   // TON Boost доходы → FARMING_REWARD
