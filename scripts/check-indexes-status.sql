@@ -19,10 +19,10 @@ UNION ALL
 
 -- 2. Проверяем наличие всех нужных индексов
 SELECT 
-    'Основные индексы' as category,
+   ablename,
+    ' 'Основные индексы' as category,
     indexname,
-    tablename,
-    '✅ Существует' as status
+    t✅ Существует' as status
 FROM pg_indexes 
 WHERE schemaname = 'public' 
   AND indexname IN (

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-01T19:17:22.543Z",
+  "timestamp": "2025-08-01T19:22:00.009Z",
   "indexes": {
     "status": "✅ Дубликаты удалены, основные индексы на месте",
     "duplicates": 0,
@@ -9,26 +9,26 @@
     "tests": [
       {
         "name": "Поиск по telegram_id",
-        "time": 566
+        "time": 324
       },
       {
         "name": "История транзакций (50)",
-        "time": 302
+        "time": 206
       },
       {
         "name": "Фильтр TON депозитов",
-        "time": 292
+        "time": 197
       },
       {
         "name": "Активные UNI фермеры",
-        "time": 308
+        "time": 191
       },
       {
         "name": "TON farming запрос",
-        "time": 280
+        "time": 180
       }
     ],
-    "avgTime": 349.6
+    "avgTime": 219.6
   },
   "dataIntegrity": {
     "status": "✅ Данные целостны",
