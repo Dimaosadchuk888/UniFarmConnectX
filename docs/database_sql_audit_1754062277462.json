@@ -1,0 +1,70 @@
+{
+  "timestamp": "2025-08-01T15:31:07.858Z",
+  "database_statistics": {
+    "users": {
+      "total_count": 0,
+      "with_uni_balance": 0,
+      "with_ton_balance": 0,
+      "active_farmers": 0,
+      "ton_boost_active": 0
+    },
+    "transactions": {
+      "total_count": 0,
+      "unique_types": [
+        "FARMING_REWARD"
+      ],
+      "types_count": 1
+    },
+    "withdraw_requests": {
+      "total_count": 0,
+      "pending_count": 0
+    },
+    "special_tables": {
+      "uni_farming_data": 0,
+      "ton_farming_data": 0,
+      "referrals": 0,
+      "user_sessions": 0
+    }
+  },
+  "data_patterns": {
+    "referral_duplication": {
+      "users_with_referred_by": 0,
+      "users_with_parent_ref_code": 0,
+      "referrals_table_count": 0,
+      "analysis": "Реферальные данные хранятся в users, таблица referrals не используется"
+    },
+    "transaction_types": {
+      "FARMING_REWARD": 1000
+    }
+  },
+  "issues": [
+    {
+      "severity": "HIGH",
+      "type": "SCHEMA_MISMATCH",
+      "description": "Таблица transactions использует старую структуру (type, amount_uni, amount_ton) вместо новой из schema.ts",
+      "impact": "Код может работать некорректно с новыми типами транзакций"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "title": "Миграция структуры транзакций",
+      "description": "Обновить таблицу transactions согласно schema.ts или обновить schema.ts под текущую структуру БД"
+    },
+    {
+      "priority": "MEDIUM",
+      "title": "Оптимизация хранения фарминг-данных",
+      "description": "Перенести данные фарминга из users в специализированные таблицы для лучшей производительности"
+    },
+    {
+      "priority": "MEDIUM",
+      "title": "Удаление неиспользуемых таблиц",
+      "description": "Удалить таблицы referrals, user_sessions, uni_farming_data, ton_farming_data если они не планируются к использованию"
+    },
+    {
+      "priority": "LOW",
+      "title": "Стандартизация типов данных",
+      "description": "Использовать числовые типы для балансов вместо строк"
+    }
+  ]
+}

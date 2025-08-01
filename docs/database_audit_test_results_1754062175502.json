@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-08-01T15:29:35.502Z",
+  "environment": "development",
+  "scenarios_total": 1,
+  "scenarios_passed": 0,
+  "scenarios_failed": 1,
+  "results": [
+    {
+      "scenario": "Регистрация пользователя",
+      "status": "failed",
+      "details": {},
+      "errors": [
+        "duplicate key value violates unique constraint \"users_telegram_id_key\""
+      ]
+    }
+  ]
+}
