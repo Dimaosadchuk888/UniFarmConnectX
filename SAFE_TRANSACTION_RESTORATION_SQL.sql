@@ -20,7 +20,7 @@ SELECT
         ELSE 'ОК' 
     END as status
 FROM users u
-LEFT JOIN transactions t ON t.user_id = u.id::text
+LEFT JOIN transactions t ON t.user_id = u.id
 WHERE u.id BETWEEN 191 AND 303
     AND u.balance_ton > 0
 GROUP BY u.id, u.balance_ton, u.created_at
@@ -32,7 +32,7 @@ SELECT
     COUNT(*) as users_need_restoration,
     SUM(u.balance_ton) as total_ton_to_restore
 FROM users u
-LEFT JOIN transactions t ON t.user_id = u.id::text AND t.type = 'TON_DEPOSIT'
+LEFT JOIN transactions t ON t.user_id = u.id AND t.type = 'TON_DEPOSIT'
 WHERE u.id BETWEEN 191 AND 303
     AND u.balance_ton > 0
     AND t.id IS NULL;
@@ -41,13 +41,12 @@ WHERE u.id BETWEEN 191 AND 303
 SELECT 
     user_id,
     type,
-    amount,
-    currency,
+    amount_ton,
     created_at
 FROM transactions 
-WHERE user_id::int BETWEEN 191 AND 303
+WHERE user_id BETWEEN 191 AND 303
     AND type = 'TON_DEPOSIT'
-ORDER BY user_id::int, created_at;
+ORDER BY user_id, created_at;
 
 -- ==========================================
 -- 🛠️ ОСНОВНОЙ SQL ДЛЯ ВОССТАНОВЛЕНИЯ
@@ -60,34 +59,20 @@ ORDER BY user_id::int, created_at;
 INSERT INTO transactions (
     user_id,
     type,
-    amount,
-    currency,
-    status,
+    amount_ton,
+    amount_uni,
     description,
-    created_at,
-    updated_at,
-    metadata
+    created_at
 )
 SELECT 
-    u.id::text as user_id,
+    u.id as user_id,
     'TON_DEPOSIT' as type,
-    u.balance_ton as amount,
-    'TON' as currency,
-    'completed' as status,
+    u.balance_ton as amount_ton,
+    0 as amount_uni,
     CONCAT('Historical TON deposit restoration - User ', u.id, ' (', u.balance_ton, ' TON)') as description,
-    u.created_at + INTERVAL '1 hour' as created_at, -- Создаем через час после регистрации
-    NOW() as updated_at,
-    jsonb_build_object(
-        'restoration_type', 'historical_deposit',
-        'original_balance', u.balance_ton,
-        'restored_at', NOW(),
-        'restoration_reason', 'Missing transaction history for accounts 191-303 created before API integration',
-        'user_registration_date', u.created_at,
-        'confidence_level', 'high',
-        'data_source', 'user_balance_table'
-    ) as metadata
+    u.created_at + INTERVAL '1 hour' as created_at -- Создаем через час после регистрации
 FROM users u
-LEFT JOIN transactions t ON t.user_id = u.id::text AND t.type = 'TON_DEPOSIT'
+LEFT JOIN transactions t ON t.user_id = u.id AND t.type = 'TON_DEPOSIT'
 WHERE u.id BETWEEN 191 AND 303
     AND u.balance_ton > 0
     AND t.id IS NULL  -- Только если нет существующих TON_DEPOSIT транзакций
@@ -101,10 +86,10 @@ SELECT
     u.balance_ton,
     COUNT(t.id) as total_transactions,
     COUNT(CASE WHEN t.type = 'TON_DEPOSIT' THEN 1 END) as ton_deposit_count,
-    MAX(CASE WHEN t.type = 'TON_DEPOSIT' THEN t.amount END) as restored_amount,
+    MAX(CASE WHEN t.type = 'TON_DEPOSIT' THEN t.amount_ton END) as restored_amount,
     MAX(CASE WHEN t.type = 'TON_DEPOSIT' THEN t.created_at END) as restoration_date
 FROM users u
-LEFT JOIN transactions t ON t.user_id = u.id::text
+LEFT JOIN transactions t ON t.user_id = u.id
 WHERE u.id BETWEEN 191 AND 303
     AND u.balance_ton > 0
 GROUP BY u.id, u.balance_ton
@@ -113,13 +98,13 @@ ORDER BY u.id;
 -- 🔍 ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Соответствие балансов
 SELECT 
     user_id,
-    SUM(CASE WHEN type = 'TON_DEPOSIT' THEN amount ELSE 0 END) as total_deposits,
-    SUM(CASE WHEN type LIKE '%WITHDRAWAL%' THEN -amount ELSE 0 END) as total_withdrawals,
-    SUM(CASE WHEN type IN ('FARMING_REWARD', 'REFERRAL_REWARD') AND currency = 'TON' THEN amount ELSE 0 END) as total_rewards
+    SUM(CASE WHEN type = 'TON_DEPOSIT' THEN amount_ton ELSE 0 END) as total_deposits,
+    SUM(CASE WHEN type LIKE '%WITHDRAWAL%' THEN -amount_ton ELSE 0 END) as total_withdrawals,
+    SUM(CASE WHEN type IN ('FARMING_REWARD', 'REFERRAL_REWARD') THEN amount_ton ELSE 0 END) as total_rewards
 FROM transactions 
-WHERE user_id::int BETWEEN 191 AND 303
+WHERE user_id BETWEEN 191 AND 303
 GROUP BY user_id
-ORDER BY user_id::int;
+ORDER BY user_id;
 
 -- ==========================================
 -- 📋 ИНСТРУКЦИИ ПО БЕЗОПАСНОМУ ЗАПУСКУ:
