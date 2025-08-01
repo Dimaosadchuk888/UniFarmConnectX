@@ -1,200 +1,243 @@
 import { supabase } from './core/supabaseClient';
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function findRootCauseMissingTransactions() {
-  console.log('🔍 ПОИСК КОРНЕВОЙ ПРИЧИНЫ ПРОПАДАЮЩИХ ТРАНЗАКЦИЙ');
-  console.log('='.repeat(70));
+  console.log('🔍 ПОИСК КОРНЕВОЙ ПРИЧИНЫ ОТСУТСТВУЮЩИХ ТРАНЗАКЦИЙ');
+  console.log('='.repeat(80));
 
   try {
-    // 1. Анализируем паттерн - когда транзакции создаются, а когда нет
-    console.log('\n1️⃣ АНАЛИЗ ПАТТЕРНА: КОГДА СОЗДАЮТСЯ ТРАНЗАКЦИИ?');
+    // 1. ПОИСК ВСЕХ СПОСОБОВ ОБНОВЛЕНИЯ balance_ton
+    console.log('\n1️⃣ ПОИСК ВСЕХ ПУТЕЙ ОБНОВЛЕНИЯ balance_ton:');
     
-    // Ищем пользователей с транзакциями и без
-    const { data: usersWithTx, error: withTxError } = await supabase
-      .from('transactions')
-      .select('user_id, type, created_at, amount_ton')
-      .gte('user_id', 191)
-      .lte('user_id', 303)
-      .in('type', ['TON_DEPOSIT', 'BOOST_PURCHASE', 'FARMING_REWARD'])
-      .order('created_at', { ascending: true });
+    const searchDirs = ['./modules', './core', './server', './scripts'];
+    const balanceUpdatePaths: string[] = [];
+    
+    searchDirs.forEach(dir => {
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir, { recursive: true });
+        
+        files.forEach(file => {
+          if (typeof file === 'string' && file.endsWith('.ts')) {
+            const filePath = path.join(dir, file);
+            if (fs.existsSync(filePath)) {
+              const content = fs.readFileSync(filePath, 'utf8');
+              
+              // Ищем обновления balance_ton
+              const lines = content.split('\n');
+              lines.forEach((line, idx) => {
+                if (line.includes('balance_ton') && 
+                    (line.includes('+=') || line.includes('UPDATE') || 
+                     line.includes('update') || line.includes('SET') ||
+                     line.includes('increment') || line.includes('add'))) {
+                  balanceUpdatePaths.push(`${file}:${idx + 1} - ${line.trim()}`);
+                }
+              });
+            }
+          }
+        });
+      }
+    });
+    
+    console.log(`📊 Найдено путей обновления balance_ton: ${balanceUpdatePaths.length}`);
+    balanceUpdatePaths.slice(0, 15).forEach(path => {
+      console.log(`   🔍 ${path}`);
+    });
 
-    const { data: allUsers191_303, error: allUsersError } = await supabase
-      .from('users')
-      .select('id, balance_ton, ton_boost_active, created_at')
-      .gte('id', 191)
-      .lte('id', 303)
-      .gt('balance_ton', 0);
+    // 2. ПОИСК SCHEDULER ОПЕРАЦИЙ
+    console.log('\n2️⃣ ПОИСК SCHEDULER/CRON ЗАДАЧ:');
+    
+    const schedulerFiles = [
+      './core/scheduler.ts',
+      './modules/farming/scheduler.ts', 
+      './server/scheduler.ts',
+      './core/cronJobs.ts',
+      './modules/blockchain/scheduler.ts'
+    ];
+    
+    schedulerFiles.forEach(filePath => {
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        
+        console.log(`   ✅ ${filePath}: НАЙДЕН`);
+        
+        // Ищем TON-связанные операции
+        const lines = content.split('\n');
+        lines.forEach((line, idx) => {
+          if (line.includes('TON') || line.includes('balance_ton') || line.includes('blockchain')) {
+            console.log(`     Line ${idx + 1}: ${line.trim()}`);
+          }
+        });
+      } else {
+        console.log(`   ❌ ${filePath}: НЕ НАЙДЕН`);
+      }
+    });
 
-    if (!withTxError && !allUsersError && usersWithTx && allUsers191_303) {
-      const usersWithTransactions = new Set(usersWithTx.map(tx => tx.user_id));
-      const usersWithoutTransactions = allUsers191_303.filter(u => !usersWithTransactions.has(u.id));
+    // 3. ПОИСК WEBHOOK ОБРАБОТЧИКОВ
+    console.log('\n3️⃣ ПОИСК WEBHOOK ОБРАБОТЧИКОВ:');
+    
+    const webhookPaths = [
+      './server/webhooks',
+      './modules/blockchain/webhooks',
+      './core/webhooks.ts',
+      './server/index.ts'
+    ];
+    
+    webhookPaths.forEach(webhookPath => {
+      if (fs.existsSync(webhookPath)) {
+        console.log(`   ✅ ${webhookPath}: НАЙДЕН`);
+        
+        if (fs.statSync(webhookPath).isFile()) {
+          const content = fs.readFileSync(webhookPath, 'utf8');
+          
+          // Ищем webhook маршруты
+          const lines = content.split('\n');
+          lines.forEach((line, idx) => {
+            if (line.includes('/webhook') || line.includes('webhook') || 
+                line.includes('TON') || line.includes('blockchain')) {
+              console.log(`     Line ${idx + 1}: ${line.trim()}`);
+            }
+          });
+        } else {
+          // Это директория
+          const files = fs.readdirSync(webhookPath);
+          console.log(`     Файлы: ${files.join(', ')}`);
+        }
+      } else {
+        console.log(`   ❌ ${webhookPath}: НЕ НАЙДЕН`);
+      }
+    });
+
+    // 4. АНАЛИЗ BATCH PROCESSOR
+    console.log('\n4️⃣ АНАЛИЗ BatchBalanceProcessor:');
+    
+    const batchProcessorPath = './core/BatchBalanceProcessor.ts';
+    if (fs.existsSync(batchProcessorPath)) {
+      const content = fs.readFileSync(batchProcessorPath, 'utf8');
       
-      console.log(`📊 СТАТИСТИКА:`);
-      console.log(`   Пользователей с TON балансом: ${allUsers191_303.length}`);
-      console.log(`   Пользователей с транзакциями: ${usersWithTransactions.size}`);
-      console.log(`   Пользователей БЕЗ транзакций: ${usersWithoutTransactions.length}`);
+      console.log('   ✅ BatchBalanceProcessor НАЙДЕН');
       
-      // Анализируем временные паттерны
-      console.log('\n⏰ ВРЕМЕННЫЕ ПАТТЕРНЫ:');
+      // Ищем TON операции
+      const lines = content.split('\n');
+      let tonOperations = 0;
       
-      const txByDate: { [key: string]: number } = {};
-      const usersByDate: { [key: string]: number } = {};
-      
-      usersWithTx.forEach(tx => {
-        const date = tx.created_at.split('T')[0];
-        txByDate[date] = (txByDate[date] || 0) + 1;
+      lines.forEach((line, idx) => {
+        if (line.includes('ton_increment') || line.includes('balance_ton')) {
+          tonOperations++;
+          console.log(`     Line ${idx + 1}: ${line.trim()}`);
+        }
       });
       
-      allUsers191_303.forEach(user => {
-        const date = user.created_at.split('T')[0];
-        usersByDate[date] = (usersByDate[date] || 0) + 1;
-      });
+      console.log(`   📊 TON операций в BatchProcessor: ${tonOperations}`);
+    } else {
+      console.log('   ❌ BatchBalanceProcessor НЕ НАЙДЕН');
+    }
+
+    // 5. ПОИСК АЛЬТЕРНАТИВНЫХ API ЭНДПОИНТОВ
+    console.log('\n5️⃣ ПОИСК АЛЬТЕРНАТИВНЫХ API ДЛЯ ДЕПОЗИТОВ:');
+    
+    // Проверяем server/index.ts на прямые API
+    const serverIndexPath = './server/index.ts';
+    if (fs.existsSync(serverIndexPath)) {
+      const content = fs.readFileSync(serverIndexPath, 'utf8');
       
-      const allDates = [...new Set([...Object.keys(txByDate), ...Object.keys(usersByDate)])].sort();
+      console.log('   📁 Анализ server/index.ts:');
       
-      console.log('   Дата       | Пользователи | Транзакции | % с транзакциями');
-      console.log('   -----------|--------------|------------|----------------');
-      
-      allDates.forEach(date => {
-        const users = usersByDate[date] || 0;
-        const txs = txByDate[date] || 0;
-        const percentage = users > 0 ? Math.round((txs / users) * 100) : 0;
-        console.log(`   ${date} |     ${users.toString().padStart(2)}       |     ${txs.toString().padStart(2)}     |      ${percentage}%`);
+      const lines = content.split('\n');
+      lines.forEach((line, idx) => {
+        if ((line.includes('app.post') || line.includes('router.post')) && 
+            (line.includes('deposit') || line.includes('ton') || line.includes('TON'))) {
+          console.log(`     Line ${idx + 1}: ${line.trim()}`);
+        }
       });
     }
 
-    // 2. Анализируем новых пользователей (последние 7 дней)
-    console.log('\n2️⃣ АНАЛИЗ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ (ПОСЛЕДНИЕ 7 ДНЕЙ):');
+    // 6. ПРОВЕРКА ЛОГОВ НА РЕАЛЬНЫЕ ОБНОВЛЕНИЯ БАЛАНСА
+    console.log('\n6️⃣ ПОИСК РЕАЛЬНЫХ ОБНОВЛЕНИЙ БАЛАНСА В ЛОГАХ:');
     
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    
-    const { data: recentUsers, error: recentError } = await supabase
+    // Ищем недавние обновления пользователей с TON балансом
+    const { data: recentUpdates, error: updatesError } = await supabase
       .from('users')
-      .select('id, balance_ton, ton_boost_active, created_at')
-      .gte('created_at', sevenDaysAgo)
-      .order('id', { ascending: false })
-      .limit(20);
+      .select('id, balance_ton, updated_at')
+      .gt('balance_ton', 0)
+      .gte('id', 191)
+      .lte('id', 303)
+      .order('updated_at', { ascending: false })
+      .limit(10);
 
-    if (!recentError && recentUsers && recentUsers.length > 0) {
-      console.log(`👥 Новых пользователей за 7 дней: ${recentUsers.length}`);
+    if (!updatesError && recentUpdates) {
+      console.log(`📊 Последние обновления balance_ton: ${recentUpdates.length}`);
       
-      // Проверяем транзакции новых пользователей
-      const recentUserIds = recentUsers.map(u => u.id);
+      recentUpdates.forEach(user => {
+        console.log(`   User ${user.id}: ${user.balance_ton} TON [${user.updated_at.split('T')[0]}]`);
+      });
       
-      const { data: recentTransactions, error: recentTxError } = await supabase
-        .from('transactions')
-        .select('user_id, type, amount_ton, created_at')
-        .in('user_id', recentUserIds)
-        .order('created_at', { ascending: false });
-
-      if (!recentTxError) {
-        const recentUsersWithTx = new Set(recentTransactions?.map(tx => tx.user_id) || []);
-        const recentUsersWithoutTx = recentUsers.filter(u => !recentUsersWithTx.has(u.id));
+      // Для каждого пользователя ищем когда последний раз обновлялся баланс
+      if (recentUpdates.length > 0) {
+        const latestUpdate = recentUpdates[0];
+        const updateDate = new Date(latestUpdate.updated_at);
+        const daysSinceUpdate = Math.floor((Date.now() - updateDate.getTime()) / (1000 * 60 * 60 * 24));
         
-        console.log('\n📈 СТАТИСТИКА НОВЫХ ПОЛЬЗОВАТЕЛЕЙ:');
-        console.log(`   С транзакциями: ${recentUsersWithTx.size}`);
-        console.log(`   БЕЗ транзакций: ${recentUsersWithoutTx.length}`);
-        console.log(`   Процент БЕЗ транзакций: ${Math.round((recentUsersWithoutTx.length / recentUsers.length) * 100)}%`);
+        console.log(`\n   📅 Последнее обновление: ${daysSinceUpdate} дней назад`);
         
-        if (recentUsersWithoutTx.length > 0) {
-          console.log('\n❌ НОВЫЕ ПОЛЬЗОВАТЕЛИ БЕЗ ТРАНЗАКЦИЙ:');
-          recentUsersWithoutTx.slice(0, 5).forEach(user => {
-            console.log(`   User ${user.id}: TON=${user.balance_ton}, Boost=${user.ton_boost_active}, создан=${user.created_at.split('T')[0]}`);
-          });
-          
-          console.log('\n🚨 ПРОБЛЕМА ПРОДОЛЖАЕТСЯ! Новые пользователи тоже теряют транзакции!');
+        if (daysSinceUpdate < 7) {
+          console.log('   ✅ Балансы обновляются АКТИВНО');
         } else {
-          console.log('\n✅ Все новые пользователи имеют транзакции - проблема решена в коде');
+          console.log('   ⚠️ Балансы НЕ обновлялись долго');
         }
       }
     }
 
-    // 3. Проверяем самые свежие операции депозитов
-    console.log('\n3️⃣ АНАЛИЗ СВЕЖИХ ДЕПОЗИТНЫХ ОПЕРАЦИЙ:');
+    // 7. ФИНАЛЬНЫЙ АНАЛИЗ - ОТКУДА БЕРУТСЯ БАЛАНСЫ
+    console.log('\n7️⃣ ФИНАЛЬНЫЙ АНАЛИЗ ИСТОЧНИКОВ БАЛАНСОВ:');
     
-    const { data: recentDeposits, error: depositError } = await supabase
-      .from('transactions')
-      .select('user_id, type, amount_ton, created_at, description')
-      .in('type', ['TON_DEPOSIT', 'BOOST_PURCHASE'])
-      .gte('created_at', sevenDaysAgo)
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    if (!depositError && recentDeposits && recentDeposits.length > 0) {
-      console.log(`💰 Депозитных операций за 7 дней: ${recentDeposits.length}`);
-      
-      recentDeposits.forEach((tx, idx) => {
-        console.log(`   ${idx + 1}. User ${tx.user_id}: ${tx.type} ${tx.amount_ton} TON [${tx.created_at.split('T')[0]}]`);
-      });
-    } else {
-      console.log('❌ НИ ОДНОЙ депозитной операции за последние 7 дней!');
-      console.log('🚨 ЭТО ОЗНАЧАЕТ: Проблема в коде НЕ исправлена, депозиты не создают транзакции!');
-    }
-
-    // 4. Тестируем текущее API депозитов (эмуляция)
-    console.log('\n4️⃣ ПРОВЕРКА ТЕКУЩЕГО СОСТОЯНИЯ API:');
+    // Проверяем есть ли прямые SQL операции в коде
+    const directSqlPaths: string[] = [];
     
-    // Проверяем последние обновления балансов
-    const { data: recentBalanceUpdates, error: balanceError } = await supabase
-      .from('users')
-      .select('id, balance_ton, updated_at, created_at')
-      .gte('updated_at', sevenDaysAgo)
-      .gt('balance_ton', 0)
-      .order('updated_at', { ascending: false })
-      .limit(10);
-
-    if (!balanceError && recentBalanceUpdates && recentBalanceUpdates.length > 0) {
-      console.log(`⚡ Обновлений TON балансов за 7 дней: ${recentBalanceUpdates.length}`);
-      
-      // Сопоставляем обновления балансов с транзакциями
-      for (const update of recentBalanceUpdates.slice(0, 5)) {
-        const { data: userTransactions } = await supabase
-          .from('transactions')
-          .select('type, amount_ton, created_at')
-          .eq('user_id', update.id)
-          .gte('created_at', update.updated_at)
-          .in('type', ['TON_DEPOSIT', 'BOOST_PURCHASE']);
-
-        const hasMatchingTx = userTransactions && userTransactions.length > 0;
+    searchDirs.forEach(dir => {
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir, { recursive: true });
         
-        console.log(`   User ${update.id}: баланс=${update.balance_ton} TON, обновлен=${update.updated_at.split('T')[0]}`);
-        console.log(`     Транзакция создана: ${hasMatchingTx ? '✅ ДА' : '❌ НЕТ'}`);
+        files.forEach(file => {
+          if (typeof file === 'string' && file.endsWith('.ts')) {
+            const filePath = path.join(dir, file);
+            if (fs.existsSync(filePath)) {
+              const content = fs.readFileSync(filePath, 'utf8');
+              
+              if (content.includes('supabase') && content.includes('update') && 
+                  content.includes('balance_ton')) {
+                directSqlPaths.push(file);
+              }
+            }
+          }
+        });
       }
-    }
-
-    // 5. ИТОГОВЫЙ ДИАГНОЗ И ПЛАН ДЕЙСТВИЙ
-    console.log('\n5️⃣ ИТОГОВЫЙ ДИАГНОЗ:');
+    });
     
-    console.log('\n🎯 КОРНЕВАЯ ПРИЧИНА:');
-    console.log('   API обработки депозитов работает в двух режимах:');
-    console.log('   1. ПОЛНЫЙ режим: обновляет баланс + создает транзакцию');
-    console.log('   2. БЫСТРЫЙ режим: только обновляет баланс (БЕЗ транзакций)');
-    console.log('   Переключение между режимами происходит непредсказуемо');
+    console.log(`📊 Файлы с прямыми SQL обновлениями balance_ton: ${directSqlPaths.length}`);
+    directSqlPaths.slice(0, 10).forEach(file => {
+      console.log(`   🔍 ${file}`);
+    });
 
-    console.log('\n🔧 ГДЕ ИСКАТЬ ПРОБЛЕМУ:');
-    console.log('   1. modules/wallet/service.ts - метод processTonDeposit()');
-    console.log('   2. core/TransactionService.ts - условия создания транзакций');
-    console.log('   3. modules/boost/service.ts - обработка покупки TON Boost');
-    console.log('   4. Проверить try-catch блоки с silent fail');
-
-    console.log('\n⚠️ КРИТИЧЕСКАЯ ПРОБЛЕМА:');
-    if (recentDeposits && recentDeposits.length === 0) {
-      console.log('   НИ ОДНОЙ депозитной транзакции за 7 дней!');
-      console.log('   Это означает что ВСЕ новые депозиты "невидимы"');
-      console.log('   Проблема НЕ решена и будет продолжаться!');
-    }
-
-    console.log('\n📋 ПЛАН НЕМЕДЛЕННЫХ ДЕЙСТВИЙ:');
-    console.log('   1. СНАЧАЛА: Исправить код API депозитов');
-    console.log('   2. ПОТОМ: Восстановить исторические транзакции');
-    console.log('   3. ТЕСТИРОВАТЬ: На новых депозитах перед массовым восстановлением');
-    console.log('   4. МОНИТОРИТЬ: Что новые пользователи получают транзакции');
-
-    console.log('\n🚨 РЕКОМЕНДАЦИЯ:');
-    console.log('   НЕ восстанавливать исторические данные пока не исправлен код!');
-    console.log('   Иначе проблема будет повторяться с новыми пользователями!');
+    // 8. ВЫВОДЫ И ГИПОТЕЗЫ
+    console.log('\n8️⃣ ВЫВОДЫ И СЛЕДУЮЩИЕ ШАГИ:');
+    
+    console.log('\n🎯 ВОЗМОЖНЫЕ ИСТОЧНИКИ TON БАЛАНСОВ:');
+    console.log('   1. BatchBalanceProcessor - пакетная обработка');
+    console.log('   2. Scheduler - периодическое сканирование блокчейна');
+    console.log('   3. Webhook - уведомления из блокчейна');
+    console.log('   4. Прямые SQL операции в коде');
+    console.log('   5. Старый API в server/index.ts');
+    
+    console.log('\n🔍 ЧТО НУЖНО ПРОВЕРИТЬ ДАЛЬШЕ:');
+    console.log('   1. Работу BatchBalanceProcessor');
+    console.log('   2. Активность scheduler задач');
+    console.log('   3. Существование webhook эндпоинтов');
+    console.log('   4. Старые API в server/index.ts');
+    console.log('   5. Логи реальных обновлений баланса');
 
   } catch (error) {
-    console.error('❌ КРИТИЧЕСКАЯ ОШИБКА ПОИСКА КОРНЕВОЙ ПРИЧИНЫ:', error);
+    console.error('❌ ОШИБКА РАССЛЕДОВАНИЯ:', error);
   }
 }
 
