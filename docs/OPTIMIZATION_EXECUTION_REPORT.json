@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-08-01T18:40:29.699Z",
+  "sync": {
+    "records_updated": 21,
+    "amount_added": 211.041779,
+    "checksum_before": 113632841.502739,
+    "checksum_after": 113633118.32440001,
+    "checksum_diff": 276.82166101038456
+  },
+  "status": "COMPLETED"
+}
