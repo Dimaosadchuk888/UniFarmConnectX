@@ -8,7 +8,9 @@ export type TransactionsTransactionType =
   | 'MISSION_REWARD'     // Награды за миссии
   | 'DAILY_BONUS'        // Ежедневные бонусы + airdrop награды
   | 'WITHDRAWAL'         // Вывод средств
-  | 'DEPOSIT'            // Пополнение счета (TON/UNI)
+  | 'DEPOSIT'            // Пополнение счета (UNI)
+  | 'TON_DEPOSIT'        // Пополнение TON (отдельный тип для истории)
+  | 'TON_BOOST_PURCHASE' // Покупка TON Boost пакетов
   | 'BOOST_PAYMENT';     // Платежи за boost пакеты (НЕ обновляет баланс)
 
 // Расширенные типы транзакций

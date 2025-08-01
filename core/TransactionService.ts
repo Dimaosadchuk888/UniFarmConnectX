@@ -17,10 +17,11 @@ const TRANSACTION_TYPE_MAPPING: Record<ExtendedTransactionType, TransactionsTran
   'WITHDRAWAL': 'WITHDRAWAL',              // Добавлен прямой маппинг для выводов
   'DEPOSIT': 'DEPOSIT',                    // Добавлен прямой маппинг для депозитов
   'BOOST_PAYMENT': 'BOOST_PAYMENT',        // Добавлен прямой маппинг для платежей
+  'TON_DEPOSIT': 'TON_DEPOSIT',            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: TON депозиты должны остаться TON_DEPOSIT!
+  'TON_BOOST_PURCHASE': 'TON_BOOST_PURCHASE', // TON Boost покупки → TON_BOOST_PURCHASE
   // Маппинг расширенных типов на базовые
   'TON_BOOST_INCOME': 'FARMING_REWARD',   // TON Boost доходы → FARMING_REWARD
   'UNI_DEPOSIT': 'DEPOSIT',               // UNI депозиты → DEPOSIT (ИСПРАВЛЕНО: было FARMING_REWARD)
-  'TON_DEPOSIT': 'DEPOSIT',               // TON депозиты → DEPOSIT (исправлено с FARMING_REWARD)
   'UNI_WITHDRAWAL': 'WITHDRAWAL',         // Выводы UNI → WITHDRAWAL
   'TON_WITHDRAWAL': 'WITHDRAWAL',         // Выводы TON → WITHDRAWAL
   'BOOST_PURCHASE': 'BOOST_PAYMENT',      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: было FARMING_REWARD → теперь BOOST_PAYMENT
