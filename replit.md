@@ -21,12 +21,16 @@ UniFarm Connect is an advanced Telegram Mini App designed for blockchain UNI far
 ## System Architecture
 The application leverages a modular and scalable architecture designed for high performance and real-time interactions.
 
-**Recent Critical Fix (August 1, 2025):**
+**Recent Critical Fixes (August 1, 2025):**
 - **TON Boost Automation Restored**: Fixed critical issue where `getByUserId()` created farming records with `farming_balance = 0` instead of calculating from existing TON deposits
-- **Root Cause**: TonFarmingRepository was creating new records without checking user's deposit history
+- **Root Cause**: TonFarmingRepository was creating new records without checking user's deposit history  
 - **Solution**: Added `calculateUserTonDeposits()` function to automatically calculate farming_balance from transaction history
 - **Impact**: 8 users with broken records restored, automation now works like in July 2025
 - **Duplication Prevention**: Enhanced deduplication system to prevent BOC-based transaction duplicates
+- **TON_DEPOSIT Mapping Restored**: Fixed critical mapping change that broke TON deposit recognition on August 1st
+  - **Issue**: TON_DEPOSIT mapping changed from `FARMING_REWARD` (July) to `TON_DEPOSIT` (August), breaking deposit calculation
+  - **Solution**: Restored historical mapping `TON_DEPOSIT → FARMING_REWARD` as it worked in July 2025
+  - **Impact**: New TON deposits will now be properly recognized by automation system
 
 **Core Technologies:**
 - **Backend**: Express.js with TypeScript, Supabase integration.
