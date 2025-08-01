@@ -39,19 +39,99 @@ export enum TransactionStatus {
 }
 
 /**
- * Интерфейс для транзакции
+ * Интерфейс для транзакции (соответствует схеме БД)
  */
 export interface Transaction {
-  id: string | number;
-  type: string;
-  amount: number;
-  tokenType: string;
-  timestamp: Date;
-  status: string;
+  id: number;
+  user_id: number;
+  type: 'deposit' | 'withdrawal' | 'farming_reward' | 'referral_bonus' | 'mission_reward' | 'boost_purchase' | string;
+  amount: string;
+  currency: 'UNI' | 'TON';
+  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  transaction_hash?: string;
+  wallet_address?: string;
+  description?: string;
+  created_at: string;
+  updated_at?: string;
+  metadata?: {
+    original_type?: string;
+    transaction_source?: string;
+    boost_package_id?: number;
+    [key: string]: any;
+  };
+  // Дополнительные поля для совместимости
+  tokenType?: string;
+  timestamp?: Date;
   source?: string;
   category?: string;
   title?: string;
-  description?: string;
+}
+
+/**
+ * Получает транзакции V2 с поддержкой фильтрации
+ * @param userId ID пользователя
+ * @param page Страница для пагинации
+ * @param limit Ограничение по количеству транзакций
+ * @param currency Фильтр по валюте (ALL, UNI, TON)
+ * @param forceRefresh Принудительное обновление
+ * @returns Промис с транзакциями и общим количеством
+ */
+export async function fetchTransactionsV2(
+  userId: number,
+  page: number = 1,
+  limit: number = 20,
+  currency: 'ALL' | 'UNI' | 'TON' = 'ALL',
+  forceRefresh: boolean = false
+): Promise<{ transactions: Transaction[], total: number }> {
+  const cacheKey = `transactions-v2:${userId}:${page}:${limit}:${currency}`;
+  
+  try {
+    // Проверяем кеш
+    if (!forceRefresh) {
+      const cached = cacheService.get<{ transactions: Transaction[], total: number }>(cacheKey);
+      if (cached) {
+        console.log('[transactionService] Возвращаем кешированные V2 транзакции');
+        return cached;
+      }
+    } else {
+      cacheService.invalidate(cacheKey);
+    }
+    
+    // Формируем URL с фильтрацией
+    const url = `/api/v2/transactions?page=${page}&limit=${limit}${currency !== 'ALL' ? `&currency=${currency}` : ''}`;
+    console.log('[transactionService] Запрос V2 транзакций:', url);
+    
+    const response = await correctApiRequest(url, 'GET');
+    
+    if (!response.success || !response.data) {
+      console.error('[transactionService] Ошибка получения V2 транзакций:', response.error);
+      
+      // Пытаемся вернуть кешированные данные
+      const cachedFallback = cacheService.get<{ transactions: Transaction[], total: number }>(cacheKey);
+      if (cachedFallback) {
+        return cachedFallback;
+      }
+      
+      return { transactions: [], total: 0 };
+    }
+    
+    const result = response.data;
+    
+    // Сохраняем в кеш
+    cacheService.set(cacheKey, result, CACHE_CONFIG.TRANSACTIONS_TTL);
+    
+    return result;
+  } catch (error) {
+    console.error('[transactionService] Критическая ошибка в fetchTransactionsV2:', error);
+    
+    // Пытаемся вернуть кешированные данные
+    const cachedError = cacheService.get<{ transactions: Transaction[], total: number }>(cacheKey);
+    if (cachedError) {
+      return cachedError;
+    }
+    
+    return { transactions: [], total: 0 };
+  }
 }
 
 /**

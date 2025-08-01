@@ -5,27 +5,7 @@ import { useUser } from '@/contexts/userContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import StyledTransactionItem from './StyledTransactionItem';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
-
-// Типы транзакций согласно схеме базы данных
-interface Transaction {
-  id: number;
-  user_id: number;
-  type: 'deposit' | 'withdrawal' | 'farming_reward' | 'referral_bonus' | 'mission_reward' | 'boost_purchase';
-  amount: string;
-  currency: 'UNI' | 'TON';
-  status: 'pending' | 'completed' | 'failed' | 'cancelled';
-  transaction_hash?: string;
-  wallet_address?: string;
-  description?: string;
-  created_at: string;
-  updated_at?: string;
-  metadata?: {
-    original_type?: string;
-    transaction_source?: string;
-    boost_package_id?: number;
-    [key: string]: any;
-  };
-}
+import { fetchTransactionsV2, Transaction } from '@/services/transactionService';
 
 /**
  * Компонент истории транзакций согласно UX спецификации
@@ -61,19 +41,12 @@ const TransactionHistory: React.FC = () => {
       if (!userId) return { transactions: [], total: 0 };
       
       try {
-        // Use correctApiRequest for proper authentication
-        const correctApiRequestModule = await import('@/lib/correctApiRequest');
-        const url = `/api/v2/transactions?page=${page}&limit=${limit}${activeFilter !== 'ALL' ? `&currency=${activeFilter}` : ''}`;
-        console.log('[TransactionHistory] Fetching transactions:', url);
+        // Используем кешированный сервис вместо прямых API запросов
+        console.log('[TransactionHistory] Запрос транзакций через кешированный сервис');
+        const result = await fetchTransactionsV2(userId, page, limit, activeFilter);
+        console.log('[TransactionHistory] Получено транзакций:', result.transactions.length);
         
-        const response = await correctApiRequestModule.correctApiRequest(url, 'GET');
-        console.log('[TransactionHistory] Response:', response);
-        
-        if (response && response.success) {
-          return response.data || { transactions: [], total: 0 };
-        }
-        
-        return { transactions: [], total: 0 };
+        return result;
       } catch (err) {
         console.error('[TransactionHistory] Ошибка загрузки транзакций:', err);
         showError('Не удалось загрузить историю транзакций');

@@ -6,6 +6,7 @@ import BigNumber from 'bignumber.js';
 import { useUser } from '@/contexts/userContext';
 // import useErrorBoundary from '@/hooks/useErrorBoundary';
 import { useNotification } from '@/contexts/NotificationContext';
+import { fetchUniFarmingStatus } from '@/services/farmingService';
 
 interface UniFarmingCardProps {
   userData: any;
@@ -46,21 +47,29 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     enabled: !!userId, // Запрос активен только если есть userId
     queryFn: async () => {
       try {
-        // Используем безопасный запрос с правильными заголовками
-        const response = await correctApiRequest(
-          `/api/v2/uni-farming/status?user_id=${userId || 1}`, 
-          'GET'
-        );
+        // Используем кешированный сервис вместо прямого API запроса
+        const data = await fetchUniFarmingStatus(userId || 1);
+        
+        if (!data) {
+          throw new Error('Не удалось загрузить данные фарминга');
+        }
 
-        console.log('[DEBUG] Получены данные фарминга:', JSON.stringify(response));
+        console.log('[DEBUG] Получены данные фарминга из кеша/API:', data);
+        
+        // Оборачиваем данные в формат response для совместимости
+        const response = {
+          success: true,
+          data: data
+        };
+
         // Выводим подробные дебаг данные для анализа точности отображения
         if (response.data) {
           console.log('[DEBUG] UNI Farming - Детали API:',{
-            isActive: response.data.isActive,
-            depositCount: response.data.depositCount,
-            totalDepositAmount: response.data.totalDepositAmount,
-            ratePerSecond: response.data.totalRatePerSecond,
-            dailyIncome: response.data.dailyIncomeUni
+            isActive: response.data.uni_farming_active,
+            depositAmount: response.data.uni_deposit_amount,
+            farmingBalance: response.data.uni_farming_balance,
+            rate: response.data.uni_farming_rate,
+            startTimestamp: response.data.uni_farming_start_timestamp
           });
 
           // Вывод полного объекта response.data для диагностики
