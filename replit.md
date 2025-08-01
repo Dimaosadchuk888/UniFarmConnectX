@@ -32,6 +32,14 @@ The application leverages a modular and scalable architecture designed for high 
   - **Solution**: Restored historical mapping `TON_DEPOSIT → FARMING_REWARD` as it worked in July 2025
   - **Impact**: New TON deposits will now be properly recognized by automation system
 
+**Production Database Safety Audit (August 1, 2025):**
+- **Critical Discovery**: Tables assumed "unused" are actively used in production
+  - uni_farming_data: 98 records, ton_farming_data: 44 records, referrals: 52 records
+  - transactions table uses hybrid structure with both old and new field formats
+- **Production Stats**: 103 users, 839,173 transactions, 49 active farmers, 21 TON wallets
+- **Safety Strategy**: NEVER delete existing fields/tables, add-only approach, use adapters for compatibility
+- **Key Principle**: User data is sacred - better redundant structure than data loss
+
 **Core Technologies:**
 - **Backend**: Express.js with TypeScript, Supabase integration.
 - **Frontend**: React with Vite, TailwindCSS, shadcn/ui components.

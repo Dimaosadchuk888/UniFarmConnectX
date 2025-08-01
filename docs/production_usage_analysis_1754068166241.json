@@ -1,0 +1,1619 @@
+{
+  "timestamp": "2025-08-01T17:09:17.054Z",
+  "environment": "production",
+  "tables": [
+    {
+      "tableName": "users",
+      "totalRecords": 103,
+      "activeFields": [
+        {
+          "tableName": "users",
+          "fieldName": "id",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 100,
+          "sampleValues": [
+            306,
+            223,
+            228
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "telegram_id",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 100,
+          "sampleValues": [
+            6810306315,
+            6323512938,
+            184
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "username",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 74,
+          "sampleValues": [
+            "mashunyamashka",
+            "masha07071",
+            "test_user_1752129840905"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "first_name",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 69,
+          "sampleValues": [
+            "Mashenka",
+            "Mary 🎥",
+            "Test"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ref_code",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 100,
+          "sampleValues": [
+            "REF_1754043468032_urrehg",
+            "REF_1752855617178_ncuwzf",
+            "REF_1752916311984_czihbp"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "referred_by",
+          "nonNullCount": 49,
+          "uniqueValuesCount": 26,
+          "sampleValues": [
+            258,
+            244,
+            285
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "balance_uni",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 61,
+          "sampleValues": [
+            9.420822,
+            47708.013758,
+            0
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "balance_ton",
+          "nonNullCount": 97,
+          "uniqueValuesCount": 44,
+          "sampleValues": [
+            0,
+            3.01044,
+            0.18529
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "uni_deposit_amount",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 48,
+          "sampleValues": [
+            0,
+            4550,
+            15320
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "uni_farming_start_timestamp",
+          "nonNullCount": 43,
+          "uniqueValuesCount": 43,
+          "sampleValues": [
+            "2025-07-18T16:20:17.178",
+            "2025-07-18T16:44:17.647",
+            "2025-07-17T05:55:09.99"
+          ],
+          "dataType": "object",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "uni_farming_balance",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            0
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "uni_farming_rate",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            0,
+            0.01
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "uni_farming_last_update",
+          "nonNullCount": 46,
+          "uniqueValuesCount": 42,
+          "sampleValues": [
+            "2025-07-18T16:20:17.178",
+            "2025-08-01T11:55:40.074",
+            "2025-07-18T16:44:17.647"
+          ],
+          "dataType": "object",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "uni_farming_deposit",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 42,
+          "sampleValues": [
+            0,
+            4550,
+            15320
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "created_at",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 100,
+          "sampleValues": [
+            "2025-08-01T10:17:48.032",
+            "2025-07-18T16:20:17.178",
+            "2025-07-19T09:11:52.065401"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "checkin_last_date",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 52,
+          "sampleValues": [
+            "2025-08-01T10:18:50.5",
+            "2025-07-18T18:03:03.137",
+            "2025-08-01T10:29:27.482"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "checkin_streak",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 12,
+          "sampleValues": [
+            1,
+            0,
+            7
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "is_admin",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            false,
+            true
+          ],
+          "dataType": "boolean",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_boost_package",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 3,
+          "sampleValues": [
+            0,
+            1,
+            2
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_farming_balance",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 12,
+          "sampleValues": [
+            0,
+            18.5,
+            1
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_farming_rate",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            0.001,
+            0.01
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_farming_start_timestamp",
+          "nonNullCount": 3,
+          "uniqueValuesCount": 3,
+          "sampleValues": [
+            "2025-07-28T08:23:29.293",
+            "2025-08-01T04:43:43.845943",
+            "2025-07-28T07:45:51.208"
+          ],
+          "dataType": "object",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_farming_last_update",
+          "nonNullCount": 3,
+          "uniqueValuesCount": 3,
+          "sampleValues": [
+            "2025-07-28T08:23:29.293",
+            "2025-08-01T04:43:43.845943",
+            "2025-07-28T07:45:51.208"
+          ],
+          "dataType": "object",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_farming_accumulated",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            0
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_boost_active",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            false,
+            true
+          ],
+          "dataType": "boolean",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_boost_package_id",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            "1"
+          ],
+          "dataType": "object",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_boost_rate",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 4,
+          "sampleValues": [
+            0,
+            0.01,
+            0.005
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "uni_farming_active",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            false,
+            true
+          ],
+          "dataType": "boolean",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "last_active",
+          "nonNullCount": 1,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            "2025-07-20T13:13:57.382"
+          ],
+          "dataType": "object",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_wallet_address",
+          "nonNullCount": 21,
+          "uniqueValuesCount": 21,
+          "sampleValues": [
+            "0:d85300985c57d9665d79d43a9cb09d63085ef567f3aa14886d810e51b537b7ab",
+            "0:20b597c37c551332393fb87d599bad86b1402e7f06a9e9946fc3fe1c98c645e8",
+            "0:550608f618107be74d40b91695a0825332e4d36a87cf1097ea5b098c91add34d"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_wallet_verified",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            true,
+            false
+          ],
+          "dataType": "boolean",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_wallet_linked_at",
+          "nonNullCount": 21,
+          "uniqueValuesCount": 21,
+          "sampleValues": [
+            "2025-08-01T10:21:18.289",
+            "2025-07-22T15:48:15.23",
+            "2025-07-31T06:16:41.587"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "status",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            "active"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "users",
+          "fieldName": "is_active",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            true
+          ],
+          "dataType": "boolean",
+          "isActive": true
+        }
+      ],
+      "inactiveFields": [
+        {
+          "tableName": "users",
+          "fieldName": "wallet",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_farming_last_claim",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "users",
+          "fieldName": "ton_boost_expires_at",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "users",
+          "fieldName": "referrer_id",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "users",
+          "fieldName": "processed_at",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "users",
+          "fieldName": "processed_by",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "users",
+          "fieldName": "guest_id",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        }
+      ],
+      "criticalRelations": [
+        "referred_by -> users.id (SELF REFERENCE)"
+      ]
+    },
+    {
+      "tableName": "transactions",
+      "totalRecords": 839173,
+      "activeFields": [
+        {
+          "tableName": "transactions",
+          "fieldName": "id",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 100,
+          "sampleValues": [
+            1506963,
+            1506964,
+            1506965
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "user_id",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 35,
+          "sampleValues": [
+            236,
+            248,
+            234
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "type",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            "REFERRAL_REWARD",
+            "FARMING_REWARD"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "amount_uni",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 45,
+          "sampleValues": [
+            0.001719,
+            0,
+            0.00191
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "amount_ton",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 21,
+          "sampleValues": [
+            0,
+            0.000002,
+            0.000004
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "description",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 95,
+          "sampleValues": [
+            "Referral L9 from User 296: 0.00171875 UNI (9%)",
+            "Referral L5 from User 258: 0.00000174 TON (5%)",
+            "Referral L10 from User 296: 0.00190972 UNI (10%)"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "created_at",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 100,
+          "sampleValues": [
+            "2025-07-30T12:29:53.565",
+            "2025-07-30T12:29:54.015",
+            "2025-07-30T12:29:54.214"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "metadata",
+          "nonNullCount": 94,
+          "uniqueValuesCount": 89,
+          "sampleValues": [
+            {
+              "level": 9,
+              "percentage": 9,
+              "source_type": "farming",
+              "original_type": "REFERRAL_REWARD",
+              "source_user_id": 296
+            },
+            {
+              "level": 5,
+              "percentage": 5,
+              "source_type": "boost",
+              "original_type": "REFERRAL_REWARD",
+              "source_user_id": 258
+            },
+            {
+              "level": 10,
+              "percentage": 10,
+              "source_type": "farming",
+              "original_type": "REFERRAL_REWARD",
+              "source_user_id": 296
+            }
+          ],
+          "dataType": "object",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "status",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            "completed"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "source_user_id",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 35,
+          "sampleValues": [
+            236,
+            248,
+            234
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "currency",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            "UNI",
+            "TON"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "amount",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 84,
+          "sampleValues": [
+            0.00171875,
+            0.00000174,
+            0.00190972
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "updated_at",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 100,
+          "sampleValues": [
+            "2025-07-30T12:29:53.644412",
+            "2025-07-30T12:29:54.092601",
+            "2025-07-30T12:29:54.291934"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "is_duplicate",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            false
+          ],
+          "dataType": "boolean",
+          "isActive": true
+        }
+      ],
+      "inactiveFields": [
+        {
+          "tableName": "transactions",
+          "fieldName": "source",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "tx_hash",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "action",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "tx_hash_unique",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "transactions",
+          "fieldName": "duplicate_of_id",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        }
+      ],
+      "criticalRelations": [
+        "user_id -> users.id (FOREIGN KEY)"
+      ]
+    },
+    {
+      "tableName": "withdraw_requests",
+      "totalRecords": 159,
+      "activeFields": [
+        {
+          "tableName": "withdraw_requests",
+          "fieldName": "id",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 100,
+          "sampleValues": [
+            "ac8c9bc2-1ccf-43c9-b0ac-8428862c76b7",
+            "0ac98dfd-6ac2-42ba-8132-6c11db20fe88",
+            "ea47dcef-0958-4b14-928d-bd9ead8b79c8"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "withdraw_requests",
+          "fieldName": "user_id",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 16,
+          "sampleValues": [
+            184,
+            25,
+            224
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "withdraw_requests",
+          "fieldName": "telegram_id",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 16,
+          "sampleValues": [
+            "999489",
+            "425855744",
+            "1768648474"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "withdraw_requests",
+          "fieldName": "username",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 15,
+          "sampleValues": [
+            "test_user_1752129840905",
+            "DimaOsadchuk",
+            "UniverseGamesSupport"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "withdraw_requests",
+          "fieldName": "amount_ton",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 5,
+          "sampleValues": [
+            1,
+            2,
+            5
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "withdraw_requests",
+          "fieldName": "ton_wallet",
+          "nonNullCount": 12,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            "UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "withdraw_requests",
+          "fieldName": "status",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            "approved",
+            "rejected"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "withdraw_requests",
+          "fieldName": "created_at",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 100,
+          "sampleValues": [
+            "2025-07-23T12:02:10.826+00:00",
+            "2025-07-23T17:42:32.732+00:00",
+            "2025-07-27T17:10:51.35+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "withdraw_requests",
+          "fieldName": "processed_at",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 100,
+          "sampleValues": [
+            "2025-07-30T18:42:17.394+00:00",
+            "2025-07-30T18:44:24.337+00:00",
+            "2025-07-30T19:23:03.367+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "withdraw_requests",
+          "fieldName": "processed_by",
+          "nonNullCount": 100,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            "DimaOsadchuk"
+          ],
+          "dataType": "string",
+          "isActive": true
+        }
+      ],
+      "inactiveFields": [],
+      "criticalRelations": [
+        "user_id -> users.id"
+      ]
+    },
+    {
+      "tableName": "uni_farming_data",
+      "totalRecords": 98,
+      "activeFields": [
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "id",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 98,
+          "sampleValues": [
+            "8f7ffa2d-a092-4f04-921f-e4910167d9c4",
+            "03e926bc-a882-462e-aa00-1a2d186eae94",
+            "de913855-d3cb-45e5-8948-97cca3b094a1"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "user_id",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 98,
+          "sampleValues": [
+            23,
+            22,
+            62
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "deposit_amount",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 63,
+          "sampleValues": [
+            100,
+            206,
+            50
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "farming_balance",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            0,
+            25
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "total_earned",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            0
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "last_claim_at",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 98,
+          "sampleValues": [
+            "2025-06-16T12:56:06.455+00:00",
+            "2025-06-16T12:56:05.312+00:00",
+            "2025-07-08T17:08:07.205+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "is_active",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            true,
+            false
+          ],
+          "dataType": "boolean",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "farming_start",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 98,
+          "sampleValues": [
+            "2025-06-16T12:56:06.455+00:00",
+            "2025-06-16T12:56:05.312+00:00",
+            "2025-07-08T17:08:07.205+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "created_at",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 60,
+          "sampleValues": [
+            "2025-07-11T10:10:28.488697+00:00",
+            "2025-07-18T16:45:45.329+00:00",
+            "2025-07-16T07:34:07.815+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "updated_at",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 57,
+          "sampleValues": [
+            "2025-07-11T10:10:28.488697+00:00",
+            "2025-07-23T19:08:03.274+00:00",
+            "2025-07-16T07:34:07.815+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "farming_rate",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            0.01
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "farming_start_timestamp",
+          "nonNullCount": 59,
+          "uniqueValuesCount": 59,
+          "sampleValues": [
+            "2025-07-18T16:45:45.329+00:00",
+            "2025-07-16T07:34:07.815+00:00",
+            "2025-07-16T07:41:32.735+00:00"
+          ],
+          "dataType": "object",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "farming_last_update",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 57,
+          "sampleValues": [
+            "2025-07-11T10:26:25.053576+00:00",
+            "2025-07-23T19:08:03.274+00:00",
+            "2025-07-16T07:34:07.815+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "uni_farming_data",
+          "fieldName": "farming_deposit",
+          "nonNullCount": 98,
+          "uniqueValuesCount": 58,
+          "sampleValues": [
+            0,
+            1050,
+            5
+          ],
+          "dataType": "number",
+          "isActive": true
+        }
+      ],
+      "inactiveFields": [],
+      "criticalRelations": []
+    },
+    {
+      "tableName": "ton_farming_data",
+      "totalRecords": 44,
+      "activeFields": [
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "id",
+          "nonNullCount": 44,
+          "uniqueValuesCount": 44,
+          "sampleValues": [
+            "2d60643e-293e-4a69-b38a-f9d05f191cfb",
+            "d2cd765d-c0aa-4119-89c0-4a1063eee37a",
+            "ce91f0e1-00c5-40d1-be71-badf1c379857"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "user_id",
+          "nonNullCount": 44,
+          "uniqueValuesCount": 44,
+          "sampleValues": [
+            "258",
+            "247",
+            "243"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "boost_active",
+          "nonNullCount": 44,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            true
+          ],
+          "dataType": "boolean",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "boost_package_id",
+          "nonNullCount": 23,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            1,
+            2
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "boost_expires_at",
+          "nonNullCount": 18,
+          "uniqueValuesCount": 18,
+          "sampleValues": [
+            "2026-07-27T16:46:36.668+00:00",
+            "2026-08-01T16:31:06.334+00:00",
+            "2026-08-01T06:08:29.077+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "farming_balance",
+          "nonNullCount": 44,
+          "uniqueValuesCount": 23,
+          "sampleValues": [
+            1,
+            0,
+            209.94
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "total_earned",
+          "nonNullCount": 44,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            0
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "last_claim_at",
+          "nonNullCount": 44,
+          "uniqueValuesCount": 29,
+          "sampleValues": [
+            "2025-07-27T18:06:36.033921+00:00",
+            "2025-08-01T05:24:35.527369+00:00",
+            "2025-07-11T10:10:28.488697+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "created_at",
+          "nonNullCount": 44,
+          "uniqueValuesCount": 29,
+          "sampleValues": [
+            "2025-07-27T18:06:36.033921+00:00",
+            "2025-08-01T05:24:35.527369+00:00",
+            "2025-07-11T10:10:28.488697+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "updated_at",
+          "nonNullCount": 44,
+          "uniqueValuesCount": 39,
+          "sampleValues": [
+            "2025-07-27T18:06:34.968+00:00",
+            "2025-08-01T05:24:35.527369+00:00",
+            "2025-08-01T16:31:06.48+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "farming_rate",
+          "nonNullCount": 44,
+          "uniqueValuesCount": 3,
+          "sampleValues": [
+            0.01,
+            0.015,
+            0.005
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "farming_start_timestamp",
+          "nonNullCount": 23,
+          "uniqueValuesCount": 23,
+          "sampleValues": [
+            "2025-07-27T18:06:34.968+00:00",
+            "2025-08-01T16:31:06.48+00:00",
+            "2025-08-01T06:08:29.246+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "ton_farming_data",
+          "fieldName": "farming_last_update",
+          "nonNullCount": 44,
+          "uniqueValuesCount": 25,
+          "sampleValues": [
+            "2025-07-27T18:06:34.968+00:00",
+            "2025-08-01T05:24:35.527369+00:00",
+            "2025-08-01T16:31:06.48+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        }
+      ],
+      "inactiveFields": [],
+      "criticalRelations": []
+    },
+    {
+      "tableName": "referrals",
+      "totalRecords": 52,
+      "activeFields": [
+        {
+          "tableName": "referrals",
+          "fieldName": "id",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 52,
+          "sampleValues": [
+            171,
+            172,
+            173
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "referrals",
+          "fieldName": "user_id",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 52,
+          "sampleValues": [
+            185,
+            186,
+            187
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "referrals",
+          "fieldName": "referred_user_id",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 52,
+          "sampleValues": [
+            185,
+            186,
+            187
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "referrals",
+          "fieldName": "level",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            1
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "referrals",
+          "fieldName": "created_at",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 52,
+          "sampleValues": [
+            "2025-07-18T05:33:51.182076",
+            "2025-07-18T05:33:51.333374",
+            "2025-07-18T05:33:51.48169"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "referrals",
+          "fieldName": "inviter_id",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 26,
+          "sampleValues": [
+            184,
+            25,
+            194
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "referrals",
+          "fieldName": "reward_uni",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            0
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "referrals",
+          "fieldName": "reward_ton",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            0
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "referrals",
+          "fieldName": "ref_path",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 26,
+          "sampleValues": [
+            [
+              184
+            ],
+            [
+              25
+            ],
+            [
+              194
+            ]
+          ],
+          "dataType": "object",
+          "isActive": true
+        },
+        {
+          "tableName": "referrals",
+          "fieldName": "updated_at",
+          "nonNullCount": 52,
+          "uniqueValuesCount": 52,
+          "sampleValues": [
+            "2025-07-18T05:33:51.182076",
+            "2025-07-18T05:33:51.333374",
+            "2025-07-18T05:33:51.48169"
+          ],
+          "dataType": "string",
+          "isActive": true
+        }
+      ],
+      "inactiveFields": [],
+      "criticalRelations": []
+    },
+    {
+      "tableName": "missions",
+      "totalRecords": 5,
+      "activeFields": [
+        {
+          "tableName": "missions",
+          "fieldName": "id",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 5,
+          "sampleValues": [
+            1,
+            2,
+            3
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "title",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 5,
+          "sampleValues": [
+            "Подписаться на Telegram канал",
+            "Вступить в Telegram чат",
+            "Подписка на YouTube"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "description",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 5,
+          "sampleValues": [
+            "Подпишись на Telegram-канал Universe Games https://t.me/UniverseGamesChannel",
+            "Вступи в Telegram-чат Universe Games https://t.me/UniverseGamesChat",
+            "Подпишись на YouTube-канал https://youtube.com/@universegamesyoutube?si=XHebHkmEcGpADUAE"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "mission_type",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            "one_time",
+            "daily"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "reward_amount",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            "500",
+            "200"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "reward_type",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            "UNI"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "is_active",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            true
+          ],
+          "dataType": "boolean",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "is_repeatable",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            false
+          ],
+          "dataType": "boolean",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "sort_order",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 5,
+          "sampleValues": [
+            10,
+            20,
+            30
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "created_at",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            "2025-07-09T08:31:02.797846+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "updated_at",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            "2025-07-09T08:31:02.797846+00:00"
+          ],
+          "dataType": "string",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "reward_uni",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 2,
+          "sampleValues": [
+            500,
+            200
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "reward_ton",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            0
+          ],
+          "dataType": "number",
+          "isActive": true
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "status",
+          "nonNullCount": 5,
+          "uniqueValuesCount": 1,
+          "sampleValues": [
+            "active"
+          ],
+          "dataType": "string",
+          "isActive": true
+        }
+      ],
+      "inactiveFields": [
+        {
+          "tableName": "missions",
+          "fieldName": "target_value",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "requirements",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "start_date",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        },
+        {
+          "tableName": "missions",
+          "fieldName": "end_date",
+          "nonNullCount": 0,
+          "uniqueValuesCount": 0,
+          "sampleValues": [],
+          "dataType": "object",
+          "isActive": false
+        }
+      ],
+      "criticalRelations": []
+    },
+    {
+      "tableName": "user_sessions",
+      "totalRecords": 0,
+      "activeFields": [],
+      "inactiveFields": [],
+      "criticalRelations": []
+    }
+  ],
+  "criticalFindings": [
+    "Таблица user_sessions пустая - возможно не используется",
+    "✅ Найдено 10+ пользователей с UNI балансом > 0",
+    "✅ Найдено 10+ пользователей с TON балансом > 0",
+    "🌾 49 активных фармеров UNI",
+    "👥 52 пользователей имеют реферера (referred_by)"
+  ],
+  "safetyRecommendations": [
+    "1. КРИТИЧНО: Создать полный backup перед любыми изменениями",
+    "2. НЕ УДАЛЯТЬ поля balance_uni, balance_ton из таблицы users",
+    "3. НЕ ИЗМЕНЯТЬ типы данных существующих полей",
+    "4. НЕ УДАЛЯТЬ таблицу transactions - содержит историю операций",
+    "5. НЕ НАРУШАТЬ foreign key связи user_id",
+    "6. СОХРАНИТЬ все реферальные связи (referred_by, parent_ref_code)",
+    "7. Использовать ALTER TABLE ADD COLUMN для новых полей",
+    "8. Создавать новые таблицы с суффиксом _v2 для миграции",
+    "9. Тестировать все изменения на копии БД",
+    "10. Мониторить логи после любых изменений"
+  ]
+}
