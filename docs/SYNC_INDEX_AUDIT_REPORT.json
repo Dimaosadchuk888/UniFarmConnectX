@@ -1,0 +1,209 @@
+{
+  "timestamp": "2025-08-01T18:34:15.333Z",
+  "uni_differences": [],
+  "ton_differences": [
+    {
+      "user_id": 307,
+      "telegram_id": 6478964183,
+      "username": "Rostik141624",
+      "balance_diff": 2,
+      "user_balance": 0,
+      "farming_balance": 2
+    },
+    {
+      "user_id": 305,
+      "telegram_id": 6422826367,
+      "username": "Dmitrij_0176",
+      "balance_diff": 5,
+      "user_balance": 0,
+      "farming_balance": 5
+    },
+    {
+      "user_id": 234,
+      "telegram_id": 810254784,
+      "username": "Александр",
+      "balance_diff": 0.134349,
+      "user_balance": 0,
+      "farming_balance": 0.134349
+    },
+    {
+      "user_id": 233,
+      "telegram_id": 6971162848,
+      "username": "newinsider1",
+      "balance_diff": 0.142392,
+      "user_balance": 0,
+      "farming_balance": 0.142392
+    },
+    {
+      "user_id": 197,
+      "telegram_id": 5539756408,
+      "username": "sneja0905",
+      "balance_diff": 3,
+      "user_balance": 0,
+      "farming_balance": 3
+    },
+    {
+      "user_id": 237,
+      "telegram_id": 7469703848,
+      "username": "Andiy",
+      "balance_diff": 0.117817,
+      "user_balance": 0,
+      "farming_balance": 0.117817
+    },
+    {
+      "user_id": 304,
+      "telegram_id": 1490672947,
+      "username": "rdgdhf",
+      "balance_diff": 2,
+      "user_balance": 0,
+      "farming_balance": 2
+    },
+    {
+      "user_id": 184,
+      "telegram_id": 999489,
+      "username": "test_user_1752129840905",
+      "balance_diff": 115,
+      "user_balance": 0,
+      "farming_balance": 115
+    },
+    {
+      "user_id": 258,
+      "telegram_id": 1720159553,
+      "username": "lvereskun",
+      "balance_diff": 1,
+      "user_balance": 0,
+      "farming_balance": 1
+    },
+    {
+      "user_id": 238,
+      "telegram_id": 563071019,
+      "username": "Ígor",
+      "balance_diff": 0.108847,
+      "user_balance": 0,
+      "farming_balance": 0.108847
+    },
+    {
+      "user_id": 251,
+      "telegram_id": 737728362,
+      "username": "Irinkatriumf",
+      "balance_diff": 3,
+      "user_balance": 0,
+      "farming_balance": 3
+    },
+    {
+      "user_id": 249,
+      "telegram_id": 1628665477,
+      "username": "LeLila90",
+      "balance_diff": 0.182356,
+      "user_balance": 0,
+      "farming_balance": 0.182356
+    },
+    {
+      "user_id": 236,
+      "telegram_id": 5070324864,
+      "username": "Андрій",
+      "balance_diff": 0.127276,
+      "user_balance": 0,
+      "farming_balance": 0.127276
+    },
+    {
+      "user_id": 239,
+      "telegram_id": 546527425,
+      "username": "Вадим",
+      "balance_diff": 0.10094,
+      "user_balance": 0,
+      "farming_balance": 0.10094
+    },
+    {
+      "user_id": 25,
+      "telegram_id": 425855744,
+      "username": "DimaOsadchuk",
+      "balance_diff": 29,
+      "user_balance": 180.94,
+      "farming_balance": 209.94
+    },
+    {
+      "user_id": 232,
+      "telegram_id": 7895028877,
+      "username": "21",
+      "balance_diff": 0.127802,
+      "user_balance": 0,
+      "farming_balance": 0.127802
+    }
+  ],
+  "sync_fields": [
+    {
+      "field": "ton_farming_balance",
+      "table": "users",
+      "source": "ton_farming_data.farming_balance",
+      "strategy": "GREATEST(users.ton_farming_balance, ton_farming_data.farming_balance)",
+      "priority": "CRITICAL",
+      "affected_records": 16
+    }
+  ],
+  "recommended_indexes": [
+    {
+      "table": "users",
+      "columns": "telegram_id",
+      "reason": "Поиск по telegram_id очень частый",
+      "priority": "CRITICAL",
+      "type": "btree"
+    },
+    {
+      "table": "transactions",
+      "columns": "user_id, created_at DESC",
+      "reason": "История транзакций пользователя",
+      "priority": "CRITICAL",
+      "type": "btree"
+    },
+    {
+      "table": "users",
+      "columns": "balance_uni, balance_ton",
+      "reason": "Фильтрация по балансам",
+      "priority": "HIGH",
+      "type": "btree",
+      "where": "balance_uni > 0 OR balance_ton > 0"
+    },
+    {
+      "table": "users",
+      "columns": "uni_farming_active",
+      "reason": "Поиск активных фермеров",
+      "priority": "HIGH",
+      "type": "btree",
+      "where": "uni_farming_active = true"
+    },
+    {
+      "table": "users",
+      "columns": "referred_by",
+      "reason": "Реферальные запросы",
+      "priority": "MEDIUM",
+      "type": "btree",
+      "where": "referred_by IS NOT NULL"
+    },
+    {
+      "table": "transactions",
+      "columns": "type",
+      "reason": "Фильтрация по типу транзакции",
+      "priority": "MEDIUM",
+      "type": "btree"
+    },
+    {
+      "table": "withdraw_requests",
+      "columns": "status",
+      "reason": "Поиск pending выводов",
+      "priority": "HIGH",
+      "type": "btree",
+      "where": "status = 'pending'"
+    },
+    {
+      "table": "withdraw_requests",
+      "columns": "user_id",
+      "reason": "Выводы пользователя",
+      "priority": "HIGH",
+      "type": "btree"
+    }
+  ],
+  "total_deposit_diff": 0,
+  "total_balance_diff": 0,
+  "total_ton_balance_diff": 161.04177900000002
+}
