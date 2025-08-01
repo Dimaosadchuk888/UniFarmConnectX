@@ -1,0 +1,2618 @@
+{
+  "timestamp": "2025-08-01T18:00:54.171Z",
+  "databaseSnapshot": {
+    "users": {
+      "exists": true,
+      "recordCount": 103,
+      "columns": [
+        "id",
+        "telegram_id",
+        "username",
+        "first_name",
+        "wallet",
+        "ref_code",
+        "referred_by",
+        "balance_uni",
+        "balance_ton",
+        "uni_deposit_amount",
+        "uni_farming_start_timestamp",
+        "uni_farming_balance",
+        "uni_farming_rate",
+        "uni_farming_last_update",
+        "uni_farming_deposit",
+        "created_at",
+        "checkin_last_date",
+        "checkin_streak",
+        "is_admin",
+        "ton_boost_package",
+        "ton_farming_balance",
+        "ton_farming_rate",
+        "ton_farming_start_timestamp",
+        "ton_farming_last_update",
+        "ton_farming_accumulated",
+        "ton_farming_last_claim",
+        "ton_boost_active",
+        "ton_boost_package_id",
+        "ton_boost_rate",
+        "ton_boost_expires_at",
+        "uni_farming_active",
+        "last_active",
+        "referrer_id",
+        "ton_wallet_address",
+        "ton_wallet_verified",
+        "ton_wallet_linked_at",
+        "status",
+        "processed_at",
+        "processed_by",
+        "guest_id",
+        "is_active"
+      ],
+      "samples": [
+        {
+          "id": 186,
+          "telegram_id": 1752765362861,
+          "username": "test_ref_1752757362860_1",
+          "first_name": "Test Ref 1",
+          "wallet": null,
+          "ref_code": "REF_1752757362860_1",
+          "referred_by": 184,
+          "balance_uni": 26347.239235,
+          "balance_ton": 91.175291,
+          "uni_deposit_amount": 1500,
+          "uni_farming_start_timestamp": "2025-07-17T13:02:43.498",
+          "uni_farming_balance": 0,
+          "uni_farming_rate": 0.01,
+          "uni_farming_last_update": "2025-07-18T06:25:57.413",
+          "uni_farming_deposit": 0,
+          "created_at": "2025-07-17T13:02:42.861",
+          "checkin_last_date": null,
+          "checkin_streak": 0,
+          "is_admin": false,
+          "ton_boost_package": 0,
+          "ton_farming_balance": 0,
+          "ton_farming_rate": 0.001,
+          "ton_farming_start_timestamp": null,
+          "ton_farming_last_update": null,
+          "ton_farming_accumulated": 0,
+          "ton_farming_last_claim": null,
+          "ton_boost_active": false,
+          "ton_boost_package_id": null,
+          "ton_boost_rate": 0,
+          "ton_boost_expires_at": null,
+          "uni_farming_active": true,
+          "last_active": null,
+          "referrer_id": null,
+          "ton_wallet_address": null,
+          "ton_wallet_verified": false,
+          "ton_wallet_linked_at": null,
+          "status": "active",
+          "processed_at": null,
+          "processed_by": null,
+          "guest_id": null,
+          "is_active": true
+        },
+        {
+          "id": 228,
+          "telegram_id": 184,
+          "username": "test_user_1752129840905",
+          "first_name": "Test",
+          "wallet": null,
+          "ref_code": "REF_1752916311984_czihbp",
+          "referred_by": null,
+          "balance_uni": 0,
+          "balance_ton": null,
+          "uni_deposit_amount": 0,
+          "uni_farming_start_timestamp": null,
+          "uni_farming_balance": 0,
+          "uni_farming_rate": 0,
+          "uni_farming_last_update": null,
+          "uni_farming_deposit": 0,
+          "created_at": "2025-07-19T09:11:52.065401",
+          "checkin_last_date": null,
+          "checkin_streak": 0,
+          "is_admin": false,
+          "ton_boost_package": 0,
+          "ton_farming_balance": 0,
+          "ton_farming_rate": 0.001,
+          "ton_farming_start_timestamp": null,
+          "ton_farming_last_update": null,
+          "ton_farming_accumulated": 0,
+          "ton_farming_last_claim": null,
+          "ton_boost_active": false,
+          "ton_boost_package_id": null,
+          "ton_boost_rate": 0,
+          "ton_boost_expires_at": null,
+          "uni_farming_active": false,
+          "last_active": null,
+          "referrer_id": null,
+          "ton_wallet_address": "0:20b597c37c551332393fb87d599bad86b1402e7f06a9e9946fc3fe1c98c645e8",
+          "ton_wallet_verified": true,
+          "ton_wallet_linked_at": "2025-07-22T15:48:15.23",
+          "status": "active",
+          "processed_at": null,
+          "processed_by": null,
+          "guest_id": null,
+          "is_active": true
+        },
+        {
+          "id": 220,
+          "telegram_id": 6323851474,
+          "username": "anitamlp",
+          "first_name": "Anita",
+          "wallet": null,
+          "ref_code": "REF_1752848800959_rahms1",
+          "referred_by": null,
+          "balance_uni": 10550,
+          "balance_ton": 0.074007,
+          "uni_deposit_amount": 0,
+          "uni_farming_start_timestamp": null,
+          "uni_farming_balance": 0,
+          "uni_farming_rate": 0,
+          "uni_farming_last_update": null,
+          "uni_farming_deposit": 0,
+          "created_at": "2025-07-18T14:26:40.959",
+          "checkin_last_date": "2025-07-25T14:19:26.833",
+          "checkin_streak": 1,
+          "is_admin": false,
+          "ton_boost_package": 1,
+          "ton_farming_balance": 1,
+          "ton_farming_rate": 0.001,
+          "ton_farming_start_timestamp": null,
+          "ton_farming_last_update": null,
+          "ton_farming_accumulated": 0,
+          "ton_farming_last_claim": null,
+          "ton_boost_active": true,
+          "ton_boost_package_id": null,
+          "ton_boost_rate": 0.01,
+          "ton_boost_expires_at": null,
+          "uni_farming_active": false,
+          "last_active": null,
+          "referrer_id": null,
+          "ton_wallet_address": null,
+          "ton_wallet_verified": false,
+          "ton_wallet_linked_at": null,
+          "status": "active",
+          "processed_at": null,
+          "processed_by": null,
+          "guest_id": null,
+          "is_active": true
+        },
+        {
+          "id": 303,
+          "telegram_id": 6949597970,
+          "username": "Сергій",
+          "first_name": "Сергій",
+          "wallet": null,
+          "ref_code": "REF_1753942492406_l1uxeb",
+          "referred_by": 285,
+          "balance_uni": 4550,
+          "balance_ton": 0,
+          "uni_deposit_amount": 0,
+          "uni_farming_start_timestamp": null,
+          "uni_farming_balance": 0,
+          "uni_farming_rate": 0,
+          "uni_farming_last_update": null,
+          "uni_farming_deposit": 0,
+          "created_at": "2025-07-31T06:14:52.406",
+          "checkin_last_date": "2025-07-31T06:15:01.783",
+          "checkin_streak": 1,
+          "is_admin": false,
+          "ton_boost_package": 0,
+          "ton_farming_balance": 0,
+          "ton_farming_rate": 0.001,
+          "ton_farming_start_timestamp": null,
+          "ton_farming_last_update": null,
+          "ton_farming_accumulated": 0,
+          "ton_farming_last_claim": null,
+          "ton_boost_active": false,
+          "ton_boost_package_id": null,
+          "ton_boost_rate": 0,
+          "ton_boost_expires_at": null,
+          "uni_farming_active": false,
+          "last_active": null,
+          "referrer_id": null,
+          "ton_wallet_address": "0:550608f618107be74d40b91695a0825332e4d36a87cf1097ea5b098c91add34d",
+          "ton_wallet_verified": true,
+          "ton_wallet_linked_at": "2025-07-31T06:16:41.587",
+          "status": "active",
+          "processed_at": null,
+          "processed_by": null,
+          "guest_id": null,
+          "is_active": true
+        },
+        {
+          "id": 305,
+          "telegram_id": 6422826367,
+          "username": "Dmitrij_0176",
+          "first_name": "Дмитрий 🐼",
+          "wallet": null,
+          "ref_code": "REF_1754043260128_yqk9cu",
+          "referred_by": 244,
+          "balance_uni": 27.05832,
+          "balance_ton": 3.01218,
+          "uni_deposit_amount": 15320,
+          "uni_farming_start_timestamp": null,
+          "uni_farming_balance": 0,
+          "uni_farming_rate": 0,
+          "uni_farming_last_update": "2025-08-01T11:55:40.074",
+          "uni_farming_deposit": 15320,
+          "created_at": "2025-08-01T10:14:20.129",
+          "checkin_last_date": "2025-08-01T10:29:27.482",
+          "checkin_streak": 1,
+          "is_admin": false,
+          "ton_boost_package": 1,
+          "ton_farming_balance": 0,
+          "ton_farming_rate": 0.001,
+          "ton_farming_start_timestamp": null,
+          "ton_farming_last_update": null,
+          "ton_farming_accumulated": 0,
+          "ton_farming_last_claim": null,
+          "ton_boost_active": true,
+          "ton_boost_package_id": null,
+          "ton_boost_rate": 0.01,
+          "ton_boost_expires_at": null,
+          "uni_farming_active": true,
+          "last_active": null,
+          "referrer_id": null,
+          "ton_wallet_address": null,
+          "ton_wallet_verified": false,
+          "ton_wallet_linked_at": null,
+          "status": "active",
+          "processed_at": null,
+          "processed_by": null,
+          "guest_id": null,
+          "is_active": true
+        }
+      ],
+      "criticalData": [
+        {
+          "id": 25,
+          "telegram_id": 425855744,
+          "balance_uni": 80520560.35394,
+          "balance_ton": 9.177682,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 180.94
+        },
+        {
+          "id": 232,
+          "telegram_id": 7895028877,
+          "balance_uni": 11118773.160823,
+          "balance_ton": 0.152024,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 242,
+          "telegram_id": 7931616370,
+          "balance_uni": 4296286.501867,
+          "balance_ton": 0.086424,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 238,
+          "telegram_id": 563071019,
+          "balance_uni": 4044367.793469,
+          "balance_ton": 0.124686,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 237,
+          "telegram_id": 7469703848,
+          "balance_uni": 3092587.602293,
+          "balance_ton": 0.135714,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 243,
+          "telegram_id": 571162910,
+          "balance_uni": 1682197.056954,
+          "balance_ton": 0.079836,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 184,
+          "telegram_id": 999489,
+          "balance_uni": 1243467.106988,
+          "balance_ton": 1.054699,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 239,
+          "telegram_id": 546527425,
+          "balance_uni": 1191172.947158,
+          "balance_ton": 0.115862,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 236,
+          "telegram_id": 5070324864,
+          "balance_uni": 1066697.848257,
+          "balance_ton": 0.147116,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 246,
+          "telegram_id": 6751853162,
+          "balance_uni": 1037065.080162,
+          "balance_ton": 0.106504,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 1
+        },
+        {
+          "id": 248,
+          "telegram_id": 5361412349,
+          "balance_uni": 1023308.554046,
+          "balance_ton": 0.045699,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 241,
+          "telegram_id": 7837672481,
+          "balance_uni": 474446.98868,
+          "balance_ton": 0.094235,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 240,
+          "telegram_id": 8034083095,
+          "balance_uni": 348571.674279,
+          "balance_ton": 0.10557,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 244,
+          "telegram_id": 6054799123,
+          "balance_uni": 293728.193729,
+          "balance_ton": 0.090228,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 1
+        },
+        {
+          "id": 233,
+          "telegram_id": 6971162848,
+          "balance_uni": 277379.356586,
+          "balance_ton": 0.164324,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 194,
+          "telegram_id": 415087491,
+          "balance_uni": 163628.927712,
+          "balance_ton": 0.027104,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 5
+        },
+        {
+          "id": 249,
+          "telegram_id": 1628665477,
+          "balance_uni": 121436.603277,
+          "balance_ton": 0.201793,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 224,
+          "telegram_id": 1768648474,
+          "balance_uni": 100615.529186,
+          "balance_ton": 0.19171,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 18.5
+        },
+        {
+          "id": 183,
+          "telegram_id": 1752745152420,
+          "balance_uni": 93369.284181,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 234,
+          "telegram_id": 810254784,
+          "balance_uni": 75583.778058,
+          "balance_ton": 0.155189,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        }
+      ]
+    },
+    "transactions": {
+      "exists": true,
+      "recordCount": 845228,
+      "columns": [
+        "id",
+        "user_id",
+        "type",
+        "amount_uni",
+        "amount_ton",
+        "description",
+        "created_at",
+        "metadata",
+        "status",
+        "source",
+        "tx_hash",
+        "source_user_id",
+        "action",
+        "currency",
+        "amount",
+        "updated_at",
+        "tx_hash_unique",
+        "is_duplicate",
+        "duplicate_of_id"
+      ],
+      "samples": [
+        {
+          "id": 1508655,
+          "user_id": 233,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.154437,
+          "amount_ton": 0,
+          "description": "Referral L16 from User 263: 0.15443739 UNI (16%)",
+          "created_at": "2025-07-30T12:50:16.429",
+          "metadata": {
+            "level": 16,
+            "percentage": 16,
+            "source_type": "farming",
+            "original_type": "REFERRAL_REWARD",
+            "source_user_id": 263
+          },
+          "status": "completed",
+          "source": null,
+          "tx_hash": null,
+          "source_user_id": 233,
+          "action": null,
+          "currency": "UNI",
+          "amount": 0.15443739,
+          "updated_at": "2025-07-30T12:50:16.502925",
+          "tx_hash_unique": null,
+          "is_duplicate": false,
+          "duplicate_of_id": null
+        },
+        {
+          "id": 1508657,
+          "user_id": 232,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.16409,
+          "amount_ton": 0,
+          "description": "Referral L17 from User 263: 0.16408973 UNI (17%)",
+          "created_at": "2025-07-30T12:50:17.037",
+          "metadata": {
+            "level": 17,
+            "percentage": 17,
+            "source_type": "farming",
+            "original_type": "REFERRAL_REWARD",
+            "source_user_id": 263
+          },
+          "status": "completed",
+          "source": null,
+          "tx_hash": null,
+          "source_user_id": 232,
+          "action": null,
+          "currency": "UNI",
+          "amount": 0.16408973,
+          "updated_at": "2025-07-30T12:50:17.119253",
+          "tx_hash_unique": null,
+          "is_duplicate": false,
+          "duplicate_of_id": null
+        },
+        {
+          "id": 1508660,
+          "user_id": 245,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000006,
+          "description": "Referral L9 from User 290: 0.00000625 TON (9%)",
+          "created_at": "2025-07-30T12:50:18.012",
+          "metadata": {
+            "level": 9,
+            "percentage": 9,
+            "source_type": "boost",
+            "original_type": "REFERRAL_REWARD",
+            "source_user_id": 290
+          },
+          "status": "completed",
+          "source": null,
+          "tx_hash": null,
+          "source_user_id": 245,
+          "action": null,
+          "currency": "TON",
+          "amount": 0.00000625,
+          "updated_at": "2025-07-30T12:50:18.084944",
+          "tx_hash_unique": null,
+          "is_duplicate": false,
+          "duplicate_of_id": null
+        },
+        {
+          "id": 1508661,
+          "user_id": 244,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000007,
+          "description": "Referral L10 from User 290: 0.00000694 TON (10%)",
+          "created_at": "2025-07-30T12:50:19.12",
+          "metadata": {
+            "level": 10,
+            "percentage": 10,
+            "source_type": "boost",
+            "original_type": "REFERRAL_REWARD",
+            "source_user_id": 290
+          },
+          "status": "completed",
+          "source": null,
+          "tx_hash": null,
+          "source_user_id": 244,
+          "action": null,
+          "currency": "TON",
+          "amount": 0.00000694,
+          "updated_at": "2025-07-30T12:50:19.201429",
+          "tx_hash_unique": null,
+          "is_duplicate": false,
+          "duplicate_of_id": null
+        },
+        {
+          "id": 1508662,
+          "user_id": 239,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 2372.500521,
+          "amount_ton": 0,
+          "description": "Referral L1 from User 240: 2372.50052083 UNI (100%)",
+          "created_at": "2025-07-30T12:50:19.785",
+          "metadata": {
+            "level": 1,
+            "percentage": 100,
+            "source_type": "farming",
+            "original_type": "REFERRAL_REWARD",
+            "source_user_id": 240
+          },
+          "status": "completed",
+          "source": null,
+          "tx_hash": null,
+          "source_user_id": 239,
+          "action": null,
+          "currency": "UNI",
+          "amount": 2372.50052083,
+          "updated_at": "2025-07-30T12:50:19.86888",
+          "tx_hash_unique": null,
+          "is_duplicate": false,
+          "duplicate_of_id": null
+        }
+      ],
+      "criticalData": [
+        {
+          "id": 1730560,
+          "user_id": 249,
+          "type": "FARMING_REWARD",
+          "amount_uni": 1830.069444,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 1830.069444444
+        },
+        {
+          "id": 1730559,
+          "user_id": 25,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.002483,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00248264
+        },
+        {
+          "id": 1730558,
+          "user_id": 304,
+          "type": "FARMING_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000069,
+          "currency": "TON",
+          "amount": 0.000069444
+        },
+        {
+          "id": 1730557,
+          "user_id": 232,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.002292,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00229167
+        },
+        {
+          "id": 1730556,
+          "user_id": 197,
+          "type": "FARMING_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000104,
+          "currency": "TON",
+          "amount": 0.000104167
+        },
+        {
+          "id": 1730555,
+          "user_id": 25,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000642,
+          "currency": "TON",
+          "amount": 0.00064236
+        },
+        {
+          "id": 1730554,
+          "user_id": 233,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.002101,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00210069
+        },
+        {
+          "id": 1730553,
+          "user_id": 250,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000004,
+          "currency": "TON",
+          "amount": 0.00000417
+        },
+        {
+          "id": 1730552,
+          "user_id": 234,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.00191,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00190972
+        },
+        {
+          "id": 1730551,
+          "user_id": 224,
+          "type": "FARMING_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000642,
+          "currency": "TON",
+          "amount": 0.000642361
+        },
+        {
+          "id": 1730550,
+          "user_id": 236,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.001719,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00171875
+        },
+        {
+          "id": 1730549,
+          "user_id": 220,
+          "type": "FARMING_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000035,
+          "currency": "TON",
+          "amount": 0.000034722
+        },
+        {
+          "id": 1730548,
+          "user_id": 233,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000007,
+          "currency": "TON",
+          "amount": 0.00000694
+        },
+        {
+          "id": 1730547,
+          "user_id": 237,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.001528,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00152778
+        },
+        {
+          "id": 1730546,
+          "user_id": 234,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000007,
+          "currency": "TON",
+          "amount": 0.0000066
+        },
+        {
+          "id": 1730545,
+          "user_id": 238,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.001337,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00133681
+        },
+        {
+          "id": 1730544,
+          "user_id": 236,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000006,
+          "currency": "TON",
+          "amount": 0.00000625
+        },
+        {
+          "id": 1730543,
+          "user_id": 239,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.001146,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00114583
+        },
+        {
+          "id": 1730542,
+          "user_id": 237,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000006,
+          "currency": "TON",
+          "amount": 0.0000059
+        },
+        {
+          "id": 1730541,
+          "user_id": 240,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.000955,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00095486
+        },
+        {
+          "id": 1730540,
+          "user_id": 238,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000006,
+          "currency": "TON",
+          "amount": 0.00000556
+        },
+        {
+          "id": 1730539,
+          "user_id": 241,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.000764,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00076389
+        },
+        {
+          "id": 1730537,
+          "user_id": 239,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000005,
+          "currency": "TON",
+          "amount": 0.00000521
+        },
+        {
+          "id": 1730536,
+          "user_id": 242,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.000573,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00057292
+        },
+        {
+          "id": 1730538,
+          "user_id": 251,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000003,
+          "currency": "TON",
+          "amount": 0.00000313
+        },
+        {
+          "id": 1730535,
+          "user_id": 240,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000005,
+          "currency": "TON",
+          "amount": 0.00000486
+        },
+        {
+          "id": 1730534,
+          "user_id": 243,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.000382,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.00038194
+        },
+        {
+          "id": 1730533,
+          "user_id": 270,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.019097,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.01909722
+        },
+        {
+          "id": 1730532,
+          "user_id": 241,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000005,
+          "currency": "TON",
+          "amount": 0.00000451
+        },
+        {
+          "id": 1730531,
+          "user_id": 242,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000004,
+          "currency": "TON",
+          "amount": 0.00000417
+        },
+        {
+          "id": 1730530,
+          "user_id": 243,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000004,
+          "currency": "TON",
+          "amount": 0.00000382
+        },
+        {
+          "id": 1730529,
+          "user_id": 244,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000003,
+          "currency": "TON",
+          "amount": 0.00000347
+        },
+        {
+          "id": 1730528,
+          "user_id": 245,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000003,
+          "currency": "TON",
+          "amount": 0.00000312
+        },
+        {
+          "id": 1730527,
+          "user_id": 296,
+          "type": "FARMING_REWARD",
+          "amount_uni": 0.019097,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.019097222
+        },
+        {
+          "id": 1730526,
+          "user_id": 232,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.17216,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.17215972
+        },
+        {
+          "id": 1730525,
+          "user_id": 246,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000003,
+          "currency": "TON",
+          "amount": 0.00000278
+        },
+        {
+          "id": 1730524,
+          "user_id": 233,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.163552,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.16355174
+        },
+        {
+          "id": 1730523,
+          "user_id": 248,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000002,
+          "currency": "TON",
+          "amount": 0.00000243
+        },
+        {
+          "id": 1730522,
+          "user_id": 255,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000002,
+          "currency": "TON",
+          "amount": 0.00000208
+        },
+        {
+          "id": 1730521,
+          "user_id": 234,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.154944,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.15494375
+        },
+        {
+          "id": 1730520,
+          "user_id": 249,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000002,
+          "currency": "TON",
+          "amount": 0.00000208
+        },
+        {
+          "id": 1730519,
+          "user_id": 236,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.146336,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.14633576
+        },
+        {
+          "id": 1730518,
+          "user_id": 250,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000002,
+          "currency": "TON",
+          "amount": 0.00000174
+        },
+        {
+          "id": 1730517,
+          "user_id": 237,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.137728,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.13772778
+        },
+        {
+          "id": 1730516,
+          "user_id": 251,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000001,
+          "currency": "TON",
+          "amount": 0.00000139
+        },
+        {
+          "id": 1730515,
+          "user_id": 258,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000104,
+          "currency": "TON",
+          "amount": 0.00010417
+        },
+        {
+          "id": 1730514,
+          "user_id": 238,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.12912,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.12911979
+        },
+        {
+          "id": 1730513,
+          "user_id": 255,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000001,
+          "currency": "TON",
+          "amount": 0.00000104
+        },
+        {
+          "id": 1730512,
+          "user_id": 239,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0.120512,
+          "amount_ton": 0,
+          "currency": "UNI",
+          "amount": 0.12051181
+        },
+        {
+          "id": 1730511,
+          "user_id": 258,
+          "type": "REFERRAL_REWARD",
+          "amount_uni": 0,
+          "amount_ton": 0.000001,
+          "currency": "TON",
+          "amount": 6.9e-7
+        }
+      ]
+    },
+    "withdraw_requests": {
+      "exists": true,
+      "recordCount": 159,
+      "columns": [
+        "id",
+        "user_id",
+        "telegram_id",
+        "username",
+        "amount_ton",
+        "ton_wallet",
+        "status",
+        "created_at",
+        "processed_at",
+        "processed_by"
+      ],
+      "samples": [
+        {
+          "id": "ac8c9bc2-1ccf-43c9-b0ac-8428862c76b7",
+          "user_id": 184,
+          "telegram_id": "999489",
+          "username": "test_user_1752129840905",
+          "amount_ton": 1,
+          "ton_wallet": "UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8",
+          "status": "approved",
+          "created_at": "2025-07-23T12:02:10.826+00:00",
+          "processed_at": "2025-07-30T18:42:17.394+00:00",
+          "processed_by": "DimaOsadchuk"
+        },
+        {
+          "id": "0ac98dfd-6ac2-42ba-8132-6c11db20fe88",
+          "user_id": 184,
+          "telegram_id": "999489",
+          "username": "test_user_1752129840905",
+          "amount_ton": 1,
+          "ton_wallet": "",
+          "status": "approved",
+          "created_at": "2025-07-23T17:42:32.732+00:00",
+          "processed_at": "2025-07-30T18:44:24.337+00:00",
+          "processed_by": "DimaOsadchuk"
+        },
+        {
+          "id": "ea47dcef-0958-4b14-928d-bd9ead8b79c8",
+          "user_id": 25,
+          "telegram_id": "425855744",
+          "username": "DimaOsadchuk",
+          "amount_ton": 1,
+          "ton_wallet": "",
+          "status": "rejected",
+          "created_at": "2025-07-27T17:10:51.35+00:00",
+          "processed_at": "2025-07-30T19:23:03.367+00:00",
+          "processed_by": "DimaOsadchuk"
+        },
+        {
+          "id": "33c00e17-cb0c-4193-b824-06035b65e777",
+          "user_id": 25,
+          "telegram_id": "425855744",
+          "username": "DimaOsadchuk",
+          "amount_ton": 1,
+          "ton_wallet": "",
+          "status": "approved",
+          "created_at": "2025-07-27T17:10:42.62+00:00",
+          "processed_at": "2025-07-30T19:23:03.442+00:00",
+          "processed_by": "DimaOsadchuk"
+        },
+        {
+          "id": "fb933c03-d70e-404b-a45b-5ddb0afc819a",
+          "user_id": 25,
+          "telegram_id": "425855744",
+          "username": "DimaOsadchuk",
+          "amount_ton": 1,
+          "ton_wallet": "",
+          "status": "rejected",
+          "created_at": "2025-07-27T17:09:18.28+00:00",
+          "processed_at": "2025-07-30T19:23:04.014+00:00",
+          "processed_by": "DimaOsadchuk"
+        }
+      ],
+      "criticalData": []
+    },
+    "uni_farming_data": {
+      "exists": true,
+      "recordCount": 98,
+      "columns": [
+        "id",
+        "user_id",
+        "deposit_amount",
+        "farming_balance",
+        "total_earned",
+        "last_claim_at",
+        "is_active",
+        "farming_start",
+        "created_at",
+        "updated_at",
+        "farming_rate",
+        "farming_start_timestamp",
+        "farming_last_update",
+        "farming_deposit"
+      ],
+      "samples": [
+        {
+          "id": "8f7ffa2d-a092-4f04-921f-e4910167d9c4",
+          "user_id": 23,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:06.455+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:06.455+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        },
+        {
+          "id": "03e926bc-a882-462e-aa00-1a2d186eae94",
+          "user_id": 22,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:05.312+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:05.312+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        },
+        {
+          "id": "de913855-d3cb-45e5-8948-97cca3b094a1",
+          "user_id": 62,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-08T17:08:07.205+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-08T17:08:07.205+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        },
+        {
+          "id": "2a6a9d25-b3aa-43b1-b4bd-26250d6a17a8",
+          "user_id": 21,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:04.654+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:04.654+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        },
+        {
+          "id": "4709c96e-1533-40fb-ad17-4f1ba04529f8",
+          "user_id": 67,
+          "deposit_amount": 206,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-08T05:36:40.335+00:00",
+          "is_active": false,
+          "farming_start": "2025-07-08T05:36:40.335+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      ],
+      "criticalData": []
+    },
+    "ton_farming_data": {
+      "exists": true,
+      "recordCount": 44,
+      "columns": [
+        "id",
+        "user_id",
+        "boost_active",
+        "boost_package_id",
+        "boost_expires_at",
+        "farming_balance",
+        "total_earned",
+        "last_claim_at",
+        "created_at",
+        "updated_at",
+        "farming_rate",
+        "farming_start_timestamp",
+        "farming_last_update"
+      ],
+      "samples": [
+        {
+          "id": "2d60643e-293e-4a69-b38a-f9d05f191cfb",
+          "user_id": "258",
+          "boost_active": true,
+          "boost_package_id": 1,
+          "boost_expires_at": "2026-07-27T16:46:36.668+00:00",
+          "farming_balance": 1,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-27T18:06:36.033921+00:00",
+          "created_at": "2025-07-27T18:06:36.033921+00:00",
+          "updated_at": "2025-07-27T18:06:34.968+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": "2025-07-27T18:06:34.968+00:00",
+          "farming_last_update": "2025-07-27T18:06:34.968+00:00"
+        },
+        {
+          "id": "d2cd765d-c0aa-4119-89c0-4a1063eee37a",
+          "user_id": "247",
+          "boost_active": true,
+          "boost_package_id": null,
+          "boost_expires_at": null,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-08-01T05:24:35.527369+00:00",
+          "created_at": "2025-08-01T05:24:35.527369+00:00",
+          "updated_at": "2025-08-01T05:24:35.527369+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-08-01T05:24:35.527369+00:00"
+        },
+        {
+          "id": "ce91f0e1-00c5-40d1-be71-badf1c379857",
+          "user_id": "243",
+          "boost_active": true,
+          "boost_package_id": null,
+          "boost_expires_at": null,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-08-01T05:24:35.527369+00:00",
+          "created_at": "2025-08-01T05:24:35.527369+00:00",
+          "updated_at": "2025-08-01T05:24:35.527369+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-08-01T05:24:35.527369+00:00"
+        },
+        {
+          "id": "6fd70772-4b0e-451c-be5e-337683043dda",
+          "user_id": "242",
+          "boost_active": true,
+          "boost_package_id": null,
+          "boost_expires_at": null,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-08-01T05:24:35.527369+00:00",
+          "created_at": "2025-08-01T05:24:35.527369+00:00",
+          "updated_at": "2025-08-01T05:24:35.527369+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-08-01T05:24:35.527369+00:00"
+        },
+        {
+          "id": "262c52a6-5f21-41dd-bf9c-246c175017d8",
+          "user_id": "241",
+          "boost_active": true,
+          "boost_package_id": null,
+          "boost_expires_at": null,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-08-01T05:24:35.527369+00:00",
+          "created_at": "2025-08-01T05:24:35.527369+00:00",
+          "updated_at": "2025-08-01T05:24:35.527369+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-08-01T05:24:35.527369+00:00"
+        }
+      ],
+      "criticalData": []
+    },
+    "referrals": {
+      "exists": true,
+      "recordCount": 52,
+      "columns": [
+        "id",
+        "user_id",
+        "referred_user_id",
+        "level",
+        "created_at",
+        "inviter_id",
+        "reward_uni",
+        "reward_ton",
+        "ref_path",
+        "updated_at"
+      ],
+      "samples": [
+        {
+          "id": 171,
+          "user_id": 185,
+          "referred_user_id": 185,
+          "level": 1,
+          "created_at": "2025-07-18T05:33:51.182076",
+          "inviter_id": 184,
+          "reward_uni": 0,
+          "reward_ton": 0,
+          "ref_path": [
+            184
+          ],
+          "updated_at": "2025-07-18T05:33:51.182076"
+        },
+        {
+          "id": 172,
+          "user_id": 186,
+          "referred_user_id": 186,
+          "level": 1,
+          "created_at": "2025-07-18T05:33:51.333374",
+          "inviter_id": 184,
+          "reward_uni": 0,
+          "reward_ton": 0,
+          "ref_path": [
+            184
+          ],
+          "updated_at": "2025-07-18T05:33:51.333374"
+        },
+        {
+          "id": 173,
+          "user_id": 187,
+          "referred_user_id": 187,
+          "level": 1,
+          "created_at": "2025-07-18T05:33:51.48169",
+          "inviter_id": 184,
+          "reward_uni": 0,
+          "reward_ton": 0,
+          "ref_path": [
+            184
+          ],
+          "updated_at": "2025-07-18T05:33:51.48169"
+        },
+        {
+          "id": 174,
+          "user_id": 188,
+          "referred_user_id": 188,
+          "level": 1,
+          "created_at": "2025-07-18T05:33:51.844534",
+          "inviter_id": 184,
+          "reward_uni": 0,
+          "reward_ton": 0,
+          "ref_path": [
+            184
+          ],
+          "updated_at": "2025-07-18T05:33:51.844534"
+        },
+        {
+          "id": 175,
+          "user_id": 189,
+          "referred_user_id": 189,
+          "level": 1,
+          "created_at": "2025-07-18T05:33:51.98742",
+          "inviter_id": 184,
+          "reward_uni": 0,
+          "reward_ton": 0,
+          "ref_path": [
+            184
+          ],
+          "updated_at": "2025-07-18T05:33:51.98742"
+        }
+      ],
+      "criticalData": []
+    },
+    "missions": {
+      "exists": true,
+      "recordCount": 5,
+      "columns": [
+        "id",
+        "title",
+        "description",
+        "mission_type",
+        "target_value",
+        "reward_amount",
+        "reward_type",
+        "requirements",
+        "start_date",
+        "end_date",
+        "is_active",
+        "is_repeatable",
+        "sort_order",
+        "created_at",
+        "updated_at",
+        "reward_uni",
+        "reward_ton",
+        "status"
+      ],
+      "samples": [
+        {
+          "id": 1,
+          "title": "Подписаться на Telegram канал",
+          "description": "Подпишись на Telegram-канал Universe Games https://t.me/UniverseGamesChannel",
+          "mission_type": "one_time",
+          "target_value": null,
+          "reward_amount": "500",
+          "reward_type": "UNI",
+          "requirements": null,
+          "start_date": null,
+          "end_date": null,
+          "is_active": true,
+          "is_repeatable": false,
+          "sort_order": 10,
+          "created_at": "2025-07-09T08:31:02.797846+00:00",
+          "updated_at": "2025-07-09T08:31:02.797846+00:00",
+          "reward_uni": 500,
+          "reward_ton": 0,
+          "status": "active"
+        },
+        {
+          "id": 2,
+          "title": "Вступить в Telegram чат",
+          "description": "Вступи в Telegram-чат Universe Games https://t.me/UniverseGamesChat",
+          "mission_type": "one_time",
+          "target_value": null,
+          "reward_amount": "500",
+          "reward_type": "UNI",
+          "requirements": null,
+          "start_date": null,
+          "end_date": null,
+          "is_active": true,
+          "is_repeatable": false,
+          "sort_order": 20,
+          "created_at": "2025-07-09T08:31:02.797846+00:00",
+          "updated_at": "2025-07-09T08:31:02.797846+00:00",
+          "reward_uni": 500,
+          "reward_ton": 0,
+          "status": "active"
+        },
+        {
+          "id": 3,
+          "title": "Подписка на YouTube",
+          "description": "Подпишись на YouTube-канал https://youtube.com/@universegamesyoutube?si=XHebHkmEcGpADUAE",
+          "mission_type": "one_time",
+          "target_value": null,
+          "reward_amount": "500",
+          "reward_type": "UNI",
+          "requirements": null,
+          "start_date": null,
+          "end_date": null,
+          "is_active": true,
+          "is_repeatable": false,
+          "sort_order": 30,
+          "created_at": "2025-07-09T08:31:02.797846+00:00",
+          "updated_at": "2025-07-09T08:31:02.797846+00:00",
+          "reward_uni": 500,
+          "reward_ton": 0,
+          "status": "active"
+        },
+        {
+          "id": 4,
+          "title": "Check-in дня",
+          "description": "Ежедневное посещение приложения",
+          "mission_type": "daily",
+          "target_value": null,
+          "reward_amount": "200",
+          "reward_type": "UNI",
+          "requirements": null,
+          "start_date": null,
+          "end_date": null,
+          "is_active": true,
+          "is_repeatable": false,
+          "sort_order": 40,
+          "created_at": "2025-07-09T08:31:02.797846+00:00",
+          "updated_at": "2025-07-09T08:31:02.797846+00:00",
+          "reward_uni": 200,
+          "reward_ton": 0,
+          "status": "active"
+        },
+        {
+          "id": 5,
+          "title": "Подписаться на TikTok",
+          "description": "Подпишись на TikTok Universe Games https://www.tiktok.com/@universegames.io",
+          "mission_type": "one_time",
+          "target_value": null,
+          "reward_amount": "500",
+          "reward_type": "UNI",
+          "requirements": null,
+          "start_date": null,
+          "end_date": null,
+          "is_active": true,
+          "is_repeatable": false,
+          "sort_order": 50,
+          "created_at": "2025-07-09T08:31:02.797846+00:00",
+          "updated_at": "2025-07-09T08:31:02.797846+00:00",
+          "reward_uni": 500,
+          "reward_ton": 0,
+          "status": "active"
+        }
+      ],
+      "criticalData": []
+    }
+  },
+  "dataIntegrity": [
+    {
+      "tableName": "users",
+      "recordCount": 103,
+      "criticalData": [
+        {
+          "id": 186,
+          "telegram_id": 1752765362861,
+          "balance_uni": 26347.239235,
+          "balance_ton": 91.175291,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 228,
+          "telegram_id": 184,
+          "balance_uni": 0,
+          "balance_ton": null,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 220,
+          "telegram_id": 6323851474,
+          "balance_uni": 10550,
+          "balance_ton": 0.074007,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 1
+        },
+        {
+          "id": 303,
+          "telegram_id": 6949597970,
+          "balance_uni": 4550,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 305,
+          "telegram_id": 6422826367,
+          "balance_uni": 27.05832,
+          "balance_ton": 3.01218,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 247,
+          "telegram_id": 246,
+          "balance_uni": 0,
+          "balance_ton": 0.001,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 275,
+          "telegram_id": 5445830713,
+          "balance_uni": 89.026812,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 302,
+          "telegram_id": 8180821923,
+          "balance_uni": 1320,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 307,
+          "telegram_id": 6478964183,
+          "balance_uni": 31.767361,
+          "balance_ton": 0.00483,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 181,
+          "telegram_id": 1752731708363,
+          "balance_uni": 8056.340019,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 277,
+          "telegram_id": 7671520909,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 253,
+          "telegram_id": 251,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 298,
+          "telegram_id": 260,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 231,
+          "telegram_id": 6603985679,
+          "balance_uni": 1320,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 300,
+          "telegram_id": 197,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 222,
+          "telegram_id": 8167745929,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 306,
+          "telegram_id": 6810306315,
+          "balance_uni": 10.713876,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 225,
+          "telegram_id": 1233784919,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 293,
+          "telegram_id": 220,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 185,
+          "telegram_id": 1752765339720,
+          "balance_uni": 10000,
+          "balance_ton": null,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 265,
+          "telegram_id": 264,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 289,
+          "telegram_id": 191,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 221,
+          "telegram_id": 1972746151,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 294,
+          "telegram_id": 238,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 223,
+          "telegram_id": 6323512938,
+          "balance_uni": 47709.11966,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 290,
+          "telegram_id": 6004657717,
+          "balance_uni": 10000,
+          "balance_ton": 0.075457,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 1
+        },
+        {
+          "id": 286,
+          "telegram_id": 278,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 285,
+          "telegram_id": 1044000116,
+          "balance_uni": 20.943352,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 224,
+          "telegram_id": 1768648474,
+          "balance_uni": 100615.529186,
+          "balance_ton": 0.19171,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 18.5
+        },
+        {
+          "id": 235,
+          "telegram_id": 224,
+          "balance_uni": 0,
+          "balance_ton": 0.2,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0.2
+        },
+        {
+          "id": 308,
+          "telegram_id": 999999999,
+          "balance_uni": 100,
+          "balance_ton": 5,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 267,
+          "telegram_id": 266,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 283,
+          "telegram_id": 5903505637,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 268,
+          "telegram_id": 2084553611,
+          "balance_uni": 550,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 182,
+          "telegram_id": 1752732023473,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 273,
+          "telegram_id": 272,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 262,
+          "telegram_id": 194,
+          "balance_uni": 0,
+          "balance_ton": 0.3008,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0.3
+        },
+        {
+          "id": 261,
+          "telegram_id": 245,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 234,
+          "telegram_id": 810254784,
+          "balance_uni": 75583.778058,
+          "balance_ton": 0.155189,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 259,
+          "telegram_id": 258,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 233,
+          "telegram_id": 6971162848,
+          "balance_uni": 277379.356586,
+          "balance_ton": 0.164324,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 264,
+          "telegram_id": 6082191332,
+          "balance_uni": 15.654551,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 288,
+          "telegram_id": 287,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 230,
+          "telegram_id": 6222370459,
+          "balance_uni": 32087.62539,
+          "balance_ton": 0.002975,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 1
+        },
+        {
+          "id": 295,
+          "telegram_id": 1253029317,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 299,
+          "telegram_id": 192,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 301,
+          "telegram_id": 1151853225,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 226,
+          "telegram_id": 5650943290,
+          "balance_uni": 12051.638617,
+          "balance_ton": 0.002975,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 1
+        },
+        {
+          "id": 263,
+          "telegram_id": 7332236807,
+          "balance_uni": 1456.650042,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 192,
+          "telegram_id": 5057949741,
+          "balance_uni": 61062.739455,
+          "balance_ton": 0.01768,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 6
+        },
+        {
+          "id": 193,
+          "telegram_id": 427874008,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 284,
+          "telegram_id": 283,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 291,
+          "telegram_id": 290,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 252,
+          "telegram_id": 249,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 272,
+          "telegram_id": 6928180864,
+          "balance_uni": 175.493888,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 266,
+          "telegram_id": 6161709249,
+          "balance_uni": 23.148215,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 297,
+          "telegram_id": 285,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 227,
+          "telegram_id": 25,
+          "balance_uni": 0,
+          "balance_ton": null,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 270,
+          "telegram_id": 2118146306,
+          "balance_uni": 2694.481273,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 197,
+          "telegram_id": 5539756408,
+          "balance_uni": 30000,
+          "balance_ton": 0.0388,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 243,
+          "telegram_id": 571162910,
+          "balance_uni": 1682197.056954,
+          "balance_ton": 0.079836,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 276,
+          "telegram_id": 275,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 229,
+          "telegram_id": 6628104301,
+          "balance_uni": 50772.236601,
+          "balance_ton": 0.00525,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 254,
+          "telegram_id": 244,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 194,
+          "telegram_id": 415087491,
+          "balance_uni": 163628.927712,
+          "balance_ton": 0.027104,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 5
+        },
+        {
+          "id": 241,
+          "telegram_id": 7837672481,
+          "balance_uni": 474446.98868,
+          "balance_ton": 0.094235,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 274,
+          "telegram_id": 6725024478,
+          "balance_uni": 2321.042052,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 260,
+          "telegram_id": 6293835432,
+          "balance_uni": 2700.487064,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 269,
+          "telegram_id": 5712636594,
+          "balance_uni": 5738.673738,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 183,
+          "telegram_id": 1752745152420,
+          "balance_uni": 93369.284181,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 237,
+          "telegram_id": 7469703848,
+          "balance_uni": 3092587.602293,
+          "balance_ton": 0.135714,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 292,
+          "telegram_id": 248,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 191,
+          "telegram_id": 5064856170,
+          "balance_uni": 31399.559088,
+          "balance_ton": 0.206758,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 5.15
+        },
+        {
+          "id": 271,
+          "telegram_id": 465300703,
+          "balance_uni": 3970.924993,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 256,
+          "telegram_id": 255,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 196,
+          "telegram_id": 1045916735,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 304,
+          "telegram_id": 1490672947,
+          "balance_uni": 26.477778,
+          "balance_ton": 0.004623,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 257,
+          "telegram_id": 250,
+          "balance_uni": 0,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 189,
+          "telegram_id": 1752765362864,
+          "balance_uni": 42859.167017,
+          "balance_ton": 91.176679,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 190,
+          "telegram_id": 1752765362865,
+          "balance_uni": 48455.156486,
+          "balance_ton": 91.169739,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 258,
+          "telegram_id": 1720159553,
+          "balance_uni": 78.362008,
+          "balance_ton": 0.283735,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 255,
+          "telegram_id": 2064066630,
+          "balance_uni": 7378.488485,
+          "balance_ton": 0.347364,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 4.2
+        },
+        {
+          "id": 244,
+          "telegram_id": 6054799123,
+          "balance_uni": 293728.193729,
+          "balance_ton": 0.090228,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 1
+        },
+        {
+          "id": 184,
+          "telegram_id": 999489,
+          "balance_uni": 1243467.106988,
+          "balance_ton": 1.054699,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 187,
+          "telegram_id": 1752765362862,
+          "balance_uni": 31821.31897,
+          "balance_ton": 91.177026,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 195,
+          "telegram_id": 5449445051,
+          "balance_uni": 42000.000128,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 240,
+          "telegram_id": 8034083095,
+          "balance_uni": 348571.674279,
+          "balance_ton": 0.10557,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 188,
+          "telegram_id": 1752765362863,
+          "balance_uni": 37286.02478,
+          "balance_ton": 91.176332,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 238,
+          "telegram_id": 563071019,
+          "balance_uni": 4044367.793469,
+          "balance_ton": 0.124686,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 236,
+          "telegram_id": 5070324864,
+          "balance_uni": 1066697.848257,
+          "balance_ton": 0.147116,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 250,
+          "telegram_id": 1741048309,
+          "balance_uni": 17409.408617,
+          "balance_ton": 0.227385,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 3
+        },
+        {
+          "id": 287,
+          "telegram_id": 6633460527,
+          "balance_uni": 1567.197447,
+          "balance_ton": 0.045329,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 3
+        },
+        {
+          "id": 249,
+          "telegram_id": 1628665477,
+          "balance_uni": 121436.517197,
+          "balance_ton": 0.201802,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 296,
+          "telegram_id": 7212277443,
+          "balance_uni": 12.909572,
+          "balance_ton": 0,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 251,
+          "telegram_id": 737728362,
+          "balance_uni": 9632.838417,
+          "balance_ton": 0.245468,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 245,
+          "telegram_id": 5853408733,
+          "balance_uni": 40967.528019,
+          "balance_ton": 0.177394,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 2
+        },
+        {
+          "id": 25,
+          "telegram_id": 425855744,
+          "balance_uni": 80520560.358906,
+          "balance_ton": 9.177682,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 180.94
+        },
+        {
+          "id": 242,
+          "telegram_id": 7931616370,
+          "balance_uni": 4296286.501867,
+          "balance_ton": 0.086424,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 246,
+          "telegram_id": 6751853162,
+          "balance_uni": 1039956.529136,
+          "balance_ton": 0.106512,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 1
+        },
+        {
+          "id": 239,
+          "telegram_id": 546527425,
+          "balance_uni": 1191172.947158,
+          "balance_ton": 0.115862,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 278,
+          "telegram_id": 6337961090,
+          "balance_uni": 30064.557075,
+          "balance_ton": 0.365447,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 4.3
+        },
+        {
+          "id": 248,
+          "telegram_id": 5361412349,
+          "balance_uni": 1023308.554046,
+          "balance_ton": 0.045699,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        },
+        {
+          "id": 232,
+          "telegram_id": 7895028877,
+          "balance_uni": 11118773.163115,
+          "balance_ton": 0.152024,
+          "uni_farming_balance": 0,
+          "ton_farming_balance": 0
+        }
+      ],
+      "checksumBefore": "112935565.07113796"
+    }
+  ],
+  "systemCodeAnalysis": {
+    "dependencies": {
+      "uni_farming_data": [
+        "server/repositories/UniFarmingRepository.ts",
+        "server/services/UniFarmingService.ts"
+      ],
+      "ton_farming_data": [
+        "server/repositories/TonFarmingRepository.ts",
+        "server/services/TonBoostService.ts"
+      ],
+      "referrals": [
+        "server/services/ReferralService.ts",
+        "server/controllers/ReferralController.ts"
+      ],
+      "withdraw_requests": [
+        "server/controllers/WithdrawController.ts",
+        "server/services/AdminWithdrawService.ts"
+      ]
+    },
+    "criticalPaths": [
+      "BalanceManager.modifyBalance → transactions",
+      "UniFarmingRepository.getByUserId → users.uni_farming_*",
+      "ReferralService.processRewards → users.referred_by",
+      "WithdrawController.create → withdraw_requests + users.balance_ton"
+    ]
+  },
+  "optimizationPhases": [
+    {
+      "phase": 0,
+      "name": "ПОДГОТОВКА И РЕЗЕРВНОЕ КОПИРОВАНИЕ",
+      "description": "Создание полных резервных копий и проверка целостности",
+      "priority": "CRITICAL",
+      "preChecks": [
+        "Проверить доступ к БД с правами на изменение структуры",
+        "Убедиться что нет активных пользователей (maintenance mode)",
+        "Проверить свободное место для резервных копий"
+      ],
+      "actions": [
+        "pg_dump полный дамп БД в файл backup_YYYYMMDD_HHMMSS.sql",
+        "Экспорт критических таблиц в CSV для дополнительной защиты",
+        "Создание скриншотов админ панели с текущей статистикой",
+        "Документирование текущих балансов топ-20 пользователей"
+      ],
+      "postChecks": [
+        "Проверить размер и целостность backup файла",
+        "Проверить возможность восстановления на тестовой БД",
+        "Сравнить контрольные суммы"
+      ],
+      "rollbackPlan": "Не требуется - это подготовительный этап",
+      "estimatedTime": "30 минут",
+      "risks": [
+        "Недостаточно места на диске"
+      ]
+    },
+    {
+      "phase": 1,
+      "name": "СИНХРОНИЗАЦИЯ FARMING ДАННЫХ",
+      "description": "Перенос всех farming данных в основную таблицу users",
+      "priority": "CRITICAL",
+      "preChecks": [
+        "SELECT COUNT(*) FROM uni_farming_data WHERE user_id NOT IN (SELECT id FROM users)",
+        "SELECT COUNT(*) FROM ton_farming_data WHERE user_id NOT IN (SELECT id FROM users)",
+        "Сравнить uni_deposit_amount в users и deposit_amount в uni_farming_data",
+        "Проверить что все поля farming существуют в users"
+      ],
+      "actions": [
+        "BEGIN TRANSACTION",
+        "UPDATE users с данными из uni_farming_data (только где есть расхождения)",
+        "UPDATE users с данными из ton_farming_data (только где есть расхождения)",
+        "Создать архивные таблицы archive_uni_farming_data и archive_ton_farming_data",
+        "INSERT INTO archive_* SELECT * FROM farming таблиц",
+        "COMMIT TRANSACTION"
+      ],
+      "postChecks": [
+        "Сравнить сумму всех балансов до и после",
+        "Проверить что не потеряны активные фермеры",
+        "SELECT для проверки синхронизации полей",
+        "Проверить работу фарминга через API"
+      ],
+      "rollbackPlan": "ROLLBACK TRANSACTION или восстановление из backup",
+      "estimatedTime": "15 минут",
+      "risks": [
+        "Расхождение данных между таблицами",
+        "Потеря активного статуса фарминга"
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "ОЧИСТКА WITHDRAW_REQUESTS",
+      "description": "Удаление дублирующих полей из таблицы выводов",
+      "priority": "HIGH",
+      "preChecks": [
+        "Проверить что telegram_id и username в withdraw_requests совпадают с users",
+        "Найти активные (pending) заявки на вывод",
+        "Проверить зависимости в коде от этих полей"
+      ],
+      "actions": [
+        "CREATE VIEW withdraw_requests_full с JOIN на users",
+        "Обновить код для использования VIEW вместо прямых запросов",
+        "ALTER TABLE withdraw_requests DROP COLUMN telegram_id, username"
+      ],
+      "postChecks": [
+        "Проверить работу списка выводов в админ панели",
+        "Проверить создание новых заявок на вывод",
+        "Убедиться что VIEW возвращает правильные данные"
+      ],
+      "rollbackPlan": "ALTER TABLE ADD COLUMN и восстановление данных из backup",
+      "estimatedTime": "10 минут",
+      "risks": [
+        "Админ панель может перестать показывать имена пользователей"
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "УНИФИКАЦИЯ TRANSACTIONS",
+      "description": "Добавление вычисляемых полей для единого формата",
+      "priority": "HIGH",
+      "preChecks": [
+        "Анализ использования старого формата (amount_uni/amount_ton)",
+        "Анализ использования нового формата (amount + currency)",
+        "Проверка что нет транзакций с обоими форматами"
+      ],
+      "actions": [
+        "ALTER TABLE transactions ADD COLUMN unified_amount GENERATED",
+        "ALTER TABLE transactions ADD COLUMN unified_currency GENERATED",
+        "CREATE INDEX на новых полях",
+        "Обновить TransactionService для использования unified полей"
+      ],
+      "postChecks": [
+        "Проверить расчёт статистики транзакций",
+        "Проверить отображение истории транзакций",
+        "Сравнить суммы транзакций до и после"
+      ],
+      "rollbackPlan": "DROP COLUMN для удаления вычисляемых полей",
+      "estimatedTime": "20 минут",
+      "risks": [
+        "Неправильный расчёт в GENERATED полях"
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "СОЗДАНИЕ ОПТИМИЗИРУЮЩИХ ИНДЕКСОВ",
+      "description": "Добавление индексов для ускорения запросов",
+      "priority": "MEDIUM",
+      "preChecks": [
+        "Анализ медленных запросов из логов",
+        "Проверка существующих индексов",
+        "Оценка размера новых индексов"
+      ],
+      "actions": [
+        "CREATE INDEX на часто используемых полях",
+        "CREATE INDEX для foreign keys",
+        "CREATE INDEX для WHERE условий",
+        "ANALYZE таблиц для обновления статистики"
+      ],
+      "postChecks": [
+        "EXPLAIN ANALYZE критических запросов",
+        "Проверка использования индексов",
+        "Мониторинг производительности"
+      ],
+      "rollbackPlan": "DROP INDEX для удаления индексов",
+      "estimatedTime": "10 минут",
+      "risks": [
+        "Увеличение размера БД",
+        "Замедление INSERT операций"
+      ]
+    },
+    {
+      "phase": 5,
+      "name": "УДАЛЕНИЕ ДУБЛИРУЮЩИХ ТАБЛИЦ",
+      "description": "Финальное удаление старых таблиц после проверки",
+      "priority": "LOW",
+      "preChecks": [
+        "Убедиться что система работает 24+ часа без farming таблиц",
+        "Проверить что архивные копии созданы",
+        "Grep кода на упоминания старых таблиц"
+      ],
+      "actions": [
+        "DROP TABLE uni_farming_data CASCADE",
+        "DROP TABLE ton_farming_data CASCADE",
+        "DROP TABLE user_sessions CASCADE (если не используется)",
+        "Обновить schema.ts убрав определения таблиц"
+      ],
+      "postChecks": [
+        "Полное тестирование функционала",
+        "Проверка логов на ошибки",
+        "Финальная проверка балансов"
+      ],
+      "rollbackPlan": "CREATE TABLE и восстановление из archive таблиц",
+      "estimatedTime": "5 минут",
+      "risks": [
+        "Скрытые зависимости в коде"
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "ОБНОВЛЕНИЕ КОДА И ДОКУМЕНТАЦИИ",
+      "description": "Приведение кода в соответствие с новой структурой БД",
+      "priority": "CRITICAL",
+      "preChecks": [
+        "Список всех файлов использующих старые таблицы",
+        "Проверка тестов на использование старой структуры"
+      ],
+      "actions": [
+        "Обновить все Repository классы",
+        "Обновить Service классы",
+        "Обновить shared/schema.ts",
+        "Обновить документацию API",
+        "Создать migration guide"
+      ],
+      "postChecks": [
+        "Запустить все тесты",
+        "Проверить TypeScript компиляцию",
+        "Ручное тестирование критических путей"
+      ],
+      "rollbackPlan": "Git revert к предыдущей версии",
+      "estimatedTime": "45 минут",
+      "risks": [
+        "Пропущенные зависимости",
+        "Ошибки типизации"
+      ]
+    }
+  ],
+  "validationTests": [
+    {
+      "name": "Тест целостности балансов",
+      "query": "\n        WITH balance_check AS (\n          SELECT \n            SUM(balance_uni) as total_uni,\n            SUM(balance_ton) as total_ton,\n            SUM(uni_farming_balance) as total_farming_uni,\n            SUM(ton_farming_balance) as total_farming_ton\n          FROM users\n        )\n        SELECT * FROM balance_check\n      ",
+      "expected": "Суммы должны совпадать до и после миграции"
+    },
+    {
+      "name": "Тест активных фермеров",
+      "query": "\n        SELECT COUNT(*) as active_farmers\n        FROM users\n        WHERE uni_farming_active = true\n      ",
+      "expected": "Количество должно совпадать с uni_farming_data"
+    },
+    {
+      "name": "Тест реферальных связей",
+      "query": "\n        SELECT COUNT(*) as referral_links\n        FROM users\n        WHERE referred_by IS NOT NULL\n      ",
+      "expected": "Все реферальные связи сохранены"
+    },
+    {
+      "name": "Тест транзакций",
+      "query": "\n        SELECT \n          COUNT(*) as total,\n          SUM(COALESCE(amount, amount_uni + amount_ton)) as total_amount\n        FROM transactions\n      ",
+      "expected": "Количество и сумма транзакций не изменились"
+    }
+  ]
+}
