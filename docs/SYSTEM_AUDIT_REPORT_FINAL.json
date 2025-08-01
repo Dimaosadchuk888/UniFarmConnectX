@@ -1,0 +1,53 @@
+{
+  "timestamp": "2025-08-01T19:01:20.247Z",
+  "indexes": {
+    "status": "unknown",
+    "message": ""
+  },
+  "synchronization": {
+    "status": "✅ Полная синхронизация",
+    "details": {
+      "total": 38,
+      "synced": 38,
+      "notSynced": 0,
+      "percentage": 100
+    }
+  },
+  "performance": {
+    "tests": [
+      {
+        "name": "telegram_id_lookup",
+        "time": 168
+      },
+      {
+        "name": "transaction_history",
+        "time": 172
+      },
+      {
+        "name": "transaction_type_filter",
+        "time": 164
+      },
+      {
+        "name": "active_farmers",
+        "time": 162
+      }
+    ]
+  },
+  "dataIntegrity": {
+    "status": "✅ Данные целостны",
+    "stats": {
+      "users": 103,
+      "transactions": 851633,
+      "totalUni": 113868035.82344301,
+      "totalTon": 478.976589,
+      "totalUniFarming": 0,
+      "totalTonFarming": 449.63177899999994,
+      "activeUniFarmers": 0,
+      "activeTonFarmers": 38,
+      "checksum": 113868964.431811
+    }
+  },
+  "recommendations": [
+    "Проверить создание всех индексов в базе данных"
+  ]
+}
