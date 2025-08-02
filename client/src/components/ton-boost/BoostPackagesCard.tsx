@@ -264,6 +264,12 @@ const BoostPackagesCard: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['/api/v2/boost'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
+            
+            // Обновляем баланс и данные TON фарминга после внешнего платежа
+            refreshBalance(true); // Принудительное обновление баланса
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/boost/farming-status'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions'] });
           } else {
             toast({
               title: "Транзакция отменена",
@@ -329,6 +335,9 @@ const BoostPackagesCard: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
             queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions'] });
+            
+            // ВАЖНО: Обновляем также данные TON фарминга для мгновенного отображения нового депозита
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/boost/farming-status'] });
 
             const { showBoostActivatedToast } = await import('@/lib/toast-helpers');
             showBoostActivatedToast(selectedPackage.name);

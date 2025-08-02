@@ -30,11 +30,13 @@ The application leverages a modular and scalable architecture designed for high 
     - Updated `getTonBoostFarmingStatus` to read from new table
     - Migrated 200 historical purchases from transactions table
     - Maintained backward compatibility with old system
-  - **Impact**: Users now see all their TON Boost purchases correctly
+    - Added instant balance updates after TON Boost purchase
+  - **Impact**: Users now see all their TON Boost purchases correctly (41 deposits vs 1)
   - **Technical Details**: 
     - Schema in `shared/schema.ts`
     - Service logic in `modules/boost/service.ts`
     - Migration script: `scripts/migrate-ton-boost-purchases.ts`
+    - Instant UI updates in `client/src/components/ton-boost/BoostPackagesCard.tsx`
 - **TON Boost Purchase Fix (August 2, 2025)**: Fixed critical bug where boost purchases didn't add to farming balance
   - **Root Cause**: BOOST_PURCHASE transactions store amount in `amount` field (not `amount_ton`)
   - **Issue**: calculateUserTonDeposits() only checked ['DEPOSIT', 'TON_DEPOSIT', 'FARMING_REWARD']
