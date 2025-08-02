@@ -41,8 +41,7 @@ export const users = pgTable(
 
     username: text("username"),
     first_name: text("first_name"),
-    wallet: text("wallet"),
-    ton_wallet_address: text("ton_wallet_address"), // Новое поле для хранения TON-адреса кошелька
+    ton_wallet_address: text("ton_wallet_address"), // TON-адрес кошелька
     ref_code: text("ref_code").unique(), // Уникальный реферальный код для пользователя
     parent_ref_code: text("parent_ref_code"), // Реферальный код пригласившего пользователя
     referred_by: integer("referred_by"), // Прямая связь с пригласившим пользователем
@@ -57,8 +56,6 @@ export const users = pgTable(
     uni_farming_last_update: timestamp("uni_farming_last_update"),
     uni_farming_active: boolean("uni_farming_active").default(false),
     uni_farming_activated_at: timestamp("uni_farming_activated_at"),
-    // Поля для совместимости со старой системой фарминга
-    uni_farming_deposit: numeric("uni_farming_deposit", { precision: 18, scale: 6 }).default("0"),
     
     // Поля для TON фарминга и boost
     ton_boost_package: integer("ton_boost_package").default(0),
@@ -69,7 +66,6 @@ export const users = pgTable(
     ton_farming_accumulated: numeric("ton_farming_accumulated", { precision: 18, scale: 6 }).default("0"),
     ton_farming_last_claim: timestamp("ton_farming_last_claim"),
     ton_boost_active: boolean("ton_boost_active").default(false),
-    ton_boost_package_id: integer("ton_boost_package_id"),
     ton_boost_rate: numeric("ton_boost_rate", { precision: 18, scale: 6 }).default("0"),
     
     // Поля для TON кошелька

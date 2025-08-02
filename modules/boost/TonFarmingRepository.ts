@@ -171,7 +171,7 @@ export class TonFarmingRepository {
         farming_accumulated: user.ton_farming_accumulated || '0',
         farming_last_claim: user.ton_farming_last_claim,
         boost_active: user.ton_boost_active || false,
-        boost_package_id: user.ton_boost_package_id,
+        boost_package_id: user.ton_boost_package,
         boost_expires_at: user.ton_boost_expires_at,
         created_at: user.created_at,
         updated_at: user.updated_at || user.created_at
@@ -235,7 +235,7 @@ export class TonFarmingRepository {
       if (data.farming_last_claim !== undefined) updates.ton_farming_last_claim = data.farming_last_claim;
       if (data.boost_active !== undefined) updates.ton_boost_active = data.boost_active;
       if (data.boost_package_id !== undefined) {
-        updates.ton_boost_package_id = data.boost_package_id;
+        updates.ton_boost_package = data.boost_package_id;
         updates.ton_boost_package = data.boost_package_id; // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: синхронизация с планировщиком
       }
       if (data.boost_expires_at !== undefined) updates.ton_boost_expires_at = data.boost_expires_at;
@@ -277,7 +277,7 @@ export class TonFarmingRepository {
       if (data.farming_last_claim !== undefined) updates.ton_farming_last_claim = data.farming_last_claim;
       if (data.boost_active !== undefined) updates.ton_boost_active = data.boost_active;
       if (data.boost_package_id !== undefined) {
-        updates.ton_boost_package_id = data.boost_package_id;
+        updates.ton_boost_package = data.boost_package_id;
         updates.ton_boost_package = data.boost_package_id; // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: синхронизация с планировщиком  
       }
       if (data.boost_expires_at !== undefined) updates.ton_boost_expires_at = data.boost_expires_at;
@@ -393,7 +393,7 @@ export class TonFarmingRepository {
             .from('users')
             .update({
               ton_boost_active: true,
-              ton_boost_package_id: packageId,
+              ton_boost_package: packageId,
               ton_farming_rate: rate.toString(),
               ton_farming_balance: newFallbackBalance, // Используем накопленный баланс
               ton_boost_expires_at: expiresAt || null,
@@ -500,7 +500,7 @@ export class TonFarmingRepository {
             .from('users')
             .update({
               ton_boost_active: false,
-              ton_boost_package_id: null,
+              ton_boost_package: null,
               ton_boost_expires_at: null
             })
             .eq('id', userId);
@@ -616,7 +616,7 @@ export class TonFarmingRepository {
         farming_accumulated: user.ton_farming_accumulated || '0',
         farming_last_claim: user.ton_farming_last_claim,
         boost_active: user.ton_boost_active || false,
-        boost_package_id: user.ton_boost_package_id,
+        boost_package_id: user.ton_boost_package,
         boost_expires_at: user.ton_boost_expires_at,
         created_at: user.created_at,
         updated_at: user.updated_at || user.created_at

@@ -131,7 +131,7 @@ async function diagnoseFullTonPaymentChain() {
       console.log(`   - TON баланс: ${testUser.balance_ton}`);
       console.log(`   - TON кошелек: ${testUser.ton_wallet_address || 'НЕ ПРИВЯЗАН'}`);
       console.log(`   - Кошелек верифицирован: ${testUser.ton_wallet_verified ? 'ДА' : 'НЕТ'}`);
-      console.log(`   - TON boost пакет: ${testUser.ton_boost_package_id || 'НЕТ'}`);
+      console.log(`   - TON boost пакет: ${testUser.ton_boost_package || 'НЕТ'}`);
     } else {
       console.log(`❌ Пользователь ${testUserId} не найден:`, userError?.message);
     }

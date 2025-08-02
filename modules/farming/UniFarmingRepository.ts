@@ -73,7 +73,7 @@ export class UniFarmingRepository {
         farming_rate: user.uni_farming_rate || '0.01',
         farming_start_timestamp: user.uni_farming_start_timestamp,
         farming_last_update: user.uni_farming_last_update,
-        farming_deposit: user.uni_farming_deposit || '0',
+        farming_deposit: user.uni_deposit_amount || '0',
         is_active: user.uni_farming_active || false,
         created_at: user.created_at,
         updated_at: user.updated_at || user.created_at
@@ -125,7 +125,7 @@ export class UniFarmingRepository {
       if (data.farming_rate !== undefined) updates.uni_farming_rate = data.farming_rate;
       if (data.farming_start_timestamp !== undefined) updates.uni_farming_start_timestamp = data.farming_start_timestamp;
       if (data.farming_last_update !== undefined) updates.uni_farming_last_update = data.farming_last_update;
-      if (data.farming_deposit !== undefined) updates.uni_farming_deposit = data.farming_deposit;
+      if (data.farming_deposit !== undefined) updates.uni_deposit_amount = data.farming_deposit;
       if (data.is_active !== undefined) updates.uni_farming_active = data.is_active;
       
       const { error } = await supabase
@@ -276,7 +276,7 @@ export class UniFarmingRepository {
         farming_rate: user.uni_farming_rate || '0.01',
         farming_start_timestamp: user.uni_farming_start_timestamp,
         farming_last_update: user.uni_farming_last_update,
-        farming_deposit: user.uni_farming_deposit || '0',
+        farming_deposit: user.uni_deposit_amount || '0',
         is_active: user.uni_farming_active || false,
         created_at: user.created_at,
         updated_at: user.updated_at || user.created_at
@@ -335,7 +335,7 @@ export class UniFarmingRepository {
             .from('users')
             .update({
               uni_deposit_amount: newDeposit,
-              uni_farming_deposit: newDeposit,
+              uni_deposit_amount: newDeposit,
               uni_farming_active: true,
               uni_farming_last_update: new Date().toISOString()
             })
@@ -377,7 +377,7 @@ export class UniFarmingRepository {
           
           const updateData = {
             uni_deposit_amount: newDeposit,
-            uni_farming_deposit: newDeposit,
+            uni_deposit_amount: newDeposit,
             uni_farming_active: true,
             uni_farming_start_timestamp: new Date().toISOString(),
             uni_farming_last_update: new Date().toISOString()

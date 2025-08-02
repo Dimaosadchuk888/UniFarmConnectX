@@ -11,14 +11,12 @@ export interface User {
   parent_ref_code?: string | null;
   balance_uni: string;
   balance_ton: string;
-  wallet?: string;
   ton_wallet_address?: string;
   uni_deposit_amount?: string;
   uni_farming_start_timestamp?: string | null;
   uni_farming_balance?: string;
   uni_farming_rate?: string;
   uni_farming_last_update?: string | null;
-  uni_farming_deposit?: string;
   uni_farming_activated_at?: string;
   created_at?: string;
   checkin_last_date?: string;

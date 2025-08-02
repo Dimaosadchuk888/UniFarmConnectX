@@ -1,15 +1,57 @@
 {
-  "timestamp": "2025-08-02T05:59:30.364Z",
-  "results": {
-    "created_users": 43,
-    "updated_deposits": 9,
-    "updated_boosts": 23,
-    "errors": []
+  "timestamp": "2025-08-02T07:15:07.994Z",
+  "phases": [
+    {
+      "phase": "Синхронизация данных",
+      "success": true,
+      "details": {
+        "uni_deposit": 0,
+        "ton_boost": 0,
+        "wallet": 21
+      },
+      "errors": []
+    },
+    {
+      "phase": "Анализ кода",
+      "success": true,
+      "details": {
+        "filesNeedingUpdate": 6,
+        "files": [
+          "/modules/adminBot/types.ts",
+          "/server/routes.ts",
+          "/client/src/components/layout/NavigationBar.tsx",
+          "/client/src/components/ton-boost/BoostPackagesCard.tsx",
+          "/client/src/services/tonConnectService.ts",
+          "/shared/schema.ts"
+        ]
+      },
+      "errors": []
+    }
+  ],
+  "summary": {
+    "dataSync": {
+      "uni_deposit": 0,
+      "ton_boost": 0,
+      "wallet": 21
+    },
+    "codeChangesNeeded": 6,
+    "fieldsToRemove": [
+      "uni_farming_deposit",
+      "ton_boost_package_id",
+      "wallet"
+    ],
+    "fieldsToKeep": {
+      "uni_deposit_amount": "Главное поле для UNI депозита",
+      "balance_uni": "Общий баланс UNI",
+      "uni_farming_balance": "Накопления от фарминга (НЕ дубликат!)",
+      "ton_boost_package": "ID пакета TON Boost",
+      "ton_wallet_address": "TON адрес кошелька"
+    }
   },
-  "next_steps": [
-    "Execute CREATE_VIEWS_SQL.sql",
-    "Update boost/service.ts",
-    "Test Views functionality",
-    "Remove archived tables"
+  "nextSteps": [
+    "1. Обновить код во всех файлах для использования главных полей",
+    "2. Протестировать систему после обновления кода",
+    "3. Выполнить DROP_DUPLICATE_FIELDS.sql для удаления дубликатов",
+    "4. Удалить или обновить Views если они больше не нужны"
   ]
 }
