@@ -21,8 +21,7 @@ SELECT
   uni_farming_last_update,
   uni_deposit_amount as farming_deposit,
   uni_farming_active as is_active,
-  created_at,
-  updated_at
+  created_at
 FROM users
 WHERE uni_farming_active = true;
 
@@ -39,8 +38,7 @@ SELECT
   ton_boost_active as boost_active,
   ton_boost_package as boost_package_id,
   ton_boost_expires_at as boost_expires_at,
-  created_at,
-  updated_at
+  created_at
 FROM users
 WHERE ton_boost_active = true OR ton_farming_balance > 0;
 
