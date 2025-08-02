@@ -351,6 +351,9 @@ export type UserMission = typeof userMissions.$inferSelect;
 // Алиасы будут созданы после объявления всех таблиц
 
 // Таблица для хранения UNI фарминг-депозитов
+// ЗАКОММЕНТИРОВАНО: Таблица больше не используется после миграции БД (August 2, 2025)
+// Данные теперь хранятся в поле uni_deposit_amount таблицы users
+/*
 export const uniFarmingDeposits = pgTable("uni_farming_deposits", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id").notNull().references(() => users.id),
@@ -371,6 +374,7 @@ export const insertUniFarmingDepositSchema = createInsertSchema(uniFarmingDeposi
 
 export type InsertUniFarmingDeposit = z.infer<typeof insertUniFarmingDepositSchema>;
 export type UniFarmingDeposit = typeof uniFarmingDeposits.$inferSelect;
+*/
 
 // Таблица для хранения UNI Boost-депозитов
 export const boostDeposits = pgTable("boost_deposits", {

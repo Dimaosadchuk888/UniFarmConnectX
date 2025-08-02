@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-02T07:38:58.146Z",
+  "timestamp": "2025-08-02T07:48:28.923Z",
   "database": {
     "columnsFound": 38,
     "deletedFieldsStillExist": [],
@@ -28,10 +28,10 @@
   },
   "code": {
     "totalFilesChecked": 324,
-    "filesWithOldFields": 36,
+    "filesWithOldFields": 35,
     "oldFieldUsage": {
-      "uni_farming_deposit": 2,
-      "ton_boost_package_id": 1,
+      "uni_farming_deposit": 1,
+      "ton_boost_package_id": 0,
       "wallet": 34
     }
   },

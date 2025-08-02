@@ -1,0 +1,607 @@
+{
+  "wallet": [
+    {
+      "file": "modules/index.ts",
+      "line": 73,
+      "code": "export type { WalletBalance, TransactionData, WithdrawalRequest, WalletSummary } from './wallet/types';",
+      "context": "TYPE_DEFINITION",
+      "severity": "HIGH"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 541,
+      "code": "type: typeof tonConnectUI.wallet,",
+      "context": "TYPE_DEFINITION",
+      "severity": "HIGH"
+    },
+    {
+      "file": "client/src/modules/index.ts",
+      "line": 26,
+      "code": "export type { WalletBalance, Transaction, WalletResponse } from './wallet/walletService';",
+      "context": "TYPE_DEFINITION",
+      "severity": "HIGH"
+    },
+    {
+      "file": "server/routes.ts",
+      "line": 6,
+      "code": "import walletRoutes from '../modules/wallet/routes';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "modules/index.ts",
+      "line": 5,
+      "code": "export { WalletService } from './wallet/service';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "modules/index.ts",
+      "line": 20,
+      "code": "export { WalletController } from './wallet/controller';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "modules/index.ts",
+      "line": 35,
+      "code": "export { default as walletRoutes } from './wallet/routes';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "modules/transactions/controller.ts",
+      "line": 3,
+      "code": "import { WalletService } from '../wallet/service';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "modules/boost/service.ts",
+      "line": 336,
+      "code": "const { WalletService } = await import('../wallet/service');",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "client/src/pages/Wallet.tsx",
+      "line": 2,
+      "code": "import BalanceCard from '@/components/wallet/BalanceCard';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "client/src/pages/Wallet.tsx",
+      "line": 3,
+      "code": "import TonDepositCard from '@/components/wallet/TonDepositCard';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "client/src/pages/Wallet.tsx",
+      "line": 4,
+      "code": "import WithdrawalForm from '@/components/wallet/WithdrawalForm';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "client/src/pages/Wallet.tsx",
+      "line": 5,
+      "code": "import TransactionHistory from '@/components/wallet/TransactionHistory';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "client/src/modules/index.ts",
+      "line": 10,
+      "code": "export { WalletService } from './wallet/walletService';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "client/src/modules/index.ts",
+      "line": 15,
+      "code": "export { BalanceCard } from './wallet/components/BalanceCard';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "client/src/modules/dashboard/components/DashboardLayout.tsx",
+      "line": 7,
+      "code": "import { BalanceCardSimple } from '../../wallet/components/BalanceCardSimple';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "client/src/modules/dashboard/components/CompleteDashboard.tsx",
+      "line": 9,
+      "code": "import { BalanceCardSimple } from '../../wallet/components/BalanceCardSimple';",
+      "context": "MODULE_INTERFACE",
+      "severity": "MEDIUM"
+    },
+    {
+      "file": "server/routes.ts",
+      "line": 110,
+      "code": "router.get('/wallet/balance-direct', async (req: Request, res: Response) => {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "server/routes.ts",
+      "line": 165,
+      "code": "'/wallet/*',",
+      "context": "COMMENT",
+      "severity": "LOW"
+    },
+    {
+      "file": "server/routes.ts",
+      "line": 257,
+      "code": "wallet: '/wallet',",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "server/routes.ts",
+      "line": 275,
+      "code": "// Removed duplicate wallet/balance endpoint - using module routes instead",
+      "context": "COMMENT",
+      "severity": "LOW"
+    },
+    {
+      "file": "server/routes.ts",
+      "line": 295,
+      "code": "router.use('/wallet', walletRoutes);",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "shared/schema.ts",
+      "line": 137,
+      "code": "wallet: true,",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/App.tsx",
+      "line": 283,
+      "code": "case \"wallet\":",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/wallet/service.ts",
+      "line": 65,
+      "code": "description: `TON wallet connected: ${address}`,",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/wallet/routes.ts",
+      "line": 13,
+      "code": "console.log('[WALLET ROUTES] Модуль wallet загружается...');",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/wallet/routes.ts",
+      "line": 16,
+      "code": "// Валидационные схемы для wallet операций",
+      "context": "COMMENT",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/wallet/routes.ts",
+      "line": 23,
+      "code": "wallet_address: z.string().min(10, 'Invalid wallet address').max(100, 'Wallet address too long')",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/wallet/model.ts",
+      "line": 2,
+      "code": "* Модели кошелька - описывают структуры таблиц wallet и transactions в базе данных",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/wallet/model.ts",
+      "line": 18,
+      "code": "// Define wallet-specific enums",
+      "context": "COMMENT",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/user/service.ts",
+      "line": 46,
+      "code": "wallet,",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/monitor/service.ts",
+      "line": 251,
+      "code": "walletBalance: '/api/v2/wallet/balance',",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/boost/types.ts",
+      "line": 57,
+      "code": "source: 'wallet' | 'ton';",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/boost/types.ts",
+      "line": 66,
+      "code": "payment_method: 'wallet' | 'ton';",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/boost/service.ts",
+      "line": 179,
+      "code": "async purchaseBoost(userId: string, boostId: string, paymentMethod: 'wallet' | 'ton', txHash?: string): Promise<{",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/boost/service.ts",
+      "line": 208,
+      "code": "if (paymentMethod === 'wallet') {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/boost/service.ts",
+      "line": 460,
+      "code": "const purchase = await this.createBoostPurchase(userId, boostPackage.id.toString(), 'wallet', null, 'confirmed');",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/boost/service.ts",
+      "line": 601,
+      "code": "private async createBoostPurchase(userId: string, boostId: string, source: 'wallet' | 'ton', txHash: string | null, status: 'pending' | 'confirmed' | 'failed') {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/boost/routes.ts",
+      "line": 20,
+      "code": "payment_method: z.enum(['wallet', 'ton'], { errorMap: () => ({ message: 'Payment method must be wallet or ton' }) }),",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/boost/controller.ts",
+      "line": 222,
+      "code": "if (!['wallet', 'ton'].includes(payment_method)) {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/boost/controller.ts",
+      "line": 223,
+      "code": "return this.sendError(res, 'Недопустимый payment_method. Используйте \"wallet\" или \"ton\"', 400);",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/adminBot/service.ts",
+      "line": 445,
+      "code": "// TODO: Here you would integrate with actual TON wallet to send transaction",
+      "context": "COMMENT",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/withdrawalService.ts",
+      "line": 112,
+      "code": "response = await correctApiRequest('/api/v2/wallet/withdraw', 'POST', requestData);",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 138,
+      "code": "const response = await fetch('/api/v2/wallet/connect-ton', {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 185,
+      "code": "debugLog('Attempting to connect wallet...');",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 190,
+      "code": "if (tonConnectUI.connected && tonConnectUI.wallet) {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 198,
+      "code": "debugLog('Connection result:', { connected: tonConnectUI.connected, wallet: tonConnectUI.wallet });",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 206,
+      "code": "console.error('Error connecting TON wallet:', error);",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 448,
+      "code": "const backendResponse = await correctApiRequest('/api/v2/wallet/ton-deposit', 'POST', {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 523,
+      "code": "const hasWallet = hasConnectUI && !!tonConnectUI.wallet;",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 535,
+      "code": "wallet: hasWallet ? {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 537,
+      "code": "deviceAppName: tonConnectUI.wallet?.device?.appName,",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 540,
+      "code": "hasWalletObject: !!tonConnectUI.wallet,",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 542,
+      "code": "appName: tonConnectUI.wallet?.device?.appName || 'unknown',",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/tonConnectService.ts",
+      "line": 563,
+      "code": "if (!hasWallet) reasons.push('информация о кошельке отсутствует (tonConnectUI.wallet = null)');",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/balanceService.ts",
+      "line": 65,
+      "code": "const response = await correctApiRequest(`/api/v2/wallet/balance?user_id=${targetUserId}`, 'GET');",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/services/balanceService.ts",
+      "line": 130,
+      "code": "const response = await correctApiRequest('/api/v2/wallet/withdraw', 'POST', {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/pages/Wallet.tsx",
+      "line": 38,
+      "code": "<i className=\"fas fa-wallet text-primary mr-3\"></i>",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/lib/queryClient.ts",
+      "line": 371,
+      "code": "const criticalEndpoints = ['/api/me', '/api/wallet/balance'];",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/lib/constants.ts",
+      "line": 9,
+      "code": "{ id: \"wallet\", label: \"Кошелёк\", icon: \"wallet\" }",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/contexts/userContext.tsx",
+      "line": 534,
+      "code": "const response = await correctApiRequest('/api/v2/wallet/save-ton-address', 'POST', { address });",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "modules/wallet/logic/withdrawals.ts",
+      "line": 125,
+      "code": "response = await correctApiRequest('/api/v2/wallet/withdraw', 'POST', requestData);",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/wallet/TonDepositCard.tsx",
+      "line": 136,
+      "code": "const response = await fetch('/api/v2/wallet/ton-deposit', {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/wallet/BalanceCard.tsx",
+      "line": 243,
+      "code": "<i className=\"fas fa-wallet text-primary mr-2 text-sm sm:text-base\"></i>",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/ui/ErrorBoundary.tsx",
+      "line": 74,
+      "code": "'/api/v2/wallet/balance',",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/ton-boost/BoostPackagesCard.tsx",
+      "line": 167,
+      "code": "if (tonConnectUI.connected && tonConnectUI.wallet) {",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/ton-boost/BoostPackagesCard.tsx",
+      "line": 306,
+      "code": "payment_method: 'wallet'  // для внутреннего баланса используем 'wallet'",
+      "context": "COMMENT",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/ton-boost/BoostPackagesCard.tsx",
+      "line": 324,
+      "code": "queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/shared/UnifiedTransactionHistory.tsx",
+      "line": 21,
+      "code": "* - client/src/components/wallet/TransactionHistory.tsx (основная реализация)",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/shared/UnifiedTransactionHistory.tsx",
+      "line": 22,
+      "code": "* - client/src/components/wallet/TransactionItem.tsx (элемент транзакции)",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/shared/UnifiedBalanceDisplay.tsx",
+      "line": 18,
+      "code": "* - client/src/components/wallet/BalanceCard.tsx (основная реализация)",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/missions/SimpleMissionsList.tsx",
+      "line": 132,
+      "code": "queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/missions/MissionsList.tsx",
+      "line": 318,
+      "code": "queryClient.invalidateQueries({ queryKey: [`/api/v2/wallet/balance?user_id=${userId}`] });",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/layout/NavigationBar.tsx",
+      "line": 21,
+      "code": "wallet: Wallet",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/farming/UniFarmingCard.tsx",
+      "line": 250,
+      "code": "'/api/v2/wallet/balance'",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/farming/UniFarmingCard.tsx",
+      "line": 321,
+      "code": "await queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/farming/UniFarmingCard.tsx",
+      "line": 327,
+      "code": "await queryClient.refetchQueries({ queryKey: ['/api/v2/wallet/balance', userId] });",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/dashboard/DailyBonusCard.tsx",
+      "line": 101,
+      "code": "invalidateQueryWithUserId('/api/v2/wallet/balance');",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "file": "client/src/components/dashboard/DailyBonusCard.tsx",
+      "line": 132,
+      "code": "invalidateQueryWithUserId('/api/v2/wallet/balance');",
+      "context": "UNKNOWN",
+      "severity": "LOW"
+    }
+  ],
+  "uni_farming_deposit": [
+    {
+      "file": "shared/schema.ts",
+      "line": 354,
+      "code": "export const uniFarmingDeposits = pgTable(\"uni_farming_deposits\", {",
+      "context": "CODE_REFERENCE",
+      "severity": "HIGH"
+    },
+    {
+      "file": "shared/schema.ts",
+      "line": 364,
+      "code": "// Схемы для таблицы uni_farming_deposits",
+      "context": "CODE_REFERENCE",
+      "severity": "HIGH"
+    },
+    {
+      "file": "modules/user/service.ts",
+      "line": 56,
+      "code": "uni_farming_deposit,",
+      "context": "CODE_REFERENCE",
+      "severity": "HIGH"
+    }
+  ],
+  "ton_boost_package_id": [
+    {
+      "file": "modules/user/service.ts",
+      "line": 70,
+      "code": "ton_boost_package_id,",
+      "context": "CODE_REFERENCE",
+      "severity": "HIGH"
+    }
+  ],
+  "summary": {
+    "totalIssues": 83,
+    "criticalFiles": [
+      "shared/schema.ts",
+      "modules/user/service.ts",
+      "modules/index.ts",
+      "client/src/services/tonConnectService.ts",
+      "client/src/modules/index.ts"
+    ],
+    "recommendations": [
+      "1. СРОЧНО: Исправить критические файлы (API endpoints и SQL запросы)",
+      "2. Заменить все использования \"wallet\" на \"ton_wallet_address\"",
+      "3. Заменить \"uni_farming_deposit\" на \"uni_deposit_amount\"",
+      "4. Заменить \"ton_boost_package_id\" на \"ton_boost_package\"",
+      "5. Обновить TypeScript интерфейсы и типы",
+      "6. Протестировать все API endpoints после исправлений"
+    ]
+  }
+}
