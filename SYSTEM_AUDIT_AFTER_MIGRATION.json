@@ -1,0 +1,42 @@
+{
+  "timestamp": "2025-08-02T07:38:58.146Z",
+  "database": {
+    "columnsFound": 38,
+    "deletedFieldsStillExist": [],
+    "missingPrimaryFields": [],
+    "relevantColumns": [
+      "uni_deposit_amount",
+      "uni_farming_start_timestamp",
+      "uni_farming_balance",
+      "uni_farming_rate",
+      "uni_farming_last_update",
+      "ton_boost_package",
+      "ton_farming_balance",
+      "ton_farming_rate",
+      "ton_farming_start_timestamp",
+      "ton_farming_last_update",
+      "ton_farming_accumulated",
+      "ton_farming_last_claim",
+      "ton_boost_active",
+      "ton_boost_rate",
+      "ton_boost_expires_at",
+      "uni_farming_active",
+      "ton_wallet_address",
+      "ton_wallet_verified",
+      "ton_wallet_linked_at"
+    ]
+  },
+  "code": {
+    "totalFilesChecked": 324,
+    "filesWithOldFields": 36,
+    "oldFieldUsage": {
+      "uni_farming_deposit": 2,
+      "ton_boost_package_id": 1,
+      "wallet": 34
+    }
+  },
+  "status": "FAILED",
+  "issues": [
+    "Код использует удаленные поля"
+  ]
+}
