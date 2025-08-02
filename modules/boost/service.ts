@@ -130,20 +130,18 @@ export class BoostService {
         return [];
       }
       
-      // Получаем farming_balance из ton_farming_data или используем fallback
+      // Получаем farming_balance напрямую из users таблицы
       let farmingBalance = parseFloat(user.balance_ton || '0');
-      try {
-        const { data: farmingData } = await supabase
-          .from('ton_farming_data')
-          .select('farming_balance, created_at')
-          .eq('user_id', parseInt(userId))
-          .single();
-          
-        if (farmingData && farmingData.farming_balance) {
-          farmingBalance = parseFloat(farmingData.farming_balance);
-        }
-      } catch (e) {
-        // Используем balance_ton как fallback
+      
+      // Получаем ton_farming_balance из users таблицы
+      const { data: userData } = await supabase
+        .from('users')
+        .select('ton_farming_balance')
+        .eq('id', parseInt(userId))
+        .single();
+        
+      if (userData && userData.ton_farming_balance !== null) {
+        farmingBalance = parseFloat(userData.ton_farming_balance.toString());
       }
       
       // Возвращаем полные данные активного boost
@@ -1108,26 +1106,26 @@ export class BoostService {
         };
       }
 
-      // Получаем farming_balance из ton_farming_data для корректного отображения
-      let farmingBalance = 0; // Не используем fallback к balance_ton
+      // Получаем ton_farming_balance напрямую из users для корректного отображения
+      let farmingBalance = 0;
       let hasFarmingData = false;
       
       try {
-        const { data: farmingData } = await supabase
-          .from('ton_farming_data')
-          .select('farming_balance')
-          .eq('user_id', parseInt(userId))
-          .maybeSingle(); // Используем maybeSingle() вместо single()
+        const { data: userData } = await supabase
+          .from('users')
+          .select('ton_farming_balance')
+          .eq('id', parseInt(userId))
+          .maybeSingle();
         
-        if (farmingData && farmingData.farming_balance) {
-          farmingBalance = parseFloat(farmingData.farming_balance);
+        if (userData && userData.ton_farming_balance !== null) {
+          farmingBalance = parseFloat(userData.ton_farming_balance.toString());
           hasFarmingData = true;
         }
       } catch (e) {
-        logger.warn('[BoostService] Ошибка получения farming_balance:', e);
+        logger.warn('[BoostService] Ошибка получения ton_farming_balance:', e);
       }
 
-      // Если нет записи в ton_farming_data, используем минимальную сумму пакета
+      // Если нет данных о farming_balance, используем минимальную сумму пакета
       if (!hasFarmingData) {
         farmingBalance = parseFloat(boostPackage.min_amount || '0');
         logger.info('[BoostService] Используем min_amount пакета как farming_balance', {

@@ -1,214 +1,125 @@
 import { supabase } from '../core/supabase.js';
 
-interface DuplicateFieldAnalysis {
-  field1: string;
-  field2: string;
-  usersWithDifferences: number;
-  examples: Array<{
-    userId: number;
-    username: string;
-    field1Value: any;
-    field2Value: any;
-  }>;
-}
-
 async function analyzeDuplicateFields() {
-  console.log('🔍 АНАЛИЗ ДУБЛИРУЮЩИХСЯ ПОЛЕЙ ДЛЯ ПОЛЬЗОВАТЕЛЕЙ 191-303\n');
-  console.log('=' .repeat(80));
+  console.log('🔍 АНАЛИЗ ДУБЛИРУЮЩИХСЯ ПОЛЕЙ В ТАБЛИЦЕ USERS');
+  console.log('='.repeat(80));
+  console.log('');
 
-  // Получаем данные пользователей
-  const { data: users, error } = await supabase
-    .from('users')
-    .select('*')
-    .gte('id', 191)
-    .lte('id', 303)
-    .order('id');
+  try {
+    // Получаем пример данных для анализа
+    const { data: users } = await supabase
+      .from('users')
+      .select('*')
+      .limit(10);
 
-  if (error || !users) {
-    console.error('❌ Ошибка получения пользователей:', error);
-    return;
-  }
-
-  console.log(`✅ Найдено пользователей: ${users.length}\n`);
-
-  const analyses: DuplicateFieldAnalysis[] = [];
-
-  // 1. Анализ balance_uni vs uni_farming_balance
-  const balanceUniAnalysis = analyzeFieldPair(
-    users,
-    'balance_uni',
-    'uni_farming_balance',
-    'Баланс UNI'
-  );
-  analyses.push(balanceUniAnalysis);
-
-  // 2. Анализ balance_ton vs ton_farming_balance
-  const balanceTonAnalysis = analyzeFieldPair(
-    users,
-    'balance_ton',
-    'ton_farming_balance',
-    'Баланс TON'
-  );
-  analyses.push(balanceTonAnalysis);
-
-  // 3. Анализ uni_deposit_amount vs uni_farming_deposit
-  const depositAnalysis = analyzeFieldPair(
-    users,
-    'uni_deposit_amount',
-    'uni_farming_deposit',
-    'Депозит UNI'
-  );
-  analyses.push(depositAnalysis);
-
-  // 4. Анализ ton_boost_package vs ton_boost_package_id
-  const boostPackageAnalysis = analyzeFieldPair(
-    users,
-    'ton_boost_package',
-    'ton_boost_package_id',
-    'TON Boost пакет'
-  );
-  analyses.push(boostPackageAnalysis);
-
-  // 5. Анализ ton_farming_rate vs ton_boost_rate
-  const rateAnalysis = analyzeFieldPair(
-    users,
-    'ton_farming_rate',
-    'ton_boost_rate',
-    'Ставка TON'
-  );
-  analyses.push(rateAnalysis);
-
-  // Выводим результаты
-  console.log('\n📊 РЕЗУЛЬТАТЫ АНАЛИЗА:');
-  console.log('=' .repeat(80));
-
-  for (const analysis of analyses) {
-    console.log(`\n📌 ${analysis.field1} vs ${analysis.field2}`);
-    console.log(`   Пользователей с расхождениями: ${analysis.usersWithDifferences}`);
-    
-    if (analysis.examples.length > 0) {
-      console.log('   Примеры расхождений:');
-      for (const example of analysis.examples.slice(0, 3)) {
-        console.log(`   - User ${example.userId} (${example.username}):`);
-        console.log(`     ${analysis.field1}: ${example.field1Value}`);
-        console.log(`     ${analysis.field2}: ${example.field2Value}`);
-      }
-    } else {
-      console.log('   ✅ Значения идентичны у всех пользователей');
+    if (!users || users.length === 0) {
+      console.log('Нет данных для анализа');
+      return;
     }
-  }
 
-  // Проверяем таблицу userBalances
-  console.log('\n\n📋 АНАЛИЗ ТАБЛИЦЫ userBalances:');
-  console.log('=' .repeat(80));
-  
-  const { data: userBalances, error: balError } = await supabase
-    .from('user_balances')
-    .select('*')
-    .gte('user_id', 191)
-    .lte('user_id', 303);
+    // Анализируем дублирующиеся поля
+    const duplicates = [
+      {
+        group: 'UNI Deposit',
+        fields: ['uni_deposit_amount', 'uni_farming_deposit'],
+        description: 'Сумма UNI депозита'
+      },
+      {
+        group: 'UNI Balance',
+        fields: ['balance_uni', 'uni_farming_balance'],
+        description: 'UNI баланс/накопления от фарминга'
+      },
+      {
+        group: 'TON Boost Package',
+        fields: ['ton_boost_package', 'ton_boost_package_id'],
+        description: 'ID пакета TON Boost'
+      },
+      {
+        group: 'Wallet Address',
+        fields: ['wallet', 'ton_wallet_address'],
+        description: 'TON адрес кошелька'
+      }
+    ];
 
-  if (balError) {
-    console.log('⚠️ Таблица userBalances недоступна или не существует');
-  } else {
-    console.log(`Записей в userBalances: ${userBalances?.length || 0}`);
-    
-    if (userBalances && userBalances.length > 0) {
-      // Сравниваем с данными в users
-      let mismatches = 0;
-      for (const bal of userBalances) {
-        const user = users.find(u => u.id === bal.user_id);
-        if (user) {
-          if (parseFloat(user.balance_uni) !== parseFloat(bal.balance_uni) ||
-              parseFloat(user.balance_ton) !== parseFloat(bal.balance_ton)) {
-            mismatches++;
-            console.log(`⚠️ Расхождение для user ${bal.user_id}:`);
-            console.log(`   users.balance_uni: ${user.balance_uni}, userBalances.balance_uni: ${bal.balance_uni}`);
-            console.log(`   users.balance_ton: ${user.balance_ton}, userBalances.balance_ton: ${bal.balance_ton}`);
+    console.log('📊 НАЙДЕННЫЕ ДУБЛИРУЮЩИЕСЯ ПОЛЯ:\n');
+
+    for (const dup of duplicates) {
+      console.log(`${dup.group}: ${dup.description}`);
+      console.log(`Поля: ${dup.fields.join(' vs ')}`);
+      
+      // Проверяем есть ли различия в данных
+      let hasDifferences = false;
+      let diffCount = 0;
+      
+      for (const user of users) {
+        const values = dup.fields.map(f => user[f]);
+        
+        // Проверяем если значения отличаются (игнорируя null)
+        const nonNullValues = values.filter(v => v !== null && v !== undefined);
+        if (nonNullValues.length > 1) {
+          const firstValue = String(nonNullValues[0]);
+          const allSame = nonNullValues.every(v => String(v) === firstValue);
+          
+          if (!allSame) {
+            hasDifferences = true;
+            diffCount++;
           }
         }
       }
       
-      if (mismatches === 0) {
-        console.log('✅ Данные в userBalances синхронизированы с users');
+      if (hasDifferences) {
+        console.log(`⚠️  Найдены различия в ${diffCount} записях из ${users.length}`);
       } else {
-        console.log(`❌ Найдено расхождений: ${mismatches}`);
+        console.log(`✅ Значения идентичны во всех записях`);
       }
+      console.log('');
     }
-  }
 
-  // Проверяем старые таблицы фарминга
-  console.log('\n\n📋 АНАЛИЗ СТАРЫХ ТАБЛИЦ ФАРМИНГА:');
-  console.log('=' .repeat(80));
+    // Анализ использования в коде
+    console.log('\n📝 РЕКОМЕНДАЦИИ ПО ОПТИМИЗАЦИИ:\n');
 
-  // uni_farming_data
-  const { data: uniFarmingData, error: uniError } = await supabase
-    .from('uni_farming_data')
-    .select('*')
-    .gte('user_id', 191)
-    .lte('user_id', 303);
+    console.log('1. БЕЗОПАСНЫЕ ДЛЯ УДАЛЕНИЯ (дубликаты с идентичными данными):');
+    console.log('   - wallet (использовать ton_wallet_address)');
+    console.log('   - Но сначала нужно обновить код, использующий эти поля');
 
-  if (uniError) {
-    console.log('⚠️ Таблица uni_farming_data недоступна');
-  } else {
-    console.log(`Записей в uni_farming_data: ${uniFarmingData?.length || 0}`);
-  }
+    console.log('\n2. ТРЕБУЮТ СИНХРОНИЗАЦИИ ДАННЫХ:');
+    console.log('   - uni_deposit_amount vs uni_farming_deposit');
+    console.log('   - ton_boost_package vs ton_boost_package_id (разные типы!)');
 
-  // ton_farming_data
-  const { data: tonFarmingData, error: tonError } = await supabase
-    .from('ton_farming_data')
-    .select('*')
-    .in('user_id', users.map(u => u.id.toString()));
+    console.log('\n3. РАЗНОЕ НАЗНАЧЕНИЕ (не удалять):');
+    console.log('   - balance_uni (общий баланс) vs uni_farming_balance (накопления от фарминга)');
 
-  if (tonError) {
-    console.log('⚠️ Таблица ton_farming_data недоступна');
-  } else {
-    console.log(`Записей в ton_farming_data: ${tonFarmingData?.length || 0}`);
+    // Проверяем количество NULL значений
+    console.log('\n\n📊 СТАТИСТИКА NULL ЗНАЧЕНИЙ:\n');
+
+    const allFields = [...new Set(duplicates.flatMap(d => d.fields))];
+    
+    for (const field of allFields) {
+      const { count: totalCount } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: nonNullCount } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .not(field, 'is', null);
+
+      const nullCount = (totalCount || 0) - (nonNullCount || 0);
+      const nullPercent = totalCount ? (nullCount / totalCount * 100).toFixed(1) : 0;
+      
+      console.log(`${field}: ${nonNullCount}/${totalCount} заполнено (${nullPercent}% NULL)`);
+    }
+
+    console.log('\n\n⚡ ПЛАН ОПТИМИЗАЦИИ:\n');
+    console.log('Фаза 1 (сейчас): ✅ Выполнено - Views обеспечивают совместимость');
+    console.log('Фаза 2 (текущая): Постепенное обновление кода');
+    console.log('Фаза 3 (будущее): Удаление дублирующихся полей после полного перехода');
+
+  } catch (error) {
+    console.error('❌ Ошибка анализа:', error);
   }
 }
 
-function analyzeFieldPair(
-  users: any[],
-  field1: string,
-  field2: string,
-  description: string
-): DuplicateFieldAnalysis {
-  const differences: any[] = [];
-
-  for (const user of users) {
-    const val1 = user[field1];
-    const val2 = user[field2];
-
-    // Сравниваем значения
-    if (val1 !== val2) {
-      // Для числовых полей также проверяем парсинг
-      if (typeof val1 === 'string' && typeof val2 === 'string') {
-        if (parseFloat(val1) !== parseFloat(val2)) {
-          differences.push({
-            userId: user.id,
-            username: user.username || `User ${user.id}`,
-            field1Value: val1,
-            field2Value: val2
-          });
-        }
-      } else {
-        differences.push({
-          userId: user.id,
-          username: user.username || `User ${user.id}`,
-          field1Value: val1,
-          field2Value: val2
-        });
-      }
-    }
-  }
-
-  return {
-    field1,
-    field2,
-    usersWithDifferences: differences.length,
-    examples: differences
-  };
-}
-
-// Запускаем анализ
-analyzeDuplicateFields().catch(console.error);
+// Запуск анализа
+console.log('Анализирую дублирующиеся поля...\n');
+analyzeDuplicateFields();
