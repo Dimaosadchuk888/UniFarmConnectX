@@ -335,7 +335,6 @@ export class UniFarmingRepository {
             .from('users')
             .update({
               uni_deposit_amount: newDeposit,
-              uni_deposit_amount: newDeposit,
               uni_farming_active: true,
               uni_farming_last_update: new Date().toISOString()
             })
@@ -376,7 +375,6 @@ export class UniFarmingRepository {
           this.useFallback = true;
           
           const updateData = {
-            uni_deposit_amount: newDeposit,
             uni_deposit_amount: newDeposit,
             uni_farming_active: true,
             uni_farming_start_timestamp: new Date().toISOString(),
