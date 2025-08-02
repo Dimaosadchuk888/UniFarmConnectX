@@ -89,6 +89,56 @@ The application leverages a modular and scalable architecture designed for high 
 - **Telegram Bot Integration**: `@UniFarming_Bot` for general user interaction (primarily WebApp launch) and `@unifarm_admin_bot` for administrative tasks and notifications.
 - **Environment Management**: Automatic port detection for local development and robust handling of environment variables for production deployments.
 
+## Business Model & Database Architecture (August 2, 2025)
+
+### Core Financial Flows
+**Data Storage Structure:**
+- **User Balances**: Stored in `users` table fields `balance_uni` and `balance_ton`
+- **Deposits**: 
+  - UNI farming: `users.uni_deposit_amount`
+  - TON boost: `users.ton_farming_balance`
+- **All Transactions**: Recorded in `transactions` table with type, currency, amount, status
+
+### Transaction Types & Money Flows
+
+**1. Incoming Flows (Deposits):**
+- **TON_DEPOSIT**: From TON blockchain → `users.ton_farming_balance` + transaction record
+- **FARMING_DEPOSIT**: From user balance → `users.uni_deposit_amount` + transaction record
+
+**2. Income Generation:**
+- **FARMING_REWARD**: 
+  - UNI: 1% daily from `uni_deposit_amount` (paid every 5 min)
+  - TON: Fixed rate based on boost package
+- **REFERRAL_REWARD**: Multi-level commissions (L1: 100%, L2-3: 50%, L4-6: 30%, etc.)
+- **DAILY_BONUS**: 0.01 UNI per streak day (max 30 days)
+- **MISSION_REWARD**: One-time task rewards
+
+**3. Outgoing Flows (Withdrawals):**
+- **WITHDRAWAL**: 
+  - Minimum: 1000 UNI or 1 TON
+  - UNI Commission: 0.1 TON per 1000 UNI (paid from TON balance)
+  - Process: User request → Admin approval → Blockchain transfer
+  - Deducted from: `balance_uni` or `balance_ton`
+
+### Key Components
+- **BalanceManager**: Centralized balance management (core/BalanceManager.ts)
+- **UnifiedTransactionService**: Single point for all transaction creation
+- **Farming Calculator**: Runs every 5 minutes via cron (server/farming-calculator.ts)
+- **Referral Processor**: Triggered after each FARMING_REWARD
+
+### Security & Integrity
+- Transaction deduplication by blockchain hash
+- ACID compliance for database operations
+- Rate limiting on withdrawal APIs
+- Comprehensive logging of all financial operations
+
+### Critical Files
+- Balance updates: `core/BalanceManager.ts`
+- Transaction creation: `core/TransactionService.ts`
+- Withdrawals: `modules/wallet/service.ts`
+- Farming logic: `server/farming-calculator.ts`
+- Referral system: `core/ReferralService.ts`
+
 ## External Dependencies
 - **Telegram Mini App framework**: For core application functionality within Telegram.
 - **Supabase**: Real-time database for data storage and real-time subscriptions.
