@@ -7,7 +7,7 @@ import { formatNumberWithPrecision } from '@/lib/utils';
 import { getUserIdFromJWT } from '@/lib/getUserIdFromJWT';
 import { Progress } from "@/components/ui/progress";
 import { useUser } from '@/contexts/userContext';
-import { fetchTonFarmingStatus } from '@/services/farmingService';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 
 interface TonFarmingInfo {
   totalTonRatePerSecond: string;
@@ -55,11 +55,12 @@ const TonFarmingStatusCard: React.FC = () => {
   const { data: farmingInfo, isLoading: isLoadingFarmingInfo, refetch } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
     queryKey: [apiUrl],
     queryFn: async () => {
-      console.log('[TonFarmingStatusCard] Запрос данных TON фарминга через кешированный сервис');
-      const result = await fetchTonFarmingStatus(parseInt(userId));
+      console.log('[TonFarmingStatusCard] Запрос данных TON фарминга через API');
       
-      // Обработка null результата и форматирование для совместимости
-      if (!result) {
+      // Запрашиваем данные напрямую из API
+      const response = await correctApiRequest(apiUrl, 'GET');
+      
+      if (!response.success || !response.data) {
         return { 
           success: true, 
           data: {
@@ -72,16 +73,8 @@ const TonFarmingStatusCard: React.FC = () => {
         };
       }
       
-      // Преобразуем TonFarmingData в TonFarmingInfo для совместимости
-      const adaptedData: TonFarmingInfo = {
-        totalTonRatePerSecond: result.totalRatePerSecond?.toString() || '0',
-        totalUniRatePerSecond: '0', // В TON boost нет UNI
-        dailyIncomeTon: result.dailyIncome?.toString() || '0',
-        dailyIncomeUni: '0', // В TON boost нет UNI
-        deposits: [] // Deposits не передаются из кешированного сервиса
-      };
-      
-      return { success: true, data: adaptedData };
+      // Возвращаем данные как есть из API
+      return { success: true, data: response.data };
     },
     refetchInterval: 5000, // Обновляем каждые 5 секунд
   });
