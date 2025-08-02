@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-08-02T05:59:30.364Z",
+  "results": {
+    "created_users": 43,
+    "updated_deposits": 9,
+    "updated_boosts": 23,
+    "errors": []
+  },
+  "next_steps": [
+    "Execute CREATE_VIEWS_SQL.sql",
+    "Update boost/service.ts",
+    "Test Views functionality",
+    "Remove archived tables"
+  ]
+}
