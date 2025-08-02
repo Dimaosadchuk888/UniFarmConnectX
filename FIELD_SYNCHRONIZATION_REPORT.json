@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-08-02T05:17:06.698Z",
+  "results": [
+    {
+      "field1": "uni_deposit_amount",
+      "field2": "uni_farming_deposit",
+      "syncedCount": 6,
+      "errors": []
+    },
+    {
+      "field1": "ton_boost_package",
+      "field2": "ton_boost_package_id",
+      "syncedCount": 20,
+      "errors": []
+    },
+    {
+      "field1": "balance_uni",
+      "field2": "uni_farming_balance",
+      "syncedCount": 49,
+      "errors": []
+    },
+    {
+      "field1": "wallet",
+      "field2": "ton_wallet_address",
+      "syncedCount": 21,
+      "errors": []
+    }
+  ],
+  "totalSynced": 96,
+  "totalErrors": 0
+}
