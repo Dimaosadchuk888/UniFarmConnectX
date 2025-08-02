@@ -1,0 +1,108 @@
+{
+  "timestamp": "2025-08-02T14:52:33.313Z",
+  "summary": {
+    "total_checks": 11,
+    "errors": 0,
+    "warnings": 1,
+    "ok": 10
+  },
+  "results": [
+    {
+      "category": "DATABASE_STRUCTURE",
+      "status": "OK",
+      "details": "Найдено таблиц: 0"
+    },
+    {
+      "category": "USERS_STATISTICS",
+      "status": "OK",
+      "details": "Всего пользователей: 150, Активных: 112",
+      "data": {
+        "total": 150,
+        "active": 112,
+        "withUniBalance": 104,
+        "withTonBalance": 49,
+        "withUniFarming": 97,
+        "withTonFarming": 41
+      }
+    },
+    {
+      "category": "TRANSACTION_STATISTICS",
+      "status": "OK",
+      "details": "Проанализировано транзакций: 1000",
+      "data": {
+        "REFERRAL_REWARD_completed_TON": 406,
+        "REFERRAL_REWARD_completed_UNI": 456,
+        "FARMING_REWARD_completed_UNI": 85,
+        "FARMING_REWARD_completed_TON": 51,
+        "DAILY_BONUS_completed_UNI": 2
+      }
+    },
+    {
+      "category": "BALANCE_INTEGRITY",
+      "status": "OK",
+      "details": "Все балансы корректны"
+    },
+    {
+      "category": "TON_BOOST_PURCHASES",
+      "status": "OK",
+      "details": "Всего TON Boost покупок: 209",
+      "data": {
+        "total": 209,
+        "activePackages": 209,
+        "uniqueUsers": 16
+      }
+    },
+    {
+      "category": "DUPLICATE_TRANSACTIONS",
+      "status": "OK",
+      "details": "Дубликаты транзакций не найдены"
+    },
+    {
+      "category": "REFERRAL_CYCLES",
+      "status": "OK",
+      "details": "Циклических связей не найдено",
+      "data": {
+        "totalReferrals": 55,
+        "uniqueReferrers": 1
+      }
+    },
+    {
+      "category": "UNI_FARMING_CALCULATIONS",
+      "status": "OK",
+      "details": "Все расчеты корректны",
+      "data": {
+        "activeUniFramers": 89,
+        "errorsFound": 0
+      }
+    },
+    {
+      "category": "TON_FARMING_STATUS",
+      "status": "OK",
+      "details": "Активных TON фармеров: 41",
+      "data": {
+        "activeTonFarmers": 41,
+        "totalTonDeposited": 479.631779
+      }
+    },
+    {
+      "category": "DATABASE_INDEXES",
+      "status": "WARNING",
+      "details": "Таблицы без достаточных индексов: users, transactions, referrals, ton_boost_purchases",
+      "data": {
+        "missingOnTables": [
+          "users",
+          "transactions",
+          "referrals",
+          "ton_boost_purchases"
+        ]
+      }
+    },
+    {
+      "category": "TABLE_SIZES",
+      "status": "OK",
+      "details": "Все таблицы имеют приемлемый размер",
+      "data": null
+    }
+  ],
+  "recommendation": "✅ ГОТОВО К PRODUCTION! Система прошла все проверки."
+}
