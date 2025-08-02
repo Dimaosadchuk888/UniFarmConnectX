@@ -1,0 +1,192 @@
+{
+  "timestamp": "2025-08-02T05:11:53.467Z",
+  "fieldsAnalyzed": 12,
+  "results": [
+    {
+      "field": "uni_farming_balance",
+      "usageCount": 93,
+      "locations": [
+        "server/create-test-referrals-optimized.ts",
+        "server/create-test-referrals.ts",
+        "server/routes.ts",
+        "shared/schema.ts",
+        "docs/code-templates/modules/FarmingRepository.template.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "wallet",
+      "usageCount": 543,
+      "locations": [
+        "server/direct-ton-payment-chain-diagnostics.ts",
+        "server/routes.ts",
+        "shared/schema.ts",
+        "docs/code-templates/modules/WalletRepository.template.ts",
+        "docs/code-templates/modules/UserRepository.template.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "balance_uni",
+      "usageCount": 489,
+      "locations": [
+        "server/check-user-74-referrals.ts",
+        "server/check-user-74-referrals-simple.ts",
+        "server/create-test-referrals-optimized.ts",
+        "server/check-referral-structure.ts",
+        "server/simple-referral-check.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "balance_ton",
+      "usageCount": 644,
+      "locations": [
+        "server/check-user-74-referrals.ts",
+        "server/check-user-74-referrals-simple.ts",
+        "server/create-test-referrals-optimized.ts",
+        "server/check-referral-structure.ts",
+        "server/create-test-referrals.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "ton_farming_balance",
+      "usageCount": 142,
+      "locations": [
+        "server/check-uni-referral-rewards.ts",
+        "server/check-uni-referral-display.ts",
+        "shared/schema.ts",
+        "docs/code-templates/modules/TonFarmingRepository.template.ts",
+        "modules/user/service.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "uni_deposit_amount",
+      "usageCount": 294,
+      "locations": [
+        "server/check-user-74-referrals.ts",
+        "server/check-user-74-referrals-simple.ts",
+        "server/create-test-referrals-optimized.ts",
+        "server/check-referral-structure.ts",
+        "server/simple-referral-check.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "uni_farming_deposit",
+      "usageCount": 23,
+      "locations": [
+        "shared/schema.ts",
+        "docs/code-templates/modules/FarmingRepository.template.ts",
+        "modules/user/service.ts",
+        "modules/farming/UniFarmingRepository.ts",
+        "types/user.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "ton_boost_package",
+      "usageCount": 242,
+      "locations": [
+        "server/check-user-74-referrals.ts",
+        "server/check-user-74-referrals-simple.ts",
+        "server/create-test-referrals-optimized.ts",
+        "server/check-ton-boost-referrals.ts",
+        "server/direct-ton-payment-chain-diagnostics.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "ton_boost_package_id",
+      "usageCount": 53,
+      "locations": [
+        "server/direct-ton-payment-chain-diagnostics.ts",
+        "shared/schema.ts",
+        "docs/code-templates/modules/TonFarmingRepository.template.ts",
+        "modules/user/service.ts",
+        "modules/boost/TonFarmingRepository.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "ton_farming_rate",
+      "usageCount": 46,
+      "locations": [
+        "shared/schema.ts",
+        "docs/code-templates/modules/TonFarmingRepository.template.ts",
+        "modules/user/service.ts",
+        "modules/boost/TonFarmingRepository.ts",
+        "modules/tonFarming/model.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "ton_boost_rate",
+      "usageCount": 85,
+      "locations": [
+        "shared/schema.ts",
+        "docs/code-templates/modules/TonFarmingRepository.template.ts",
+        "modules/user/service.ts",
+        "modules/boost/service.ts",
+        "modules/scheduler/tonBoostIncomeScheduler.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    },
+    {
+      "field": "ton_wallet_address",
+      "usageCount": 51,
+      "locations": [
+        "server/direct-ton-payment-chain-diagnostics.ts",
+        "shared/schema.ts",
+        "docs/code-templates/modules/WalletRepository.template.ts",
+        "docs/code-templates/modules/UserRepository.template.ts",
+        "modules/user/service.ts"
+      ],
+      "canRemove": false,
+      "recommendation": "❌ Активно используется - требует рефакторинга для удаления"
+    }
+  ],
+  "recommendations": {
+    "immediateRemoval": [],
+    "requiresSynchronization": [
+      [
+        "balance_uni",
+        "uni_farming_balance"
+      ],
+      [
+        "balance_ton",
+        "ton_farming_balance"
+      ],
+      [
+        "uni_deposit_amount",
+        "uni_farming_deposit"
+      ],
+      [
+        "ton_boost_package",
+        "ton_boost_package_id"
+      ],
+      [
+        "ton_farming_rate",
+        "ton_boost_rate"
+      ],
+      [
+        "wallet",
+        "ton_wallet_address"
+      ]
+    ],
+    "canReplace": []
+  }
+}
