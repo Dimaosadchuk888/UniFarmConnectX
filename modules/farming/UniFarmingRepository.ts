@@ -91,10 +91,7 @@ export class UniFarmingRepository {
     try {
       const { error } = await supabase
         .from(this.tableName)
-        .upsert({
-          ...data,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(data); // Удалено: updated_at
 
       if (error) {
         if (error.code === '42P01') {
@@ -125,7 +122,7 @@ export class UniFarmingRepository {
       if (data.farming_rate !== undefined) updates.uni_farming_rate = data.farming_rate;
       if (data.farming_start_timestamp !== undefined) updates.uni_farming_start_timestamp = data.farming_start_timestamp;
       if (data.farming_last_update !== undefined) updates.uni_farming_last_update = data.farming_last_update;
-      if (data.farming_deposit !== undefined) updates.uni_deposit_amount = data.farming_deposit;
+      // Удалено дублирующее присваивание: if (data.farming_deposit !== undefined) updates.uni_deposit_amount = data.farming_deposit;
       if (data.is_active !== undefined) updates.uni_farming_active = data.is_active;
       
       const { error } = await supabase
@@ -153,8 +150,8 @@ export class UniFarmingRepository {
       const { error } = await supabase
         .from(this.tableName)
         .update({
-          is_active: isActive,
-          updated_at: new Date().toISOString()
+          is_active: isActive
+          // Удалено: updated_at
         })
         .eq('user_id', userId);
 
@@ -193,8 +190,8 @@ export class UniFarmingRepository {
         .from(this.tableName)
         .update({
           farming_balance: balance,
-          farming_last_update: lastUpdate,
-          updated_at: new Date().toISOString()
+          farming_last_update: lastUpdate
+          // Удалено: updated_at
         })
         .eq('user_id', userId);
 
@@ -320,10 +317,10 @@ export class UniFarmingRepository {
           .from(this.tableName)
           .update({
             deposit_amount: newDeposit,
-            farming_deposit: newDeposit,
+            // Удалено: farming_deposit - синхронизируется автоматически через триггер БД
             is_active: true,
-            farming_last_update: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            farming_last_update: new Date().toISOString()
+            // Удалено: updated_at - не обновляем системные поля
           })
           .eq('user_id', parseInt(userId));
         error = updateError;
@@ -352,12 +349,11 @@ export class UniFarmingRepository {
           .insert({
             user_id: parseInt(userId),
             deposit_amount: newDeposit,
-            farming_deposit: newDeposit,
+            // Удалено: farming_deposit - синхронизируется автоматически через триггер БД
             is_active: true,
             farming_start_timestamp: new Date().toISOString(),
-            farming_last_update: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            farming_last_update: new Date().toISOString()
+            // Удалены: created_at и updated_at - БД установит автоматически
           });
         error = insertError;
       }
