@@ -1,0 +1,1083 @@
+{
+  "timestamp": "2025-08-02T05:54:13.163Z",
+  "summary": {
+    "uni_records_to_migrate": 50,
+    "ton_records_to_migrate": 23,
+    "total_records_to_migrate": 73,
+    "sql_views_to_create": 2,
+    "code_files_to_update": 1
+  },
+  "details": {
+    "uni_farming_data": [
+      {
+        "action": "CREATE_USER",
+        "user_id": 1,
+        "data": {
+          "id": "404f7b68-5182-47bb-bb20-fb5d72b5ffec",
+          "user_id": 1,
+          "deposit_amount": "NaN",
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-03T16:49:27.968+00:00",
+          "is_active": false,
+          "farming_start": "2025-07-03T16:49:27.968+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 4,
+        "data": {
+          "id": "0ac27965-ab70-4759-8f37-8b5fdde0d6bd",
+          "user_id": 4,
+          "deposit_amount": 100,
+          "farming_balance": 25,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:41:56.966+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:41:56.966+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 14,
+        "data": {
+          "id": "4d13fb32-8581-47ed-afb3-0a9a882cf205",
+          "user_id": 14,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:55:57.68+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:55:57.68+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 15,
+        "data": {
+          "id": "57f0fd8c-1779-414e-af68-5dc0c439a38c",
+          "user_id": 15,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:55:59.19+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:55:59.19+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 16,
+        "data": {
+          "id": "833a8e99-d4a4-4857-ac90-fd2460d08c46",
+          "user_id": 16,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:00.831+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:00.831+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 17,
+        "data": {
+          "id": "9ec61a7f-37e2-4741-a1f3-36f8ba4d52df",
+          "user_id": 17,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:02.003+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:02.003+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 18,
+        "data": {
+          "id": "c79f2a64-7452-4840-a2d5-6609326306b5",
+          "user_id": 18,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:02.676+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:02.676+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 19,
+        "data": {
+          "id": "ce60ae8a-d3dc-46ab-bc1c-ee01404de0d1",
+          "user_id": 19,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:03.337+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:03.337+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 20,
+        "data": {
+          "id": "8fdd6f31-107d-41cc-9076-55960328e358",
+          "user_id": 20,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:03.988+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:03.988+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 21,
+        "data": {
+          "id": "2a6a9d25-b3aa-43b1-b4bd-26250d6a17a8",
+          "user_id": 21,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:04.654+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:04.654+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 22,
+        "data": {
+          "id": "03e926bc-a882-462e-aa00-1a2d186eae94",
+          "user_id": 22,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:05.312+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:05.312+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 23,
+        "data": {
+          "id": "8f7ffa2d-a092-4f04-921f-e4910167d9c4",
+          "user_id": 23,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:06.455+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:06.455+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 24,
+        "data": {
+          "id": "127447b3-c32a-4a64-8f26-e261c1c70bbf",
+          "user_id": 24,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T12:56:07.112+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T12:56:07.112+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 26,
+        "data": {
+          "id": "3200692e-03ca-481e-ae9e-4bdf8e048411",
+          "user_id": 26,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T17:41:47.036+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T17:41:47.036+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 27,
+        "data": {
+          "id": "2db062fa-b270-48d4-9d4c-6a63f9f72879",
+          "user_id": 27,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T17:41:48.068+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T17:41:48.068+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 28,
+        "data": {
+          "id": "b8537e00-e6c8-479a-b03f-579434903a7b",
+          "user_id": 28,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T17:41:48.902+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T17:41:48.902+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 29,
+        "data": {
+          "id": "70bb4918-7f89-4421-8abf-0adc1bf1f96a",
+          "user_id": 29,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T17:41:49.706+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T17:41:49.706+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 30,
+        "data": {
+          "id": "6aeca4aa-24a8-44ec-9101-2c23c14ff6be",
+          "user_id": 30,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T17:41:50.259+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T17:41:50.259+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 31,
+        "data": {
+          "id": "eb4cfb64-4a1f-4589-8c08-b2ff51eb9179",
+          "user_id": 31,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T17:41:50.804+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T17:41:50.804+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 32,
+        "data": {
+          "id": "6c7ce14d-7926-4ccb-9b9f-b950e2e64c5a",
+          "user_id": 32,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T17:41:51.822+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T17:41:51.822+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 33,
+        "data": {
+          "id": "ed1f9523-f5c6-450c-8d08-05a972268290",
+          "user_id": 33,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T17:41:52.358+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T17:41:52.358+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 34,
+        "data": {
+          "id": "68782052-f5d3-40f5-becf-46b96d872367",
+          "user_id": 34,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T17:41:52.897+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T17:41:52.897+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 35,
+        "data": {
+          "id": "be73e4b5-e65c-4d4f-9385-6f4858faf187",
+          "user_id": 35,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-06-16T17:41:53.439+00:00",
+          "is_active": true,
+          "farming_start": "2025-06-16T17:41:53.439+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 48,
+        "data": {
+          "id": "bed4ba04-9812-4492-a11b-381d914a189e",
+          "user_id": 48,
+          "deposit_amount": 146974,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-05T07:09:44.717+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-05T07:09:44.717+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 50,
+        "data": {
+          "id": "428f7748-87fc-44d0-bb4b-f949307808ac",
+          "user_id": 50,
+          "deposit_amount": 9453,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-02T13:32:12.379+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-02T13:32:12.379+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 52,
+        "data": {
+          "id": "11d4f6db-e58f-4913-85f1-1791653bd4dc",
+          "user_id": 52,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-04T07:42:15.141+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-04T07:42:15.141+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 53,
+        "data": {
+          "id": "a448ab38-c159-4f6d-87b6-54c0de758950",
+          "user_id": 53,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-04T07:42:16.368+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-04T07:42:16.368+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 54,
+        "data": {
+          "id": "55ca0f60-90c4-4464-be43-9711107a194f",
+          "user_id": 54,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-04T07:42:17.269+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-04T07:42:17.269+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 55,
+        "data": {
+          "id": "50286e18-fb17-4c0e-afea-b62cb6776a3d",
+          "user_id": 55,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-04T07:42:18.141+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-04T07:42:18.141+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 56,
+        "data": {
+          "id": "157173cf-5044-4c52-a95b-276c7d829fb0",
+          "user_id": 56,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-04T07:42:19.355+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-04T07:42:19.355+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 57,
+        "data": {
+          "id": "eb35512f-3219-44c5-8e66-3714174a9ee6",
+          "user_id": 57,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-04T07:42:20.904+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-04T07:42:20.904+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 58,
+        "data": {
+          "id": "31420bfd-cedc-4e90-888a-eec39b46d51b",
+          "user_id": 58,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-04T07:42:21.794+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-04T07:42:21.794+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 59,
+        "data": {
+          "id": "554adea1-d737-41d1-8102-9c2ccdb6e2bf",
+          "user_id": 59,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-04T07:42:22.977+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-04T07:42:22.977+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 60,
+        "data": {
+          "id": "8c25f86a-abf3-4c86-9d9d-b3089be62008",
+          "user_id": 60,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-04T07:42:23.858+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-04T07:42:23.858+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 62,
+        "data": {
+          "id": "de913855-d3cb-45e5-8948-97cca3b094a1",
+          "user_id": 62,
+          "deposit_amount": 100,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-08T17:08:07.205+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-08T17:08:07.205+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 64,
+        "data": {
+          "id": "a811e89a-ae3d-436d-a91b-e550e4df5351",
+          "user_id": 64,
+          "deposit_amount": "NaN",
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-09T17:55:57.494+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-09T17:55:57.494+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 67,
+        "data": {
+          "id": "4709c96e-1533-40fb-ad17-4f1ba04529f8",
+          "user_id": 67,
+          "deposit_amount": 206,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-08T05:36:40.335+00:00",
+          "is_active": false,
+          "farming_start": "2025-07-08T05:36:40.335+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 69,
+        "data": {
+          "id": "10a65492-7df6-4222-978a-76b52097ec50",
+          "user_id": 69,
+          "deposit_amount": 610,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-08T05:37:53.071+00:00",
+          "is_active": false,
+          "farming_start": "2025-07-08T05:37:53.071+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-11T10:10:28.488697+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-11T10:26:25.053576+00:00",
+          "farming_deposit": 0
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 72,
+        "data": {
+          "id": "8727779d-5a7e-4d61-984e-796b121329e7",
+          "user_id": 72,
+          "deposit_amount": 5,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-16T07:34:07.894758+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-16T07:34:07.894758+00:00",
+          "created_at": "2025-07-16T07:34:07.815+00:00",
+          "updated_at": "2025-07-16T07:34:07.815+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": "2025-07-16T07:34:07.815+00:00",
+          "farming_last_update": "2025-07-16T07:34:07.815+00:00",
+          "farming_deposit": 5
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 74,
+        "data": {
+          "id": "b5cc17fc-a461-4b54-8d88-c2ffdfff943a",
+          "user_id": 74,
+          "deposit_amount": 6475941.999000001,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-11T07:59:13.539+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-11T07:59:13.539+00:00",
+          "created_at": "2025-07-11T10:10:28.488697+00:00",
+          "updated_at": "2025-07-14T14:03:50.323+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": null,
+          "farming_last_update": "2025-07-14T14:03:50.323+00:00",
+          "farming_deposit": 6475941.999000001
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 80,
+        "data": {
+          "id": "6d601928-e819-41cc-b3c8-7b53198f8b56",
+          "user_id": 80,
+          "deposit_amount": 500,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-16T07:41:32.812099+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-16T07:41:32.812099+00:00",
+          "created_at": "2025-07-16T07:41:32.735+00:00",
+          "updated_at": "2025-07-16T07:41:32.735+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": "2025-07-16T07:41:32.735+00:00",
+          "farming_last_update": "2025-07-16T07:41:32.735+00:00",
+          "farming_deposit": 500
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 111,
+        "data": {
+          "id": "f7fe9394-db40-4d42-9f29-3f2039ce2812",
+          "user_id": 111,
+          "deposit_amount": 50,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-16T12:58:08.444584+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-16T12:58:08.444584+00:00",
+          "created_at": "2025-07-16T12:58:08.364+00:00",
+          "updated_at": "2025-07-16T12:58:08.364+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": "2025-07-16T12:58:08.364+00:00",
+          "farming_last_update": "2025-07-16T12:58:08.364+00:00",
+          "farming_deposit": 50
+        }
+      },
+      {
+        "action": "CREATE_USER",
+        "user_id": 113,
+        "data": {
+          "id": "ae45436e-efa5-4d08-a4f7-62cf37eef28a",
+          "user_id": 113,
+          "deposit_amount": 6,
+          "farming_balance": 0,
+          "total_earned": 0,
+          "last_claim_at": "2025-07-16T15:14:34.388983+00:00",
+          "is_active": true,
+          "farming_start": "2025-07-16T15:14:34.388983+00:00",
+          "created_at": "2025-07-16T15:14:34.317+00:00",
+          "updated_at": "2025-07-16T15:14:34.317+00:00",
+          "farming_rate": 0.01,
+          "farming_start_timestamp": "2025-07-16T15:14:34.317+00:00",
+          "farming_last_update": "2025-07-16T15:14:34.317+00:00",
+          "farming_deposit": 6
+        }
+      },
+      {
+        "action": "UPDATE_DEPOSIT",
+        "user_id": 192,
+        "old_value": 0,
+        "new_value": 50,
+        "farming_balance": 0
+      },
+      {
+        "action": "UPDATE_DEPOSIT",
+        "user_id": 229,
+        "old_value": 0,
+        "new_value": 1000,
+        "farming_balance": 0
+      },
+      {
+        "action": "UPDATE_DEPOSIT",
+        "user_id": 230,
+        "old_value": 0,
+        "new_value": 2550,
+        "farming_balance": 0
+      },
+      {
+        "action": "UPDATE_DEPOSIT",
+        "user_id": 269,
+        "old_value": 0,
+        "new_value": 3550,
+        "farming_balance": 0
+      },
+      {
+        "action": "UPDATE_DEPOSIT",
+        "user_id": 274,
+        "old_value": 0,
+        "new_value": 3000,
+        "farming_balance": 0
+      },
+      {
+        "action": "UPDATE_DEPOSIT",
+        "user_id": 296,
+        "old_value": 0,
+        "new_value": 550,
+        "farming_balance": 0
+      },
+      {
+        "action": "UPDATE_DEPOSIT",
+        "user_id": 306,
+        "old_value": 0,
+        "new_value": 5320,
+        "farming_balance": 0
+      }
+    ],
+    "ton_farming_data": [
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "184",
+        "new_boost": 1,
+        "farming_balance": 115
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "186",
+        "new_boost": 1,
+        "farming_balance": 10
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "187",
+        "new_boost": 1,
+        "farming_balance": 10
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "188",
+        "new_boost": 1,
+        "farming_balance": 10
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "189",
+        "new_boost": 1,
+        "farming_balance": 10
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "190",
+        "new_boost": 1,
+        "farming_balance": 10
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "191",
+        "new_boost": 1,
+        "farming_balance": 5.15
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "194",
+        "new_boost": 1,
+        "farming_balance": 5
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "197",
+        "new_boost": 1,
+        "farming_balance": 3
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "220",
+        "new_boost": 1,
+        "farming_balance": 1
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "224",
+        "new_boost": 1,
+        "farming_balance": 18.5
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "246",
+        "new_boost": 1,
+        "farming_balance": 1
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "25",
+        "new_boost": 2,
+        "farming_balance": 209.94
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "250",
+        "new_boost": 1,
+        "farming_balance": 3
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "251",
+        "new_boost": 1,
+        "farming_balance": 3
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "255",
+        "new_boost": 1,
+        "farming_balance": 4.2
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "258",
+        "new_boost": 1,
+        "farming_balance": 1
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "278",
+        "new_boost": 1,
+        "farming_balance": 4.3
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "287",
+        "new_boost": 1,
+        "farming_balance": 3
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "290",
+        "new_boost": 1,
+        "farming_balance": 1
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "304",
+        "new_boost": 1,
+        "farming_balance": 2
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "305",
+        "new_boost": 1,
+        "farming_balance": 5
+      },
+      {
+        "action": "UPDATE_BOOST",
+        "user_id": "307",
+        "new_boost": 1,
+        "farming_balance": 2
+      }
+    ],
+    "sql_views": [
+      {
+        "name": "uni_farming_data",
+        "description": "View для обратной совместимости с uni_farming_data",
+        "sql": "CREATE OR REPLACE VIEW uni_farming_data AS\nSELECT \n  id as user_id,\n  uni_deposit_amount as deposit_amount,\n  uni_farming_balance as farming_balance,\n  uni_farming_active as is_active,\n  created_at,\n  updated_at\nFROM users\nWHERE uni_deposit_amount > 0 OR uni_farming_balance > 0;"
+      },
+      {
+        "name": "ton_farming_data",
+        "description": "View для обратной совместимости с ton_farming_data",
+        "sql": "CREATE OR REPLACE VIEW ton_farming_data AS\nSELECT \n  id as user_id,\n  ton_wallet_address as wallet_address,\n  ton_farming_balance as farming_balance,\n  ton_boost_package as boost_package_id,\n  created_at,\n  updated_at\nFROM users\nWHERE ton_wallet_address IS NOT NULL OR ton_farming_balance > 0;"
+      }
+    ],
+    "code_updates": [
+      {
+        "file": "modules/boost/service.ts",
+        "line": 1116,
+        "issue": "Читает farming_balance из ton_farming_data",
+        "fix": "Изменить на чтение из users.ton_farming_balance"
+      }
+    ]
+  }
+}
