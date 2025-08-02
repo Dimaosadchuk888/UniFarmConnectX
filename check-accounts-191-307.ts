@@ -17,7 +17,7 @@ async function checkAccounts191to307() {
     console.log(`✅ Найдено ${tonBoostUsers.length} пользователей с TON Boost из диапазона 191-307\n`);
     
     // Группируем по пакетам
-    const byPackage = {};
+    const byPackage: Record<string, any[]> = {};
     tonBoostUsers.forEach(user => {
       if (!byPackage[user.ton_boost_package]) {
         byPackage[user.ton_boost_package] = [];
@@ -42,7 +42,7 @@ async function checkAccounts191to307() {
       
     let activeCount = 0;
     let inactiveCount = 0;
-    const inactiveUsers = [];
+    const inactiveUsers: number[] = [];
     
     if (farmingData) {
       farmingData.forEach(data => {
@@ -119,8 +119,8 @@ async function checkAccounts191to307() {
     
     console.log(`Первый пакет: ${firstDate.toISOString()}`);
     console.log(`Последний пакет: ${lastDate.toISOString()}`);
-    console.log(`Диапазон: ${Math.floor((lastDate - firstDate) / (1000 * 60 * 60 * 24))} дней`);
+    console.log(`Диапазон: ${Math.floor((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24))} дней`);
   }
 }
 
-checkAccounts191to303();
+checkAccounts191to307();
