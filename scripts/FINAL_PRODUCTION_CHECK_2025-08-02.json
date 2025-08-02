@@ -1,0 +1,70 @@
+{
+  "timestamp": "2025-08-02T16:23:52.272Z",
+  "summary": {
+    "total_checks": 8,
+    "errors": 0,
+    "warnings": 5,
+    "ok": 3
+  },
+  "results": [
+    {
+      "category": "INDEXES_USERS",
+      "status": "WARNING",
+      "details": "Таблица users имеет 0 индексов, рекомендуется минимум 5"
+    },
+    {
+      "category": "INDEXES_TRANSACTIONS",
+      "status": "WARNING",
+      "details": "Таблица transactions имеет 0 индексов, рекомендуется минимум 7"
+    },
+    {
+      "category": "INDEXES_REFERRALS",
+      "status": "WARNING",
+      "details": "Таблица referrals имеет 0 индексов, рекомендуется минимум 5"
+    },
+    {
+      "category": "INDEXES_TON_BOOST_PURCHASES",
+      "status": "WARNING",
+      "details": "Таблица ton_boost_purchases имеет 0 индексов, рекомендуется минимум 4"
+    },
+    {
+      "category": "INDEX_OPTIMIZATION",
+      "status": "WARNING",
+      "details": "Некоторые таблицы требуют дополнительных индексов",
+      "data": {
+        "users": 0,
+        "transactions": 0,
+        "referrals": 0,
+        "ton_boost_purchases": 0
+      }
+    },
+    {
+      "category": "SYSTEM_ACTIVITY",
+      "status": "OK",
+      "details": "Система активна, последняя транзакция 0.0 часов назад",
+      "data": {
+        "activeUsers": 114,
+        "lastTransaction": "2025-08-02T16:22:36.834"
+      }
+    },
+    {
+      "category": "TON_BOOST_SYSTEM",
+      "status": "OK",
+      "details": "Активных TON Boost пакетов: 209",
+      "data": {
+        "activePackages": 209
+      }
+    },
+    {
+      "category": "QUERY_PERFORMANCE",
+      "status": "OK",
+      "details": "Тестовый запрос выполнен за 322ms",
+      "data": {
+        "queryTime": 322,
+        "rowsReturned": 100,
+        "hasError": false
+      }
+    }
+  ],
+  "final_verdict": "⚠️ СИСТЕМА РАБОТАЕТ, НО ЕСТЬ ЗАМЕЧАНИЯ"
+}
