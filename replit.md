@@ -22,6 +22,19 @@ UniFarm Connect is an advanced Telegram Mini App designed for blockchain UNI far
 The application leverages a modular and scalable architecture designed for high performance and real-time interactions.
 
 **Recent Critical Fixes and Optimizations (August 1-2, 2025):**
+- **TON Boost Purchase History Implementation (August 2, 2025)**: Fixed display of multiple TON Boost deposits
+  - **Problem**: System only showed last purchased package instead of all active deposits
+  - **Root Cause**: Architecture stored only last package ID in `users.ton_boost_package` field
+  - **Solution Implemented**:
+    - Created new table `ton_boost_purchases` for complete purchase history
+    - Updated `getTonBoostFarmingStatus` to read from new table
+    - Migrated 200 historical purchases from transactions table
+    - Maintained backward compatibility with old system
+  - **Impact**: Users now see all their TON Boost purchases correctly
+  - **Technical Details**: 
+    - Schema in `shared/schema.ts`
+    - Service logic in `modules/boost/service.ts`
+    - Migration script: `scripts/migrate-ton-boost-purchases.ts`
 - **TON Boost Purchase Fix (August 2, 2025)**: Fixed critical bug where boost purchases didn't add to farming balance
   - **Root Cause**: BOOST_PURCHASE transactions store amount in `amount` field (not `amount_ton`)
   - **Issue**: calculateUserTonDeposits() only checked ['DEPOSIT', 'TON_DEPOSIT', 'FARMING_REWARD']

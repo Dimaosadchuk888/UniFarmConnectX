@@ -450,19 +450,39 @@ export class BoostService {
 
 
 
-      // Создаем запись о покупке
-      logger.info('[BoostService] Вызов createBoostPurchase', {
+      // Создаем запись о покупке в новой таблице ton_boost_purchases
+      logger.info('[BoostService] Создание записи в ton_boost_purchases', {
         userId,
         boostPackageId: boostPackage.id,
-        boostPackageIdStr: boostPackage.id.toString()
+        amount: requiredAmount,
+        rate: boostPackage.daily_rate
       });
       
+      const dailyIncome = requiredAmount * boostPackage.daily_rate;
+      const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 дней
+      
+      const { error: purchaseError } = await supabase
+        .from('ton_boost_purchases')
+        .insert({
+          user_id: parseInt(userId),
+          package_id: boostPackage.id,
+          package_name: boostPackage.name,
+          amount: requiredAmount.toString(),
+          rate: boostPackage.daily_rate.toString(),
+          daily_income: dailyIncome.toString(),
+          payment_method: 'wallet',
+          status: 'active',
+          expires_at: expiresAt.toISOString()
+        });
+        
+      if (purchaseError) {
+        logger.error('[BoostService] Ошибка создания записи в ton_boost_purchases:', purchaseError);
+      } else {
+        logger.info('[BoostService] ✅ Запись успешно создана в ton_boost_purchases');
+      }
+      
+      // Создаем запись о покупке в старой системе для совместимости
       const purchase = await this.createBoostPurchase(userId, boostPackage.id.toString(), 'wallet', null, 'confirmed');
-      
-      logger.info('[BoostService] Результат createBoostPurchase', {
-        purchase,
-        purchaseSuccess: !!purchase
-      });
 
       // Активация планировщика должна быть после всех операций
 
@@ -1043,127 +1063,143 @@ export class BoostService {
     deposits: any[];
   }> {
     try {
-      // Получаем пользователя из базы данных
-      const { data: user, error } = await supabase
-        .from('users')
+      // Получаем все активные TON Boost покупки пользователя
+      logger.info('[BoostService] Запрос к ton_boost_purchases для пользователя:', { userId });
+      
+      const { data: purchases, error: purchasesError } = await supabase
+        .from('ton_boost_purchases')
         .select('*')
-        .eq('id', parseInt(userId))
-        .single();
+        .eq('user_id', parseInt(userId))
+        .eq('status', 'active')
+        .order('purchased_at', { ascending: false });
 
-      if (error || !user) {
-        logger.info('[BoostService] Пользователь не найден для TON Boost статуса', { userId });
-        return {
-          totalTonRatePerSecond: '0',
-          totalUniRatePerSecond: '0', 
-          dailyIncomeTon: '0',
-          dailyIncomeUni: '0',
-          deposits: []
-        };
+      if (purchasesError) {
+        logger.error('[BoostService] Ошибка получения ton_boost_purchases:', purchasesError);
       }
-
-      // Проверяем наличие активного TON Boost пакета
-      const activeBoostId = user.ton_boost_package;
-      const tonBalance = parseFloat(user.balance_ton || '0');
-
-      logger.info('[BoostService] Анализ пользователя для TON Boost', {
+      
+      logger.info('[BoostService] Результат запроса ton_boost_purchases:', {
         userId,
-        activeBoostId,
-        tonBalance,
-        hasActiveBoost: !!activeBoostId,
-        hasEnoughBalance: tonBalance >= 10
+        purchasesCount: purchases?.length || 0,
+        purchases: purchases?.slice(0, 3) // Показываем первые 3 для отладки
       });
 
-      if (!activeBoostId) {
-        logger.info('[BoostService] TON Boost неактивен - нет активного пакета', {
-          activeBoostId,
-          tonBalance
-        });
-        return {
-          totalTonRatePerSecond: '0',
-          totalUniRatePerSecond: '0',
-          dailyIncomeTon: '0', 
-          dailyIncomeUni: '0',
-          deposits: []
-        };
-      }
-
-      // Получаем данные о Boost пакете
-      const boostPackage = await this.getBoostPackageById(activeBoostId.toString());
-      logger.info('[BoostService] Результат поиска Boost пакета', {
-        activeBoostId,
-        packageFound: !!boostPackage,
-        packageData: boostPackage
-      });
-      
-      if (!boostPackage) {
-        logger.warn('[BoostService] Boost пакет не найден', { activeBoostId });
-        return {
-          totalTonRatePerSecond: '0',
-          totalUniRatePerSecond: '0',
-          dailyIncomeTon: '0',
-          dailyIncomeUni: '0',
-          deposits: []
-        };
-      }
-
-      // Получаем ton_farming_balance напрямую из users для корректного отображения
-      let farmingBalance = 0;
-      let hasFarmingData = false;
-      
-      try {
-        const { data: userData } = await supabase
+      // Если нет записей в новой таблице, проверяем старую систему для обратной совместимости
+      if (!purchases || purchases.length === 0) {
+        // Получаем пользователя из базы данных
+        const { data: user, error } = await supabase
           .from('users')
-          .select('ton_farming_balance')
+          .select('*')
           .eq('id', parseInt(userId))
-          .maybeSingle();
-        
-        if (userData && userData.ton_farming_balance !== null) {
-          farmingBalance = parseFloat(userData.ton_farming_balance.toString());
-          hasFarmingData = true;
+          .single();
+
+        if (error || !user) {
+          logger.info('[BoostService] Пользователь не найден для TON Boost статуса', { userId });
+          return {
+            totalTonRatePerSecond: '0',
+            totalUniRatePerSecond: '0', 
+            dailyIncomeTon: '0',
+            dailyIncomeUni: '0',
+            deposits: []
+          };
         }
-      } catch (e) {
-        logger.warn('[BoostService] Ошибка получения ton_farming_balance:', e);
+
+        // Проверяем наличие активного TON Boost пакета в старой системе
+        const activeBoostId = user.ton_boost_package;
+        if (!activeBoostId) {
+          return {
+            totalTonRatePerSecond: '0',
+            totalUniRatePerSecond: '0',
+            dailyIncomeTon: '0', 
+            dailyIncomeUni: '0',
+            deposits: []
+          };
+        }
+
+        // Получаем данные о Boost пакете
+        const boostPackage = await this.getBoostPackageById(activeBoostId.toString());
+        if (!boostPackage) {
+          return {
+            totalTonRatePerSecond: '0',
+            totalUniRatePerSecond: '0',
+            dailyIncomeTon: '0',
+            dailyIncomeUni: '0',
+            deposits: []
+          };
+        }
+
+        // Получаем farming_balance из ton_farming_data или users
+        let farmingBalance = parseFloat(user.ton_farming_balance || '0');
+        if (farmingBalance === 0) {
+          farmingBalance = parseFloat(boostPackage.min_amount || '0');
+        }
+
+        // Возвращаем данные в старом формате для обратной совместимости
+        const dailyIncome = farmingBalance * parseFloat(boostPackage.daily_rate || '0.01');
+        const tonRatePerSecond = dailyIncome / 86400;
+
+        return {
+          totalTonRatePerSecond: tonRatePerSecond.toFixed(8),
+          totalUniRatePerSecond: '0',
+          dailyIncomeTon: dailyIncome.toFixed(6),
+          dailyIncomeUni: '0',
+          deposits: [{
+            id: activeBoostId,
+            package_name: boostPackage.name,
+            amount: farmingBalance.toString(),
+            rate: boostPackage.daily_rate,
+            status: 'active',
+            source: 'ton_farming_data'
+          }]
+        };
       }
 
-      // Если нет данных о farming_balance, используем минимальную сумму пакета
-      if (!hasFarmingData) {
-        farmingBalance = parseFloat(boostPackage.min_amount || '0');
-        logger.info('[BoostService] Используем min_amount пакета как farming_balance', {
-          userId,
-          packageMinAmount: boostPackage.min_amount,
-          calculatedBalance: farmingBalance
+      // Используем данные из новой таблицы ton_boost_purchases
+      logger.info('[BoostService] Найдено покупок в ton_boost_purchases:', {
+        userId,
+        count: purchases.length
+      });
+
+      // Суммируем все активные депозиты
+      let totalAmount = 0;
+      let totalDailyIncome = 0;
+      const deposits = [];
+
+      for (const purchase of purchases) {
+        const amount = parseFloat(purchase.amount);
+        const rate = parseFloat(purchase.rate);
+        const dailyIncome = parseFloat(purchase.daily_income);
+        
+        totalAmount += amount;
+        totalDailyIncome += dailyIncome;
+        
+        deposits.push({
+          id: purchase.package_id,
+          package_name: purchase.package_name,
+          amount: amount.toString(),
+          rate: (rate * 100).toString(), // Преобразуем в проценты для отображения
+          status: 'active',
+          source: 'ton_boost_purchases',
+          purchased_at: purchase.purchased_at
         });
       }
 
-      // Рассчитываем доход на основе ставки пакета
-      const dailyRate = parseFloat(boostPackage.daily_rate) * 100; // 1%, 1.5%, 2%, 2.5%, 3%
-      const ratePerSecond = (dailyRate / 100) / 86400; // Процент в секунду
-      const dailyIncome = (farmingBalance * dailyRate) / 100; // Дневной доход в TON
+      // Рассчитываем общую ставку в секунду
+      const totalTonRatePerSecond = totalDailyIncome / 86400;
 
-      logger.info('[BoostService] Рассчитан статус TON Boost фарминга', {
+      logger.info('[BoostService] Рассчитан статус TON Boost фарминга из ton_boost_purchases', {
         userId,
-        activeBoostId,
-        tonBalance,
-        farmingBalance,
-        hasFarmingData,
-        dailyRate,
-        dailyIncome,
-        packageMinAmount: boostPackage.min_amount
+        totalAmount,
+        totalDailyIncome,
+        depositsCount: deposits.length,
+        totalTonRatePerSecond
       });
 
       return {
-        totalTonRatePerSecond: ratePerSecond.toFixed(8),
+        totalTonRatePerSecond: totalTonRatePerSecond.toFixed(8),
         totalUniRatePerSecond: '0', // TON Boost не генерирует UNI
-        dailyIncomeTon: dailyIncome.toFixed(6),
+        dailyIncomeTon: totalDailyIncome.toFixed(6),
         dailyIncomeUni: '0',
-        deposits: [{
-          id: activeBoostId,
-          package_name: boostPackage.name,
-          amount: farmingBalance.toString(), // Теперь правильная сумма депозита
-          rate: dailyRate.toString(),
-          status: 'active',
-          source: hasFarmingData ? 'ton_farming_data' : 'package_min_amount'
-        }]
+        deposits: deposits
       };
 
     } catch (error) {

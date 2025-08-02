@@ -120,6 +120,34 @@ export const farmingDeposits = pgTable("farming_deposits", {
   expires_at: timestamp("expires_at") // Для буст-пакетов (срок 365 дней)
 });
 
+// Таблица ton_boost_purchases для хранения истории всех купленных TON Boost пакетов
+export const tonBoostPurchases = pgTable("ton_boost_purchases", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  package_id: integer("package_id").notNull(),
+  package_name: varchar("package_name", { length: 255 }).notNull(),
+  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(), // Сумма депозита в TON
+  rate: numeric("rate", { precision: 5, scale: 3 }).notNull(), // Процентная ставка (1%, 1.5%, 2%, 2.5%)
+  daily_income: numeric("daily_income", { precision: 18, scale: 6 }).notNull(), // Ежедневный доход
+  payment_method: varchar("payment_method", { length: 50 }).notNull(), // 'wallet' или 'ton'
+  tx_hash: varchar("tx_hash", { length: 255 }), // Хэш транзакции для внешних платежей
+  status: varchar("status", { length: 50 }).default("active"), // 'active', 'expired', 'cancelled'
+  purchased_at: timestamp("purchased_at").defaultNow(),
+  expires_at: timestamp("expires_at"), // Дата истечения (обычно через 365 дней)
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow()
+});
+
+// Схемы для ton_boost_purchases
+export const insertTonBoostPurchaseSchema = createInsertSchema(tonBoostPurchases).omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+  purchased_at: true
+});
+export type InsertTonBoostPurchase = z.infer<typeof insertTonBoostPurchaseSchema>;
+export type TonBoostPurchase = typeof tonBoostPurchases.$inferSelect;
+
 // Схемы для аутентификации
 export const insertAuthUserSchema = createInsertSchema(authUsers).pick({
   username: true,
