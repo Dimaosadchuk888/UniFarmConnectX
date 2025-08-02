@@ -115,10 +115,9 @@ export class TonFarmingRepository {
       
       const { data: deposits, error } = await supabase
         .from('transactions')
-        .select('amount_ton, created_at, type, description')
+        .select('amount, amount_ton, created_at, type, description')
         .eq('user_id', userId)
-        .in('type', ['DEPOSIT', 'TON_DEPOSIT', 'FARMING_REWARD'])
-        .gte('amount_ton', '0.1') // Минимум 0.1 TON
+        .in('type', ['DEPOSIT', 'TON_DEPOSIT', 'FARMING_REWARD', 'BOOST_PURCHASE'])
         .order('created_at', { ascending: false });
         
       if (error) {
@@ -127,12 +126,28 @@ export class TonFarmingRepository {
       }
       
       if (deposits && deposits.length > 0) {
-        const totalTon = deposits.reduce((sum, tx) => sum + parseFloat(tx.amount_ton || '0'), 0);
+        const totalTon = deposits.reduce((sum, tx) => {
+          // BOOST_PURCHASE использует поле amount, остальные - amount_ton
+          if (tx.type === 'BOOST_PURCHASE') {
+            const amount = parseFloat(tx.amount || '0');
+            return sum + Math.abs(amount); // Конвертируем отрицательное в положительное
+          } else {
+            const amount = parseFloat(tx.amount_ton || '0');
+            return sum + amount;
+          }
+        }, 0);
+        
         logger.info(`[TonFarmingRepository] User ${userId}: найдено ${deposits.length} депозитов, сумма: ${totalTon.toFixed(3)} TON`);
         
         // Логируем детали для диагностики
         deposits.forEach((tx, i) => {
-          logger.info(`[TonFarmingRepository] User ${userId} депозит ${i+1}: ${tx.amount_ton} TON (${tx.type}) - ${tx.created_at}`);
+          let displayAmount: number;
+          if (tx.type === 'BOOST_PURCHASE') {
+            displayAmount = Math.abs(parseFloat(tx.amount || '0'));
+          } else {
+            displayAmount = parseFloat(tx.amount_ton || '0');
+          }
+          logger.info(`[TonFarmingRepository] User ${userId} депозит ${i+1}: ${displayAmount} TON (${tx.type}) - ${tx.created_at}`);
         });
         
         return totalTon;
@@ -332,7 +347,7 @@ export class TonFarmingRepository {
       
       // Подготавливаем данные для upsert
       const upsertData = {
-        user_id: userId.toString(), // ✅ ИСПРАВЛЕНО: используем STRING вместо INTEGER
+        user_id: parseInt(userId), // Исправлено: используем INTEGER как в БД
         boost_active: true,
         boost_package_id: packageId,
         farming_rate: rate.toString(),
@@ -444,6 +459,18 @@ export class TonFarmingRepository {
         newFarmingBalance,
         farming_rate: rate,
         upsertResult
+      });
+
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Синхронизируем с users таблицей
+      await this.syncToUsers({
+        user_id: parseInt(userId),
+        farming_balance: newFarmingBalance,
+        farming_rate: rate.toString(),
+        boost_active: true,
+        boost_package_id: packageId,
+        boost_expires_at: expiresAt || null,
+        farming_start_timestamp: new Date().toISOString(),
+        farming_last_update: new Date().toISOString()
       });
 
       // ИСПРАВЛЕНИЕ: Создаем транзакцию депозита TON для прозрачности
