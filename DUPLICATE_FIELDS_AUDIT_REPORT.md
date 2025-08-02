@@ -1,147 +1,455 @@
-# Аудит дублирующихся полей базы данных UniFarm
-**Дата**: 02.08.2025  
-**Аудитор**: System Analyst  
-**Обновлено**: После полного анализа данных и кода
-
-## 📊 Резюме
-Проведен комплексный аудит дублирующихся полей в базе данных. Анализ выявил:
-- **103 пользователя** в системе
-- **6 пар дублирующихся полей** с расхождениями в данных
-- **Все поля активно используются** в коде (от 23 до 644 использований)
-- **Невозможно удалить поля** без масштабного рефакторинга
-
-## 🔍 Этап 1: Результаты анализа реальных данных (пользователи 191-303)
-
-### Критические расхождения:
-
-| Дублирующие поля | Расхождения | Примеры |
-|------------------|-------------|---------|
-| `balance_uni` vs `uni_farming_balance` | **50 из 87** пользователей | User 191: balance_uni=31411.09, uni_farming_balance=0 |
-| `balance_ton` vs `ton_farming_balance` | **36 из 87** пользователей | User 191: balance_ton=0.21, ton_farming_balance=5.15 |
-| `uni_deposit_amount` vs `uni_farming_deposit` | **0 из 87** пользователей | ✅ Полностью синхронизированы |
-| `ton_boost_package` vs `ton_boost_package_id` | **87 из 87** пользователей | User 192: package=1, package_id=1 |
-| `ton_farming_rate` vs `ton_boost_rate` | **86 из 87** пользователей | User 191: farming_rate=0.001, boost_rate=0.01 |
-
-### Старые таблицы:
-- `uni_farming_data`: 42 записи (используется)
-- `ton_farming_data`: 34 записи (используется)
-- `userBalances`: не существует или недоступна
-
-## 🔌 Этап 2: Аудит использования в коде
-
-### Активно используемые поля:
-
-| Поле | Используется в | Критичность |
-|------|----------------|-------------|
-| `balance_uni` | Множество модулей и скриптов | ⚠️ КРИТИЧНО |
-| `balance_ton` | Множество модулей и скриптов | ⚠️ КРИТИЧНО |
-| `uni_deposit_amount` | Скрипты проверки рефералов | ✅ Активно |
-| `uni_farming_deposit` | UniFarmingRepository, user/service | ⚠️ КРИТИЧНО |
-| `ton_boost_package` | user/controller, referral/service, boost/service | ⚠️ КРИТИЧНО |
-| `ton_farming_balance` | tonFarming/model | ✅ Активно |
-
-### Поля используемые только в скриптах аудита:
-- `uni_farming_balance` - только в скриптах system-audit-*.ts
-- Таблицы `uni_farming_data`, `ton_farming_data` - в некоторых скриптах миграции
-
-## 🔁 Этап 3: План безопасной миграции
-
-### Фаза 1: Синхронизация данных (СРОЧНО)
-1. **Синхронизировать критические расхождения:**
-   ```sql
-   -- Синхронизация balance_uni с uni_farming_balance
-   UPDATE users SET uni_farming_balance = balance_uni 
-   WHERE id BETWEEN 191 AND 303;
-   
-   -- НЕ ТРОГАТЬ ton_farming_balance - разные значения могут быть корректными
-   ```
-
-2. **Унифицировать TON boost поля:**
-   ```sql
-   -- Заполнить ton_boost_package_id там где есть ton_boost_package
-   UPDATE users SET ton_boost_package_id = ton_boost_package 
-   WHERE ton_boost_package > 0 AND ton_boost_package_id IS NULL;
-   ```
-
-### Фаза 2: Рефакторинг кода (2-3 недели)
-1. **Заменить использование дублирующих полей:**
-   - `ton_boost_package` → `ton_boost_package_id` во всех модулях
-   - `uni_farming_balance` → `balance_uni` (после синхронизации)
-   
-2. **Создать адаптеры для обратной совместимости:**
-   ```typescript
-   // В types/user.ts добавить виртуальные поля
-   get ton_boost_package() { return this.ton_boost_package_id; }
-   ```
-
-### Фаза 3: Удаление устаревших полей (через 1 месяц)
-После полного тестирования удалить:
-- `uni_farming_balance` (не используется в бизнес-логике)
-- `ton_boost_package` (после миграции на ton_boost_package_id)
-- Таблицы `uni_farming_data`, `ton_farming_data` (после миграции данных)
-
-## ⚠️ Критические предупреждения
-
-1. **НЕ УДАЛЯТЬ поля сразу** - многие активно используются в production
-2. **ton_farming_balance vs balance_ton** - возможно имеют разное назначение (фарминг vs общий баланс)
-3. **uni_farming_deposit** - критично используется в UniFarmingRepository
-4. **Старые таблицы** содержат реальные данные - требуется миграция перед удалением
-
-## 📋 Рекомендации
-
-1. **Немедленно**: Синхронизировать критические расхождения в данных
-2. **Краткосрочно**: Начать постепенный рефакторинг кода
-3. **Долгосрочно**: Установить единый источник истины для каждого типа данных
-4. **Мониторинг**: Добавить проверки целостности данных в schedulers
-
-## 🛡️ Принцип безопасности
-> "Лучше иметь избыточные данные, чем потерять пользовательские данные"
-
-Все изменения должны проводиться постепенно с обязательным резервным копированием и тестированием на staging окружении.
-
-## 📋 Финальный анализ наличия данных
-
-### Пустые поля (но используются в коде!):
-| Поле | Статус данных | Использований в коде | Решение |
-|------|---------------|---------------------|---------|
-| `uni_farming_balance` | Все значения = 0 | 93 | Синхронизировать с balance_uni |
-| `wallet` | Нет данных | 543 | Синхронизировать с ton_wallet_address |
-
-### Поля с данными требующие синхронизации:
-| Поля | Идентичных | Расхождений | Использований |
-|------|------------|-------------|---------------|
-| balance_uni ↔ uni_farming_balance | 38 | 65 | 489 vs 93 |
-| balance_ton ↔ ton_farming_balance | 58 | 45 | 644 vs 142 |
-| uni_deposit_amount ↔ uni_farming_deposit | 97 | 6 | 294 vs 23 |
-| ton_boost_package ↔ ton_boost_package_id | 82 | 21 | 242 vs 53 |
-| ton_farming_rate ↔ ton_boost_rate | 1 | 102 | 46 vs 85 |
-| wallet ↔ ton_wallet_address | 82 | 21 | 543 vs 51 |
-
-### Старые таблицы:
-- `uni_farming_data`: 98 записей (активно используется)
-- `ton_farming_data`: 44 записи (активно используется)
-- `userBalances`: 0 записей (можно удалить)
-
-## ✅ ГОТОВОЕ РЕШЕНИЕ
-
-### 1. Немедленная синхронизация (скрипт готов):
-```bash
-npx tsx scripts/synchronize-duplicate-fields.ts
-```
-Этот скрипт:
-- Синхронизирует uni_deposit_amount ↔ uni_farming_deposit
-- Заполнит ton_boost_package_id из ton_boost_package
-- Заполнит пустые uni_farming_balance из balance_uni  
-- Заполнит пустые wallet из ton_wallet_address
-
-### 2. Долгосрочная стратегия:
-- **НЕ УДАЛЯТЬ** никакие поля - все активно используются
-- **СИНХРОНИЗИРОВАТЬ** данные между дубликатами
-- **МОНИТОРИТЬ** расхождения через schedulers
-- **ПОСТЕПЕННО** унифицировать использование в коде
-
-### 3. Важные выводы:
-- ❌ **Невозможно просто удалить "пустые" поля** - они используются в коде
-- ⚠️ **ton_farming_balance vs balance_ton** - разное назначение (фарминг vs общий баланс)
-- ✅ **uni_deposit_amount и uni_farming_deposit** - можно безопасно синхронизировать
-- ⚠️ **ton_farming_rate vs ton_boost_rate** - разные концепции, не объединять!
+{
+  "timestamp": "2025-08-02T06:41:51.752Z",
+  "duplicateGroups": [
+    {
+      "group": "UNI Deposit",
+      "fields": [
+        "uni_deposit_amount",
+        "uni_farming_deposit"
+      ],
+      "description": "Сумма UNI депозита",
+      "dataType": [
+        "numeric",
+        "numeric"
+      ]
+    },
+    {
+      "group": "UNI Balance",
+      "fields": [
+        "balance_uni",
+        "uni_farming_balance"
+      ],
+      "description": "UNI баланс/накопления",
+      "dataType": [
+        "numeric",
+        "numeric"
+      ]
+    },
+    {
+      "group": "TON Boost Package",
+      "fields": [
+        "ton_boost_package",
+        "ton_boost_package_id"
+      ],
+      "description": "ID пакета TON Boost",
+      "dataType": [
+        "integer",
+        "integer"
+      ]
+    },
+    {
+      "group": "Wallet Address",
+      "fields": [
+        "wallet",
+        "ton_wallet_address"
+      ],
+      "description": "TON адрес кошелька",
+      "dataType": [
+        "text",
+        "text"
+      ]
+    }
+  ],
+  "fieldUsage": {
+    "uni_deposit_amount": {
+      "field": "uni_deposit_amount",
+      "usageCount": 202,
+      "files": [
+        "/modules/adminBot/controller.ts",
+        "/modules/boost/service.ts",
+        "/modules/farming/UniFarmingRepository.ts",
+        "/modules/farming/controller.ts",
+        "/modules/farming/directFarmingStatus.ts",
+        "/modules/farming/service.ts",
+        "/modules/wallet/controller.ts",
+        "/server/analyze-uni-referral-issue.ts",
+        "/server/check-farming-status.ts",
+        "/server/check-farming-timing.ts",
+        "/server/check-referral-income.ts",
+        "/server/check-referral-rewards.ts",
+        "/server/check-referral-structure.ts",
+        "/server/check-uni-referral-display.ts",
+        "/server/check-uni-referral-rewards.ts",
+        "/server/check-user-74-referrals-simple.ts",
+        "/server/check-user-74-referrals.ts",
+        "/server/create-test-referrals-optimized.ts",
+        "/server/create-test-referrals.ts",
+        "/server/fix-referral-farming.ts",
+        "/server/force-farming-rewards.ts",
+        "/server/routes.ts",
+        "/server/simple-referral-check.ts",
+        "/client/src/components/dashboard/IncomeCardNew.tsx",
+        "/client/src/components/farming/UniFarmingCard.tsx",
+        "/client/src/services/balanceService.ts",
+        "/client/src/services/farmingService.ts",
+        "/shared/schema.ts",
+        "/scripts/analyze-10k-transactions.ts",
+        "/scripts/analyze-migration-details.ts",
+        "/scripts/analyze-missing-data.ts",
+        "/scripts/analyze-null-deposits.ts",
+        "/scripts/analyze-table-discrepancies.ts",
+        "/scripts/analyze-user-74.ts",
+        "/scripts/apply-phase2-optimization.ts",
+        "/scripts/audit-duplicate-fields-full.ts",
+        "/scripts/audit-uni-ton-tables.ts",
+        "/scripts/check-active-farmers-referrals.ts",
+        "/scripts/check-farming-calculation-detailed.ts",
+        "/scripts/check-latest-referral-rewards.ts",
+        "/scripts/check-latest-uni-transactions.ts",
+        "/scripts/check-new-users-automation.ts",
+        "/scripts/check-referral-rewards-flow.ts",
+        "/scripts/check-referral-system-complete.ts",
+        "/scripts/check-scheduler-status.ts",
+        "/scripts/check-uni-farming-calculation.ts",
+        "/scripts/check-uni-farming-status.ts",
+        "/scripts/database-audit-test-scenarios.ts",
+        "/scripts/detailed-sync-and-index-audit.ts",
+        "/scripts/diagnose-farming-issue.ts",
+        "/scripts/diagnose-uni-farming-types.ts",
+        "/scripts/fix-user-62-active-farming.js",
+        "/scripts/investigate-uni-deposit-process.ts",
+        "/scripts/investigate-uni-farming-income-source.ts",
+        "/scripts/migrate-referrals-to-uni-farming.ts",
+        "/scripts/migrate-to-production.ts",
+        "/scripts/migrate-to-users-table.ts",
+        "/scripts/modules/boost/service.js",
+        "/scripts/modules/farming/UniFarmingRepository.js",
+        "/scripts/phase3-check-user74-balance.ts",
+        "/scripts/phase3-migrate-null-deposits.ts",
+        "/scripts/phase3-verify-system-working.ts",
+        "/scripts/prepare-migration-plan.ts",
+        "/scripts/quick-farming-investigation.ts",
+        "/scripts/simple-sync-index-audit.ts",
+        "/scripts/sync-user-74-database.js",
+        "/scripts/sync-user-74.js",
+        "/scripts/synchronize-duplicate-fields.ts",
+        "/scripts/test-farming-with-referrals.ts",
+        "/scripts/test-referral-chain.ts",
+        "/scripts/test-uni-farming-scheduler.ts",
+        "/scripts/update-farming-rate.js",
+        "/scripts/urgent-referral-db-check.ts",
+        "/scripts/verify-new-limit.ts",
+        "/scripts/verify-views-creation.ts"
+      ],
+      "isWrite": false,
+      "isRead": true,
+      "criticalUsage": true
+    },
+    "uni_farming_deposit": {
+      "field": "uni_farming_deposit",
+      "usageCount": 38,
+      "files": [
+        "/modules/farming/UniFarmingRepository.ts",
+        "/modules/user/service.ts",
+        "/shared/schema.ts",
+        "/scripts/apply-phase2-optimization.ts",
+        "/scripts/check-field-mismatch.ts",
+        "/scripts/check-uni-farming-calculation.ts",
+        "/scripts/modules/farming/UniFarmingRepository.js",
+        "/scripts/synchronize-duplicate-fields.ts"
+      ],
+      "isWrite": false,
+      "isRead": true,
+      "criticalUsage": true
+    },
+    "balance_uni": {
+      "field": "balance_uni",
+      "usageCount": 270,
+      "files": [
+        "/modules/admin/service.ts",
+        "/modules/adminBot/controller.ts",
+        "/modules/adminBot/types.ts",
+        "/modules/airdrop/service.ts",
+        "/modules/auth/controller.ts",
+        "/modules/auth/service.ts",
+        "/modules/boost/service.ts",
+        "/modules/dailyBonus/service.ts",
+        "/modules/farming/controller.ts",
+        "/modules/farming/directFarmingStatus.ts",
+        "/modules/farming/service.ts",
+        "/modules/monitor/service.ts",
+        "/modules/referral/service.ts",
+        "/modules/scheduler/tonBoostIncomeScheduler.ts",
+        "/modules/transactions/controller.ts",
+        "/modules/user/controller.ts",
+        "/modules/user/service.ts",
+        "/modules/user/types.ts",
+        "/modules/wallet/controller.ts",
+        "/modules/wallet/model.ts",
+        "/modules/wallet/service.ts",
+        "/modules/wallet/types.ts",
+        "/server/check-farming-timing.ts",
+        "/server/check-referral-rewards.ts",
+        "/server/check-referral-structure.ts",
+        "/server/check-ton-transactions-issue.ts",
+        "/server/check-user-74-referrals-simple.ts",
+        "/server/check-user-74-referrals.ts",
+        "/server/create-test-referrals-optimized.ts",
+        "/server/create-test-referrals.ts",
+        "/server/direct-ton-payment-chain-diagnostics.ts",
+        "/server/index.ts",
+        "/server/routes.ts",
+        "/server/simple-referral-check.ts",
+        "/server/test-websocket-balance.ts",
+        "/client/src/components/farming/UniFarmingCard.tsx",
+        "/client/src/components/farming/UniFarmingCardWithErrorBoundary.tsx",
+        "/client/src/components/friends/UniFarmReferralLink.tsx",
+        "/client/src/components/referral/ReferralStats.tsx",
+        "/client/src/contexts/userContext.simple.tsx",
+        "/client/src/core/types/index.ts",
+        "/client/src/services/farmingService.ts",
+        "/client/src/services/userService.ts",
+        "/shared/schema.ts",
+        "/scripts/analyze-null-deposits.ts",
+        "/scripts/analyze-table-discrepancies.ts",
+        "/scripts/analyze-user-74.ts",
+        "/scripts/audit-duplicate-fields-full.ts",
+        "/scripts/audit-uni-ton-tables.ts",
+        "/scripts/check-current-sync-status.ts",
+        "/scripts/check-farming-calculation-detailed.ts",
+        "/scripts/check-latest-uni-transactions.ts",
+        "/scripts/check-supabase-connection.js",
+        "/scripts/check-uni-farming-calculation.ts",
+        "/scripts/check-uni-farming-status.ts",
+        "/scripts/core/BalanceManager.js",
+        "/scripts/core/TransactionEnforcer.js",
+        "/scripts/create-test-user-with-balance.js",
+        "/scripts/database-audit-test-scenarios.ts",
+        "/scripts/database-sql-audit.ts",
+        "/scripts/debug-user287-step-by-step.ts",
+        "/scripts/detailed-sync-and-index-audit.ts",
+        "/scripts/diagnose-ton-boost-data.ts",
+        "/scripts/diagnose-user-74.js",
+        "/scripts/direct_db_check.js",
+        "/scripts/execute-optimization.ts",
+        "/scripts/final-system-audit.ts",
+        "/scripts/fix-admin-bot.ts",
+        "/scripts/fix-user-62-active-farming.js",
+        "/scripts/investigate-uni-deposit-process.ts",
+        "/scripts/investigate-uni-farming-income-source.ts",
+        "/scripts/migrate-to-users-table.ts",
+        "/scripts/modules/wallet/service.js",
+        "/scripts/phase-by-phase-audit.ts",
+        "/scripts/phase3-check-user74-balance.ts",
+        "/scripts/phase3-recalculate-farming-balances.ts",
+        "/scripts/phase3-verify-system-working.ts",
+        "/scripts/quick-farming-investigation.ts",
+        "/scripts/sync-user-74-database.js",
+        "/scripts/sync-user-74.js",
+        "/scripts/synchronize-duplicate-fields.ts",
+        "/scripts/system-audit-after-optimization.ts",
+        "/scripts/system-data-flow-audit.ts",
+        "/scripts/test-farming-with-referrals.ts",
+        "/scripts/test-user-74-direct.js",
+        "/scripts/test-websocket-balance-update.ts",
+        "/scripts/trace-auth-flow.js",
+        "/scripts/urgent-check-user-299.ts",
+        "/scripts/urgent-referral-db-check.ts",
+        "/scripts/validate-all-critical-fields.js",
+        "/scripts/verify-optimization.ts",
+        "/scripts/verify-views-creation.ts"
+      ],
+      "isWrite": false,
+      "isRead": true,
+      "criticalUsage": true
+    },
+    "uni_farming_balance": {
+      "field": "uni_farming_balance",
+      "usageCount": 91,
+      "files": [
+        "/modules/farming/UniFarmingRepository.ts",
+        "/modules/farming/controller.ts",
+        "/modules/wallet/controller.ts",
+        "/modules/wallet/service.ts",
+        "/modules/wallet/types.ts",
+        "/server/create-test-referrals-optimized.ts",
+        "/server/create-test-referrals.ts",
+        "/server/routes.ts",
+        "/client/src/components/farming/UniFarmingCard.tsx",
+        "/client/src/services/balanceService.ts",
+        "/client/src/services/farmingService.ts",
+        "/shared/schema.ts",
+        "/scripts/analyze-missing-data.ts",
+        "/scripts/analyze-table-discrepancies.ts",
+        "/scripts/analyze-user-74.ts",
+        "/scripts/apply-phase2-optimization.ts",
+        "/scripts/audit-duplicate-fields-full.ts",
+        "/scripts/check-current-sync-status.ts",
+        "/scripts/check-uni-farming-calculation.ts",
+        "/scripts/create-test-user-with-balance.js",
+        "/scripts/database-audit-test-scenarios.ts",
+        "/scripts/detailed-sync-and-index-audit.ts",
+        "/scripts/execute-optimization.ts",
+        "/scripts/final-system-audit.ts",
+        "/scripts/migrate-referrals-to-uni-farming.ts",
+        "/scripts/migrate-to-production.ts",
+        "/scripts/migrate-to-users-table.ts",
+        "/scripts/modules/farming/UniFarmingRepository.js",
+        "/scripts/modules/wallet/service.js",
+        "/scripts/phase-by-phase-audit.ts",
+        "/scripts/prepare-migration-plan.ts",
+        "/scripts/simple-sync-index-audit.ts",
+        "/scripts/sync-user-74-database.js",
+        "/scripts/sync-user-74.js",
+        "/scripts/synchronize-duplicate-fields.ts",
+        "/scripts/system-audit-after-optimization.ts",
+        "/scripts/verify-optimization.ts"
+      ],
+      "isWrite": false,
+      "isRead": true,
+      "criticalUsage": true
+    },
+    "ton_boost_package": {
+      "field": "ton_boost_package",
+      "usageCount": 167,
+      "files": [
+        "/modules/boost/TonFarmingRepository.ts",
+        "/modules/boost/service.ts",
+        "/modules/referral/service.ts",
+        "/modules/tonFarming/service.ts",
+        "/modules/user/controller.ts",
+        "/modules/user/service.ts",
+        "/server/check-ton-boost-referrals.ts",
+        "/server/check-user-74-referrals-simple.ts",
+        "/server/check-user-74-referrals.ts",
+        "/server/create-test-referrals-optimized.ts",
+        "/shared/schema.ts",
+        "/scripts/analyze-migration-details.ts",
+        "/scripts/analyze-missing-data.ts",
+        "/scripts/apply-phase2-optimization.ts",
+        "/scripts/apply-ton-wallet-fields.js",
+        "/scripts/audit-uni-ton-tables.ts",
+        "/scripts/check-actual-rates-detailed.ts",
+        "/scripts/check-column-types.ts",
+        "/scripts/check-current-sync-status.ts",
+        "/scripts/check-database-schema-relationships.ts",
+        "/scripts/check-ton-boost-deposits-user184.ts",
+        "/scripts/check-ton-boost-detailed.ts",
+        "/scripts/check-ton-boost-status.ts",
+        "/scripts/check-ton-boost-transactions.ts",
+        "/scripts/check-ton-farming-card-issue.ts",
+        "/scripts/check-ton-farming-data-chain.ts",
+        "/scripts/check-ton-scheduler-logs.ts",
+        "/scripts/check-user287-scheduler-status.ts",
+        "/scripts/create-test-user-with-balance.js",
+        "/scripts/database-audit-test-scenarios.ts",
+        "/scripts/deep-scheduler-diagnosis-user287.ts",
+        "/scripts/diagnose-id25-new-deposits.ts",
+        "/scripts/diagnose-ton-boost-data.ts",
+        "/scripts/final-tonboost-diagnosis-user25-287.ts",
+        "/scripts/migrate-to-production.ts",
+        "/scripts/migrate-to-users-table.ts",
+        "/scripts/migration-fix-ton-farming-deposits.ts",
+        "/scripts/modules/boost/TonFarmingRepository.js",
+        "/scripts/modules/boost/service.js",
+        "/scripts/prepare-migration-plan.ts",
+        "/scripts/production-database-usage-analysis.ts",
+        "/scripts/scripts/check-ton-farming-card-issue.js",
+        "/scripts/sync-user-74-database.js",
+        "/scripts/sync-user-74.js",
+        "/scripts/synchronize-duplicate-fields.ts",
+        "/scripts/test-safe-ton-boost-activation.ts",
+        "/scripts/urgent-check-user-299.ts"
+      ],
+      "isWrite": false,
+      "isRead": true,
+      "criticalUsage": true
+    },
+    "ton_boost_package_id": {
+      "field": "ton_boost_package_id",
+      "usageCount": 72,
+      "files": [
+        "/modules/boost/TonFarmingRepository.ts",
+        "/modules/user/service.ts",
+        "/server/direct-ton-payment-chain-diagnostics.ts",
+        "/shared/schema.ts",
+        "/scripts/apply-phase2-optimization.ts",
+        "/scripts/check-column-types.ts",
+        "/scripts/check-database-schema-relationships.ts",
+        "/scripts/check-ton-boost-deposits-user184.ts",
+        "/scripts/check-user287-scheduler-status.ts",
+        "/scripts/database-audit-test-scenarios.ts",
+        "/scripts/deep-scheduler-diagnosis-user287.ts",
+        "/scripts/final-tonboost-diagnosis-user25-287.ts",
+        "/scripts/full-db-diagnostic.ts",
+        "/scripts/modules/boost/TonFarmingRepository.js",
+        "/scripts/production-database-usage-analysis.ts",
+        "/scripts/synchronize-duplicate-fields.ts"
+      ],
+      "isWrite": false,
+      "isRead": true,
+      "criticalUsage": true
+    },
+    "wallet": {
+      "field": "wallet",
+      "usageCount": 58,
+      "files": [
+        "/modules/adminBot/types.ts",
+        "/modules/boost/service.ts",
+        "/modules/user/service.ts",
+        "/modules/wallet/controller.ts",
+        "/modules/wallet/service.ts",
+        "/server/routes.ts",
+        "/client/src/components/dashboard/WelcomeSection.tsx",
+        "/client/src/components/layout/NavigationBar.tsx",
+        "/client/src/components/ton-boost/BoostPackagesCard.tsx",
+        "/client/src/services/tonConnectService.ts",
+        "/shared/schema.ts",
+        "/scripts/core/BalanceManager.js",
+        "/scripts/database-audit-test-scenarios.ts",
+        "/scripts/migrate-to-users-table.ts",
+        "/scripts/modules/boost/service.js",
+        "/scripts/modules/wallet/service.js",
+        "/scripts/prepare-migration-plan.ts",
+        "/scripts/production-database-usage-analysis.ts",
+        "/scripts/synchronize-duplicate-fields.ts",
+        "/scripts/system-data-flow-audit.ts"
+      ],
+      "isWrite": false,
+      "isRead": true,
+      "criticalUsage": true
+    },
+    "ton_wallet_address": {
+      "field": "ton_wallet_address",
+      "usageCount": 30,
+      "files": [
+        "/modules/user/service.ts",
+        "/modules/wallet/controller.ts",
+        "/modules/wallet/service.ts",
+        "/server/direct-ton-payment-chain-diagnostics.ts",
+        "/shared/schema.ts",
+        "/scripts/analyze-missing-data.ts",
+        "/scripts/audit-uni-ton-tables.ts",
+        "/scripts/check-ton-wallet-fields-in-db.ts",
+        "/scripts/migrate-to-users-table.ts",
+        "/scripts/modules/wallet/service.js",
+        "/scripts/prepare-migration-plan.ts",
+        "/scripts/sync-user-74.js",
+        "/scripts/synchronize-duplicate-fields.ts"
+      ],
+      "isWrite": false,
+      "isRead": true,
+      "criticalUsage": true
+    }
+  },
+  "recommendations": {
+    "keep_separate": [
+      "balance_uni",
+      "uni_farming_balance"
+    ],
+    "unify": [
+      {
+        "from": "wallet",
+        "to": "ton_wallet_address"
+      },
+      {
+        "from": "ton_boost_package",
+        "to": "ton_boost_package_id"
+      }
+    ],
+    "sync_required": [
+      "uni_deposit_amount",
+      "uni_farming_deposit"
+    ]
+  }
+}

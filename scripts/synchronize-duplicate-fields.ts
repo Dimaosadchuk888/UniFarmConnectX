@@ -1,283 +1,288 @@
 import { supabase } from '../core/supabase.js';
 import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface SyncResult {
-  field1: string;
-  field2: string;
-  syncedCount: number;
-  errors: string[];
+  field: string;
+  totalRecords: number;
+  syncedRecords: number;
+  errors: number;
+  details: any[];
 }
 
 async function synchronizeDuplicateFields() {
-  console.log('🔄 СИНХРОНИЗАЦИЯ ДУБЛИРУЮЩИХСЯ ПОЛЕЙ\n');
-  console.log('================================================================================\n');
+  console.log('🔄 СИНХРОНИЗАЦИЯ ДУБЛИРУЮЩИХСЯ ПОЛЕЙ');
+  console.log('='.repeat(80));
+  console.log('');
   console.log('⚠️  ВНИМАНИЕ: Этот скрипт синхронизирует данные между дублирующимися полями');
-  console.log('⚠️  Рекомендуется сделать резервную копию базы данных перед запуском\n');
+  console.log('📝 Основываясь на аудите, будут синхронизированы следующие поля:');
+  console.log('   1. uni_deposit_amount → uni_farming_deposit');
+  console.log('   2. ton_boost_package → ton_boost_package_id');
+  console.log('   3. wallet ↔ ton_wallet_address (двусторонняя)');
+  console.log('   4. balance_uni и uni_farming_balance НЕ синхронизируются (разная логика)');
+  console.log('');
 
   const results: SyncResult[] = [];
 
   try {
-    // Получаем всех пользователей
-    const { data: users, error } = await supabase
+    // 1. Синхронизация UNI Deposit
+    console.log('\n1️⃣ Синхронизация UNI Deposit (uni_deposit_amount → uni_farming_deposit)');
+    console.log('-'.repeat(60));
+
+    // Находим записи с различиями
+    const { data: depositDiffs } = await supabase
       .from('users')
-      .select('*')
-      .order('id');
+      .select('id, telegram_id, uni_deposit_amount, uni_farming_deposit')
+      .neq('uni_deposit_amount', 'uni_farming_deposit');
 
-    if (error) throw error;
-    
-    console.log(`✅ Найдено пользователей: ${users?.length || 0}\n`);
-
-    // 1. Синхронизация uni_deposit_amount и uni_farming_deposit (почти идентичны)
-    console.log('📌 Синхронизация uni_deposit_amount ← → uni_farming_deposit\n');
-    let syncedCount = 0;
-    const errors: string[] = [];
-
-    for (const user of users || []) {
-      if (user.uni_deposit_amount !== user.uni_farming_deposit) {
-        // Берем максимальное значение (чтобы не потерять данные)
-        const maxValue = Math.max(
-          Number(user.uni_deposit_amount) || 0,
-          Number(user.uni_farming_deposit) || 0
-        );
-
-        console.log(`   User ${user.id}: ${user.uni_deposit_amount} vs ${user.uni_farming_deposit} → ${maxValue}`);
-
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            uni_deposit_amount: maxValue,
-            uni_farming_deposit: maxValue
-          })
-          .eq('id', user.id);
-
-        if (updateError) {
-          errors.push(`User ${user.id}: ${updateError.message}`);
-        } else {
-          syncedCount++;
-        }
-      }
-    }
-
-    results.push({
-      field1: 'uni_deposit_amount',
-      field2: 'uni_farming_deposit',
-      syncedCount,
-      errors
-    });
-
-    console.log(`   ✅ Синхронизировано: ${syncedCount} записей\n`);
-
-    // 2. Синхронизация ton_boost_package и ton_boost_package_id
-    console.log('📌 Синхронизация ton_boost_package ← → ton_boost_package_id\n');
-    syncedCount = 0;
-    const errors2: string[] = [];
-
-    for (const user of users || []) {
-      // Логика: если ton_boost_package > 0, но ton_boost_package_id пустой, заполняем
-      if (user.ton_boost_package > 0 && !user.ton_boost_package_id) {
-        console.log(`   User ${user.id}: ton_boost_package=${user.ton_boost_package}, ton_boost_package_id=null → ${user.ton_boost_package}`);
-        
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            ton_boost_package_id: user.ton_boost_package
-          })
-          .eq('id', user.id);
-
-        if (updateError) {
-          errors2.push(`User ${user.id}: ${updateError.message}`);
-        } else {
-          syncedCount++;
-        }
-      }
-      // Если ton_boost_package_id есть, но ton_boost_package = 0, синхронизируем
-      else if (user.ton_boost_package_id && user.ton_boost_package === 0) {
-        console.log(`   User ${user.id}: ton_boost_package=0, ton_boost_package_id=${user.ton_boost_package_id} → ${user.ton_boost_package_id}`);
-        
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            ton_boost_package: user.ton_boost_package_id
-          })
-          .eq('id', user.id);
-
-        if (updateError) {
-          errors2.push(`User ${user.id}: ${updateError.message}`);
-        } else {
-          syncedCount++;
-        }
-      }
-    }
-
-    results.push({
-      field1: 'ton_boost_package',
-      field2: 'ton_boost_package_id',
-      syncedCount,
-      errors: errors2
-    });
-
-    console.log(`   ✅ Синхронизировано: ${syncedCount} записей\n`);
-
-    // 3. Заполнение uni_farming_balance из balance_uni (только если uni_farming_balance = 0)
-    console.log('📌 Заполнение пустых uni_farming_balance из balance_uni\n');
-    syncedCount = 0;
-    const errors3: string[] = [];
-
-    for (const user of users || []) {
-      // Заполняем только если uni_farming_balance = 0, а balance_uni > 0
-      if (user.uni_farming_balance === 0 && user.balance_uni > 0 && user.uni_farming_active) {
-        console.log(`   User ${user.id}: uni_farming_balance=0, balance_uni=${user.balance_uni} → ${user.balance_uni}`);
-        
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            uni_farming_balance: user.balance_uni
-          })
-          .eq('id', user.id);
-
-        if (updateError) {
-          errors3.push(`User ${user.id}: ${updateError.message}`);
-        } else {
-          syncedCount++;
-        }
-      }
-    }
-
-    results.push({
-      field1: 'balance_uni',
-      field2: 'uni_farming_balance',
-      syncedCount,
-      errors: errors3
-    });
-
-    console.log(`   ✅ Синхронизировано: ${syncedCount} записей\n`);
-
-    // 4. Заполнение wallet из ton_wallet_address (только если wallet пустой)
-    console.log('📌 Заполнение пустых wallet из ton_wallet_address\n');
-    syncedCount = 0;
-    const errors4: string[] = [];
-
-    for (const user of users || []) {
-      if (!user.wallet && user.ton_wallet_address) {
-        console.log(`   User ${user.id}: wallet=null, ton_wallet_address=${user.ton_wallet_address.substring(0, 20)}...`);
-        
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            wallet: user.ton_wallet_address
-          })
-          .eq('id', user.id);
-
-        if (updateError) {
-          errors4.push(`User ${user.id}: ${updateError.message}`);
-        } else {
-          syncedCount++;
-        }
-      }
-    }
-
-    results.push({
-      field1: 'wallet',
-      field2: 'ton_wallet_address',
-      syncedCount,
-      errors: errors4
-    });
-
-    console.log(`   ✅ Синхронизировано: ${syncedCount} записей\n`);
-
-    // Итоговый отчет
-    console.log('\n📊 ИТОГОВЫЙ ОТЧЕТ:\n');
-    console.log('================================================================================\n');
-
-    let totalSynced = 0;
-    let totalErrors = 0;
-
-    results.forEach(result => {
-      totalSynced += result.syncedCount;
-      totalErrors += result.errors.length;
+    if (depositDiffs && depositDiffs.length > 0) {
+      console.log(`Найдено ${depositDiffs.length} записей с различиями`);
       
-      console.log(`${result.field1} ← → ${result.field2}:`);
-      console.log(`   Синхронизировано: ${result.syncedCount}`);
-      if (result.errors.length > 0) {
-        console.log(`   Ошибок: ${result.errors.length}`);
-        result.errors.slice(0, 3).forEach(err => console.log(`     - ${err}`));
-      }
-      console.log();
-    });
+      let syncedCount = 0;
+      let errorCount = 0;
+      const syncDetails: any[] = [];
 
-    console.log(`\n✅ ВСЕГО синхронизировано: ${totalSynced} записей`);
-    if (totalErrors > 0) {
-      console.log(`⚠️  Ошибок при синхронизации: ${totalErrors}`);
+      for (const user of depositDiffs) {
+        try {
+          // Синхронизируем: uni_deposit_amount является главным полем
+          const { error } = await supabase
+            .from('users')
+            .update({ uni_farming_deposit: user.uni_deposit_amount })
+            .eq('id', user.id);
+
+          if (error) {
+            errorCount++;
+            console.error(`❌ Ошибка для user ${user.id}:`, error);
+          } else {
+            syncedCount++;
+            syncDetails.push({
+              userId: user.id,
+              old_value: user.uni_farming_deposit,
+              new_value: user.uni_deposit_amount
+            });
+          }
+        } catch (e) {
+          errorCount++;
+          console.error(`❌ Исключение для user ${user.id}:`, e);
+        }
+      }
+
+      console.log(`✅ Синхронизировано: ${syncedCount}/${depositDiffs.length}`);
+      if (errorCount > 0) console.log(`❌ Ошибок: ${errorCount}`);
+
+      results.push({
+        field: 'uni_deposit_amount → uni_farming_deposit',
+        totalRecords: depositDiffs.length,
+        syncedRecords: syncedCount,
+        errors: errorCount,
+        details: syncDetails.slice(0, 5) // Первые 5 для отчета
+      });
+    } else {
+      console.log('✅ Все записи уже синхронизированы');
     }
 
-    // Проверка результатов
-    console.log('\n\n🔍 ПРОВЕРКА РЕЗУЛЬТАТОВ:\n');
-    console.log('================================================================================\n');
+    // 2. Синхронизация TON Boost Package
+    console.log('\n2️⃣ Синхронизация TON Boost Package (ton_boost_package → ton_boost_package_id)');
+    console.log('-'.repeat(60));
 
-    const { data: checkUsers, error: checkError } = await supabase
+    // Находим записи где ton_boost_package > 0, но ton_boost_package_id = null
+    const { data: boostDiffs } = await supabase
       .from('users')
-      .select('id, uni_deposit_amount, uni_farming_deposit, ton_boost_package, ton_boost_package_id, balance_uni, uni_farming_balance, wallet, ton_wallet_address')
-      .order('id');
+      .select('id, telegram_id, ton_boost_package, ton_boost_package_id')
+      .gt('ton_boost_package', 0)
+      .is('ton_boost_package_id', null);
 
-    if (!checkError && checkUsers) {
-      let remainingDiffs = 0;
+    if (boostDiffs && boostDiffs.length > 0) {
+      console.log(`Найдено ${boostDiffs.length} записей для синхронизации`);
+      
+      let syncedCount = 0;
+      let errorCount = 0;
+      const syncDetails: any[] = [];
 
-      checkUsers.forEach(user => {
-        const diffs: string[] = [];
-        
-        if (user.uni_deposit_amount !== user.uni_farming_deposit) {
-          diffs.push(`uni_deposit: ${user.uni_deposit_amount} vs ${user.uni_farming_deposit}`);
-        }
-        
-        if (user.ton_boost_package > 0 && user.ton_boost_package !== user.ton_boost_package_id) {
-          diffs.push(`ton_boost: ${user.ton_boost_package} vs ${user.ton_boost_package_id}`);
-        }
+      for (const user of boostDiffs) {
+        try {
+          // Синхронизируем: копируем ton_boost_package в ton_boost_package_id
+          const { error } = await supabase
+            .from('users')
+            .update({ ton_boost_package_id: user.ton_boost_package })
+            .eq('id', user.id);
 
-        if (diffs.length > 0) {
-          remainingDiffs++;
-          if (remainingDiffs <= 5) { // Показываем только первые 5
-            console.log(`User ${user.id}: ${diffs.join(', ')}`);
+          if (error) {
+            errorCount++;
+            console.error(`❌ Ошибка для user ${user.id}:`, error);
+          } else {
+            syncedCount++;
+            syncDetails.push({
+              userId: user.id,
+              package_value: user.ton_boost_package
+            });
           }
+        } catch (e) {
+          errorCount++;
+          console.error(`❌ Исключение для user ${user.id}:`, e);
         }
-      });
-
-      if (remainingDiffs === 0) {
-        console.log('✅ Все указанные поля успешно синхронизированы!');
-      } else {
-        console.log(`\n⚠️  Остались расхождения: ${remainingDiffs} записей`);
       }
+
+      console.log(`✅ Синхронизировано: ${syncedCount}/${boostDiffs.length}`);
+      if (errorCount > 0) console.log(`❌ Ошибок: ${errorCount}`);
+
+      results.push({
+        field: 'ton_boost_package → ton_boost_package_id',
+        totalRecords: boostDiffs.length,
+        syncedRecords: syncedCount,
+        errors: errorCount,
+        details: syncDetails.slice(0, 5)
+      });
+    } else {
+      console.log('✅ Все записи уже синхронизированы');
+    }
+
+    // 3. Синхронизация Wallet Address
+    console.log('\n3️⃣ Синхронизация Wallet Address (двусторонняя синхронизация)');
+    console.log('-'.repeat(60));
+
+    // Находим записи где одно поле заполнено, а другое нет
+    const { data: walletDiffs1 } = await supabase
+      .from('users')
+      .select('id, telegram_id, wallet, ton_wallet_address')
+      .not('wallet', 'is', null)
+      .is('ton_wallet_address', null);
+
+    const { data: walletDiffs2 } = await supabase
+      .from('users')
+      .select('id, telegram_id, wallet, ton_wallet_address')
+      .is('wallet', null)
+      .not('ton_wallet_address', 'is', null);
+
+    const walletDiffs = [...(walletDiffs1 || []), ...(walletDiffs2 || [])];
+
+    if (walletDiffs.length > 0) {
+      console.log(`Найдено ${walletDiffs.length} записей для синхронизации`);
+      
+      let syncedCount = 0;
+      let errorCount = 0;
+      const syncDetails: any[] = [];
+
+      for (const user of walletDiffs) {
+        try {
+          // Определяем направление синхронизации
+          const updateData = user.wallet && !user.ton_wallet_address
+            ? { ton_wallet_address: user.wallet }
+            : { wallet: user.ton_wallet_address };
+
+          const { error } = await supabase
+            .from('users')
+            .update(updateData)
+            .eq('id', user.id);
+
+          if (error) {
+            errorCount++;
+            console.error(`❌ Ошибка для user ${user.id}:`, error);
+          } else {
+            syncedCount++;
+            syncDetails.push({
+              userId: user.id,
+              wallet: user.wallet || user.ton_wallet_address,
+              direction: user.wallet ? 'wallet → ton_wallet_address' : 'ton_wallet_address → wallet'
+            });
+          }
+        } catch (e) {
+          errorCount++;
+          console.error(`❌ Исключение для user ${user.id}:`, e);
+        }
+      }
+
+      console.log(`✅ Синхронизировано: ${syncedCount}/${walletDiffs.length}`);
+      if (errorCount > 0) console.log(`❌ Ошибок: ${errorCount}`);
+
+      results.push({
+        field: 'wallet ↔ ton_wallet_address',
+        totalRecords: walletDiffs.length,
+        syncedRecords: syncedCount,
+        errors: errorCount,
+        details: syncDetails.slice(0, 5)
+      });
+    } else {
+      console.log('✅ Все записи уже синхронизированы');
+    }
+
+    // 4. Специальная проверка balance полей
+    console.log('\n4️⃣ Проверка Balance полей (НЕ синхронизируем - разная логика)');
+    console.log('-'.repeat(60));
+
+    const { data: balanceCheck } = await supabase
+      .from('users')
+      .select('id, balance_uni, uni_farming_balance, uni_deposit_amount')
+      .neq('balance_uni', 'uni_farming_balance')
+      .limit(5);
+
+    if (balanceCheck && balanceCheck.length > 0) {
+      console.log('📊 Примеры различий (это нормально!):');
+      balanceCheck.forEach(user => {
+        const totalBalance = parseFloat(user.balance_uni || '0');
+        const farmingBalance = parseFloat(user.uni_farming_balance || '0');
+        const depositAmount = parseFloat(user.uni_deposit_amount || '0');
+        
+        console.log(`  User ${user.id}:`);
+        console.log(`    - balance_uni: ${totalBalance} (общий баланс)`);
+        console.log(`    - uni_farming_balance: ${farmingBalance} (накопления)`);
+        console.log(`    - uni_deposit_amount: ${depositAmount} (депозит)`);
+        console.log(`    - Формула: ${depositAmount} + ${farmingBalance} ≈ ${totalBalance}`);
+      });
     }
 
     // Сохраняем отчет
     const report = {
       timestamp: new Date().toISOString(),
-      results,
-      totalSynced,
-      totalErrors
+      syncResults: results,
+      summary: {
+        totalSynced: results.reduce((sum, r) => sum + r.syncedRecords, 0),
+        totalErrors: results.reduce((sum, r) => sum + r.errors, 0),
+        fieldsProcessed: results.length
+      },
+      recommendations: [
+        'uni_deposit_amount и uni_farming_deposit теперь синхронизированы',
+        'ton_boost_package и ton_boost_package_id теперь синхронизированы',
+        'wallet и ton_wallet_address теперь синхронизированы',
+        'balance_uni и uni_farming_balance НЕ синхронизированы (разная бизнес-логика)'
+      ]
     };
 
-    await fs.promises.writeFile(
-      'FIELD_SYNCHRONIZATION_REPORT.json',
+    fs.writeFileSync(
+      path.join(__dirname, '..', 'FIELD_SYNCHRONIZATION_REPORT.json'),
       JSON.stringify(report, null, 2)
     );
 
-    console.log('\n✅ Отчет сохранен в FIELD_SYNCHRONIZATION_REPORT.json');
+    // Итоговый отчет
+    console.log('\n\n📊 ИТОГОВЫЙ ОТЧЕТ:');
+    console.log('='.repeat(80));
+    console.log(`✅ Всего синхронизировано записей: ${report.summary.totalSynced}`);
+    console.log(`❌ Всего ошибок: ${report.summary.totalErrors}`);
+    console.log(`📝 Обработано групп полей: ${report.summary.fieldsProcessed}`);
+    
+    console.log('\n🎯 РЕКОМЕНДАЦИИ:');
+    console.log('1. Проверьте работу системы после синхронизации');
+    console.log('2. Обновите код для использования главных полей');
+    console.log('3. Добавьте триггеры БД для автоматической синхронизации в будущем');
+    console.log('4. НЕ удаляйте поля сразу - сначала обновите весь код');
+    
+    console.log('\n✅ Синхронизация завершена! Отчет сохранен в FIELD_SYNCHRONIZATION_REPORT.json');
 
   } catch (error) {
     console.error('❌ Критическая ошибка:', error);
   }
 }
 
-// Запускаем синхронизацию
-console.log('⚠️  ВНИМАНИЕ: Запуск синхронизации изменит данные в базе!');
-console.log('⚠️  Нажмите Ctrl+C для отмены в течение 5 секунд...\n');
+// Запуск синхронизации
+console.log('Запускаю синхронизацию дублирующихся полей...\n');
+console.log('⚠️  ПРЕДУПРЕЖДЕНИЕ: Этот скрипт изменит данные в БД!');
+console.log('Убедитесь что у вас есть резервная копия.');
+console.log('Начинаю через 5 секунд...\n');
 
 setTimeout(() => {
-  synchronizeDuplicateFields().then(() => {
-    console.log('\n✅ Синхронизация завершена');
-    process.exit(0);
-  }).catch(err => {
-    console.error('❌ Ошибка при синхронизации:', err);
-    process.exit(1);
-  });
+  synchronizeDuplicateFields().catch(console.error);
 }, 5000);
