@@ -1,112 +1,118 @@
 import { supabase } from './core/supabaseClient';
 
 async function auditDatabaseDeposits() {
-  console.log('=== АУДИТ ДЕПОЗИТОВ В БД (ТЕКУЩЕЕ СОСТОЯНИЕ) ===\n');
+  console.log('=== АУДИТ СИСТЕМЫ TON BOOST ===\n');
   
-  // 1. Проверяем структуру таблицы users
-  console.log('1. ТАБЛИЦА USERS - поля для депозитов:');
-  const { data: userSample } = await supabase
+  // 1. Проверяем всех пользователей с активными TON boost пакетами
+  console.log('1. ПОЛЬЗОВАТЕЛИ С АКТИВНЫМИ TON BOOST ПАКЕТАМИ:');
+  const { data: activeBoosts } = await supabase
     .from('users')
-    .select('*')
-    .eq('id', 184)
-    .single();
+    .select('id, telegram_id, ton_boost_package, ton_farming_balance, balance_ton')
+    .gt('ton_boost_package', 0)
+    .order('ton_boost_package', { ascending: false });
     
-  const depositFields = [
-    'balance_ton',
-    'balance_uni', 
-    'uni_deposit_amount',
-    'uni_farming_balance',
-    'ton_farming_balance',
-    'ton_boost_package',
-    'ton_boost_active'
-  ];
+  if (activeBoosts) {
+    console.log(`Найдено ${activeBoosts.length} пользователей с активными boost пакетами:\n`);
+    
+    let totalFarmingBalance = 0;
+    const packageStats: { [key: number]: number } = {};
+    
+    activeBoosts.forEach(user => {
+      console.log(`User ${user.id} (@${user.telegram_id}):`);
+      console.log(`├── Boost пакет: ${user.ton_boost_package}`);
+      console.log(`├── TON farming balance: ${user.ton_farming_balance} TON`);
+      console.log(`├── Основной баланс TON: ${user.balance_ton} TON`);
+      console.log(`└── Статус: ${user.ton_farming_balance > 0 ? '✅ Активен' : '❌ Пустой баланс'}\n`);
+      
+      totalFarmingBalance += parseFloat(user.ton_farming_balance || '0');
+      packageStats[user.ton_boost_package] = (packageStats[user.ton_boost_package] || 0) + 1;
+    });
+    
+    console.log('СТАТИСТИКА ПО ПАКЕТАМ:');
+    Object.entries(packageStats).forEach(([packageId, count]) => {
+      console.log(`├── Пакет ${packageId}: ${count} пользователей`);
+    });
+    console.log(`└── Общий farming balance: ${totalFarmingBalance.toFixed(3)} TON\n`);
+  }
   
-  depositFields.forEach(field => {
-    if (field in userSample) {
-      console.log(`├── ${field}: ${userSample[field]} (тип: ${typeof userSample[field]})`);
-    }
-  });
-  
-  // 2. Проверяем таблицу transactions
-  console.log('\n2. ТАБЛИЦА TRANSACTIONS - типы депозитов:');
-  const { data: transactionTypes } = await supabase
+  // 2. Проверяем транзакции BOOST_PURCHASE за последний месяц
+  console.log('2. АНАЛИЗ ТРАНЗАКЦИЙ BOOST_PURCHASE:');
+  const { data: boostTransactions } = await supabase
     .from('transactions')
-    .select('type, count')
-    .eq('user_id', 184);
+    .select('user_id, amount, amount_ton, created_at, metadata')
+    .eq('type', 'BOOST_PURCHASE')
+    .gte('created_at', '2025-07-01')
+    .order('created_at', { ascending: false });
     
-  const typeCounts = {};
-  transactionTypes?.forEach(tx => {
-    typeCounts[tx.type] = (typeCounts[tx.type] || 0) + 1;
-  });
-  
-  Object.entries(typeCounts).forEach(([type, count]) => {
-    console.log(`├── ${type}: ${count} записей`);
-  });
+  if (boostTransactions) {
+    console.log(`Найдено ${boostTransactions.length} транзакций BOOST_PURCHASE:\n`);
+    
+    // Группируем по пользователям
+    const userPurchases: { [key: string]: number } = {};
+    let totalInAmount = 0;
+    let totalInAmountTon = 0;
+    
+    boostTransactions.forEach(tx => {
+      const amountValue = Math.abs(parseFloat(tx.amount || '0'));
+      const amountTonValue = parseFloat(tx.amount_ton || '0');
+      
+      userPurchases[tx.user_id] = (userPurchases[tx.user_id] || 0) + amountValue;
+      totalInAmount += amountValue;
+      totalInAmountTon += amountTonValue;
+    });
+    
+    console.log('ПОЛЯ ТРАНЗАКЦИЙ:');
+    console.log(`├── Сумма из поля amount: ${totalInAmount} TON`);
+    console.log(`├── Сумма из поля amount_ton: ${totalInAmountTon} TON`);
+    console.log(`└── Уникальных пользователей: ${Object.keys(userPurchases).length}\n`);
+    
+    console.log('ТОП-5 ПОКУПАТЕЛЕЙ:');
+    const sortedUsers = Object.entries(userPurchases)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5);
+      
+    for (const [userId, total] of sortedUsers) {
+      console.log(`├── User ${userId}: ${total} TON`);
+    }
+  }
   
   // 3. Проверяем таблицу ton_farming_data
-  console.log('\n3. ТАБЛИЦА TON_FARMING_DATA:');
-  const { data: tonFarmingData, error: tonError } = await supabase
+  console.log('\n3. СОСТОЯНИЕ ТАБЛИЦЫ ton_farming_data:');
+  const { data: farmingData } = await supabase
     .from('ton_farming_data')
-    .select('*')
-    .eq('user_id', 184);
+    .select('user_id, farming_balance, boost_active, boost_package_id, daily_rate')
+    .eq('boost_active', true);
     
-  if (tonError) {
-    console.log(`└── Ошибка: ${tonError.message}`);
-  } else if (!tonFarmingData || tonFarmingData.length === 0) {
-    console.log('└── Нет записей для user_id=184');
-  } else {
-    console.log(`└── Найдено записей: ${tonFarmingData.length}`);
-    tonFarmingData.forEach(data => {
-      console.log(`    ├── farming_balance: ${data.farming_balance}`);
-      console.log(`    ├── boost_active: ${data.boost_active}`);
-      console.log(`    └── boost_package_id: ${data.boost_package_id}`);
+  if (farmingData) {
+    console.log(`Найдено ${farmingData.length} активных записей:\n`);
+    
+    let totalFarmingDataBalance = 0;
+    farmingData.forEach(record => {
+      totalFarmingDataBalance += parseFloat(record.farming_balance || '0');
     });
-  }
-  
-  // 4. Проверяем таблицу uni_farming_data
-  console.log('\n4. ТАБЛИЦА UNI_FARMING_DATA:');
-  const { data: uniFarmingData, error: uniError } = await supabase
-    .from('uni_farming_data')
-    .select('*')
-    .eq('user_id', 184);
     
-  if (uniError) {
-    console.log(`└── Ошибка: ${uniError.message}`);
-  } else if (!uniFarmingData || uniFarmingData.length === 0) {
-    console.log('└── Нет записей для user_id=184');
-  } else {
-    console.log(`└── Найдено записей: ${uniFarmingData.length}`);
+    console.log(`├── Общий farming_balance в ton_farming_data: ${totalFarmingDataBalance.toFixed(3)} TON`);
+    console.log(`└── Среднее на пользователя: ${(totalFarmingDataBalance / farmingData.length).toFixed(3)} TON\n`);
   }
   
-  // 5. Проверяем таблицу boost_packages
-  console.log('\n5. ТАБЛИЦА BOOST_PACKAGES:');
-  const { data: boostPackages, error: boostError } = await supabase
-    .from('boost_packages')
-    .select('*');
+  // 4. Проверяем расхождения
+  console.log('4. АНАЛИЗ РАСХОЖДЕНИЙ:');
+  
+  // Проверяем пользователей с boost но без farming balance
+  const { data: problemUsers } = await supabase
+    .from('users')
+    .select('id, ton_boost_package, ton_farming_balance')
+    .gt('ton_boost_package', 0)
+    .eq('ton_farming_balance', 0);
     
-  if (boostError) {
-    console.log(`└── Ошибка: ${boostError.message}`);
-  } else if (!boostPackages || boostPackages.length === 0) {
-    console.log('└── Таблица пустая!');
+  if (problemUsers && problemUsers.length > 0) {
+    console.log(`⚠️ НАЙДЕНЫ ПРОБЛЕМНЫЕ АККАУНТЫ (${problemUsers.length}):`);
+    problemUsers.forEach(user => {
+      console.log(`├── User ${user.id}: пакет ${user.ton_boost_package}, но farming_balance = 0`);
+    });
   } else {
-    console.log(`└── Найдено пакетов: ${boostPackages.length}`);
+    console.log('✅ Все пользователи с boost пакетами имеют farming balance');
   }
-  
-  // 6. Анализ - где хранятся депозиты
-  console.log('\n📊 АНАЛИЗ - ГДЕ СЕЙЧАС ХРАНЯТСЯ ДЕПОЗИТЫ:');
-  console.log('\nUNI ДЕПОЗИТЫ:');
-  console.log('├── uni_deposit_amount в users: сумма UNI депозита');
-  console.log('└── uni_farming_balance в users: накопленный доход');
-  
-  console.log('\nTON ДЕПОЗИТЫ:');
-  console.log('├── ton_farming_balance в users: сумма TON в farming');
-  console.log('├── ton_farming_data таблица: есть 1 запись с farming_balance=115');
-  console.log('└── balance_ton в users: доступный баланс для вывода');
-  
-  console.log('\nПРОБЛЕМА:');
-  console.log('- При покупке boost деньги списываются из balance_ton');
-  console.log('- НО не добавляются в ton_farming_balance');
-  console.log('- Система пытается писать в ton_farming_data, но fallback не работает');
 }
 
 auditDatabaseDeposits();
