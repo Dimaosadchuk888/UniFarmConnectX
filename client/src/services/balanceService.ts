@@ -15,8 +15,10 @@ export interface Balance {
 // Константы кеширования
 const CACHE_CONFIG = {
   BALANCE_KEY: (userId: number) => `balance:${userId}`,
-  BALANCE_TTL: 15000, // 15 секунд (сокращено с 30 для более частых обновлений)
-  FALLBACK_MAX_AGE: 60000 // 60 секунд - максимальный возраст для fallback кеша
+  BALANCE_TTL: 60000, // 60 секунд - увеличено для стабильности
+  FALLBACK_MAX_AGE: 120000, // 2 минуты - максимальный возраст для fallback кеша
+  STALE_WHILE_REVALIDATE: 30000, // 30 секунд - время для stale-while-revalidate
+  MIN_CACHE_AGE: 3000 // 3 секунды - минимальный возраст кеша для сохранения при forceRefresh
 };
 
 /**
@@ -49,16 +51,25 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
   
   try {
     
-    // Проверяем кэш, если не требуется принудительное обновление
-    if (!forceRefresh) {
-      const cachedBalance = cacheService.get<Balance>(cacheKey);
-      if (cachedBalance) {
-        return cachedBalance;
+    // УМНОЕ КЕШИРОВАНИЕ: проверяем кэш с учетом stale-while-revalidate
+    const cachedItem = cacheService.cacheMap?.get(cacheKey);
+    if (cachedItem && !forceRefresh) {
+      const cacheAge = Date.now() - cachedItem.timestamp;
+      if (cacheAge <= CACHE_CONFIG.BALANCE_TTL) {
+        console.log(`[balanceService] ✅ Возвращаем свежий кеш (возраст: ${Math.round(cacheAge / 1000)}с)`);
+        return cachedItem.data;
       }
-    } else {
-      // Если forceRefresh=true, очищаем кэш принудительно
-      console.log('[balanceService] Принудительная очистка кэша баланса');
-      cacheService.invalidate(cacheKey);
+    }
+    
+    // SMART FORCE REFRESH: не удаляем кеш полностью если он свежий
+    if (forceRefresh && cachedItem) {
+      const cacheAge = Date.now() - cachedItem.timestamp;
+      if (cacheAge < CACHE_CONFIG.MIN_CACHE_AGE) {
+        console.log(`[balanceService] 🛡️ Сохраняем свежий кеш при forceRefresh (возраст: ${Math.round(cacheAge / 1000)}с < ${CACHE_CONFIG.MIN_CACHE_AGE / 1000}с)`);
+        return cachedItem.data;
+      } else {
+        console.log(`[balanceService] 🔄 Обновляем кеш при forceRefresh (возраст: ${Math.round(cacheAge / 1000)}с)`);
+      }
     }
     
     // Выполняем запрос к API
@@ -110,12 +121,13 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
       uniFarmingBalance: parseFloat(data.uniFarmingBalance || data.uni_farming_balance) || 0
     };
     
-    // Сохраняем в кеш с меткой времени для отслеживания
+    // Сохраняем в кеш с увеличенным TTL для стабильности
     console.log('[balanceService] 💾 Сохраняем свежие данные в кеш', {
       userId: targetUserId,
       ttl: `${CACHE_CONFIG.BALANCE_TTL / 1000}с`,
       uniBalance: balance.uniBalance,
-      tonBalance: balance.tonBalance
+      tonBalance: balance.tonBalance,
+      cacheStrategy: 'smart_caching_v2'
     });
     cacheService.set(cacheKey, balance, CACHE_CONFIG.BALANCE_TTL);
     

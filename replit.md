@@ -33,8 +33,8 @@ The application leverages a modular and scalable architecture designed for high 
 - **Automated Schedulers**: Critical operations like farming income generation and boost verification are managed by automated schedulers.
 - **Robust Error Handling**: Emphasizes detailed logging and user-friendly error messages.
 - **UI/UX Decisions**: Responsive and adaptive UI components, custom branded toast notifications, streamlined interfaces.
-- **Security**: JWT token watch and recovery, single-path TON deposit processing with precise deduplication (phantom deposits fixed August 3, 2025), robust authentication middleware, transaction duplication protection for DAILY_BONUS (fixed August 3, 2025).
-- **Performance**: WebSocket debounce, cache management, optimized API performance.
+- **Security**: JWT token watch and recovery, single-path TON deposit processing with precise deduplication (phantom deposits fixed August 3, 2025), robust authentication middleware, transaction duplication protection for DAILY_BONUS (fixed August 3, 2025), balance caching race condition resolution (August 3, 2025).
+- **Performance**: WebSocket debounce, cache management, optimized API performance, BalanceUpdateCoordinator for race condition prevention (August 3, 2025), smart caching with 60s TTL and stale-while-revalidate strategy.
 
 **Key Architectural Components:**
 - **Balance Management**: Centralized `BalanceManager` to handle all balance modifications, ensuring consistency and preventing race conditions.
