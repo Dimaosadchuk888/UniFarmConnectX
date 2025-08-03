@@ -434,7 +434,7 @@ export async function sendTonTransaction(
         const { correctApiRequest } = await import('@/lib/correctApiRequest');
         
         // 🔧 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДУБЛИРОВАНИЯ: Удаляем суффиксы из BOC для дедупликации
-        const cleanBocHash = result.boc.replace(/_\d{13}_[a-z0-9]+$/, ''); // Удаляем суффиксы timestamp_random
+        const cleanBocHash = result.boc.replace(/_\d{13}_[a-zA-Z0-9_-]+$/, ''); // Удаляем суффиксы timestamp_random (улучшенный regex)
         const logId = `${cleanBocHash}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; // Только для логирования
         
         console.log('[TON_DEPOSIT_FIX] Отправка депозита на backend...', {
