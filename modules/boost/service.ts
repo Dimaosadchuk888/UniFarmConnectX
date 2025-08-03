@@ -368,7 +368,8 @@ export class BoostService {
       }
 
       // Списываем средства напрямую через BalanceManager (не создавая транзакцию WITHDRAWAL)
-      const { balanceManager } = await import('../../core/BalanceManager');
+      const { BalanceManager } = await import('../../core/BalanceManager.js');
+      const balanceManager = BalanceManager.getInstance();
       const balanceResult = await balanceManager.subtractBalance(
         parseInt(userId),
         0, // amount_uni
