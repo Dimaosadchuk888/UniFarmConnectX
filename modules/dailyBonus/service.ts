@@ -176,6 +176,39 @@ export class DailyBonusService {
         };
       }
 
+      // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА: Проверка дубликатов перед созданием DAILY_BONUS
+      const { DeduplicationHelper } = await import('../../safe-deduplication-helper');
+      const duplicateCheck = await DeduplicationHelper.checkRecentTransaction(
+        userIdNumber,
+        'DAILY_BONUS',
+        Math.floor(parseFloat(bonusAmount)),
+        'UNI',
+        60 // 60 минут окно для ежедневных бонусов
+      );
+
+      if (duplicateCheck.exists) {
+        DeduplicationHelper.logPreventedDuplicate(
+          userIdNumber,
+          'DAILY_BONUS',
+          Math.floor(parseFloat(bonusAmount)),
+          `Daily bonus streak ${newStreak} (prevented duplicate)`
+        );
+        
+        logger.warn('[DailyBonusService] 🛡️ ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО: Daily bonus уже существует', {
+          userId: userIdNumber,
+          streak: newStreak,
+          bonusAmount: Math.floor(parseFloat(bonusAmount)),
+          existingTransactionId: duplicateCheck.existingTransaction?.id
+        });
+        
+        // Возвращаем успех, так как бонус уже был начислен
+        return {
+          success: true,
+          amount: bonusAmount,
+          streak_days: newStreak
+        };
+      }
+
       // Создаем транзакцию через UnifiedTransactionService
       const { UnifiedTransactionService } = await import('../../core/TransactionService');
       const transactionService = UnifiedTransactionService.getInstance();
@@ -191,7 +224,8 @@ export class DailyBonusService {
           description: `Daily bonus day ${newStreak}`,
           metadata: {
             streak: newStreak,
-            bonus_amount: Math.floor(parseFloat(bonusAmount)) // Целые числа
+            bonus_amount: Math.floor(parseFloat(bonusAmount)), // Целые числа
+            original_type: 'DAILY_BONUS'
           }
         });
       } catch (txError) {

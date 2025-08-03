@@ -235,6 +235,24 @@ export class BoostService {
         uniBonus: boostPackage.uni_bonus
       });
 
+      // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА: Проверяем дубликаты через безопасный helper
+      const { DeduplicationHelper } = await import('../../safe-deduplication-helper');
+      const duplicateCheck = await DeduplicationHelper.checkDailyBonusDuplicate(
+        parseInt(userId),
+        boostPackage.uni_bonus,
+        boostPackage.name
+      );
+
+      if (duplicateCheck.isDuplicate) {
+        DeduplicationHelper.logPreventedDuplicate(
+          parseInt(userId),
+          'DAILY_BONUS',
+          boostPackage.uni_bonus,
+          `TON Boost package: ${boostPackage.name}`
+        );
+        return true; // Возвращаем true, так как бонус уже начислен
+      }
+
       // Получаем текущий баланс пользователя
       const { data: user, error: getUserError } = await supabase
         .from(BOOST_TABLES.USERS)

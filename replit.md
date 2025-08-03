@@ -33,7 +33,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **Automated Schedulers**: Critical operations like farming income generation and boost verification are managed by automated schedulers.
 - **Robust Error Handling**: Emphasizes detailed logging and user-friendly error messages.
 - **UI/UX Decisions**: Responsive and adaptive UI components, custom branded toast notifications, streamlined interfaces.
-- **Security**: JWT token watch and recovery, single-path TON deposit processing with precise deduplication (phantom deposits fixed August 3, 2025), robust authentication middleware.
+- **Security**: JWT token watch and recovery, single-path TON deposit processing with precise deduplication (phantom deposits fixed August 3, 2025), robust authentication middleware, transaction duplication protection for DAILY_BONUS (fixed August 3, 2025).
 - **Performance**: WebSocket debounce, cache management, optimized API performance.
 
 **Key Architectural Components:**
@@ -47,7 +47,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **Incoming**: TON_DEPOSIT (from blockchain), FARMING_DEPOSIT (from user balance).
 - **Income Generation**: FARMING_REWARD (UNI & TON), REFERRAL_REWARD, DAILY_BONUS, MISSION_REWARD.
 - **Outgoing**: WITHDRAWAL (UNI & TON with commission).
-- **Security & Integrity**: Precise transaction deduplication (fixed phantom deposits for User 25 on Aug 3, 2025), ACID compliance, rate limiting, comprehensive diagnostic logging.
+- **Security & Integrity**: Precise transaction deduplication (fixed phantom deposits for User 25 on Aug 3, 2025, fixed DAILY_BONUS duplication on Aug 3, 2025), ACID compliance, rate limiting, comprehensive diagnostic logging, DeduplicationHelper module for safe production fixes.
 
 ## External Dependencies
 - **Telegram Mini App framework**: For core application functionality within Telegram.
