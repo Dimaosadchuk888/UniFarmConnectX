@@ -324,6 +324,35 @@ export class ReferralService {
                 created_at: new Date().toISOString()
               });
 
+            // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА: Проверка дубликатов REFERRAL_REWARD
+            const { DeduplicationHelper } = await import('../../safe-deduplication-helper');
+            const duplicateCheck = await DeduplicationHelper.checkRecentTransaction(
+              parseInt(commission.userId),
+              'REFERRAL_REWARD',
+              parseFloat(commission.amount),
+              currency,
+              10 // 10 минут окно для реферальных наград
+            );
+
+            if (duplicateCheck.exists) {
+              DeduplicationHelper.logPreventedDuplicate(
+                parseInt(commission.userId),
+                'REFERRAL_REWARD',
+                parseFloat(commission.amount),
+                `Referral L${commission.level} from User ${sourceUserId} (prevented duplicate)`
+              );
+              
+              logger.warn('[ReferralService] 🛡️ ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО: REFERRAL_REWARD уже существует', {
+                userId: commission.userId,
+                sourceUserId,
+                level: commission.level,
+                amount: commission.amount,
+                currency,
+                existingTransactionId: duplicateCheck.existingTransaction?.id
+              });
+              continue; // Пропускаем создание дублированной транзакции
+            }
+
             // Создаем транзакцию через UnifiedTransactionService
             const { UnifiedTransactionService } = await import('../../core/TransactionService');
             const transactionService = UnifiedTransactionService.getInstance();

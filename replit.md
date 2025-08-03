@@ -47,7 +47,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **Incoming**: TON_DEPOSIT (from blockchain), FARMING_DEPOSIT (from user balance).
 - **Income Generation**: FARMING_REWARD (UNI & TON), REFERRAL_REWARD, DAILY_BONUS, MISSION_REWARD.
 - **Outgoing**: WITHDRAWAL (UNI & TON with commission).
-- **Security & Integrity**: Precise transaction deduplication (fixed phantom deposits for User 25 on Aug 3, 2025, fixed DAILY_BONUS duplication on Aug 3, 2025), ACID compliance, rate limiting, comprehensive diagnostic logging, DeduplicationHelper module for safe production fixes.
+- **Security & Integrity**: Comprehensive transaction deduplication system implemented (Aug 3, 2025) - fixed phantom deposits, DAILY_BONUS, FARMING_REWARD, and REFERRAL_REWARD duplications with DeduplicationHelper module, ACID compliance, rate limiting, comprehensive diagnostic logging.
 
 ## External Dependencies
 - **Telegram Mini App framework**: For core application functionality within Telegram.

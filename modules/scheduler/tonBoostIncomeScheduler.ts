@@ -230,6 +230,33 @@ export class TONBoostIncomeScheduler {
 
           logger.info(`[TON_BOOST_SCHEDULER] User ${user.user_id} (${user.boost_package_id}): +${fiveMinuteIncome.toFixed(6)} TON (депозит: ${userDeposit} TON)`);
 
+          // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА: Проверка дубликатов FARMING_REWARD
+          const { DeduplicationHelper } = await import('../../safe-deduplication-helper');
+          const duplicateCheck = await DeduplicationHelper.checkRecentTransaction(
+            userId,
+            'FARMING_REWARD',
+            fiveMinuteIncome,
+            'TON',
+            5 // 5 минут окно для TON Boost доходов
+          );
+
+          if (duplicateCheck.exists) {
+            DeduplicationHelper.logPreventedDuplicate(
+              userId,
+              'FARMING_REWARD',
+              fiveMinuteIncome,
+              `TON Boost доход пакет ${user.boost_package_id} (prevented duplicate)`
+            );
+            
+            logger.warn(`[TON_BOOST_SCHEDULER] 🛡️ ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО: FARMING_REWARD уже существует для User ${user.user_id}`, {
+              userId,
+              boostPackageId: user.boost_package_id,
+              fiveMinuteIncome: fiveMinuteIncome.toFixed(6),
+              existingTransactionId: duplicateCheck.existingTransaction?.id
+            });
+            continue; // Пропускаем создание дублированной транзакции
+          }
+
           // Создаем транзакцию через UnifiedTransactionService
           const { UnifiedTransactionService } = await import('../../core/TransactionService');
           const transactionService = UnifiedTransactionService.getInstance();
@@ -269,16 +296,37 @@ export class TONBoostIncomeScheduler {
             timestamp: new Date().toISOString()
           });
 
-          // Распределяем реферальные награды
-          try {
-            await this.referralService.distributeReferralRewards(
-              userId,  // Используем числовой ID
-              fiveMinuteIncome.toFixed(8),
-              'TON',
-              'boost'
-            );
-          } catch (referralError) {
-            logger.error(`[TON_BOOST_SCHEDULER] Ошибка реферальных наград User ${user.user_id}:`, referralError);
+          // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА: Проверяем дубликат перед распределением реферальных наград  
+          const referralKey = `referral_${userId}_${fiveMinuteIncome.toFixed(8)}_${Date.now()}`;
+          const { DeduplicationHelper: DeduplicationHelperRef } = await import('../../safe-deduplication-helper');
+          
+          // Проверяем, не выполнялось ли недавно реферальное распределение для этого пользователя
+          const recentReferralCheck = await DeduplicationHelperRef.checkRecentTransaction(
+            userId,
+            'REFERRAL_REWARD', 
+            fiveMinuteIncome * 1, // L1 referral обычно 100%
+            'TON',
+            5 // 5 минут окно для блокировки повторных реферальных распределений
+          );
+
+          if (recentReferralCheck.exists) {
+            logger.warn(`[TON_BOOST_SCHEDULER] 🛡️ РЕФЕРАЛЬНОЕ ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО для User ${user.user_id}`, {
+              userId,
+              fiveMinuteIncome: fiveMinuteIncome.toFixed(6),
+              existingReferralId: recentReferralCheck.existingTransaction?.id
+            });
+          } else {
+            // Распределяем реферальные награды только если нет дубликатов
+            try {
+              await this.referralService.distributeReferralRewards(
+                userId,  // Используем числовой ID
+                fiveMinuteIncome.toFixed(8),
+                'TON',
+                'boost'
+              );
+            } catch (referralError) {
+              logger.error(`[TON_BOOST_SCHEDULER] Ошибка реферальных наград User ${user.user_id}:`, referralError);
+            }
           }
 
           totalProcessed++;
