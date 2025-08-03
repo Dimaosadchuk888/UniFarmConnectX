@@ -36,7 +36,7 @@ router.get('/status', async (req: Request, res: Response) => {
         data: {
           canClaim: true,
           streak: 0,
-          bonusAmount: 500
+          bonusAmount: 600
         }
       });
       return;
@@ -58,7 +58,8 @@ router.get('/status', async (req: Request, res: Response) => {
       }
     }
     
-    const bonusAmount = Math.min(500 + (streakDays * 100), 2000);
+    // КАЛИБРОВКА: Синхронизировано с service.ts - фиксированная сумма 600 UNI
+    const bonusAmount = 600; // Точно 600 UNI как обещано на карточке
     
     res.json({
       success: true,
@@ -83,7 +84,7 @@ router.get('/demo', liberalRateLimit, (req: Request, res: Response) => {
     data: {
       canClaim: true,
       streak: 5,
-      bonusAmount: 500
+      bonusAmount: 600
     }
   });
 });

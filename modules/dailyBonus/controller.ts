@@ -60,7 +60,7 @@ export class DailyBonusController extends BaseController {
       const response = {
         canClaim: dailyBonusInfo.can_claim,
         streak: dailyBonusInfo.streak_days,
-        bonusAmount: parseInt(dailyBonusInfo.next_bonus_amount) || 500
+        bonusAmount: parseInt(dailyBonusInfo.next_bonus_amount) || 600
       };
 
       this.sendSuccess(res, response);

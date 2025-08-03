@@ -92,7 +92,7 @@ const DailyBonusCard: React.FC = () => {
         if (data.success) {
           // Показываем анимацию с конфетти
           setShowConfetti(true);
-          setReward(`${data.amount || bonusStatus?.bonusAmount || 500} UNI`);
+          setReward(`${data.amount || bonusStatus?.bonusAmount || 600} UNI`);
 
           // Обновляем данные о статусе бонуса с учетом userId
           invalidateQueryWithUserId('/api/v2/daily-bonus/status');
@@ -484,7 +484,7 @@ const DailyBonusCard: React.FC = () => {
         <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
           <div className="text-center animate-bounce">
             <div className="text-2xl font-bold text-white mb-2 drop-shadow-lg">
-              +{reward || `${bonusStatus?.bonusAmount || 500} UNI`}
+              +{reward || `${bonusStatus?.bonusAmount || 600} UNI`}
             </div>
             <div className="text-sm text-white drop-shadow-md">
               Ежедневный бонус получен!

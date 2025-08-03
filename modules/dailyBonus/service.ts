@@ -294,11 +294,15 @@ export class DailyBonusService {
 
   /**
    * Calculate bonus amount based on streak days
+   * КАЛИБРОВКА: Возвращаем точно ту сумму, что показана на карточке (без streak бонуса)
    */
   private calculateBonusAmount(streakDays: number): string {
-    const baseAmount = 600; // Base 600 UNI - исправлено с 500
-    const bonusMultiplier = Math.min(streakDays * 0.1, 2.0); // Max 200% bonus at 20 days
-    const finalAmount = baseAmount * (1 + bonusMultiplier);
+    const baseAmount = 600; // Фиксированная сумма как на карточке
+    // ОТКЛЮЧЕН streak multiplier - начисляем точно сколько показано
+    // const bonusMultiplier = Math.min(streakDays * 0.1, 2.0);
+    // const finalAmount = baseAmount * (1 + bonusMultiplier);
+    
+    const finalAmount = baseAmount; // Точно 600 UNI как обещано
     
     return Math.floor(finalAmount).toString(); // Целые числа без дробей
   }
