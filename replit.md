@@ -21,7 +21,19 @@ UniFarm Connect is an advanced Telegram Mini App designed for blockchain UNI far
 ## System Architecture
 The application leverages a modular and scalable architecture designed for high performance and real-time interactions.
 
-**Recent Critical Fixes and Optimizations (August 1-2, 2025):**
+**Recent Critical Fixes and Optimizations (August 1-3, 2025):**
+- **TON Transaction Duplication Bug Fixed (August 3, 2025)**: Resolved critical issue where same blockchain transaction was recorded multiple times
+  - **Root Cause**: System added unique suffixes (`_timestamp_random`) to BOC hashes, making duplicates appear unique to deduplication logic
+  - **Impact**: Users received multiple deposits for single blockchain transaction (User 25: 8 deposits instead of 4)
+  - **Solution Applied**:
+    - Fixed `client/src/services/tonConnectService.ts`: Removed suffix generation, use clean BOC for deduplication
+    - Enhanced `core/TransactionService.ts`: Added `extractBaseBoc()` function to strip suffixes for duplicate detection
+    - Improved OR-query logic: Check exact matches, base BOC patterns, metadata fields, and description content
+  - **Technical Details**:
+    - Suffix pattern: `/_\d{13}_[a-z0-9]+$/` (13-digit timestamp + random string)
+    - BOC format detection: Starts with 'te6'
+    - Multiple deduplication vectors: tx_hash_unique, metadata fields, description content
+  - **Result**: New TON deposits will no longer duplicate, existing duplicates preserved per user request
 - **TON Boost Purchase History Implementation (August 2, 2025)**: Fixed display of multiple TON Boost deposits
   - **Problem**: System only showed last purchased package instead of all active deposits
   - **Root Cause**: Architecture stored only last package ID in `users.ton_boost_package` field

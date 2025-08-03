@@ -100,17 +100,21 @@ export class UnifiedTransactionService {
       const amount = amount_uni > 0 ? amount_uni : amount_ton;
       const transactionCurrency = amount_uni > 0 ? 'UNI' : 'TON';
 
-      // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ (УСИЛЕННАЯ)
+      // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ (ИСПРАВЛЕННАЯ)
       // Проверяем существование записи с таким же tx_hash_unique
       const txHashToCheck = metadata?.tx_hash || metadata?.ton_tx_hash;
       if (txHashToCheck) {
         logger.info('[UnifiedTransactionService] Проверка дублирования для tx_hash:', txHashToCheck);
         
-        // Множественная проверка дублирования
+        // Извлекаем базовый BOC без суффиксов для проверки дубликатов
+        const baseBoc = this.extractBaseBoc(txHashToCheck);
+        logger.info('[UnifiedTransactionService] Базовый BOC для дедупликации:', baseBoc);
+        
+        // Множественная проверка дублирования (с базовым BOC и полным хешем)
         const { data: existingTransactions, error: checkError } = await supabase
           .from('transactions')
-          .select('id, created_at, user_id, amount_ton, type, description')
-          .or(`tx_hash_unique.eq.${txHashToCheck},metadata->>tx_hash.eq.${txHashToCheck},metadata->>ton_tx_hash.eq.${txHashToCheck}`)
+          .select('id, created_at, user_id, amount_ton, type, description, tx_hash_unique')
+          .or(`tx_hash_unique.eq.${txHashToCheck},tx_hash_unique.like.${baseBoc}%,metadata->>tx_hash.eq.${txHashToCheck},metadata->>ton_tx_hash.eq.${txHashToCheck},description.ilike.%${baseBoc}%`)
           .order('created_at', { ascending: false });
           
         if (existingTransactions && existingTransactions.length > 0 && !checkError) {
@@ -195,6 +199,22 @@ export class UnifiedTransactionService {
       logger.error('[UnifiedTransactionService] Критическая ошибка создания транзакции:', error);
       return { success: false, error: 'Внутренняя ошибка сервера' };
     }
+  }
+
+  /**
+   * Извлекает базовый BOC из хеша, удаляя суффиксы timestamp и random
+   * @param hash Полный хеш транзакции (может содержать суффиксы)
+   * @returns Базовый BOC без суффиксов
+   */
+  private extractBaseBoc(hash: string): string {
+    // Если хеш содержит BOC-подобную структуру (начинается с te6)
+    if (hash.startsWith('te6')) {
+      // Ищем паттерн суффикса: _timestamp_randomstring
+      const suffixPattern = /_\d{13}_[a-z0-9]+$/;
+      const baseBoc = hash.replace(suffixPattern, '');
+      return baseBoc;
+    }
+    return hash;
   }
 
   /**
