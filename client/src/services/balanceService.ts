@@ -148,7 +148,6 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
     }
     
     console.log('[balanceService] 📊 FALLBACK СТАТИСТИКА:', cacheService.getStats());
-    }
     
     // Если кэша нет, создаем пустой объект баланса
     return {
