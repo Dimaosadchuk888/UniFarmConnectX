@@ -131,11 +131,11 @@ export class UnifiedTransactionService {
           // Дополнительная проверка на короткие интервалы времени для одного пользователя
           const recentDuplicates = existingTransactions.filter(tx => 
             tx.user_id === user_id && 
-            (new Date().getTime() - new Date(tx.created_at).getTime()) < 30000 // 30 секунд
+            (new Date().getTime() - new Date(tx.created_at).getTime()) < 5000 // 5 секунд
           );
           
           if (recentDuplicates.length > 0) {
-            logger.error('[UnifiedTransactionService] КРИТИЧЕСКОЕ ДУБЛИРОВАНИЕ - Попытка повторного депозита в течение 30 секунд!', {
+            logger.error('[UnifiedTransactionService] КРИТИЧЕСКОЕ ДУБЛИРОВАНИЕ - Попытка повторного депозита в течение 5 секунд!', {
               user_id,
               tx_hash: txHashToCheck,
               recent_duplicates: recentDuplicates.length
