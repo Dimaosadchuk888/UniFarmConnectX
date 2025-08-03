@@ -110,11 +110,11 @@ export class UnifiedTransactionService {
         const baseBoc = this.extractBaseBoc(txHashToCheck);
         logger.info('[UnifiedTransactionService] Базовый BOC для дедупликации:', baseBoc);
         
-        // Множественная проверка дублирования (с базовым BOC и полным хешем)
+        // ИСПРАВЛЕННАЯ множественная проверка дублирования 
         const { data: existingTransactions, error: checkError } = await supabase
           .from('transactions')
           .select('id, created_at, user_id, amount_ton, type, description, tx_hash_unique')
-          .or(`tx_hash_unique.eq.${txHashToCheck},tx_hash_unique.like.${baseBoc}%,metadata->>tx_hash.eq.${txHashToCheck},metadata->>ton_tx_hash.eq.${txHashToCheck},description.ilike.%${baseBoc}%`)
+          .or(`tx_hash_unique.eq."${txHashToCheck}",tx_hash_unique.eq."${baseBoc}",tx_hash_unique.like."${baseBoc}%"`)
           .order('created_at', { ascending: false });
           
         if (existingTransactions && existingTransactions.length > 0 && !checkError) {

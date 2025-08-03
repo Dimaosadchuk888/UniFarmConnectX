@@ -433,17 +433,19 @@ export async function sendTonTransaction(
       try {
         const { correctApiRequest } = await import('@/lib/correctApiRequest');
         
-        // 🔧 ИСПРАВЛЕНИЕ ДУБЛИРОВАНИЯ: Используем чистый BOC без суффиксов для дедупликации
-        const cleanBocHash = result.boc; // Чистый BOC для дедупликации
-        const logId = `${result.boc}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; // Только для логирования
+        // 🔧 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДУБЛИРОВАНИЯ: Удаляем суффиксы из BOC для дедупликации
+        const cleanBocHash = result.boc.replace(/_\d{13}_[a-z0-9]+$/, ''); // Удаляем суффиксы timestamp_random
+        const logId = `${cleanBocHash}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; // Только для логирования
         
         console.log('[TON_DEPOSIT_FIX] Отправка депозита на backend...', {
-          txHash: result.boc,
-          logId: logId,
+          originalBoc: result.boc,
           cleanBocHash: cleanBocHash,
+          suffixRemoved: result.boc !== cleanBocHash,
+          logId: logId,
           amount: tonAmount,
           walletAddress: tonConnectUI.account?.address || 'unknown',
           bocLength: result.boc.length,
+          cleanBocLength: cleanBocHash.length,
           isBocData: result.boc.startsWith('te6')
         });
         
