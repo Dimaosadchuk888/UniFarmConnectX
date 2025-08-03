@@ -63,7 +63,7 @@ export class BalanceCache {
 
     const now = new Date();
     const isExpired = cached.expiresAt < now;
-    const age = Math.round((now.getTime() - cached.timestamp.getTime()) / 1000);
+    const age = Math.round((now.getTime() - cached.lastUpdated.getTime()) / 1000);
 
     // ДИАГНОСТИКА: Логируем состояние backend кеша
     console.log(`[BalanceCache] Проверка кеша для user ${userId}:`, {
@@ -229,7 +229,7 @@ export class BalanceCache {
     const now = new Date();
     let expired = 0;
 
-    for (const [userId, cached] of this.cache.entries()) {
+    for (const [userId, cached] of Array.from(this.cache.entries())) {
       if (cached.expiresAt < now) {
         this.cache.delete(userId);
         expired++;
