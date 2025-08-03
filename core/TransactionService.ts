@@ -100,7 +100,7 @@ export class UnifiedTransactionService {
       const amount = amount_uni > 0 ? amount_uni : amount_ton;
       const transactionCurrency = amount_uni > 0 ? 'UNI' : 'TON';
 
-      // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ (ИСПРАВЛЕННАЯ + REFERRAL_REWARD)
+      // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ (ИСПРАВЛЕННАЯ)
       // Проверяем существование записи с таким же tx_hash_unique
       const txHashToCheck = metadata?.tx_hash || metadata?.ton_tx_hash;
       if (txHashToCheck) {
@@ -153,67 +153,6 @@ export class UnifiedTransactionService {
         }
         
         logger.info('[UnifiedTransactionService] Проверка дублирования пройдена для:', txHashToCheck);
-      }
-
-      // 🛡️ НОВАЯ КРИТИЧЕСКАЯ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ REFERRAL_REWARD
-      // Проверяем дубликаты для REFERRAL_REWARD транзакций (они не имеют tx_hash)
-      if (type === 'REFERRAL_REWARD' && metadata?.source_user_id && metadata?.level) {
-        logger.info('[UnifiedTransactionService] Проверка дедупликации REFERRAL_REWARD:', {
-          user_id,
-          source_user_id: metadata.source_user_id,
-          level: metadata.level,
-          amount_uni,
-          amount_ton
-        });
-
-        // Создаем временное окно дедупликации (10 минут)
-        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-        
-        // Ищем существующие REFERRAL_REWARD с теми же параметрами за последние 10 минут
-        const { data: existingReferralRewards, error: referralCheckError } = await supabase
-          .from('transactions')
-          .select('id, created_at, user_id, amount, amount_uni, amount_ton, metadata')
-          .eq('type', 'REFERRAL_REWARD')
-          .eq('user_id', user_id)
-          .gte('created_at', tenMinutesAgo)
-          .order('created_at', { ascending: false });
-
-        if (!referralCheckError && existingReferralRewards) {
-          // Фильтруем по метаданным (source_user_id, level) и сумме
-          const matchingRewards = existingReferralRewards.filter(tx => {
-            const txMetadata = tx.metadata || {};
-            const sameSourceUser = txMetadata.source_user_id === metadata.source_user_id;
-            const sameLevel = txMetadata.level === metadata.level;
-            const sameAmountUni = Math.abs(parseFloat(tx.amount_uni || '0') - amount_uni) < 0.00000001;
-            const sameAmountTon = Math.abs(parseFloat(tx.amount_ton || '0') - amount_ton) < 0.00000001;
-            
-            return sameSourceUser && sameLevel && (sameAmountUni || sameAmountTon);
-          });
-
-          if (matchingRewards.length > 0) {
-            const existing = matchingRewards[0];
-            const timeDiff = (Date.now() - new Date(existing.created_at).getTime()) / 1000;
-            
-            logger.warn('[UnifiedTransactionService] REFERRAL_REWARD ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО:', {
-              existing_id: existing.id,
-              existing_date: existing.created_at,
-              time_diff_seconds: timeDiff,
-              attempted_user: user_id,
-              source_user_id: metadata.source_user_id,
-              level: metadata.level,
-              amount_uni,
-              amount_ton,
-              total_found: matchingRewards.length
-            });
-            
-            return { 
-              success: false, 
-              error: `Дублирование REFERRAL_REWARD предотвращено (${timeDiff.toFixed(0)}s назад)`
-            };
-          }
-        }
-        
-        logger.info('[UnifiedTransactionService] REFERRAL_REWARD дедупликация пройдена');
       }
 
       // Создание записи транзакции
