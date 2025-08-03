@@ -428,46 +428,7 @@ export async function sendTonTransaction(
       
 
 
-      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Уведомляем backend о успешном TON депозите
-      // Это предотвращает исчезновение депозитов из-за разрыва Frontend-Backend интеграции
-      try {
-        const { correctApiRequest } = await import('@/lib/correctApiRequest');
-        
-        // 🔧 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДУБЛИРОВАНИЯ: Удаляем суффиксы из BOC для дедупликации
-        const cleanBocHash = result.boc.replace(/_\d{13}_[a-zA-Z0-9_-]+$/, ''); // Удаляем суффиксы timestamp_random (улучшенный regex)
-        const logId = `${cleanBocHash}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; // Только для логирования
-        
-        console.log('[TON_DEPOSIT_FIX] Отправка депозита на backend...', {
-          originalBoc: result.boc,
-          cleanBocHash: cleanBocHash,
-          suffixRemoved: result.boc !== cleanBocHash,
-          logId: logId,
-          amount: tonAmount,
-          walletAddress: tonConnectUI.account?.address || 'unknown',
-          bocLength: result.boc.length,
-          cleanBocLength: cleanBocHash.length,
-          isBocData: result.boc.startsWith('te6')
-        });
-        
-        const backendResponse = await correctApiRequest('/api/v2/wallet/ton-deposit', 'POST', {
-          ton_tx_hash: cleanBocHash, // Используем чистый BOC для дедупликации
-          amount: tonAmount,
-          wallet_address: tonConnectUI.account?.address || 'unknown'
-        });
-        
-        console.log('✅ Backend депозит успешно обработан:', backendResponse);
-      } catch (backendError) {
-        // КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ: Записываем все неудачные попытки депозита
-        console.error('❌ [CRITICAL] TON депозит НЕ ОБРАБОТАН backend:', {
-          txHash: result.boc,
-          amount: tonAmount,
-          error: backendError,
-          timestamp: new Date().toISOString()
-        });
-        
-        // НЕ выбрасываем ошибку - blockchain транзакция уже прошла успешно
-        // Пользователь может обратиться в поддержку с этим hash для ручной обработки
-      }
+
 
       return {
         txHash: result.boc,

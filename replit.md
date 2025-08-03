@@ -33,12 +33,12 @@ The application leverages a modular and scalable architecture designed for high 
 - **Automated Schedulers**: Critical operations like farming income generation and boost verification are managed by automated schedulers.
 - **Robust Error Handling**: Emphasizes detailed logging and user-friendly error messages.
 - **UI/UX Decisions**: Responsive and adaptive UI components, custom branded toast notifications, streamlined interfaces.
-- **Security**: JWT token watch and recovery, programmatic duplication protection for TON deposits, robust authentication middleware.
+- **Security**: JWT token watch and recovery, single-path TON deposit processing (duplicates eliminated August 3, 2025), robust authentication middleware.
 - **Performance**: WebSocket debounce, cache management, optimized API performance.
 
 **Key Architectural Components:**
 - **Balance Management**: Centralized `BalanceManager` to handle all balance modifications, ensuring consistency and preventing race conditions.
-- **Unified Transaction Service**: All transactions are processed through a `UnifiedTransactionService` for consistent classification, description generation, and duplicate protection.
+- **Unified Transaction Service**: All transactions are processed through a `UnifiedTransactionService` for consistent classification, description generation, and duplicate protection. TON deposits use single-path processing through wallet controller.
 - **Admin Bot Interface**: Streamlined one-click operations for withdrawal approvals/rejections, automated interface updates, and smart buttons for efficient management.
 - **Telegram Bot Integration**: `@UniFarming_Bot` for user interaction and `@unifarm_admin_bot` for administrative tasks.
 - **Environment Management**: Automatic port detection and robust handling of environment variables.
