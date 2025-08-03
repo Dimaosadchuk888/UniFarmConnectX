@@ -56,20 +56,37 @@ export class BalanceCache {
     
     if (!cached) {
       this.stats.misses++;
+      console.log(`[BalanceCache] ❌ Кеш не найден для user ${userId}`);
       logger.debug('[BalanceCache] Cache miss', { userId });
       return null;
     }
 
-    // Проверяем срок действия
-    if (cached.expiresAt < new Date()) {
+    const now = new Date();
+    const isExpired = cached.expiresAt < now;
+    const age = Math.round((now.getTime() - cached.timestamp.getTime()) / 1000);
+
+    // ДИАГНОСТИКА: Логируем состояние backend кеша
+    console.log(`[BalanceCache] Проверка кеша для user ${userId}:`, {
+      exists: true,
+      age: `${age}с`,
+      ttl: `${this.TTL_SECONDS}с`,
+      isExpired,
+      uniBalance: cached.uniBalance,
+      tonBalance: cached.tonBalance,
+      expiresAt: cached.expiresAt.toISOString()
+    });
+
+    if (isExpired) {
       this.cache.delete(userId);
       this.stats.evictions++;
       this.stats.misses++;
+      console.log(`[BalanceCache] 🚨 Backend кеш истек для user ${userId}, удаляем`);
       logger.debug('[BalanceCache] Cache expired', { userId });
       return null;
     }
 
     this.stats.hits++;
+    console.log(`[BalanceCache] ✅ Возвращаем BACKEND кеш для user ${userId}`);
     logger.debug('[BalanceCache] Cache hit', { 
       userId, 
       uniBalance: cached.uniBalance,

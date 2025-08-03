@@ -15,7 +15,8 @@ export interface Balance {
 // Константы кеширования
 const CACHE_CONFIG = {
   BALANCE_KEY: (userId: number) => `balance:${userId}`,
-  BALANCE_TTL: 30000 // 30 секунд вместо 10
+  BALANCE_TTL: 15000, // 15 секунд (сокращено с 30 для более частых обновлений)
+  FALLBACK_MAX_AGE: 60000 // 60 секунд - максимальный возраст для fallback кеша
 };
 
 /**
@@ -67,11 +68,31 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
     if (!response.success || !response.data) {
       console.error('[balanceService] Ошибка получения баланса:', response.error || 'Unknown error');
       
-      // Если у нас есть кэшированные данные для этого пользователя, возвращаем их как запасной вариант
-      const cachedFallback = cacheService.get<Balance>(cacheKey);
-      if (cachedFallback) {
-        console.log('[balanceService] Возвращаем кэшированные данные после ошибки API');
-        return cachedFallback;
+      // УМНЫЙ FALLBACK: Проверяем возраст кеша перед возвратом старых данных
+      const cachedItem = cacheService.cacheMap?.get(cacheKey);
+      if (cachedItem) {
+        const cacheAge = Date.now() - cachedItem.timestamp;
+        const isStale = cacheAge > CACHE_CONFIG.FALLBACK_MAX_AGE;
+        
+        console.log(`[balanceService] FALLBACK АНАЛИЗ:`, {
+          cacheAge: `${Math.round(cacheAge / 1000)}с`,
+          maxAge: `${CACHE_CONFIG.FALLBACK_MAX_AGE / 1000}с`,
+          isStale,
+          userId: targetUserId,
+          reason: response.error || 'API_FAIL'
+        });
+        
+        if (!isStale) {
+          console.log('[balanceService] ✅ Возвращаем СВЕЖИЙ кэш после ошибки API');
+          cacheService.recordFallbackUsed();
+          return cachedItem.data;
+        } else {
+          console.warn('[balanceService] 🚨 КЕШ УСТАРЕЛ, не возвращаем старые данные', {
+            cacheAgeMinutes: Math.round(cacheAge / 60000),
+            action: 'throw_error_instead'
+          });
+          cacheService.recordStaleFallbackRejected();
+        }
       }
       
       throw new Error(response.error || 'Failed to fetch balance');
@@ -89,18 +110,44 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
       uniFarmingBalance: parseFloat(data.uniFarmingBalance || data.uni_farming_balance) || 0
     };
     
-    // Сохраняем в кеш
+    // Сохраняем в кеш с меткой времени для отслеживания
+    console.log('[balanceService] 💾 Сохраняем свежие данные в кеш', {
+      userId: targetUserId,
+      ttl: `${CACHE_CONFIG.BALANCE_TTL / 1000}с`,
+      uniBalance: balance.uniBalance,
+      tonBalance: balance.tonBalance
+    });
     cacheService.set(cacheKey, balance, CACHE_CONFIG.BALANCE_TTL);
     
     return balance;
   } catch (error) {
     console.error('[balanceService] Ошибка в fetchBalance:', error);
     
-    // В случае ошибки проверяем, есть ли кэшированные данные
-    const cachedError = cacheService.get<Balance>(cacheKey);
-    if (cachedError) {
-      console.log('[balanceService] Возвращаем кэшированные данные после исключения');
-      return cachedError;
+    // УМНЫЙ FALLBACK: В случае ошибки проверяем возраст кэшированных данных
+    const cachedErrorItem = cacheService.cacheMap?.get(cacheKey);
+    if (cachedErrorItem) {
+      const cacheAge = Date.now() - cachedErrorItem.timestamp;
+      const isStale = cacheAge > CACHE_CONFIG.FALLBACK_MAX_AGE;
+      
+      console.log(`[balanceService] EXCEPTION FALLBACK АНАЛИЗ:`, {
+        cacheAge: `${Math.round(cacheAge / 1000)}с`,
+        maxAge: `${CACHE_CONFIG.FALLBACK_MAX_AGE / 1000}с`,
+        isStale,
+        userId: targetUserId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      if (!isStale) {
+        console.log('[balanceService] ✅ Возвращаем СВЕЖИЙ кэш после исключения');
+        cacheService.recordFallbackUsed();
+        return cachedErrorItem.data;
+      } else {
+        console.warn('[balanceService] 🚨 КЕШ УСТАРЕЛ при исключении, возвращаем пустой баланс');
+        cacheService.recordStaleFallbackRejected();
+      }
+    }
+    
+    console.log('[balanceService] 📊 FALLBACK СТАТИСТИКА:', cacheService.getStats());
     }
     
     // Если кэша нет, создаем пустой объект баланса

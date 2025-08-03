@@ -137,11 +137,12 @@ const BalanceCard: React.FC = () => {
   const handleManualRefresh = useCallback(() => {
     if (isBalanceFetching) return;
     
+    console.log('[BalanceCard] 🔄 Принудительное обновление баланса (forceRefresh=true)');
     loading('Обновление баланса...');
     
     try {
       setTimeout(() => {
-        refreshBalance();
+        refreshBalance(true); // Принудительное обновление без кеша
         calculateRate();
         
         success('Баланс успешно обновлён');

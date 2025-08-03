@@ -17,8 +17,13 @@ class CacheService {
   private stats = {
     hits: 0,
     misses: 0,
-    expired: 0
+    expired: 0,
+    fallbackUsed: 0,
+    staleFallbackRejected: 0
   };
+  
+  // Делаем cache доступным для проверки возраста (только для чтения)
+  get cacheMap() { return this.cache; }
 
   /**
    * Сохранить данные в кеш
@@ -140,58 +145,77 @@ class CacheService {
   }
 
   /**
-   * Получить статистику кеша
+   * Получить детальную статистику кеша с информацией о fallback
    */
   getStats(): {
     size: number;
-    keys: string[];
-    memoryUsage: string;
     hits: number;
     misses: number;
     expired: number;
+    fallbackUsed: number;
+    staleFallbackRejected: number;
   } {
-    const keys = Array.from(this.cache.keys());
-    const approximateSize = JSON.stringify(Array.from(this.cache.values())).length;
-    
     return {
       size: this.cache.size,
-      keys,
-      memoryUsage: `~${(approximateSize / 1024).toFixed(2)} KB`,
       hits: this.stats.hits,
       misses: this.stats.misses,
-      expired: this.stats.expired
+      expired: this.stats.expired,
+      fallbackUsed: this.stats.fallbackUsed,
+      staleFallbackRejected: this.stats.staleFallbackRejected
     };
   }
 
   /**
-   * Обернуть асинхронную функцию в кеширование
-   * @param key - Ключ для кеша
-   * @param fn - Функция для выполнения
-   * @param ttl - Время жизни кеша
+   * Записать использование fallback в статистику
+   */
+  recordFallbackUsed(): void {
+    this.stats.fallbackUsed++;
+  }
+
+  /**
+   * Записать отклонение устаревшего fallback в статистику
+   */
+  recordStaleFallbackRejected(): void {
+    this.stats.staleFallbackRejected++;
+  }
+
+  /**
+   * Получить все ключи кеша
+   */
+  getAllKeys(): string[] {
+    return Array.from(this.cache.keys());
+  }
+
+  /**
+   * Получить информацию об использовании памяти кешем
+   */
+  getMemoryUsage(): number {
+    // Примерная оценка использования памяти
+    let totalSize = 0;
+    this.cache.forEach((item) => {
+      // Приблизительный размер JSON представления
+      totalSize += JSON.stringify(item).length * 2; // UTF-16 = 2 байта на символ
+    });
+    return totalSize;
+  }
+
+  /**
+   * Асинхронная обертка для кеширования результатов функций
    */
   async wrap<T>(
     key: string,
     fn: () => Promise<T>,
-    ttl: number = 60000
+    ttl?: number
   ): Promise<T> {
-    // Проверяем кеш
     const cached = this.get<T>(key);
-    if (cached !== null) {
-      return cached;
-    }
+    if (cached) return cached;
 
-    // Выполняем функцию
     try {
       const result = await fn();
-      
-      // Сохраняем в кеш только успешные результаты
-      if (result !== null && result !== undefined) {
-        this.set(key, result, ttl);
-      }
-      
+      this.set(key, result, ttl);
       return result;
     } catch (error) {
-      console.error(`[CacheService] Ошибка при выполнении функции для ${key}:`, error);
+      // В случае ошибки не кэшируем результат
       throw error;
     }
   }
