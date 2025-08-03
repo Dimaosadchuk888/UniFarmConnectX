@@ -466,7 +466,7 @@ export class WalletController extends BaseController {
           // Ищем существующую связь кошелька с пользователем
           const { data: existingUser, error } = await supabase
             .from('users')
-            .select('id, telegram_id, username, ton_wallet_address')
+            .select('*')
             .eq('ton_wallet_address', wallet_address)
             .single();
 

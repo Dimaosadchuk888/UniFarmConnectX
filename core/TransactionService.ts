@@ -100,7 +100,7 @@ export class UnifiedTransactionService {
       const amount = amount_uni > 0 ? amount_uni : amount_ton;
       const transactionCurrency = amount_uni > 0 ? 'UNI' : 'TON';
 
-      // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ (ИСПРАВЛЕННАЯ)
+      // 🛡️ ТОЧНАЯ ЗАЩИТА ОТ ДУБЛИРОВАНИЯ (ИСПРАВЛЕНО ДЛЯ USER 25)
       // Проверяем существование записи с таким же tx_hash_unique
       const txHashToCheck = metadata?.tx_hash || metadata?.ton_tx_hash;
       if (txHashToCheck) {
@@ -110,46 +110,52 @@ export class UnifiedTransactionService {
         const baseBoc = this.extractBaseBoc(txHashToCheck);
         logger.info('[UnifiedTransactionService] Базовый BOC для дедупликации:', baseBoc);
         
-        // ИСПРАВЛЕННАЯ множественная проверка дублирования 
+        // ТОЧНАЯ проверка дублирования - только для ТОЧНО совпадающих транзакций
         const { data: existingTransactions, error: checkError } = await supabase
           .from('transactions')
           .select('id, created_at, user_id, amount_ton, type, description, tx_hash_unique')
-          .or(`tx_hash_unique.eq."${txHashToCheck}",tx_hash_unique.eq."${baseBoc}",tx_hash_unique.like."${baseBoc}%"`)
+          .eq('tx_hash_unique', txHashToCheck)  // ИСПРАВЛЕНО: точное совпадение вместо LIKE
+          .eq('user_id', user_id)  // ИСПРАВЛЕНО: проверяем только для того же пользователя
           .order('created_at', { ascending: false });
           
         if (existingTransactions && existingTransactions.length > 0 && !checkError) {
           const existing = existingTransactions[0];
-          logger.warn('[UnifiedTransactionService] ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО (УСИЛЕННАЯ ПРОВЕРКА):', {
-            existing_id: existing.id,
-            existing_date: existing.created_at,
-            existing_user: existing.user_id,
-            existing_amount: existing.amount_ton,
-            existing_type: existing.type,
-            attempted_user: user_id,
-            attempted_amount: amount_ton,
-            attempted_type: type,
-            tx_hash: txHashToCheck,
-            total_found: existingTransactions.length
-          });
           
-          // Дополнительная проверка на короткие интервалы времени для одного пользователя
-          const recentDuplicates = existingTransactions.filter(tx => 
-            tx.user_id === user_id && 
-            (new Date().getTime() - new Date(tx.created_at).getTime()) < 5000 // 5 секунд
-          );
-          
-          if (recentDuplicates.length > 0) {
-            logger.error('[UnifiedTransactionService] КРИТИЧЕСКОЕ ДУБЛИРОВАНИЕ - Попытка повторного депозита в течение 5 секунд!', {
-              user_id,
+          // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: проверяем сумму и тип транзакции
+          const isSameTransaction = 
+            existing.user_id === user_id &&
+            Math.abs(parseFloat(existing.amount_ton) - amount_ton) < 0.000001 && // Точность до 6 знаков
+            existing.type === TRANSACTION_TYPE_MAPPING[type];
+
+          if (isSameTransaction) {
+            logger.warn('[UnifiedTransactionService] ТОЧНОЕ ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО:', {
+              existing_id: existing.id,
+              existing_date: existing.created_at,
+              existing_user: existing.user_id,
+              existing_amount: existing.amount_ton,
+              existing_type: existing.type,
+              attempted_user: user_id,
+              attempted_amount: amount_ton,
+              attempted_type: type,
               tx_hash: txHashToCheck,
-              recent_duplicates: recentDuplicates.length
+              reason: 'EXACT_DUPLICATE'
+            });
+            
+            return { 
+              success: false, 
+              error: `Депозит с hash ${txHashToCheck.substring(0, 20)}... уже обработан`
+            };
+          } else {
+            // Логируем, но НЕ блокируем если это разные суммы/типы
+            logger.info('[UnifiedTransactionService] Найден тот же hash, но РАЗНЫЕ параметры - разрешаем:', {
+              existing_amount: existing.amount_ton,
+              new_amount: amount_ton,
+              existing_type: existing.type,
+              new_type: TRANSACTION_TYPE_MAPPING[type],
+              tx_hash: txHashToCheck,
+              reason: 'DIFFERENT_PARAMETERS'
             });
           }
-          
-          return { 
-            success: false, 
-            error: `Транзакция с hash ${txHashToCheck.substring(0, 20)}... уже существует`
-          };
         }
         
         logger.info('[UnifiedTransactionService] Проверка дублирования пройдена для:', txHashToCheck);

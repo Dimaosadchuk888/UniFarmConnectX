@@ -65,28 +65,52 @@ export class BalanceCache {
     const isExpired = cached.expiresAt < now;
     const age = Math.round((now.getTime() - cached.lastUpdated.getTime()) / 1000);
 
-    // ДИАГНОСТИКА: Логируем состояние backend кеша
-    console.log(`[BalanceCache] Проверка кеша для user ${userId}:`, {
+    // ДИАГНОСТИКА: Усиленное логирование для User 25 (исследование проблемы с депозитами)
+    const isUser25 = userId === 25;
+    const logLevel = isUser25 ? '[CRITICAL_USER_25]' : '[BalanceCache]';
+    
+    console.log(`${logLevel} Проверка кеша для user ${userId}:`, {
       exists: true,
       age: `${age}с`,
       ttl: `${this.TTL_SECONDS}с`,
       isExpired,
       uniBalance: cached.uniBalance,
       tonBalance: cached.tonBalance,
-      expiresAt: cached.expiresAt.toISOString()
+      expiresAt: cached.expiresAt.toISOString(),
+      lastUpdated: cached.lastUpdated.toISOString()
     });
 
     if (isExpired) {
       this.cache.delete(userId);
       this.stats.evictions++;
       this.stats.misses++;
-      console.log(`[BalanceCache] 🚨 Backend кеш истек для user ${userId}, удаляем`);
+      console.log(`${logLevel} 🚨 Backend кеш истек для user ${userId}, удаляем`);
+      
+      if (isUser25) {
+        logger.error('[CRITICAL_USER_25] Backend кеш истек - потенциальная причина исчезающих депозитов', {
+          userId,
+          age: `${age}с`,
+          tonBalance: cached.tonBalance,
+          lastUpdated: cached.lastUpdated.toISOString()
+        });
+      }
+      
       logger.debug('[BalanceCache] Cache expired', { userId });
       return null;
     }
 
     this.stats.hits++;
-    console.log(`[BalanceCache] ✅ Возвращаем BACKEND кеш для user ${userId}`);
+    console.log(`${logLevel} ✅ Возвращаем BACKEND кеш для user ${userId}`);
+    
+    if (isUser25) {
+      logger.info('[CRITICAL_USER_25] Backend кеш возвращен успешно', {
+        userId,
+        uniBalance: cached.uniBalance,
+        tonBalance: cached.tonBalance,
+        age: `${age}с`
+      });
+    }
+    
     logger.debug('[BalanceCache] Cache hit', { 
       userId, 
       uniBalance: cached.uniBalance,
@@ -100,7 +124,7 @@ export class BalanceCache {
   }
 
   /**
-   * Сохранить баланс в кеш
+   * Сохранить баланс в кеш (с усиленной диагностикой для User 25)
    */
   set(userId: number, uniBalance: number, tonBalance: number): void {
     // Проверяем размер кеша
@@ -111,6 +135,13 @@ export class BalanceCache {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + this.TTL_SECONDS * 1000);
 
+    // УСИЛЕННАЯ ДИАГНОСТИКА ДЛЯ USER 25
+    const isUser25 = userId === 25;
+    const logLevel = isUser25 ? '[CRITICAL_USER_25]' : '[BalanceCache]';
+    
+    // Получаем старое значение если существует
+    const oldEntry = this.cache.get(userId);
+
     this.cache.set(userId, {
       userId,
       uniBalance,
@@ -120,6 +151,27 @@ export class BalanceCache {
     });
 
     this.stats.size = this.cache.size;
+
+    console.log(`${logLevel} 💾 Сохранено в backend кеш user ${userId}:`, {
+      oldUniBalance: oldEntry?.uniBalance || 'н/д',
+      oldTonBalance: oldEntry?.tonBalance || 'н/д',
+      newUniBalance: uniBalance,
+      newTonBalance: tonBalance,
+      changeUni: oldEntry ? (uniBalance - oldEntry.uniBalance).toFixed(6) : 'new',
+      changeTon: oldEntry ? (tonBalance - oldEntry.tonBalance).toFixed(6) : 'new',
+      expiresAt: expiresAt.toISOString(),
+      ttl: `${this.TTL_SECONDS}s`
+    });
+
+    if (isUser25) {
+      logger.error('[CRITICAL_USER_25] Backend кеш обновлен', {
+        userId,
+        oldTonBalance: oldEntry?.tonBalance || 0,
+        newTonBalance: tonBalance,
+        tonBalanceChange: oldEntry ? (tonBalance - oldEntry.tonBalance) : tonBalance,
+        timestamp: now.toISOString()
+      });
+    }
     
     logger.debug('[BalanceCache] Balance cached', {
       userId,
