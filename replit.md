@@ -33,7 +33,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **Automated Schedulers**: Critical operations like farming income generation and boost verification are managed by automated schedulers.
 - **Robust Error Handling**: Emphasizes detailed logging and user-friendly error messages.
 - **UI/UX Decisions**: Responsive and adaptive UI components, custom branded toast notifications, streamlined interfaces.
-- **Security**: JWT token watch and recovery, single-path TON deposit processing with precise deduplication (phantom deposits fixed August 3, 2025), robust authentication middleware, transaction duplication protection for DAILY_BONUS (fixed August 3, 2025), balance caching race condition resolution (August 3, 2025), Telegram page refresh error handling (fixed August 4, 2025), smart deduplication logic with time-based filtering (critical fix August 4, 2025).
+- **Security**: JWT token watch and recovery, single-path TON deposit processing with precise deduplication (phantom deposits fixed August 3, 2025), robust authentication middleware, comprehensive transaction duplication protection system (critical fixes August 3-4, 2025), balance caching race condition resolution (August 3, 2025), Telegram page refresh error handling (fixed August 4, 2025), smart deduplication logic with time-based filtering (critical fix August 4, 2025), complete elimination of FARMING_REWARD and REFERRAL_REWARD duplicates (August 4, 2025).
 - **Performance**: WebSocket debounce, cache management, optimized API performance, BalanceUpdateCoordinator for race condition prevention (August 3, 2025), smart caching with 60s TTL and stale-while-revalidate strategy.
 
 **Key Architectural Components:**
@@ -47,7 +47,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **Incoming**: TON_DEPOSIT (from blockchain), FARMING_DEPOSIT (from user balance).
 - **Income Generation**: FARMING_REWARD (UNI & TON), REFERRAL_REWARD, DAILY_BONUS, MISSION_REWARD.
 - **Outgoing**: WITHDRAWAL (UNI & TON with commission).
-- **Security & Integrity**: Comprehensive transaction deduplication system implemented (Aug 3, 2025) - fixed phantom deposits, DAILY_BONUS, FARMING_REWARD, and REFERRAL_REWARD duplications with DeduplicationHelper module, ACID compliance, rate limiting, comprehensive diagnostic logging. Smart deduplication logic (Aug 4, 2025) - fixed false positive blocks by implementing time-based filtering (10-minute window), status-aware blocking, and enhanced logging for deposit processing.
+- **Security & Integrity**: Complete transaction deduplication system implemented (Aug 3-4, 2025) - eliminated all sources of transaction duplicates including phantom deposits, DAILY_BONUS, FARMING_REWARD (UNI & TON), and REFERRAL_REWARD with comprehensive DeduplicationHelper protection, ACID compliance, rate limiting, and diagnostic logging. Smart deduplication logic with time-based filtering (10-minute window for referrals, 5-minute for farming rewards), status-aware blocking, and enhanced logging. Root cause of systematic 10-minute duplication cycles identified and resolved (Aug 4, 2025).
 - **UI/UX Improvements**: Telegram page refresh now shows user-friendly "Обновление авторизации..." message instead of raw JSON error (Aug 4, 2025), automatic page reload after authentication errors.
 
 ## External Dependencies

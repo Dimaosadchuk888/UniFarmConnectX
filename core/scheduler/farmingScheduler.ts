@@ -282,31 +282,58 @@ export class FarmingScheduler {
                 });
               */
 
-              // Создаем транзакцию FARMING_REWARD
-              const { data: txData, error: txError } = await supabase
-                .from('transactions')
-                .insert({
-                  user_id: farmer.user_id,
-                  type: 'FARMING_REWARD',
-                  amount: income, // Добавляем общее поле amount
-                  amount_uni: income,
-                  amount_ton: '0',
-                  currency: 'UNI', // Добавляем валюту
-                  status: 'completed',
-                  description: `UNI farming income: ${parseFloat(income).toFixed(6)} UNI (rate: ${farmer.farming_rate})`,
-                  source_user_id: farmer.user_id,
-                  created_at: new Date().toISOString()
-                })
-                .select();
+              // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА: Проверка дубликатов FARMING_REWARD
+              const { DeduplicationHelper } = await import('../../safe-deduplication-helper');
+              const duplicateCheck = await DeduplicationHelper.checkRecentTransaction(
+                farmer.user_id,
+                'FARMING_REWARD',
+                parseFloat(income),
+                'UNI',
+                5 // 5 минут окно для UNI farming доходов
+              );
+
+              if (duplicateCheck.exists) {
+                DeduplicationHelper.logPreventedDuplicate(
+                  farmer.user_id,
+                  'FARMING_REWARD',
+                  parseFloat(income),
+                  `UNI farming доход rate ${farmer.farming_rate} (prevented duplicate)`
+                );
                 
-              if (txError) {
-                logger.error(`[FARMING_SCHEDULER] Failed to create FARMING_REWARD transaction for user ${farmer.user_id}:`, {
-                  error: txError.message,
-                  code: txError.code,
-                  details: txError.details
+                logger.warn(`[UNI_FARMING_SCHEDULER] 🛡️ ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО: FARMING_REWARD уже существует для User ${farmer.user_id}`, {
+                  userId: farmer.user_id,
+                  income: parseFloat(income).toFixed(6),
+                  farmingRate: farmer.farming_rate,
+                  existingTransactionId: duplicateCheck.existingTransaction?.id
                 });
+                continue; // Пропускаем создание дублированной транзакции
+              }
+
+              // Создаем транзакцию FARMING_REWARD через UnifiedTransactionService
+              const { UnifiedTransactionService } = await import('../../core/TransactionService');
+              const transactionService = UnifiedTransactionService.getInstance();
+              
+              const transactionResult = await transactionService.createTransaction({
+                user_id: farmer.user_id,
+                type: 'FARMING_REWARD',
+                amount_uni: parseFloat(income),
+                amount_ton: 0,
+                currency: 'UNI',
+                status: 'completed',
+                description: `UNI farming income: ${parseFloat(income).toFixed(6)} UNI (rate: ${farmer.farming_rate})`,
+                metadata: {
+                  farming_rate: farmer.farming_rate,
+                  deposit_amount: farmer.uni_deposit_amount,
+                  transaction_source: 'uni_farming_scheduler'
+                }
+              });
+
+              if (!transactionResult.success) {
+                logger.error(`[UNI_FARMING_SCHEDULER] Ошибка создания транзакции User ${farmer.user_id}:`, transactionResult.error);
                 continue;
               }
+
+
 
               logger.info(`[FARMING_SCHEDULER] Successfully processed UNI farming for user ${farmer.user_id}`, {
                 userId: farmer.user_id,

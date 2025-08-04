@@ -283,6 +283,35 @@ export class ReferralService {
       // Распределяем награды
       for (const commission of commissions) {
         try {
+          // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА: Проверка дубликатов REFERRAL_REWARD ПЕРЕД всеми операциями
+          const { DeduplicationHelper } = await import('../../safe-deduplication-helper');
+          const duplicateCheck = await DeduplicationHelper.checkRecentTransaction(
+            parseInt(commission.userId),
+            'REFERRAL_REWARD',
+            parseFloat(commission.amount),
+            currency,
+            10 // 10 минут окно для реферальных наград
+          );
+
+          if (duplicateCheck.exists) {
+            DeduplicationHelper.logPreventedDuplicate(
+              parseInt(commission.userId),
+              'REFERRAL_REWARD',
+              parseFloat(commission.amount),
+              `Referral L${commission.level} from User ${sourceUserId} (prevented duplicate)`
+            );
+            
+            logger.warn('[ReferralService] 🛡️ ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО: REFERRAL_REWARD уже существует', {
+              userId: commission.userId,
+              sourceUserId,
+              level: commission.level,
+              amount: commission.amount,
+              currency,
+              existingTransactionId: duplicateCheck.existingTransaction?.id
+            });
+            continue; // Пропускаем всю операцию для этой комиссии
+          }
+
           // Логируем реферальное начисление (без создания транзакций)
           logger.info('[ReferralService] Реферальное начисление', {
             recipientId: commission.userId,
@@ -323,35 +352,6 @@ export class ReferralService {
                 source_type: sourceType,
                 created_at: new Date().toISOString()
               });
-
-            // 🛡️ КРИТИЧЕСКАЯ ЗАЩИТА: Проверка дубликатов REFERRAL_REWARD
-            const { DeduplicationHelper } = await import('../../safe-deduplication-helper');
-            const duplicateCheck = await DeduplicationHelper.checkRecentTransaction(
-              parseInt(commission.userId),
-              'REFERRAL_REWARD',
-              parseFloat(commission.amount),
-              currency,
-              10 // 10 минут окно для реферальных наград
-            );
-
-            if (duplicateCheck.exists) {
-              DeduplicationHelper.logPreventedDuplicate(
-                parseInt(commission.userId),
-                'REFERRAL_REWARD',
-                parseFloat(commission.amount),
-                `Referral L${commission.level} from User ${sourceUserId} (prevented duplicate)`
-              );
-              
-              logger.warn('[ReferralService] 🛡️ ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО: REFERRAL_REWARD уже существует', {
-                userId: commission.userId,
-                sourceUserId,
-                level: commission.level,
-                amount: commission.amount,
-                currency,
-                existingTransactionId: duplicateCheck.existingTransaction?.id
-              });
-              continue; // Пропускаем создание дублированной транзакции
-            }
 
             // Создаем транзакцию через UnifiedTransactionService
             const { UnifiedTransactionService } = await import('../../core/TransactionService');
