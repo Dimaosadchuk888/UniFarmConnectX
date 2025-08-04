@@ -121,14 +121,33 @@ export class UnifiedTransactionService {
         if (existingTransactions && existingTransactions.length > 0 && !checkError) {
           const existing = existingTransactions[0];
           
-          // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: проверяем сумму и тип транзакции
-          const isSameTransaction = 
-            existing.user_id === user_id &&
-            Math.abs(parseFloat(existing.amount_ton) - amount_ton) < 0.000001 && // Точность до 6 знаков
-            existing.type === TRANSACTION_TYPE_MAPPING[type];
+          // УМНАЯ ПРОВЕРКА ДУБЛИРОВАНИЯ: учитываем время, сумму и статус
+          const timeDifferenceMinutes = Math.round((Date.now() - new Date(existing.created_at).getTime()) / (1000 * 60));
+          const isRecentDuplicate = timeDifferenceMinutes < 10; // Только последние 10 минут
+          const isSameAmount = Math.abs(parseFloat(existing.amount_ton) - amount_ton) < 0.000001;
+          const isSameUser = existing.user_id === user_id;
+          const existingNotFailed = existing.status !== 'failed' && existing.status !== 'error';
+          const isSameType = existing.type === TRANSACTION_TYPE_MAPPING[type];
 
-          if (isSameTransaction) {
-            logger.warn('[UnifiedTransactionService] ТОЧНОЕ ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО:', {
+          const shouldBlock = isRecentDuplicate && isSameAmount && isSameUser && existingNotFailed && isSameType;
+
+          if (shouldBlock) {
+            // КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ ЗАБЛОКИРОВАННЫХ ДЕПОЗИТОВ
+            logger.error('[CRITICAL] [DEPOSIT_BLOCKED_BY_DEDUPLICATION]', {
+              user_id,
+              ton_tx_hash: txHashToCheck,
+              amount_ton,
+              existing_transaction_id: existing.id,
+              existing_created_at: existing.created_at,
+              time_difference_minutes: timeDifferenceMinutes,
+              blocked_reason: 'PREVENTED_DUPLICATE',
+              existing_status: existing.status,
+              existing_amount: existing.amount_ton,
+              existing_type: existing.type,
+              attempted_type: TRANSACTION_TYPE_MAPPING[type]
+            });
+            
+            logger.warn('[UnifiedTransactionService] УМНОЕ ДУБЛИРОВАНИЕ ПРЕДОТВРАЩЕНО:', {
               existing_id: existing.id,
               existing_date: existing.created_at,
               existing_user: existing.user_id,
@@ -138,22 +157,32 @@ export class UnifiedTransactionService {
               attempted_amount: amount_ton,
               attempted_type: type,
               tx_hash: txHashToCheck,
-              reason: 'EXACT_DUPLICATE'
+              time_difference_minutes: timeDifferenceMinutes,
+              reason: 'SMART_DUPLICATE_PREVENTION'
             });
             
             return { 
               success: false, 
-              error: `Депозит с hash ${txHashToCheck.substring(0, 20)}... уже обработан`
+              error: `Депозит с hash ${txHashToCheck.substring(0, 20)}... уже обработан ${timeDifferenceMinutes} минут назад`
             };
           } else {
-            // Логируем, но НЕ блокируем если это разные суммы/типы
-            logger.info('[UnifiedTransactionService] Найден тот же hash, но РАЗНЫЕ параметры - разрешаем:', {
+            // Логируем, но НЕ блокируем если это старые транзакции, разные суммы/типы или неудачные статусы
+            logger.info('[UnifiedTransactionService] Найден тот же hash, но РАЗРЕШЕНО создание:', {
               existing_amount: existing.amount_ton,
               new_amount: amount_ton,
               existing_type: existing.type,
               new_type: TRANSACTION_TYPE_MAPPING[type],
+              existing_status: existing.status,
+              time_difference_minutes: timeDifferenceMinutes,
+              is_recent: isRecentDuplicate,
+              same_amount: isSameAmount,
+              same_type: isSameType,
+              existing_not_failed: existingNotFailed,
               tx_hash: txHashToCheck,
-              reason: 'DIFFERENT_PARAMETERS'
+              reason: !isRecentDuplicate ? 'OLD_TRANSACTION' : 
+                      !isSameAmount ? 'DIFFERENT_AMOUNT' :
+                      !isSameType ? 'DIFFERENT_TYPE' :
+                      !existingNotFailed ? 'PREVIOUS_FAILED' : 'ALLOWED'
             });
           }
         }
