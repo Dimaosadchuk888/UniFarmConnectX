@@ -41,6 +41,7 @@ interface AppState {
   userId: number | null;
   activeTab: string;
   authError: string | null;
+  isReloadingAuth: boolean;
 }
 
 function App() {
@@ -48,7 +49,8 @@ function App() {
     isLoading: true,
     userId: null,
     activeTab: "dashboard",
-    authError: null
+    authError: null,
+    isReloadingAuth: false
   });
 
   // Preview mode detection - token should be set via authentication flow
@@ -185,9 +187,40 @@ function App() {
             }
           } else {
             console.error('[App] Ошибка авторизации:', response.status, response.statusText);
+            
+            // Если это ошибка авторизации, обрабатываем корректно
+            if (response.status === 401) {
+              try {
+                const errorData = await response.json();
+                if (errorData.error && 
+                    (errorData.error.includes('Authentication required') || errorData.need_jwt_token)) {
+                  console.log('[App] Обнаружена ошибка авторизации, перезагрузка через 2 секунды...');
+                  setState(prev => ({ ...prev, isReloadingAuth: true, isLoading: false }));
+                  setTimeout(() => {
+                    window.location.href = window.location.href;
+                  }, 2000);
+                  return;
+                }
+              } catch (parseError) {
+                console.error('[App] Не удалось распарсить ошибку авторизации:', parseError);
+              }
+            }
           }
         } catch (authError) {
           console.error('[App] Ошибка при вызове auth/telegram:', authError);
+          
+          // Проверяем, является ли это ошибкой авторизации
+          const errorMessage = authError instanceof Error ? authError.message : String(authError);
+          if (errorMessage.includes('Authentication required') || 
+              errorMessage.includes('need_jwt_token') ||
+              errorMessage.includes('401')) {
+            console.log('[App] Обнаружена ошибка авторизации в catch блоке, перезагрузка через 2 секунды...');
+            setState(prev => ({ ...prev, isReloadingAuth: true, isLoading: false }));
+            setTimeout(() => {
+              window.location.href = window.location.href;
+            }, 2000);
+            return;
+          }
         }
       } else {
         // Проверяем наличие существующего JWT токена
@@ -237,9 +270,33 @@ function App() {
                 }));
               } else {
                 console.error('[App] Preview авторизация не удалась:', data.error || 'Unknown error');
+                
+                // Если это ошибка авторизации, обрабатываем корректно
+                if (data.error && 
+                    (data.error.includes('Authentication required') || data.need_jwt_token)) {
+                  console.log('[App] Preview режим: обнаружена ошибка авторизации, перезагрузка через 2 секунды...');
+                  setState(prev => ({ ...prev, isReloadingAuth: true, isLoading: false }));
+                  setTimeout(() => {
+                    window.location.href = window.location.href;
+                  }, 2000);
+                  return;
+                }
               }
             } catch (error) {
               console.error('[App] Ошибка создания preview пользователя:', error);
+              
+              // Проверяем, является ли это ошибкой авторизации
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              if (errorMessage.includes('Authentication required') || 
+                  errorMessage.includes('need_jwt_token') ||
+                  errorMessage.includes('401')) {
+                console.log('[App] Preview режим: обнаружена ошибка авторизации в catch блоке, перезагрузка через 2 секунды...');
+                setState(prev => ({ ...prev, isReloadingAuth: true, isLoading: false }));
+                setTimeout(() => {
+                  window.location.href = window.location.href;
+                }, 2000);
+                return;
+              }
             }
           } else {
             console.log('[App] Не в Preview режиме Replit, пропускаем автоматическую авторизацию');
@@ -288,12 +345,22 @@ function App() {
   };
 
   // Loading state
-  if (state.isLoading) {
+  if (state.isLoading || state.isReloadingAuth) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Загрузка UniFarm...</p>
+          <p className="text-muted-foreground">
+            {state.isReloadingAuth 
+              ? 'Обновление авторизации...' 
+              : 'Загрузка UniFarm...'
+            }
+          </p>
+          {state.isReloadingAuth && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Приложение перезагрузится автоматически через несколько секунд
+            </p>
+          )}
         </div>
       </div>
     );
