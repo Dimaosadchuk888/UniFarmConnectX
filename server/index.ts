@@ -676,6 +676,27 @@ async function startServer() {
       // ОБРАТНАЯ СОВМЕСТИМОСТЬ: Создаем прямые эндпоинты для старых путей
       console.log('[ROUTES] Adding backward compatibility endpoints...');
       
+      // Добавляем прямые aliases для transaction endpoints (ФИКС ОТОБРАЖЕНИЯ ТРАНЗАКЦИЙ)
+      console.log('[ROUTES] Adding transaction API aliases...');
+      
+      // Import transaction controller для прямого использования
+      const { TransactionsController } = await import('../modules/transactions/controller');
+      const transactionsController = new TransactionsController();
+      
+      // /api/transactions - прямой alias для старого API
+      app.get('/api/transactions', requireTelegramAuth, async (req: Request, res: Response, next: any) => {
+        console.log('[TRANSACTION ALIAS] /api/transactions called');
+        await transactionsController.getTransactions(req, res, next);
+      });
+      
+      // /api/v2/transactions - прямой alias для нового API
+      app.get('/api/v2/transactions', requireTelegramAuth, async (req: Request, res: Response, next: any) => {
+        console.log('[TRANSACTION ALIAS] /api/v2/transactions called');
+        await transactionsController.getTransactions(req, res, next);
+      });
+      
+      console.log('[ROUTES] Transaction aliases added successfully');
+      
       // /api/me → данные текущего пользователя
       app.get('/api/me', requireTelegramAuth, async (req: Request, res: Response) => {
         try {
