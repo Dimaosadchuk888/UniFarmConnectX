@@ -33,7 +33,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **Automated Schedulers**: Critical operations like farming income generation and boost verification are managed by automated schedulers.
 - **Robust Error Handling**: Emphasizes detailed logging and user-friendly error messages.
 - **UI/UX Decisions**: Responsive and adaptive UI components, custom branded toast notifications, streamlined interfaces.
-- **Security**: JWT token watch and recovery, single-path TON deposit processing with precise deduplication (phantom deposits fixed August 3, 2025), robust authentication middleware, transaction duplication protection for DAILY_BONUS (fixed August 3, 2025), balance caching race condition resolution (August 3, 2025).
+- **Security**: JWT token watch and recovery, single-path TON deposit processing with precise deduplication (phantom deposits fixed August 3, 2025), robust authentication middleware, transaction duplication protection for DAILY_BONUS (fixed August 3, 2025), balance caching race condition resolution (August 3, 2025), Telegram page refresh error handling (fixed August 4, 2025).
 - **Performance**: WebSocket debounce, cache management, optimized API performance, BalanceUpdateCoordinator for race condition prevention (August 3, 2025), smart caching with 60s TTL and stale-while-revalidate strategy.
 
 **Key Architectural Components:**
@@ -48,6 +48,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **Income Generation**: FARMING_REWARD (UNI & TON), REFERRAL_REWARD, DAILY_BONUS, MISSION_REWARD.
 - **Outgoing**: WITHDRAWAL (UNI & TON with commission).
 - **Security & Integrity**: Comprehensive transaction deduplication system implemented (Aug 3, 2025) - fixed phantom deposits, DAILY_BONUS, FARMING_REWARD, and REFERRAL_REWARD duplications with DeduplicationHelper module, ACID compliance, rate limiting, comprehensive diagnostic logging.
+- **UI/UX Improvements**: Telegram page refresh now shows user-friendly "Обновление авторизации..." message instead of raw JSON error (Aug 4, 2025), automatic page reload after authentication errors.
 
 ## External Dependencies
 - **Telegram Mini App framework**: For core application functionality within Telegram.
