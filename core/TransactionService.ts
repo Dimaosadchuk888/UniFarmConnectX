@@ -113,7 +113,7 @@ export class UnifiedTransactionService {
         // ТОЧНАЯ проверка дублирования - только для ТОЧНО совпадающих транзакций
         const { data: existingTransactions, error: checkError } = await supabase
           .from('transactions')
-          .select('id, created_at, user_id, amount_ton, type, description, tx_hash_unique')
+          .select('id, created_at, user_id, amount_ton, type, description, tx_hash_unique, status')
           .eq('tx_hash_unique', txHashToCheck)  // ИСПРАВЛЕНО: точное совпадение вместо LIKE
           .eq('user_id', user_id)  // ИСПРАВЛЕНО: проверяем только для того же пользователя
           .order('created_at', { ascending: false });
@@ -295,7 +295,16 @@ export class UnifiedTransactionService {
       
       // ВАЖНО: Фильтр по валюте на уровне БД для правильной пагинации
       if (filters?.currency && filters.currency !== 'ALL') {
-        query = query.eq('currency', filters.currency);
+        if (filters.currency === 'UNI') {
+          // Для UNI: проверяем currency='UNI' ИЛИ amount_uni > 0 (для старых записей)
+          query = query.or('currency.eq.UNI,amount_uni.gt.0');
+        } else if (filters.currency === 'TON') {
+          // Для TON: проверяем currency='TON' ИЛИ amount_ton > 0 (для старых записей)
+          query = query.or('currency.eq.TON,amount_ton.gt.0');
+        } else {
+          // Для других валют используем точное совпадение
+          query = query.eq('currency', filters.currency);
+        }
       }
 
       // Пагинация
