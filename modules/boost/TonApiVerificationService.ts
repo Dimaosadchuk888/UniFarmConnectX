@@ -4,7 +4,7 @@
  */
 
 import { logger } from '../../core/logger';
-import { verifyTonTransaction, validateTonAddress, checkTonBalance } from '../../core/tonApiClient';
+import { verifyTonTransaction, validateTonAddress, checkTonBalance, getAccountInfo } from '../../core/tonApiClient';
 import { getTonBoostReceiverAddress } from '../../config/tonBoostPayment';
 
 export class TonApiVerificationService {
@@ -67,7 +67,7 @@ export class TonApiVerificationService {
       }
 
       // Step 2: Check transaction status
-      if (verification.status !== 'success') {
+      if (verification.status && verification.status !== 'completed' && verification.status !== 'success') {
         logger.warn('[TonApiVerification] Transaction not successful', {
           txHash,
           status: verification.status
@@ -112,11 +112,12 @@ export class TonApiVerificationService {
         if (!senderValidation.isValid) {
           logger.warn('[TonApiVerification] Invalid sender address format', {
             txHash,
-            sender: verification.sender
+            sender: verification.sender,
+            validationError: senderValidation.error
           });
           return {
             isValid: false,
-            error: 'Invalid sender address format'
+            error: `Invalid sender address format: ${senderValidation.error}`
           };
         }
       }
@@ -247,19 +248,22 @@ export class TonApiVerificationService {
       logger.info('[TonApiVerification] Validating TON address', { address });
 
       const validation = await validateTonAddress(address);
+      
+      // Get account info to check if address exists on blockchain
+      const accountInfo = await getAccountInfo(address);
 
       logger.info('[TonApiVerification] Address validation completed', {
         address,
         isValid: validation.isValid,
-        isActive: validation.isActive,
-        balance: validation.balance
+        existsOnBlockchain: accountInfo.isValid,
+        balance: accountInfo.balance
       });
 
       return {
         isValidFormat: validation.isValid,
-        existsOnBlockchain: validation.isActive !== undefined,
-        isActive: validation.isActive || false,
-        balance: validation.balance
+        existsOnBlockchain: accountInfo.isValid,
+        isActive: accountInfo.isValid && accountInfo.status === 'active',
+        balance: accountInfo.balance
       };
 
     } catch (error) {

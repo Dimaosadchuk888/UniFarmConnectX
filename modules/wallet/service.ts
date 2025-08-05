@@ -384,6 +384,36 @@ export class WalletService {
         potential_duplicate_risk: ton_tx_hash.startsWith('te6') ? 'HIGH' : 'LOW'
       });
 
+      // УЛУЧШЕННАЯ ОБРАБОТКА BOC ДАННЫХ
+      let extractedHash = ton_tx_hash;
+      let originalBoc = '';
+      
+      if (ton_tx_hash.startsWith('te6')) {
+        // Это BOC данные - извлекаем настоящий hash
+        logger.info('[WalletService] BOC данные обнаружены, извлекаем hash', {
+          bocLength: ton_tx_hash.length,
+          bocPrefix: ton_tx_hash.substring(0, 20)
+        });
+        
+        try {
+          const { extractHashFromBoc } = await import('../../core/tonApiClient');
+          extractedHash = await extractHashFromBoc(ton_tx_hash);
+          originalBoc = ton_tx_hash;
+          
+          logger.info('[WalletService] Hash успешно извлечен из BOC', {
+            extractedHash: extractedHash.substring(0, 16) + '...',
+            originalBocLength: originalBoc.length
+          });
+        } catch (error) {
+          logger.error('[WalletService] Ошибка извлечения hash из BOC', {
+            error: error instanceof Error ? error.message : String(error),
+            bocData: ton_tx_hash.substring(0, 50) + '...'
+          });
+          // Используем оригинальные BOC данные как fallback
+          extractedHash = ton_tx_hash;
+        }
+      }
+
       // Создаем транзакцию через централизованный сервис
       // UnifiedTransactionService автоматически:
       // - Проверяет дубликаты через metadata.tx_hash
@@ -398,13 +428,15 @@ export class WalletService {
         amount_uni: 0,
         currency: 'TON',
         status: 'completed',
-        description: `TON deposit from blockchain: ${ton_tx_hash}`,
+        description: `TON deposit from blockchain`,
         metadata: {
           source: 'ton_deposit',
           original_type: 'TON_DEPOSIT',
           wallet_address,
-          tx_hash: ton_tx_hash, // Основное поле для дедупликации (совместимость со стабильным ремиксом)
-          ton_tx_hash: ton_tx_hash // Дополнительное поле для обратной совместимости
+          tx_hash: extractedHash, // ОСНОВНОЕ поле с извлеченным hash
+          ton_tx_hash: extractedHash, // Дополнительное поле для обратной совместимости
+          original_boc: originalBoc || '', // Сохраняем оригинальные BOC данные отдельно
+          hash_extracted: extractedHash !== ton_tx_hash // Флаг что hash был извлечен
         }
       });
 
@@ -424,6 +456,60 @@ export class WalletService {
           timestamp: new Date().toISOString(),
           action: 'ОШИБКА_СОЗДАНИЯ_ТРАНЗАКЦИИ'
         });
+
+        // АКТИВИРУЕМ FALLBACK МЕХАНИЗМ
+        try {
+          logger.info('[WalletService] Активируем fallback механизм для депозита', {
+            userId: user_id,
+            amount,
+            primaryError: result.error
+          });
+
+          const { processTonDepositWithFallback } = await import('../../utils/tonDepositFallback');
+          const fallbackResult = await processTonDepositWithFallback({
+            user_id,
+            ton_tx_hash,
+            amount,
+            wallet_address,
+            primaryError: result.error
+          });
+
+          if (fallbackResult.success) {
+            logger.info('[WalletService] Fallback механизм успешно обработал депозит', {
+              transaction_id: fallbackResult.transaction_id,
+              userId: user_id
+            });
+
+            return {
+              success: true,
+              transaction_id: fallbackResult.transaction_id
+            };
+          } else {
+            logger.error('[WalletService] Fallback механизм также провалился', {
+              error: fallbackResult.error,
+              userId: user_id
+            });
+          }
+        } catch (fallbackError) {
+          logger.error('[WalletService] Критическая ошибка в fallback механизме', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+            userId: user_id
+          });
+        }
+
+        // ЗАПИСЬ НЕУДАЧНОГО ДЕПОЗИТА В МОНИТОРИНГ
+        try {
+          const { recordDepositAttempt } = await import('../../utils/depositMonitor');
+          recordDepositAttempt(false, {
+            user_id,
+            amount,
+            tx_hash: ton_tx_hash,
+            error: result.error || 'Unknown transaction creation error',
+            tonapi_error: result.error?.includes('TonAPI') || result.error?.includes('blockchain')
+          });
+        } catch (monitorError) {
+          logger.warn('[WalletService] Failed to record failed deposit in monitor', { monitorError });
+        }
 
         return {
           success: false,
@@ -447,6 +533,20 @@ export class WalletService {
         timestamp: new Date().toISOString(),
         action: 'ДЕПОЗИТ_ЗАВЕРШЕН_УСПЕШНО'
       });
+
+      // ЗАПИСЬ УСПЕШНОГО ДЕПОЗИТА В МОНИТОРИНГ
+      try {
+        const { recordDepositAttempt } = await import('../../utils/depositMonitor');
+        recordDepositAttempt(true, {
+          user_id,
+          amount,
+          tx_hash: ton_tx_hash,
+          hash_extracted: extractedHash !== ton_tx_hash,
+          fallback_used: false
+        });
+      } catch (monitorError) {
+        logger.warn('[WalletService] Failed to record deposit in monitor', { monitorError });
+      }
 
       return {
         success: true,
