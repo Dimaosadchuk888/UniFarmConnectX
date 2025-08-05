@@ -60,13 +60,14 @@ export class BalanceManager {
   /**
    * ЦЕНТРАЛИЗОВАННОЕ обновление баланса пользователя
    * Заменяет все 4 дублирующих реализации
+   * Работает с telegram_id для правильного маппинга
    */
   async updateUserBalance(data: BalanceUpdateData): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
     try {
-      const { user_id, amount_uni = 0, amount_ton = 0, operation, source = 'BalanceManager', transaction_id } = data;
+      const { user_id: telegram_id, amount_uni = 0, amount_ton = 0, operation, source = 'BalanceManager', transaction_id } = data;
 
       logger.info('[BalanceManager] Обновление баланса пользователя', {
-        user_id,
+        telegram_id,
         amount_uni,
         amount_ton,
         operation,
@@ -76,16 +77,16 @@ export class BalanceManager {
       });
 
       // Валидация данных
-      if (!user_id || user_id <= 0) {
-        return { success: false, error: 'Некорректный user_id' };
+      if (!telegram_id || telegram_id <= 0) {
+        return { success: false, error: 'Некорректный telegram_id' };
       }
 
       if (amount_uni === 0 && amount_ton === 0 && operation !== 'set') {
         return { success: false, error: 'Не указана сумма для обновления' };
       }
 
-      // Получаем текущий баланс пользователя
-      const currentBalance = await this.getUserBalance(user_id);
+      // Получаем текущий баланс пользователя по telegram_id
+      const currentBalance = await this.getUserBalance(telegram_id);
       if (!currentBalance.success) {
         return { success: false, error: currentBalance.error };
       }
@@ -112,9 +113,9 @@ export class BalanceManager {
           return { success: false, error: 'Неподдерживаемая операция' };
       }
 
-      // Обновляем баланс в базе данных
+      // Обновляем баланс в базе данных по telegram_id
       logger.info('[BalanceManager] Попытка обновления баланса в Supabase', {
-        user_id,
+        telegram_id,
         newUniBalance: newUniBalance.toFixed(6),
         newTonBalance: newTonBalance.toFixed(6),
         operation
@@ -122,7 +123,7 @@ export class BalanceManager {
 
       // КРИТИЧНОЕ ЛОГИРОВАНИЕ ИЗМЕНЕНИЙ БАЛАНСА (для диагностики исчезающих депозитов)
       logger.error('[CRITICAL] [DIRECT_BALANCE_UPDATE]', {
-        user_id,
+        telegram_id,
         operation,
         source,
         transaction_id,
@@ -142,12 +143,12 @@ export class BalanceManager {
           balance_uni: parseFloat(newUniBalance.toFixed(6)), // Отправляем как число для NUMERIC типа
           balance_ton: parseFloat(newTonBalance.toFixed(6)) // Отправляем как число для NUMERIC типа
         })
-        .eq('id', user_id)
-        .select('id, balance_uni, balance_ton')
+        .eq('telegram_id', telegram_id)
+        .select('id, telegram_id, balance_uni, balance_ton')
         .single();
 
       logger.info('[BalanceManager] Результат обновления в Supabase', {
-        user_id,
+        telegram_id,
         updateError: updateError?.message || null,
         updatedUser: updatedUser || null,
         success: !updateError
@@ -155,25 +156,25 @@ export class BalanceManager {
 
       if (updateError) {
         logger.error('[BalanceManager] Ошибка обновления баланса в БД:', {
-          user_id,
+          telegram_id,
           error: updateError.message
         });
         return { success: false, error: `Ошибка обновления баланса: ${updateError.message}` };
       }
 
       const newBalance: UserBalance = {
-        user_id: updatedUser.id,
+        user_id: updatedUser.telegram_id, // Возвращаем telegram_id для совместимости
         balance_uni: parseFloat(updatedUser.balance_uni),
         balance_ton: parseFloat(updatedUser.balance_ton),
         last_updated: new Date().toISOString()
       };
 
-      // Обновляем кеш с новыми балансами
-      balanceCache.set(user_id, newBalance.balance_uni, newBalance.balance_ton);
+      // Обновляем кеш с новыми балансами по telegram_id
+      balanceCache.set(telegram_id, newBalance.balance_uni, newBalance.balance_ton);
 
       // Логируем успешное обновление с деталями изменений
       logger.info('[BalanceManager] Баланс успешно обновлен', {
-        user_id,
+        telegram_id,
         operation,
         source,
         previous_uni: current.balance_uni,
@@ -185,7 +186,7 @@ export class BalanceManager {
       });
 
       logger.info('[BalanceManager] Баланс успешно обновлен:', {
-        user_id,
+        telegram_id,
         old_uni: current.balance_uni,
         new_uni: newBalance.balance_uni,
         old_ton: current.balance_ton,
@@ -197,7 +198,7 @@ export class BalanceManager {
       // Отправляем WebSocket уведомление об обновлении баланса
       if (this.onBalanceUpdate) {
         const changeData: BalanceChangeData = {
-          userId: user_id,
+          userId: telegram_id,
           changeAmountUni: amount_uni || 0,
           changeAmountTon: amount_ton || 0,
           currency: amount_uni && amount_ton ? 'BOTH' : (amount_uni ? 'UNI' : 'TON'),
@@ -210,7 +211,7 @@ export class BalanceManager {
         
         this.onBalanceUpdate(changeData).catch(error => {
           logger.error('[BalanceManager] Ошибка при отправке WebSocket уведомления:', {
-            user_id,
+            telegram_id,
             error: error instanceof Error ? error.message : String(error)
           });
         });
@@ -231,22 +232,23 @@ export class BalanceManager {
 
   /**
    * ЦЕНТРАЛИЗОВАННОЕ получение баланса пользователя
+   * Принимает telegram_id и работает с правильным маппингом ID
    */
-  async getUserBalance(user_id: number): Promise<{ success: boolean; balance?: UserBalance; error?: string }> {
+  async getUserBalance(telegram_id: number): Promise<{ success: boolean; balance?: UserBalance; error?: string }> {
     try {
-      logger.info('[BalanceManager] Получение баланса пользователя', { user_id });
+      logger.info('[BalanceManager] Получение баланса пользователя', { telegram_id });
 
-      if (!user_id || user_id <= 0) {
-        return { success: false, error: 'Некорректный user_id' };
+      if (!telegram_id || telegram_id <= 0) {
+        return { success: false, error: 'Некорректный telegram_id' };
       }
 
-      // Проверяем кеш
-      const cached = balanceCache.get(user_id);
+      // Проверяем кеш по telegram_id
+      const cached = balanceCache.get(telegram_id);
       if (cached) {
         return {
           success: true,
           balance: {
-            user_id,
+            user_id: telegram_id,
             balance_uni: cached.uniBalance,
             balance_ton: cached.tonBalance,
             last_updated: new Date().toISOString()
@@ -254,36 +256,37 @@ export class BalanceManager {
         };
       }
 
+      // Ищем пользователя по telegram_id
       const { data: user, error } = await supabase
         .from('users')
-        .select('id, balance_uni, balance_ton')
-        .eq('id', user_id)
+        .select('id, telegram_id, balance_uni, balance_ton')
+        .eq('telegram_id', telegram_id)
         .single();
 
       if (error) {
         logger.error('[BalanceManager] Ошибка получения баланса:', {
-          user_id,
+          telegram_id,
           error: error.message
         });
         return { success: false, error: `Пользователь не найден: ${error.message}` };
       }
 
       const balance: UserBalance = {
-        user_id: user.id,
+        user_id: user.telegram_id, // Возвращаем telegram_id как user_id для совместимости
         balance_uni: parseFloat(user.balance_uni || '0'),
         balance_ton: parseFloat(user.balance_ton || '0'),
         last_updated: new Date().toISOString()
       };
 
-      // Сохраняем в кеш
-      balanceCache.set(user_id, balance.balance_uni, balance.balance_ton);
+      // Сохраняем в кеш по telegram_id
+      balanceCache.set(telegram_id, balance.balance_uni, balance.balance_ton);
 
       logger.info('[BalanceManager] Баланс получен и закеширован:', balance);
       return { success: true, balance };
 
     } catch (error) {
       logger.error('[BalanceManager] Критическая ошибка получения баланса:', {
-        user_id,
+        telegram_id,
         error: error instanceof Error ? error.message : String(error)
       });
       return { success: false, error: 'Внутренняя ошибка сервера' };
@@ -292,11 +295,12 @@ export class BalanceManager {
 
   /**
    * Пополнение баланса (добавление средств)
+   * Принимает telegram_id
    */
-  async addBalance(user_id: number, amount_uni: number = 0, amount_ton: number = 0, source?: string, operationType?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
+  async addBalance(telegram_id: number, amount_uni: number = 0, amount_ton: number = 0, source?: string, operationType?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
     // Сначала обновляем баланс
     const result = await this.updateUserBalance({
-      user_id,
+      user_id: telegram_id,
       amount_uni,
       amount_ton,
       operation: 'add',
@@ -310,7 +314,7 @@ export class BalanceManager {
       
       const transactionResult = await transactionEnforcer.createRequiredTransaction(
         operationType,
-        user_id,
+        telegram_id,
         amount,
         currency,
         source || 'Balance addition',
@@ -320,7 +324,7 @@ export class BalanceManager {
       if (!transactionResult.success) {
         logger.warn('[BalanceManager] Не удалось создать транзакцию', {
           operationType,
-          user_id,
+          telegram_id,
           error: transactionResult.error
         });
       }
@@ -331,10 +335,11 @@ export class BalanceManager {
 
   /**
    * Списание с баланса (вычитание средств)
+   * Принимает telegram_id
    */
-  async subtractBalance(user_id: number, amount_uni: number = 0, amount_ton: number = 0, source?: string, operationType?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
+  async subtractBalance(telegram_id: number, amount_uni: number = 0, amount_ton: number = 0, source?: string, operationType?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
     logger.info('[BalanceManager] Списание средств восстановлено', {
-      user_id,
+      telegram_id,
       amount_uni,
       amount_ton,
       source: source || 'subtractBalance',
@@ -342,7 +347,7 @@ export class BalanceManager {
     });
     
     const result = await this.updateUserBalance({
-      user_id,
+      user_id: telegram_id,
       amount_uni,
       amount_ton,
       operation: 'subtract',
@@ -356,7 +361,7 @@ export class BalanceManager {
       
       const transactionResult = await transactionEnforcer.createRequiredTransaction(
         operationType,
-        user_id,
+        telegram_id,
         amount,
         currency,
         source || 'Balance subtraction',
@@ -366,7 +371,7 @@ export class BalanceManager {
       if (!transactionResult.success) {
         logger.warn('[BalanceManager] Не удалось создать транзакцию', {
           operationType,
-          user_id,
+          telegram_id,
           error: transactionResult.error
         });
       }
@@ -377,10 +382,11 @@ export class BalanceManager {
 
   /**
    * Установка точного баланса (перезапись)
+   * Принимает telegram_id
    */
-  async setBalance(user_id: number, amount_uni: number, amount_ton: number, source?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
+  async setBalance(telegram_id: number, amount_uni: number, amount_ton: number, source?: string): Promise<{ success: boolean; newBalance?: UserBalance; error?: string }> {
     return this.updateUserBalance({
-      user_id,
+      user_id: telegram_id,
       amount_uni,
       amount_ton,
       operation: 'set',
@@ -390,10 +396,11 @@ export class BalanceManager {
 
   /**
    * Проверка достаточности средств для операции
+   * Принимает telegram_id
    */
-  async hasSufficientBalance(user_id: number, required_uni: number = 0, required_ton: number = 0): Promise<{ sufficient: boolean; current?: UserBalance; error?: string }> {
+  async hasSufficientBalance(telegram_id: number, required_uni: number = 0, required_ton: number = 0): Promise<{ sufficient: boolean; current?: UserBalance; error?: string }> {
     try {
-      const balanceResult = await this.getUserBalance(user_id);
+      const balanceResult = await this.getUserBalance(telegram_id);
       
       if (!balanceResult.success) {
         return { sufficient: false, error: balanceResult.error };
@@ -403,7 +410,7 @@ export class BalanceManager {
       const sufficient = current.balance_uni >= required_uni && current.balance_ton >= required_ton;
 
       logger.info('[BalanceManager] Проверка достаточности средств:', {
-        user_id,
+        telegram_id,
         required_uni,
         required_ton,
         current_uni: current.balance_uni,
@@ -415,7 +422,7 @@ export class BalanceManager {
 
     } catch (error) {
       logger.error('[BalanceManager] Ошибка проверки достаточности средств:', {
-        user_id,
+        telegram_id,
         required_uni,
         required_ton,
         error: error instanceof Error ? error.message : String(error)
@@ -493,16 +500,17 @@ export class BalanceManager {
   /**
    * Валидация корректности баланса через транзакции
    * Пересчитывает баланс на основе всех транзакций пользователя
+   * Работает с telegram_id для правильного поиска транзакций
    */
-  async validateAndRecalculateBalance(user_id: number): Promise<{ success: boolean; corrected: boolean; newBalance?: UserBalance; error?: string }> {
+  async validateAndRecalculateBalance(telegram_id: number): Promise<{ success: boolean; corrected: boolean; newBalance?: UserBalance; error?: string }> {
     try {
-      logger.info('[BalanceManager] Валидация и пересчет баланса:', { user_id });
+      logger.info('[BalanceManager] Валидация и пересчет баланса:', { telegram_id });
 
-      // Получаем все подтвержденные транзакции пользователя
+      // Получаем все подтвержденные транзакции пользователя по telegram_id
       const { data: transactions, error: txError } = await supabase
         .from('transactions')
         .select('type, amount_uni, amount_ton, description')
-        .eq('user_id', user_id)
+        .eq('user_id', telegram_id)
         .in('status', ['completed', 'confirmed']);
 
       if (txError) {
@@ -518,28 +526,41 @@ export class BalanceManager {
         const amount_uni = parseFloat(tx.amount_uni || '0');
         const amount_ton = parseFloat(tx.amount_ton || '0');
         
-        // Определяем тип операции
+        // Определяем тип операции - полная логика для всех типов доходов
         const isIncome = tx.description?.includes('доход') || 
                         tx.description?.includes('награда') ||
                         tx.description?.includes('бонус') ||
                         tx.description?.includes('Airdrop') ||
-                        ['FARMING_REWARD', 'REFERRAL_REWARD', 'DAILY_BONUS', 'MISSION_REWARD'].includes(tx.type);
+                        tx.description?.includes('deposit') ||
+                        tx.description?.includes('income') ||
+                        tx.description?.includes('from blockchain') ||
+                        tx.description?.includes('пополнение') ||
+                        tx.description?.includes('Пополнение') ||
+                        ['TON_DEPOSIT', 'FARMING_DEPOSIT', 'FARMING_REWARD', 'REFERRAL_REWARD', 'DAILY_BONUS', 'MISSION_REWARD'].includes(tx.type);
+        
+        // Определяем расходы
+        const isExpense = tx.description?.includes('вывод') ||
+                         tx.description?.includes('Вывод') ||
+                         tx.description?.includes('списание') ||
+                         tx.description?.includes('withdrawal') ||
+                         ['UNI_WITHDRAWAL', 'TON_WITHDRAWAL', 'withdrawal_fee'].includes(tx.type);
         
         if (isIncome) {
           calculatedUniBalance += amount_uni;
           calculatedTonBalance += amount_ton;
-        } else {
+        } else if (isExpense) {
           calculatedUniBalance -= amount_uni;
           calculatedTonBalance -= amount_ton;
         }
+        // Если не доход и не расход - игнорируем (например, служебные записи)
       }
 
       // Обеспечиваем неотрицательность баланса
       calculatedUniBalance = Math.max(0, calculatedUniBalance);
       calculatedTonBalance = Math.max(0, calculatedTonBalance);
 
-      // Получаем текущий баланс
-      const currentBalanceResult = await this.getUserBalance(user_id);
+      // Получаем текущий баланс по telegram_id
+      const currentBalanceResult = await this.getUserBalance(telegram_id);
       if (!currentBalanceResult.success) {
         return { success: false, corrected: false, error: currentBalanceResult.error };
       }
@@ -552,15 +573,16 @@ export class BalanceManager {
 
       if (needsCorrection) {
         logger.info('[BalanceManager] Обнаружено расхождение, корректируем баланс:', {
-          user_id,
+          telegram_id,
           current_uni: currentBalance.balance_uni,
           calculated_uni: calculatedUniBalance,
           current_ton: currentBalance.balance_ton,
-          calculated_ton: calculatedTonBalance
+          calculated_ton: calculatedTonBalance,
+          transaction_count: transactions?.length || 0
         });
 
         const correctionResult = await this.setBalance(
-          user_id,
+          telegram_id,
           calculatedUniBalance,
           calculatedTonBalance,
           'BalanceValidation'
@@ -574,7 +596,7 @@ export class BalanceManager {
         };
       }
 
-      logger.info('[BalanceManager] Баланс корректен, коррекция не требуется:', { user_id });
+      logger.info('[BalanceManager] Баланс корректен, коррекция не требуется:', { telegram_id });
       return {
         success: true,
         corrected: false,
@@ -583,7 +605,7 @@ export class BalanceManager {
 
     } catch (error) {
       logger.error('[BalanceManager] Критическая ошибка валидации баланса:', {
-        user_id,
+        telegram_id,
         error: error instanceof Error ? error.message : String(error)
       });
       return { success: false, corrected: false, error: 'Ошибка валидации баланса' };
@@ -592,11 +614,12 @@ export class BalanceManager {
 
   /**
    * Получить данные UNI farming для пользователя
+   * Принимает telegram_id
    */
-  async getUniFarmingData(user_id: number): Promise<any> {
+  async getUniFarmingData(telegram_id: number): Promise<any> {
     try {
       const { uniFarmingRepository } = await import('../modules/farming/UniFarmingRepository');
-      const data = await uniFarmingRepository.getByUserId(user_id.toString());
+      const data = await uniFarmingRepository.getByUserId(telegram_id.toString());
       return data;
     } catch (error) {
       logger.error('[BalanceManager] Ошибка получения UNI farming данных:', error);
