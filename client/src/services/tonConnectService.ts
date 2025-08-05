@@ -426,39 +426,7 @@ export async function sendTonTransaction(
         has_result: !!result
       });
       
-      // 🔥 НОВОЕ: Автоматическая обработка TON депозита через backend API
-      try {
-        console.log("[TON_DEPOSIT_AUTO] 🚀 Автоматически обрабатываем депозит через backend...");
-        
-        // Импортируем correctApiRequest динамически для предотвращения циклических зависимостей
-        const { correctApiRequest } = await import('../lib/correctApiRequest');
-        
-        // Подготавливаем данные для API
-        const depositData = {
-          ton_tx_hash: result.boc, // BOC данные от TON Connect
-          amount: parseFloat(amount), // Сумма в TON (уже в правильном формате)
-          wallet_address: TON_PROJECT_ADDRESS // Адрес кошелька проекта
-        };
-        
-        console.log("[TON_DEPOSIT_AUTO] Отправляем данные на backend:", {
-          ton_tx_hash_length: result.boc?.length || 0,
-          amount: depositData.amount,
-          wallet_address: depositData.wallet_address.slice(0, 10) + '...'
-        });
-        
-        // Вызываем API endpoint для обработки депозита
-        const apiResponse = await correctApiRequest('/api/v2/wallet/ton-deposit', 'POST', depositData);
-        
-        if (apiResponse.success) {
-          console.log("[TON_DEPOSIT_AUTO] ✅ Депозит успешно обработан backend-ом:", apiResponse);
-        } else {
-          console.error("[TON_DEPOSIT_AUTO] ❌ Backend не смог обработать депозит:", apiResponse.error);
-        }
-        
-      } catch (backendError) {
-        console.error("[TON_DEPOSIT_AUTO] ❌ Критическая ошибка при автоматической обработке депозита:", backendError);
-        // Не прерываем выполнение - транзакция уже отправлена, это только backend обработка
-      }
+
 
       return {
         txHash: result.boc,
