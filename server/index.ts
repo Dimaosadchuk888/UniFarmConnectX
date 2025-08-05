@@ -1077,7 +1077,8 @@ async function startServer() {
       // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Инициализация DepositMonitor для автоматического мониторинга TON депозитов
       (async () => {
         try {
-          const { default: DepositMonitor } = await import('../utils/depositMonitor');
+          const depositMonitorModule = await import('../utils/depositMonitor');
+          const DepositMonitor = depositMonitorModule.default;
           const depositMonitor = DepositMonitor.getInstance();
           depositMonitor.startMonitoring();
           logger.info('✅ DepositMonitor запущен - автоматический мониторинг TON депозитов активен');
