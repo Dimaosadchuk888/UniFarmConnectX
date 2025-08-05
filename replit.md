@@ -54,6 +54,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **JWT Authentication System Restoration**: Fixed critical authentication system breakdown - JWT tokens now correctly contain `user_id` from database instead of `telegram_id`, restoring all deposit and transaction functionality (Aug 5, 2025).
 - **Complete User ID Architecture Fix**: Fixed all remaining telegram_id/user_id inconsistencies in BalanceManager, WalletController, and FarmingController - system now fully operates on user_id architecture as designed (Aug 5, 2025).
 - **TON Deposit Auto-Processing System**: Implemented automatic backend API call in TON Connect service - when users complete TON transactions through wallet, frontend automatically calls `/api/v2/wallet/ton-deposit` endpoint with BOC data for immediate deposit processing (Aug 5, 2025).
+- **TON Deposit Architecture Fix**: Fixed critical bug in `tonDeposit` controller using wrong field `telegram.user.telegram_id` instead of correct `telegram.user.id` for user lookup - this was causing "Не удалось определить получателя депозита" errors and blocking all TON deposits (Aug 5, 2025).
 
 ## External Dependencies
 - **Telegram Mini App framework**: For core application functionality within Telegram.
