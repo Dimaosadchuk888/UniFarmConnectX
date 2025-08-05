@@ -82,11 +82,11 @@ export class WalletController extends BaseController {
       });
 
       const walletData = await walletService.getWalletDataByTelegramId(
-        telegram.user.id.toString()
+        telegram.user.telegram_id.toString()
       );
 
       logger.info('[Wallet] Данные кошелька для пользователя', {
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,
         uni_balance: walletData.uni_balance,
         ton_balance: walletData.ton_balance,
         transactions_count: walletData.transactions.length
@@ -107,7 +107,7 @@ export class WalletController extends BaseController {
         if (!telegram) return;
 
         logger.info('[Wallet] Принудительное обновление баланса', {
-          telegram_id: telegram.user.id,
+          telegram_id: telegram.user.telegram_id,
           timestamp: new Date().toISOString()
         });
 

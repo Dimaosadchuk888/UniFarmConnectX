@@ -28,7 +28,7 @@ export class FarmingController extends BaseController {
 
       logger.info('[Farming] Данные фарминга для пользователя', {
         telegram_id: telegram.user.telegram_id,  // Логируем правильный telegram_id
-        database_user_id: telegram.user.id,  // И database ID для отладки
+        database_user_id: user!.id,  // И database ID для отладки
         farming_data: farmingData
       });
 
