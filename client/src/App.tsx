@@ -34,6 +34,7 @@ import Wallet from "@/pages/Wallet";
 import userService from '@/services/userService';
 import { getReferrerIdFromURL } from './lib/utils';
 import { CacheManager } from '@/utils/cacheManager';
+import { forceApplicationRefresh } from '@/utils/forceRefresh';
 
 // Types
 interface AppState {
@@ -74,6 +75,11 @@ function App() {
   // Initialize app
   useEffect(() => {
     console.log('[App] Component mounted, auto auth status:', { isAuthenticating, autoAuthError });
+    
+    // ПРИНУДИТЕЛЬНАЯ ОЧИСТКА КЕША ДЛЯ ОБНОВЛЕНИЯ UI
+    console.log('🔄 [App] Выполняем принудительную очистку кеша для обновления');
+    forceApplicationRefresh();
+    
     initializeApp();
   }, []);
   
