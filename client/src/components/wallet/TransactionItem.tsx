@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatAmount, formatDate } from '@/utils/formatters';
-import { ArrowUpRight, ArrowDownLeft, Clock, Zap } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Clock, Zap, ExternalLink, Copy, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Transaction } from '@/services/transactionService';
 
@@ -10,11 +10,27 @@ interface TransactionItemProps {
 
 const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
   const { type, amount, tokenType, timestamp, status, title, description, source = '' } = transaction;
+  const [hashCopied, setHashCopied] = useState(false);
   
   // Определение класса для суммы (положительная/отрицательная)
-  const amountClass = amount >= 0 
+  const amountClass = Number(amount) >= 0 
     ? 'text-green-500 dark:text-green-400' 
     : 'text-red-500 dark:text-red-400';
+
+  // Проверяем наличие хеша транзакции в metadata
+  const transactionHash = transaction.metadata?.tx_hash || transaction.metadata?.ton_tx_hash || transaction.transaction_hash;
+  const isTonDeposit = type === 'TON_DEPOSIT';
+
+  // Функция копирования хеша
+  const copyHash = async (hash: string) => {
+    try {
+      await navigator.clipboard.writeText(hash);
+      setHashCopied(true);
+      setTimeout(() => setHashCopied(false), 2000);
+    } catch (err) {
+      console.error('Ошибка копирования:', err);
+    }
+  };
   
   // Проверяем, что транзакция связана с TON Boost
   const isTonBoostRelated = 
@@ -99,7 +115,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
                 title || type
               )}
             </p>
-            <p className="text-xs text-muted-foreground">{formatDate(timestamp)}</p>
+            <p className="text-xs text-muted-foreground">{formatDate(timestamp || new Date())}</p>
             
             {/* Показываем источник для TON Boost транзакций */}
             {isTonBoostRelated && source && (
@@ -131,6 +147,42 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
         {/* Описание отображаем если оно есть */}
         {description && (
           <p className="text-xs text-muted-foreground">{description}</p>
+        )}
+        
+        {/* Хеш транзакции для TON депозитов */}
+        {transactionHash && isTonDeposit && (
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant="outline" className="text-[10px] h-5 max-w-[200px]">
+              <ExternalLink className="h-3 w-3 mr-1" />
+              <span className="truncate">
+                {transactionHash.length > 16 
+                  ? `${transactionHash.slice(0, 8)}...${transactionHash.slice(-8)}`
+                  : transactionHash
+                }
+              </span>
+            </Badge>
+            <button
+              onClick={() => copyHash(transactionHash)}
+              className="p-1 rounded hover:bg-muted transition-colors"
+              title="Копировать хеш"
+            >
+              {hashCopied ? (
+                <Check className="h-3 w-3 text-green-500" />
+              ) : (
+                <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+              )}
+            </button>
+            {/* Ссылка на блокчейн эксплорер */}
+            <a
+              href={`https://tonviewer.com/transaction/${transactionHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1 rounded hover:bg-muted transition-colors"
+              title="Открыть в TON Viewer"
+            >
+              <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+            </a>
+          </div>
         )}
       </div>
     </div>
