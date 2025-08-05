@@ -80,9 +80,8 @@ export class AuthService {
       const { error: referralError } = await supabase
         .from('referrals')
         .insert({
-          user_id: parseInt(newUserId.toString()),
-          referred_user_id: parseInt(newUserId.toString()), 
-          inviter_id: parseInt(referrer.id.toString()),
+          user_id: newUserId,
+          inviter_id: referrer.id,
           level: 1,
           ref_path: [referrer.id],
           reward_uni: '0',
@@ -100,8 +99,7 @@ export class AuthService {
           details: referralError.details,
           hint: referralError.hint,
           insertData: {
-            user_id: parseInt(newUserId),
-            referred_user_id: parseInt(newUserId),
+            user_id: newUserId,
             inviter_id: referrer.id,
             level: 1
           }

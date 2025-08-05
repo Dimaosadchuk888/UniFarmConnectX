@@ -154,7 +154,7 @@ export function validateTelegramInitData(initData: string, botToken: string): Va
     const start_param = urlParams.get('start_param');
     console.log('✅ Telegram initData validation successful', { start_param: start_param || 'none' });
     
-    return { valid: true, user, start_param };
+    return { valid: true, user, start_param: start_param || undefined };
   } catch (error) {
     console.error('[TelegramValidator] Validation error:', error);
     return { valid: false, error: 'Validation failed' };
