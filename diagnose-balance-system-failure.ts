@@ -1,204 +1,220 @@
 /**
- * ДИАГНОСТИКА СБОЯ СИСТЕМЫ БАЛАНСОВ
- * Анализируем почему депозиты не обновили балансы пользователей 255 и 251
+ * ОКОНЧАТЕЛЬНАЯ ДИАГНОСТИКА СБОЯ СИСТЕМЫ БАЛАНСОВ
+ * Финальная проверка почему User 255 и 251 имеют 0 балансы
  */
 
 import { supabase } from './core/supabase.js';
 
 async function diagnoseBalanceSystemFailure() {
-  console.log('🔍 ДИАГНОСТИКА СБОЯ СИСТЕМЫ БАЛАНСОВ');
+  console.log('🔍 ОКОНЧАТЕЛЬНАЯ ДИАГНОСТИКА СБОЯ СИСТЕМЫ БАЛАНСОВ');
   
   try {
-    // 1. Проверяем депозитные транзакции детально
-    console.log('\n📊 ДЕТАЛЬНЫЙ АНАЛИЗ ДЕПОЗИТОВ:');
-    const { data: deposits } = await supabase
-      .from('transactions')
-      .select('*')
-      .in('user_id', [255, 251])
-      .in('type', ['TON_DEPOSIT', 'FARMING_DEPOSIT'])
-      .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
-      .order('created_at', { ascending: false });
+    // 1. Проверяем расчет балансов User 255 и 251 вручную
+    console.log('\n💰 РУЧНОЙ РАСЧЕТ БАЛАНСОВ:');
     
-    if (deposits) {
-      deposits.forEach(tx => {
-        console.log(`\n--- ДЕПОЗИТ ID ${tx.id} ---`);
-        console.log(`User: ${tx.user_id}`);
-        console.log(`Type: ${tx.type}`);
-        console.log(`Amount: ${tx.amount} ${tx.currency}`);
-        console.log(`Status: ${tx.status}`);
-        console.log(`Created: ${tx.created_at}`);
-        console.log(`Updated: ${tx.updated_at}`);
-        console.log(`Description: ${tx.description}`);
-        if (tx.metadata) {
-          console.log(`Metadata: ${JSON.stringify(tx.metadata, null, 2)}`);
+    for (const telegramId of [255, 251]) {
+      console.log(`\n--- РАСЧЕТ ДЛЯ USER ${telegramId} ---`);
+      
+      // Получаем пользователя
+      const { data: user } = await supabase
+        .from('users')
+        .select('id, telegram_id, balance_uni, balance_ton')
+        .eq('telegram_id', telegramId)
+        .single();
+      
+      if (!user) {
+        console.log(`❌ User ${telegramId} не найден`);
+        continue;
+      }
+      
+      console.log(`Internal ID: ${user.id}`);
+      console.log(`Текущий баланс UNI: ${user.balance_uni}`);
+      console.log(`Текущий баланс TON: ${user.balance_ton}`);
+      
+      // Получаем ВСЕ транзакции этого пользователя
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', telegramId) // Используем telegram_id так как именно там лежат транзакции
+        .order('created_at', { ascending: true });
+      
+      if (!transactions || transactions.length === 0) {
+        console.log(`❌ Нет транзакций для User ${telegramId}`);
+        continue;
+      }
+      
+      console.log(`📊 Найдено ${transactions.length} транзакций`);
+      
+      // Ручной расчет балансов
+      let uniBalance = 0;
+      let tonBalance = 0;
+      
+      const transactionsByType = {};
+      
+      transactions.forEach(tx => {
+        const amount = parseFloat(tx.amount || 0);
+        const currency = tx.currency;
+        const type = tx.type;
+        
+        // Группируем по типам для статистики
+        if (!transactionsByType[type]) {
+          transactionsByType[type] = { count: 0, uniAmount: 0, tonAmount: 0 };
+        }
+        transactionsByType[type].count++;
+        
+        // Рассчитываем баланс по логике системы
+        if (currency === 'UNI') {
+          if (['TON_DEPOSIT', 'FARMING_DEPOSIT', 'FARMING_REWARD', 'REFERRAL_REWARD', 'DAILY_BONUS', 'MISSION_REWARD'].includes(type)) {
+            uniBalance += amount;
+            transactionsByType[type].uniAmount += amount;
+          } else if (['UNI_WITHDRAWAL', 'withdrawal_fee'].includes(type)) {
+            uniBalance -= amount;
+            transactionsByType[type].uniAmount -= amount;
+          }
+        } else if (currency === 'TON') {
+          if (['TON_DEPOSIT', 'FARMING_DEPOSIT', 'FARMING_REWARD', 'REFERRAL_REWARD', 'DAILY_BONUS', 'MISSION_REWARD'].includes(type)) {
+            tonBalance += amount;
+            transactionsByType[type].tonAmount += amount;
+          } else if (['TON_WITHDRAWAL', 'withdrawal_fee'].includes(type)) {
+            tonBalance -= amount;
+            transactionsByType[type].tonAmount -= amount;
+          }
         }
       });
-    }
-    
-    // 2. Проверяем логи обработки транзакций
-    console.log('\n🔍 ПОИСК BALANCE_UPDATE ОПЕРАЦИЙ:');
-    const { data: balanceUpdates } = await supabase
-      .from('transactions')
-      .select('*')
-      .in('user_id', [255, 251])
-      .eq('type', 'BALANCE_UPDATE')
-      .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
-      .order('created_at', { ascending: false });
-    
-    if (balanceUpdates && balanceUpdates.length > 0) {
-      console.log(`Найдено ${balanceUpdates.length} BALANCE_UPDATE операций:`);
-      balanceUpdates.forEach(tx => {
-        console.log(`${tx.created_at} | User ${tx.user_id} | ${tx.amount} ${tx.currency} | ${tx.description}`);
+      
+      console.log(`\n💰 РАСЧЕТНЫЕ БАЛАНСЫ:`);
+      console.log(`UNI: ${uniBalance.toFixed(6)} (текущий в БД: ${user.balance_uni})`);
+      console.log(`TON: ${tonBalance.toFixed(6)} (текущий в БД: ${user.balance_ton})`);
+      
+      // Проверяем совпадают ли балансы
+      const uniMatch = Math.abs(uniBalance - parseFloat(user.balance_uni || 0)) < 0.000001;
+      const tonMatch = Math.abs(tonBalance - parseFloat(user.balance_ton || 0)) < 0.000001;
+      
+      console.log(`UNI баланс совпадает: ${uniMatch ? '✅' : '❌'}`);
+      console.log(`TON баланс совпадает: ${tonMatch ? '✅' : '❌'}`);
+      
+      if (!uniMatch || !tonMatch) {
+        console.log(`⚠️ ПРОБЛЕМА: Расчетный баланс НЕ совпадает с балансом в БД!`);
+        console.log(`   Это означает что BalanceManager НЕ ОБРАБОТАЛ все транзакции`);
+      }
+      
+      // Показываем статистику по типам транзакций
+      console.log(`\n📈 СТАТИСТИКА ПО ТИПАМ ТРАНЗАКЦИЙ:`);
+      Object.entries(transactionsByType).forEach(([type, stats]) => {
+        console.log(`${type}: ${stats.count} транзакций | UNI: ${stats.uniAmount.toFixed(6)} | TON: ${stats.tonAmount.toFixed(6)}`);
       });
-    } else {
-      console.log('❌ НЕТ BALANCE_UPDATE ОПЕРАЦИЙ! Система не обрабатывает депозиты!');
+      
+      // Найдем первую и последнюю транзакции
+      const firstTx = transactions[0];
+      const lastTx = transactions[transactions.length - 1];
+      
+      console.log(`\n⏰ ВРЕМЕННОЙ ДИАПАЗОН:`);
+      console.log(`Первая транзакция: ${firstTx.created_at} (${firstTx.type})`);
+      console.log(`Последняя транзакция: ${lastTx.created_at} (${lastTx.type})`);
     }
     
-    // 3. Проверяем есть ли duplicate prevention логи
-    console.log('\n🔍 ПРОВЕРКА ДУБЛИКАТОВ И ОШИБОК:');
-    const { data: duplicateCheck } = await supabase
-      .from('transactions')
-      .select('*')
-      .in('user_id', [255, 251])
-      .eq('status', 'duplicate')
-      .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString());
+    // 2. Проверяем работает ли BalanceManager для правильных ID
+    console.log('\n🔧 ТЕСТ BALANCEMANAGER С ПРАВИЛЬНЫМИ ID:');
     
-    if (duplicateCheck && duplicateCheck.length > 0) {
-      console.log('⚠️ НАЙДЕНЫ ДУБЛИКАТЫ:');
-      duplicateCheck.forEach(tx => {
-        console.log(`${tx.created_at} | User ${tx.user_id} | ${tx.type} | ${tx.amount} ${tx.currency} | DUPLICATE`);
-      });
+    try {
+      const { BalanceManager } = await import('./core/BalanceManager.js');
+      const balanceManager = BalanceManager.getInstance();
+      
+      // Попробуем пересчитать баланс для User 255 по его РЕАЛЬНОМУ internal ID
+      const { data: user255 } = await supabase
+        .from('users')
+        .select('id')
+        .eq('telegram_id', 255)
+        .single();
+      
+      if (user255) {
+        console.log(`\nТестируем BalanceManager.calculateBalance для User 255 (internal ID: ${user255.id}):`);
+        
+        // Попробуем использовать приватный метод calculateBalance если он есть
+        const result = await balanceManager.getUserBalance(user255.id);
+        console.log('Результат getUserBalance:', result);
+        
+        // Попробуем найти метод пересчета
+        if (typeof balanceManager.calculateBalance === 'function') {
+          const calculation = await balanceManager.calculateBalance(user255.id);
+          console.log('Результат calculateBalance:', calculation);
+        }
+      }
+      
+    } catch (error) {
+      console.log('❌ Ошибка тестирования BalanceManager:', error.message);
     }
     
-    // 4. Проверяем текущие балансы пользователей детально
-    console.log('\n💰 ДЕТАЛЬНАЯ ПРОВЕРКА БАЛАНСОВ:');
+    // 3. Проверяем критическую проблему ID маппинга
+    console.log('\n🚨 КРИТИЧЕСКАЯ ПРОБЛЕМА ID МАППИНГА:');
+    
     const { data: user255 } = await supabase
       .from('users')
-      .select('*')
+      .select('id, telegram_id')
       .eq('telegram_id', 255)
       .single();
       
     const { data: user251 } = await supabase
       .from('users')
-      .select('*')
+      .select('id, telegram_id')
       .eq('telegram_id', 251)
       .single();
     
-    if (user255) {
-      console.log(`\n--- USER 255 ---`);
-      console.log(`ID: ${user255.id}`);
-      console.log(`Telegram ID: ${user255.telegram_id}`);
-      console.log(`UNI Balance: ${user255.balance_uni}`);
-      console.log(`TON Balance: ${user255.balance_ton}`);
-      console.log(`Created: ${user255.created_at}`);
-      console.log(`Updated: ${user255.updated_at}`);
+    if (user255 && user251) {
+      console.log(`\nПРОБЛЕМА СВЯЗКИ ID:`);
+      console.log(`User 255: internal ID = ${user255.id}, telegram_id = ${user255.telegram_id}`);
+      console.log(`User 251: internal ID = ${user251.id}, telegram_id = ${user251.telegram_id}`);
+      
+      // Проверяем сколько транзакций по каждому ID
+      const { data: tx255ByInternal } = await supabase
+        .from('transactions')
+        .select('count')
+        .eq('user_id', user255.id)
+        .single();
+        
+      const { data: tx255ByTelegram } = await supabase
+        .from('transactions')
+        .select('count')
+        .eq('user_id', user255.telegram_id)
+        .single();
+        
+      const { data: tx251ByInternal } = await supabase
+        .from('transactions')
+        .select('count')
+        .eq('user_id', user251.id)
+        .single();
+        
+      const { data: tx251ByTelegram } = await supabase
+        .from('transactions')
+        .select('count')
+        .eq('user_id', user251.telegram_id)
+        .single();
+      
+      console.log(`\nТРАНЗАКЦИИ USER 255:`);
+      console.log(`По internal ID (${user255.id}): ${tx255ByInternal?.count || 0} транзакций`);
+      console.log(`По telegram_id (${user255.telegram_id}): ${tx255ByTelegram?.count || 0} транзакций`);
+      
+      console.log(`\nТРАНЗАКЦИИ USER 251:`);
+      console.log(`По internal ID (${user251.id}): ${tx251ByInternal?.count || 0} транзакций`);
+      console.log(`По telegram_id (${user251.telegram_id}): ${tx251ByTelegram?.count || 0} транзакций`);
+      
+      // КРИТИЧЕСКОЕ ЗАКЛЮЧЕНИЕ
+      if ((tx255ByInternal?.count || 0) === 0 && (tx255ByTelegram?.count || 0) > 0) {
+        console.log(`\n🔥 НАЙДЕНА ПРОБЛЕМА USER 255:`);
+        console.log(`   BalanceManager ищет транзакции по internal ID (${user255.id})`);
+        console.log(`   Но ВСЕ транзакции созданы с telegram_id (${user255.telegram_id})`);
+        console.log(`   Поэтому BalanceManager НЕ НАХОДИТ транзакции и считает баланс = 0`);
+      }
+      
+      if ((tx251ByInternal?.count || 0) === 0 && (tx251ByTelegram?.count || 0) > 0) {
+        console.log(`\n🔥 НАЙДЕНА ПРОБЛЕМА USER 251:`);
+        console.log(`   BalanceManager ищет транзакции по internal ID (${user251.id})`);
+        console.log(`   Но ВСЕ транзакции созданы с telegram_id (${user251.telegram_id})`);
+        console.log(`   Поэтому BalanceManager НЕ НАХОДИТ транзакции и считает баланс = 0`);
+      }
     }
     
-    if (user251) {
-      console.log(`\n--- USER 251 ---`);
-      console.log(`ID: ${user251.id}`);
-      console.log(`Telegram ID: ${user251.telegram_id}`);
-      console.log(`UNI Balance: ${user251.balance_uni}`);
-      console.log(`TON Balance: ${user251.balance_ton}`);
-      console.log(`Created: ${user251.created_at}`);
-      console.log(`Updated: ${user251.updated_at}`);
-    }
-    
-    // 5. Подсчитываем ожидаемые балансы
-    console.log('\n🧮 РАСЧЕТ ОЖИДАЕМЫХ БАЛАНСОВ:');
-    
-    const { data: user255AllTx } = await supabase
-      .from('transactions')
-      .select('type, amount, currency, status')
-      .eq('user_id', 255)
-      .eq('status', 'completed');
-    
-    const { data: user251AllTx } = await supabase
-      .from('transactions')
-      .select('type, amount, currency, status')
-      .eq('user_id', 251)
-      .eq('status', 'completed');
-    
-    // Подсчет для User 255
-    let user255ExpectedUNI = 0;
-    let user255ExpectedTON = 0;
-    
-    if (user255AllTx) {
-      user255AllTx.forEach(tx => {
-        const amount = parseFloat(tx.amount);
-        if (tx.currency === 'UNI') {
-          if (['TON_DEPOSIT', 'FARMING_DEPOSIT', 'FARMING_REWARD', 'REFERRAL_REWARD', 'DAILY_BONUS', 'MISSION_REWARD'].includes(tx.type)) {
-            user255ExpectedUNI += amount;
-          } else if (['WITHDRAWAL', 'FARMING_WITHDRAWAL'].includes(tx.type)) {
-            user255ExpectedUNI -= amount;
-          }
-        } else if (tx.currency === 'TON') {
-          if (['TON_DEPOSIT', 'FARMING_REWARD', 'REFERRAL_REWARD', 'DAILY_BONUS', 'MISSION_REWARD'].includes(tx.type)) {
-            user255ExpectedTON += amount;
-          } else if (['WITHDRAWAL'].includes(tx.type)) {
-            user255ExpectedTON -= amount;
-          }
-        }
-      });
-    }
-    
-    // Подсчет для User 251
-    let user251ExpectedUNI = 0;
-    let user251ExpectedTON = 0;
-    
-    if (user251AllTx) {
-      user251AllTx.forEach(tx => {
-        const amount = parseFloat(tx.amount);
-        if (tx.currency === 'UNI') {
-          if (['TON_DEPOSIT', 'FARMING_DEPOSIT', 'FARMING_REWARD', 'REFERRAL_REWARD', 'DAILY_BONUS', 'MISSION_REWARD'].includes(tx.type)) {
-            user251ExpectedUNI += amount;
-          } else if (['WITHDRAWAL', 'FARMING_WITHDRAWAL'].includes(tx.type)) {
-            user251ExpectedUNI -= amount;
-          }
-        } else if (tx.currency === 'TON') {
-          if (['TON_DEPOSIT', 'FARMING_REWARD', 'REFERRAL_REWARD', 'DAILY_BONUS', 'MISSION_REWARD'].includes(tx.type)) {
-            user251ExpectedTON += amount;
-          } else if (['WITHDRAWAL'].includes(tx.type)) {
-            user251ExpectedTON -= amount;
-          }
-        }
-      });
-    }
-    
-    console.log(`\nUser 255 - Ожидаемые балансы:`);
-    console.log(`UNI: ${user255ExpectedUNI} (текущий: ${user255?.balance_uni || 0})`);
-    console.log(`TON: ${user255ExpectedTON} (текущий: ${user255?.balance_ton || 0})`);
-    
-    console.log(`\nUser 251 - Ожидаемые балансы:`);
-    console.log(`UNI: ${user251ExpectedUNI} (текущий: ${user251?.balance_uni || 0})`);
-    console.log(`TON: ${user251ExpectedTON} (текущий: ${user251?.balance_ton || 0})`);
-    
-    // 6. Поиск системных ошибок
-    console.log('\n🚨 ПОИСК СИСТЕМНЫХ ПРОБЛЕМ:');
-    
-    const user255BalanceDeficit = {
-      uni: user255ExpectedUNI - (user255?.balance_uni || 0),
-      ton: user255ExpectedTON - (user255?.balance_ton || 0)
-    };
-    
-    const user251BalanceDeficit = {
-      uni: user251ExpectedUNI - (user251?.balance_uni || 0),
-      ton: user251ExpectedTON - (user251?.balance_ton || 0)
-    };
-    
-    if (user255BalanceDeficit.uni !== 0 || user255BalanceDeficit.ton !== 0) {
-      console.log(`❌ User 255 ДЕФИЦИТ БАЛАНСА:`);
-      console.log(`   UNI: ${user255BalanceDeficit.uni}`);
-      console.log(`   TON: ${user255BalanceDeficit.ton}`);
-    }
-    
-    if (user251BalanceDeficit.uni !== 0 || user251BalanceDeficit.ton !== 0) {
-      console.log(`❌ User 251 ДЕФИЦИТ БАЛАНСА:`);
-      console.log(`   UNI: ${user251BalanceDeficit.uni}`);
-      console.log(`   TON: ${user251BalanceDeficit.ton}`);
-    }
-    
-    console.log('\n✅ Диагностика завершена');
+    console.log('\n✅ Окончательная диагностика завершена');
     
   } catch (error) {
     console.error('❌ Ошибка диагностики:', error);
