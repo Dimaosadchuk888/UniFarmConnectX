@@ -53,6 +53,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **Transaction History Display**: Frontend transaction loading issue completely resolved - missing API endpoints `/api/transactions` and `/api/v2/transactions` restored with direct aliases to TransactionsController, enabling proper transaction history display for all users (Aug 4, 2025).
 - **JWT Authentication System Restoration**: Fixed critical authentication system breakdown - JWT tokens now correctly contain `user_id` from database instead of `telegram_id`, restoring all deposit and transaction functionality (Aug 5, 2025).
 - **Complete User ID Architecture Fix**: Fixed all remaining telegram_id/user_id inconsistencies in BalanceManager, WalletController, and FarmingController - system now fully operates on user_id architecture as designed (Aug 5, 2025).
+- **TON Deposit Auto-Processing System**: Implemented automatic backend API call in TON Connect service - when users complete TON transactions through wallet, frontend automatically calls `/api/v2/wallet/ton-deposit` endpoint with BOC data for immediate deposit processing (Aug 5, 2025).
 
 ## External Dependencies
 - **Telegram Mini App framework**: For core application functionality within Telegram.
