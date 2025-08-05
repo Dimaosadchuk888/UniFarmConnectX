@@ -1074,6 +1074,18 @@ async function startServer() {
         logger.error('❌ Ошибка запуска системы алертинга', { error });
       }
       
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Инициализация DepositMonitor для автоматического мониторинга TON депозитов
+      (async () => {
+        try {
+          const { default: DepositMonitor } = await import('../utils/depositMonitor');
+          const depositMonitor = DepositMonitor.getInstance();
+          depositMonitor.startMonitoring();
+          logger.info('✅ DepositMonitor запущен - автоматический мониторинг TON депозитов активен');
+        } catch (error) {
+          logger.error('❌ Ошибка запуска DepositMonitor', { error });
+        }
+      })();
+      
       // Enhanced graceful shutdown для production
       const gracefulShutdown = async (signal: string) => {
         logger.info(`🔄 Получен сигнал ${signal}, начинаем graceful shutdown...`);

@@ -294,6 +294,7 @@ Monitoring Active: ${this.isMonitoring}
 
 // Export singleton instance
 export const depositMonitor = DepositMonitor.getInstance();
+export default DepositMonitor;
 
 /**
  * Helper function to record deposit attempt
