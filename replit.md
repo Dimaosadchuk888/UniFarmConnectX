@@ -51,6 +51,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **UI/UX Improvements**: Telegram page refresh now shows user-friendly "Обновление авторизации..." message instead of raw JSON error (Aug 4, 2025), automatic page reload after authentication errors.
 - **User 255 Deposit Recovery**: Historical deposit ID 1664532 restored with correct amount (0.328772 TON) and currency field, resolving User 255 missing deposit issue (Aug 4, 2025).
 - **Transaction History Display**: Frontend transaction loading issue completely resolved - missing API endpoints `/api/transactions` and `/api/v2/transactions` restored with direct aliases to TransactionsController, enabling proper transaction history display for all users (Aug 4, 2025).
+- **JWT Authentication System Restoration**: Fixed critical authentication system breakdown - JWT tokens now correctly contain `user_id` from database instead of `telegram_id`, restoring all deposit and transaction functionality (Aug 5, 2025).
 
 ## External Dependencies
 - **Telegram Mini App framework**: For core application functionality within Telegram.

@@ -34,8 +34,8 @@ export interface ValidationResult {
 }
 
 export interface JWTPayload {
-  userId: number;
-  telegram_id: number;
+  userId: number; // ВАЖНО: это user_id из базы данных (users.id), НЕ telegram_id
+  telegram_id: number; // telegram_id сохраняем для информации
   username?: string;
   ref_code?: string;
   iat: number;
@@ -171,8 +171,8 @@ export function generateJWTToken(user: TelegramUser | TelegramUserWithDbId, refC
   }
 
   const payload: JWTPayload = {
-    userId: user.id,
-    telegram_id: ((user as any).telegram_id as number) || user.id, // Исправлено: используем реальный telegram_id если есть
+    userId: user.id, // ВАЖНО: это должен быть user_id из базы (users.id), а НЕ telegram_id
+    telegram_id: ((user as any).telegram_id as number) || user.id,
     username: user.username,
     ref_code: refCode,
     iat: Math.floor(Date.now() / 1000),
