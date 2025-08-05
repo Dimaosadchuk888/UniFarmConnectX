@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Sprout, 
   Gift, 
@@ -9,8 +9,12 @@ import {
   TrendingDown,
   Rocket,
   Package,
-  Zap
+  Zap,
+  ExternalLink,
+  Copy,
+  Check
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface Transaction {
   id: number;
@@ -25,6 +29,8 @@ interface Transaction {
     original_type?: string;
     transaction_source?: string;
     boost_package_id?: number;
+    tx_hash?: string;
+    ton_tx_hash?: string;
     [key: string]: any;
   };
 }
@@ -307,9 +313,25 @@ const getAmountSign = (type: string, description?: string): '+' | '-' => {
 const StyledTransactionItem: React.FC<StyledTransactionItemProps> = ({ 
   transaction 
 }) => {
+  const [hashCopied, setHashCopied] = useState(false);
   const config = getTransactionConfig(transaction.type, transaction.description, transaction.metadata, transaction.currency);
   const IconComponent = config.icon;
   const sign = getAmountSign(transaction.type, transaction.description);
+  
+  // Логика отображения хеша транзакции для TON депозитов
+  const transactionHash = transaction.metadata?.tx_hash || transaction.metadata?.ton_tx_hash;
+  const isTonDeposit = transaction.type === 'TON_DEPOSIT';
+  
+  // Функция копирования хеша
+  const copyHash = async (hash: string) => {
+    try {
+      await navigator.clipboard.writeText(hash);
+      setHashCopied(true);
+      setTimeout(() => setHashCopied(false), 2000);
+    } catch (err) {
+      console.error('Ошибка копирования хеша:', err);
+    }
+  };
   
   return (
     <div 
@@ -411,6 +433,43 @@ const StyledTransactionItem: React.FC<StyledTransactionItemProps> = ({
         </div>
       </div>
       
+      {/* Хеш транзакции для TON депозитов */}
+      {transactionHash && isTonDeposit && (
+        <div className="relative z-10 mt-3 pt-3 border-t border-gray-600/30">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px] h-6 max-w-[200px] bg-cyan-500/10 border-cyan-500/30 text-cyan-400">
+              <ExternalLink className="h-3 w-3 mr-1" />
+              <span className="truncate">
+                {transactionHash.length > 16 
+                  ? `${transactionHash.slice(0, 8)}...${transactionHash.slice(-8)}`
+                  : transactionHash
+                }
+              </span>
+            </Badge>
+            <button
+              onClick={() => copyHash(transactionHash)}
+              className="p-1.5 rounded hover:bg-cyan-500/20 transition-colors"
+              title="Копировать хеш"
+            >
+              {hashCopied ? (
+                <Check className="h-3 w-3 text-green-400" />
+              ) : (
+                <Copy className="h-3 w-3 text-cyan-400 hover:text-cyan-300" />
+              )}
+            </button>
+            <a
+              href={`https://tonviewer.com/transaction/${transactionHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 rounded hover:bg-cyan-500/20 transition-colors"
+              title="Открыть в TON Viewer"
+            >
+              <ExternalLink className="h-3 w-3 text-cyan-400 hover:text-cyan-300" />
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Subtle glow effect */}
       <div className={`
         absolute inset-0 rounded-xl opacity-20 blur-xl

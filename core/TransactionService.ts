@@ -378,7 +378,8 @@ export class UnifiedTransactionService {
         status: tx.status,
         description: tx.description || '',
         createdAt: tx.created_at,
-        timestamp: new Date(tx.created_at).getTime()
+        timestamp: new Date(tx.created_at).getTime(),
+        metadata: tx.metadata || {} // Включаем metadata для fallback случая
       };
     }
 
@@ -390,7 +391,8 @@ export class UnifiedTransactionService {
       status: tx.status,
       description: tx.description || '',
       createdAt: tx.created_at,
-      timestamp: new Date(tx.created_at).getTime()
+      timestamp: new Date(tx.created_at).getTime(),
+      metadata: tx.metadata || {} // Включаем metadata для отображения хешей
     };
   }
 
