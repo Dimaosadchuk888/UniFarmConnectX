@@ -83,12 +83,15 @@ class TokenRecoveryService {
         console.log(`[TokenRecovery] Попытка refresh токена ${attempt}/${this.RETRY_ATTEMPTS}`);
 
         // Прямой вызов API для refresh токена
-        const response = await fetch('/api/v2/auth/refresh', {
+        const response = await fetch('/api/auth/refresh', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('unifarm_jwt_token')}`
-          }
+          },
+          body: JSON.stringify({
+            token: localStorage.getItem('unifarm_jwt_token')
+          })
         });
 
         if (response.ok) {
@@ -134,7 +137,7 @@ class TokenRecoveryService {
         }
 
         // Прямой вызов API для создания нового токена
-        const response = await fetch('/api/v2/auth/telegram', {
+        const response = await fetch('/api/auth/telegram', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

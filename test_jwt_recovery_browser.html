@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JWT Recovery Test</title>
+</head>
+<body>
+    <h1>JWT Token Recovery Test</h1>
+    <div id="results"></div>
+    
+    <button onclick="runTests()">Запустить тест</button>
+    <button onclick="clearToken()">Очистить токен (симуляция потери)</button>
+    <button onclick="showCurrentToken()">Показать текущий токен</button>
+    
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function log(message) {
+            console.log(message);
+            resultsDiv.innerHTML += '<div>' + message + '</div>';
+        }
+        
+        function showCurrentToken() {
+            const token = localStorage.getItem('unifarm_jwt_token');
+            log('[JWT Test] Текущий токен: ' + (token ? 'ЕСТЬ (длина: ' + token.length + ')' : 'ОТСУТСТВУЕТ'));
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('unifarm_jwt_token');
+            log('[JWT Test] ❌ Токен удален из localStorage');
+        }
+        
+        async function testRefreshEndpoint() {
+            const currentToken = localStorage.getItem('unifarm_jwt_token');
+            if (!currentToken) {
+                log('[JWT Test] ⚠️ Нет токена для refresh теста');
+                return false;
+            }
+            
+            try {
+                log('[JWT Test] 🔄 Тестируем /api/auth/refresh...');
+                const response = await fetch('/api/auth/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + currentToken
+                    },
+                    body: JSON.stringify({ token: currentToken })
+                });
+                
+                log('[JWT Test] Refresh status: ' + response.status);
+                const data = await response.json();
+                log('[JWT Test] Refresh response: ' + JSON.stringify(data, null, 2));
+                
+                if (response.ok && data.success && data.data?.token) {
+                    localStorage.setItem('unifarm_jwt_token', data.data.token);
+                    log('[JWT Test] ✅ Refresh успешен, токен обновлен');
+                    return true;
+                } else {
+                    log('[JWT Test] ❌ Refresh провалился');
+                    return false;
+                }
+            } catch (error) {
+                log('[JWT Test] ❌ Refresh error: ' + error.message);
+                return false;
+            }
+        }
+        
+        async function testTelegramAuth() {
+            if (!window.Telegram?.WebApp?.initData) {
+                log('[JWT Test] ⚠️ Telegram initData недоступен (не в Telegram WebApp)');
+                return false;
+            }
+            
+            try {
+                log('[JWT Test] 🔄 Тестируем /api/auth/telegram...');
+                const response = await fetch('/api/auth/telegram', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        initData: window.Telegram.WebApp.initData
+                    })
+                });
+                
+                log('[JWT Test] Telegram auth status: ' + response.status);
+                const data = await response.json();
+                log('[JWT Test] Telegram auth response: ' + JSON.stringify(data, null, 2));
+                
+                if (response.ok && data.success && data.data?.token) {
+                    localStorage.setItem('unifarm_jwt_token', data.data.token);
+                    log('[JWT Test] ✅ Telegram auth успешен, токен создан');
+                    return true;
+                } else {
+                    log('[JWT Test] ❌ Telegram auth провалился');
+                    return false;
+                }
+            } catch (error) {
+                log('[JWT Test] ❌ Telegram auth error: ' + error.message);
+                return false;
+            }
+        }
+        
+        async function testTokenRecoveryService() {
+            // Импортируем tokenRecoveryService если доступен
+            if (typeof tokenRecoveryService !== 'undefined') {
+                log('[JWT Test] 🔄 Тестируем tokenRecoveryService.recoverJwtToken()...');
+                try {
+                    const result = await tokenRecoveryService.recoverJwtToken();
+                    log('[JWT Test] TokenRecoveryService result: ' + result);
+                    return result;
+                } catch (error) {
+                    log('[JWT Test] ❌ TokenRecoveryService error: ' + error.message);
+                    return false;
+                }
+            } else {
+                log('[JWT Test] ⚠️ TokenRecoveryService недоступен (не импортирован)');
+                return false;
+            }
+        }
+        
+        async function runTests() {
+            resultsDiv.innerHTML = '';
+            log('[JWT Test] === НАЧИНАЕМ ТЕСТИРОВАНИЕ JWT RECOVERY ===');
+            
+            showCurrentToken();
+            
+            log('[JWT Test] === ТЕСТ 1: REFRESH ENDPOINT ===');
+            await testRefreshEndpoint();
+            
+            log('[JWT Test] === ТЕСТ 2: TELEGRAM AUTH ===');
+            await testTelegramAuth();
+            
+            log('[JWT Test] === ТЕСТ 3: TOKEN RECOVERY SERVICE ===');
+            await testTokenRecoveryService();
+            
+            log('[JWT Test] === ТЕСТИРОВАНИЕ ЗАВЕРШЕНО ===');
+            showCurrentToken();
+        }
+    </script>
+</body>
+</html>
