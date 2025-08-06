@@ -1,3 +1,6 @@
-name: "UniFarm Server"
-run: "npm run dev"
-description: "Start UniFarm application server"
+name = "Start application"
+description = "Start the Express and Vite servers"
+onBoot = true
+
+[run]
+command = "npm run dev"
