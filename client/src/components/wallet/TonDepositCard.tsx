@@ -16,6 +16,7 @@ import {
 import { formatAmount } from '@/utils/formatters';
 import { Wallet, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { DepositMonitor } from '@/services/depositMonitor';
 
 /**
  * Компонент для пополнения баланса через TON Wallet
@@ -40,6 +41,59 @@ const TonDepositCard: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [processedTxHashes, setProcessedTxHashes] = useState<Set<string>>(new Set()); // Защита от дублирования
+
+  // Функция для повторной отправки неудачных депозитов
+  const retryFailedDeposit = async (failedData: any) => {
+    console.log('[TON_DEPOSIT] Attempting to retry failed deposit', failedData);
+    
+    try {
+      const { apiRequest } = await import('@/lib/queryClient');
+      const data = await apiRequest('/api/v2/wallet/ton-deposit', {
+        method: 'POST',
+        body: JSON.stringify({
+          ton_tx_hash: failedData.txHash,
+          amount: failedData.amount,
+          wallet_address: failedData.walletAddress
+        })
+      });
+
+      if (data?.success) {
+        success(`Депозит ${failedData.amount} TON успешно восстановлен`);
+        localStorage.removeItem('failed_ton_deposit');
+        console.log('[TON_DEPOSIT] Failed deposit successfully recovered');
+        refreshBalance(true);
+      } else {
+        console.error('[TON_DEPOSIT] Failed deposit retry unsuccessful', data?.error);
+      }
+    } catch (error) {
+      console.error('[TON_DEPOSIT] Failed to retry deposit', error);
+    }
+  };
+
+  // Проверяем неудачные депозиты при загрузке
+  useEffect(() => {
+    const failedDeposit = localStorage.getItem('failed_ton_deposit');
+    if (failedDeposit && userId) {
+      try {
+        const data = JSON.parse(failedDeposit);
+        // Проверяем что депозит не слишком старый (24 часа)
+        if (Date.now() - data.timestamp < 86400000) {
+          toast({
+            title: "Обнаружен незавершенный депозит",
+            description: "Пытаемся восстановить транзакцию...",
+            duration: 5000
+          });
+          retryFailedDeposit(data);
+        } else {
+          // Удаляем старый failed deposit
+          localStorage.removeItem('failed_ton_deposit');
+        }
+      } catch (error) {
+        console.error('[TON_DEPOSIT] Failed to parse failed deposit data', error);
+        localStorage.removeItem('failed_ton_deposit');
+      }
+    }
+  }, [userId]);
 
   // Проверяем подключение кошелька при загрузке
   useEffect(() => {
@@ -106,6 +160,34 @@ const TonDepositCard: React.FC = () => {
       return;
     }
 
+    // КРИТИЧЕСКАЯ ПРОВЕРКА: userId должен существовать
+    if (!userId) {
+      showError('Необходима авторизация. Обновите страницу.');
+      console.error('[TON_DEPOSIT] CRITICAL: userId is undefined', { userId });
+      return;
+    }
+
+    // Получаем актуальный адрес кошелька
+    const currentWalletAddress = await getTonWalletAddress(tonConnectUI);
+    if (!currentWalletAddress) {
+      showError('Не удалось получить адрес кошелька');
+      console.error('[TON_DEPOSIT] Failed to get wallet address');
+      return;
+    }
+
+    console.log('[TON_DEPOSIT] Этап 1: Начало депозита', {
+      userId,
+      amount: depositAmount,
+      walletAddress: currentWalletAddress
+    });
+    
+    // Используем DepositMonitor для отслеживания
+    DepositMonitor.logDeposit('TON_DEPOSIT_START', {
+      userId,
+      amount: depositAmount,
+      walletAddress: currentWalletAddress
+    });
+
     setIsProcessing(true);
     showLoading('Отправка транзакции...');
 
@@ -116,6 +198,17 @@ const TonDepositCard: React.FC = () => {
         depositAmount.toString(),
         'UniFarm Deposit'
       );
+
+      console.log('[TON_DEPOSIT] Этап 2: Транзакция отправлена', {
+        success: result?.status === 'success',
+        hasHash: !!result?.txHash,
+        hashLength: result?.txHash?.length
+      });
+      
+      DepositMonitor.logDeposit('TON_DEPOSIT_TX_SENT', {
+        success: result?.status === 'success',
+        hasHash: !!result?.txHash
+      });
 
       if (result && result.status === 'success' && result.txHash) {
         // Проверяем, не была ли эта транзакция уже обработана
@@ -132,32 +225,96 @@ const TonDepositCard: React.FC = () => {
           return newSet;
         });
 
-        // Отправляем информацию о транзакции на backend
-        const response = await fetch('/api/v2/wallet/ton-deposit', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('unifarm_jwt_token')}`
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            ton_tx_hash: result.txHash,
-            amount: depositAmount,
-            wallet_address: walletAddress
-          })
+        console.log('[TON_DEPOSIT] Этап 3: Отправка на backend', {
+          endpoint: '/api/v2/wallet/ton-deposit',
+          userId,
+          amount: depositAmount,
+          walletAddress: currentWalletAddress,
+          txHashPreview: result.txHash.substring(0, 20) + '...'
         });
 
-        const data = await response.json();
+        // Используем apiRequest для автоматической работы с JWT
+        const { apiRequest } = await import('@/lib/queryClient');
         
-        if (data.success) {
-          success(`Депозит ${depositAmount} TON успешно обработан`);
-          setAmount('');
-          // Обновляем баланс
-          setTimeout(() => {
-            refreshBalance(true);
-          }, 1000);
-        } else {
-          showError(data.error || 'Ошибка обработки депозита');
+        try {
+          const data = await apiRequest('/api/v2/wallet/ton-deposit', {
+            method: 'POST',
+            body: JSON.stringify({
+              ton_tx_hash: result.txHash,
+              amount: depositAmount,  
+              wallet_address: currentWalletAddress
+            })
+          });
+
+          console.log('[TON_DEPOSIT] Этап 4: Ответ от backend', {
+            success: data?.success,
+            error: data?.error,
+            transactionId: data?.transaction_id
+          });
+          
+          if (data?.success) {
+            success(`Депозит ${depositAmount} TON успешно обработан`);
+            setAmount('');
+            
+            // Удаляем из failed deposits если был там
+            localStorage.removeItem('failed_ton_deposit');
+            
+            console.log('[TON_DEPOSIT] ✅ Успешно завершен', {
+              amount: depositAmount,
+              transactionId: data.transaction_id
+            });
+            
+            DepositMonitor.logDeposit('TON_DEPOSIT_SUCCESS', {
+              amount: depositAmount,
+              transactionId: data.transaction_id,
+              userId
+            });
+            
+            // Обновляем баланс
+            setTimeout(() => {
+              refreshBalance(true);
+            }, 1000);
+          } else {
+            throw new Error(data?.error || 'Ошибка обработки депозита');
+          }
+        } catch (backendError: any) {
+          console.error('[TON_DEPOSIT] ❌ CRITICAL ERROR: Backend call failed', {
+            stage: 'backend_call',
+            error: backendError?.message || backendError,
+            userId,
+            amount: depositAmount,
+            txHash: result.txHash.substring(0, 20) + '...'
+          });
+          
+          // Логируем критическую ошибку
+          DepositMonitor.logDeposit('TON_DEPOSIT_ERROR', {
+            stage: 'backend_call',
+            error: backendError?.message || backendError,
+            userId,
+            amount: depositAmount
+          });
+          
+          // Уведомляем о критической ошибке
+          DepositMonitor.notifyAdminOnCriticalError({
+            type: 'DEPOSIT_FAILURE',
+            userId,
+            amount: depositAmount,
+            error: backendError?.message || 'Backend call failed'
+          });
+          
+          // Сохраняем failed deposit для retry
+          const failedDeposit = {
+            txHash: result.txHash,
+            amount: depositAmount,
+            walletAddress: currentWalletAddress,
+            timestamp: Date.now(),
+            error: backendError?.message || 'Unknown error'
+          };
+          
+          localStorage.setItem('failed_ton_deposit', JSON.stringify(failedDeposit));
+          console.log('[TON_DEPOSIT] Saved failed deposit for retry', failedDeposit);
+          
+          showError(backendError?.message || 'Ошибка обработки депозита. Попробуйте обновить страницу.');
         }
       } else {
         showError('Транзакция отменена');

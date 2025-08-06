@@ -459,8 +459,29 @@ export class WalletController extends BaseController {
 
         const { ton_tx_hash, amount, wallet_address } = req.body;
 
+        // Детальное логирование входящего запроса
+        logger.info('[TON_DEPOSIT_RECEIVED]', {
+          has_telegram: !!telegram,
+          has_user_id: !!telegram?.user?.id,
+          telegram_id: telegram?.user?.telegram_id,
+          body_preview: {
+            has_tx_hash: !!ton_tx_hash,
+            amount,
+            wallet_address: wallet_address?.slice(0, 10) + '...'
+          },
+          headers: {
+            has_auth: !!req.headers.authorization,
+            auth_type: req.headers.authorization?.split(' ')[0]
+          }
+        });
+
         // Валидация входных данных
         if (!ton_tx_hash || !amount || !wallet_address) {
+          logger.error('[TON_DEPOSIT] Missing required fields', {
+            ton_tx_hash: !!ton_tx_hash,
+            amount: !!amount,
+            wallet_address: !!wallet_address
+          });
           return this.sendError(res, 'Не все обязательные поля заполнены', 400);
         }
 
@@ -475,13 +496,15 @@ export class WalletController extends BaseController {
         
         const resolutionMethod = 'jwt_auth';
         
-        logger.info('[TON Deposit] Используем пользователя из JWT токена', {
+        logger.info('[TON_DEPOSIT] Using user from JWT token', {
           user_id: user.id,
           telegram_id: user.telegram_id,
           jwt_database_id: telegram.user.id,
           jwt_telegram_id: telegram.user.telegram_id,
           wallet_address: wallet_address.slice(0, 10) + '...',
-          resolution_method: resolutionMethod
+          resolution_method: resolutionMethod,
+          amount,
+          tx_hash_preview: ton_tx_hash.substring(0, 30) + '...'
         });
 
         // Обновляем TON кошелек если он еще не привязан

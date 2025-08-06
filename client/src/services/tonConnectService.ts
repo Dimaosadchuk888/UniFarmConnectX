@@ -546,6 +546,121 @@ export function createTonTransactionComment(userId: number, boostId: number): st
 }
 
 /**
+ * Отправляет TON транзакцию и автоматически регистрирует депозит на backend
+ * Улучшенная версия с автоматической интеграцией backend
+ */
+export async function sendTonTransactionWithBackend(
+  tonConnectUI: TonConnectUI,
+  amount: string,
+  comment: string = 'UniFarm Deposit'
+): Promise<{success: boolean; txHash?: string; transactionId?: string; error?: string}> {
+  try {
+    console.log('[TON_TRANSACTION_WITH_BACKEND] Starting transaction', { amount, comment });
+    
+    // Шаг 1: Отправляем транзакцию через кошелек
+    const result = await sendTonTransaction(tonConnectUI, amount, comment);
+    
+    if (!result || result.status !== 'success' || !result.txHash) {
+      console.log('[TON_TRANSACTION_WITH_BACKEND] Transaction cancelled or failed');
+      return { success: false, error: 'Transaction cancelled or failed' };
+    }
+    
+    console.log('[TON_TRANSACTION_WITH_BACKEND] Transaction sent, BOC received', {
+      hashLength: result.txHash.length,
+      hashPreview: result.txHash.substring(0, 20) + '...'
+    });
+    
+    // Шаг 2: Получаем адрес кошелька
+    const walletAddress = await getTonWalletAddress(tonConnectUI);
+    if (!walletAddress) {
+      console.error('[TON_TRANSACTION_WITH_BACKEND] Failed to get wallet address');
+      // Сохраняем для повторной попытки
+      localStorage.setItem('pending_ton_deposit', JSON.stringify({
+        txHash: result.txHash,
+        amount: parseFloat(amount),
+        timestamp: Date.now()
+      }));
+      return { success: false, txHash: result.txHash, error: 'Failed to get wallet address' };
+    }
+    
+    // Шаг 3: Отправляем на backend
+    try {
+      const { apiRequest } = await import('@/lib/queryClient');
+      
+      console.log('[TON_TRANSACTION_WITH_BACKEND] Sending to backend', {
+        endpoint: '/api/v2/wallet/ton-deposit',
+        amount: parseFloat(amount),
+        walletAddress: walletAddress.slice(0, 10) + '...'
+      });
+      
+      const backendResponse = await apiRequest('/api/v2/wallet/ton-deposit', {
+        method: 'POST',
+        body: JSON.stringify({
+          ton_tx_hash: result.txHash,
+          amount: parseFloat(amount),
+          wallet_address: walletAddress
+        })
+      });
+      
+      console.log('[TON_TRANSACTION_WITH_BACKEND] Backend response', {
+        success: backendResponse?.success,
+        transactionId: backendResponse?.transaction_id
+      });
+      
+      if (backendResponse?.success) {
+        // Успех - удаляем pending deposit если был
+        localStorage.removeItem('pending_ton_deposit');
+        
+        return {
+          success: true,
+          txHash: result.txHash,
+          transactionId: backendResponse.transaction_id
+        };
+      } else {
+        // Backend отклонил - сохраняем для retry
+        localStorage.setItem('failed_ton_deposit', JSON.stringify({
+          txHash: result.txHash,
+          amount: parseFloat(amount),
+          walletAddress,
+          timestamp: Date.now(),
+          error: backendResponse?.error || 'Backend rejected'
+        }));
+        
+        return {
+          success: false,
+          txHash: result.txHash,
+          error: backendResponse?.error || 'Backend processing failed'
+        };
+      }
+    } catch (backendError: any) {
+      console.error('[TON_TRANSACTION_WITH_BACKEND] Backend call failed', backendError);
+      
+      // Сохраняем для повторной попытки
+      localStorage.setItem('failed_ton_deposit', JSON.stringify({
+        txHash: result.txHash,
+        amount: parseFloat(amount),
+        walletAddress,
+        timestamp: Date.now(),
+        error: backendError?.message || 'Network error'
+      }));
+      
+      return {
+        success: false,
+        txHash: result.txHash,
+        error: 'Failed to register deposit on server'
+      };
+    }
+  } catch (error: any) {
+    console.error('[TON_TRANSACTION_WITH_BACKEND] Unexpected error', error);
+    return {
+      success: false,
+      error: error?.message || 'Unexpected error occurred'
+    };
+  }
+}
+}
+
+/**
  * Для совместимости со старым кодом
  */
 export const isWalletConnected = isTonWalletConnected;

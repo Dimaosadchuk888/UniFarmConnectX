@@ -59,6 +59,18 @@ The application leverages a modular and scalable architecture designed for high 
 - **Server Restart Recovery**: Critical issue resolved where application server stopped responding, causing all TON deposits to fail with HTTP_CODE: 000. Server restart restored JWT authentication and TON deposit endpoint accessibility. All deposit functionality now working correctly (Aug 6, 2025).
 - **FINAL TON DEPOSIT ARCHITECTURE FIX**: Critical architectural error completely resolved - all wallet controller methods now use correct `telegram.user.telegram_id` instead of wrong `telegram.user.id` for user lookup. Fixed in tonDeposit, getTransactionsList, saveTonAddress, transfer, createDeposit, and withdraw methods. TON deposits now successfully process for existing users instead of creating duplicate accounts. System architecture fully restored (Aug 6, 2025).
 - **TON DEPOSIT DUPLICATION BUG RESOLVED**: Fixed critical issue where `tonDeposit` controller created new users instead of using authenticated user from JWT token. Removed problematic `getOrCreateUserFromTelegram()` logic that caused deposits to be credited to wrong user accounts. TON deposits now correctly use `telegram.user.id` from JWT payload, ensuring deposits appear in correct user's transaction history and balance (Aug 6, 2025).
+- **TON DEPOSIT ARCHITECTURE COMPREHENSIVE IMPROVEMENTS** (Aug 6, 2025):
+  - Replaced `fetch` with `apiRequest` for automatic JWT token handling and refresh
+  - Added critical userId validation before deposit processing
+  - Implemented comprehensive deposit monitoring with DepositMonitor service
+  - Added automatic retry mechanism for failed deposits with localStorage backup
+  - Enhanced logging at every stage: transaction start, BOC sent, backend response
+  - Implemented failed deposit recovery on component mount (24-hour window)
+  - Added real-time wallet address validation before transaction
+  - Created `sendTonTransactionWithBackend` function for unified deposit flow
+  - Enhanced backend controller with detailed request logging
+  - Added critical error notifications and deposit success tracking
+  - Implemented deposit logs storage (last 50 operations) for debugging
 
 ## External Dependencies
 - **Telegram Mini App framework**: For core application functionality within Telegram.
