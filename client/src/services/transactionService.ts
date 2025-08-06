@@ -86,14 +86,8 @@ export async function fetchTransactionsV2(
   const cacheKey = `transactions-v2:${userId}:${page}:${limit}:${currency}`;
   
   try {
-    // Проверяем кеш
-    if (!forceRefresh) {
-      const cached = cacheService.get<{ transactions: Transaction[], total: number }>(cacheKey);
-      if (cached) {
-        console.log('[transactionService] Возвращаем кешированные V2 транзакции');
-        return cached;
-      }
-    } else {
+    // Инвалидируем кеш при принудительном обновлении
+    if (forceRefresh) {
       cacheService.invalidate(cacheKey);
     }
     
@@ -116,8 +110,9 @@ export async function fetchTransactionsV2(
     }
     
     const result = response.data;
+    console.log('[transactionService] Получены свежие V2 транзакции:', result.transactions.length);
     
-    // Сохраняем в кеш
+    // Сохраняем в кеш только для fallback (не используем для основной логики)
     cacheService.set(cacheKey, result, CACHE_CONFIG.TRANSACTIONS_TTL);
     
     return result;
