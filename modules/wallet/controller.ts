@@ -206,7 +206,7 @@ export class WalletController extends BaseController {
       // Детальное логирование для отладки с архитектурной информацией
       logger.info('[Withdraw] Найден пользователь для вывода', {
         userId: user.id,
-        telegramId: telegram.user.id,
+        telegramId: telegram.user.telegram_id,
         amount,
         currency,
         userBalanceUni: user.balance_uni,
@@ -331,7 +331,7 @@ export class WalletController extends BaseController {
       // Создание депозита
       const depositResult = await walletService.createDeposit({
         user_id: user.id,
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,
         amount: parseFloat(amount),
         currency: currency as 'UNI' | 'TON',
         deposit_type: type,
@@ -339,7 +339,7 @@ export class WalletController extends BaseController {
       });
 
       logger.info('[Wallet] Депозит создан', {
-        telegram_id: telegram.user.id,
+        telegram_id: telegram.user.telegram_id,
         amount: amount,
         currency: currency,
         type: type,
@@ -367,7 +367,7 @@ export class WalletController extends BaseController {
         const telegram = this.validateTelegramAuth(req, res);
         if (!telegram) return;
 
-        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        const user = await userRepository.getUserByTelegramId(telegram.user.telegram_id);
         if (!user) {
           return this.sendError(res, 'Пользователь не найден', 404);
         }
@@ -398,7 +398,7 @@ export class WalletController extends BaseController {
           return this.sendError(res, 'Некорректный адрес кошелька', 400);
         }
 
-        const user = await userRepository.getUserByTelegramId(telegram.user.id);
+        const user = await userRepository.getUserByTelegramId(telegram.user.telegram_id);
         if (!user) {
           return this.sendError(res, 'Пользователь не найден', 404);
         }
@@ -451,7 +451,7 @@ export class WalletController extends BaseController {
 
         // АРХИТЕКТУРНОЕ РЕШЕНИЕ: Wallet-Based Deposit Resolution
         // 1. Сначала пробуем найти пользователя по JWT (стандартный flow)
-        let user = await userRepository.getUserByTelegramId(telegram.user.id);
+        let user = await userRepository.getUserByTelegramId(telegram.user.telegram_id);
         let resolutionMethod = 'jwt_auth';
 
         // 2. Если пользователь не найден по JWT, ищем по кошельку
@@ -583,7 +583,7 @@ export class WalletController extends BaseController {
 
         const { to_user_id, amount, currency } = req.body;
 
-        const fromUser = await userRepository.getUserByTelegramId(telegram.user.id);
+        const fromUser = await userRepository.getUserByTelegramId(telegram.user.telegram_id);
         if (!fromUser) {
           return this.sendError(res, 'Пользователь-отправитель не найден', 404);
         }
