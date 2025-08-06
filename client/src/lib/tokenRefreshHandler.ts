@@ -31,7 +31,7 @@ async function refreshJWTToken(): Promise<TokenRefreshResult> {
 
     console.log('[TokenRefresh] Начинаем обновление токена...');
     
-    const response = await fetch('/api/v2/auth/refresh', {
+    const response = await fetch('/api/auth/refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

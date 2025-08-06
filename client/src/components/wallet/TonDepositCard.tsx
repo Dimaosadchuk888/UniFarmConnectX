@@ -17,6 +17,7 @@ import { formatAmount } from '@/utils/formatters';
 import { Wallet, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DepositMonitor } from '@/services/depositMonitor';
+import { depositRecoveryService } from '@/services/DepositRecoveryService';
 
 /**
  * Компонент для пополнения баланса через TON Wallet
@@ -70,30 +71,24 @@ const TonDepositCard: React.FC = () => {
     }
   };
 
-  // Проверяем неудачные депозиты при загрузке
+  // Слушаем события восстановления депозитов от DepositRecoveryService
   useEffect(() => {
-    const failedDeposit = localStorage.getItem('failed_ton_deposit');
-    if (failedDeposit && userId) {
-      try {
-        const data = JSON.parse(failedDeposit);
-        // Проверяем что депозит не слишком старый (24 часа)
-        if (Date.now() - data.timestamp < 86400000) {
-          toast({
-            title: "Обнаружен незавершенный депозит",
-            description: "Пытаемся восстановить транзакцию...",
-            duration: 5000
-          });
-          retryFailedDeposit(data);
-        } else {
-          // Удаляем старый failed deposit
-          localStorage.removeItem('failed_ton_deposit');
-        }
-      } catch (error) {
-        console.error('[TON_DEPOSIT] Failed to parse failed deposit data', error);
-        localStorage.removeItem('failed_ton_deposit');
-      }
-    }
-  }, [userId]);
+    const handleDepositRecovered = (event: CustomEvent) => {
+      const { amount } = event.detail;
+      toast({
+        title: "✅ Депозит восстановлен!",
+        description: `${amount} TON успешно зачислен на ваш баланс`,
+        duration: 5000,
+      });
+      refreshBalance(true); // Обновляем баланс
+    };
+    
+    window.addEventListener('deposit-recovered', handleDepositRecovered as EventListener);
+    
+    return () => {
+      window.removeEventListener('deposit-recovered', handleDepositRecovered as EventListener);
+    };
+  }, [toast, refreshBalance]);
 
   // Проверяем подключение кошелька при загрузке
   useEffect(() => {
