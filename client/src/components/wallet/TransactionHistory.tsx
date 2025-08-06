@@ -94,6 +94,14 @@ const TransactionHistory: React.FC = () => {
       }
     }
   }, [transactions, page]);
+
+  // Сброс страницы на 1 при автообновлении для отображения последних транзакций
+  useEffect(() => {
+    if (page > 1 && transactions.length > 0) {
+      // При получении новых данных сбрасываем на первую страницу
+      setPage(1);
+    }
+  }, [transactionsData]);
   
   // Восстанавливаем позицию скролла после рендера
   useEffect(() => {
