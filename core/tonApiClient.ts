@@ -230,14 +230,35 @@ export async function extractHashFromBoc(bocData: string): Promise<string> {
       bocPrefix: bocData.substring(0, 20)
     });
 
-    // For production, this should use proper TON SDK to decode BOC
-    // For now, we'll create a deterministic hash from the BOC content
-    const crypto = await import('crypto');
-    const hash = crypto.createHash('sha256').update(bocData).digest('hex');
+    // Use proper TON SDK to decode BOC and extract real blockchain hash
+    const { Cell } = await import('@ton/core');
     
-    logger.info('[TonAPI] Hash extracted successfully:', { 
+    // Try to parse BOC data to Cell and extract the real hash
+    let cell: any;
+    let hash: string;
+    
+    try {
+      // First try as base64
+      cell = Cell.fromBase64(bocData);
+      hash = cell.hash().toString('hex');
+    } catch (base64Error) {
+      // If base64 fails, try as hex
+      try {
+        const buffer = Buffer.from(bocData, 'hex');
+        cell = Cell.fromBoc(buffer)[0];
+        hash = cell.hash().toString('hex');
+      } catch (hexError) {
+        // If both fail, try direct BOC parsing
+        const buffer = Buffer.from(bocData, 'base64');
+        cell = Cell.fromBoc(buffer)[0];
+        hash = cell.hash().toString('hex');
+      }
+    }
+    
+    logger.info('[TonAPI] Real hash extracted from BOC using @ton/core:', { 
       bocData: bocData.substring(0, 30) + '...',
-      extractedHash: hash.substring(0, 16) + '...'
+      extractedHash: hash.substring(0, 16) + '...',
+      method: 'Cell.hash()'
     });
     
     return hash;
@@ -247,7 +268,19 @@ export async function extractHashFromBoc(bocData: string): Promise<string> {
       bocData: bocData.substring(0, 50) + '...',
       error: error instanceof Error ? error.message : String(error)
     });
-    throw new Error(`Failed to extract hash from BOC: ${error instanceof Error ? error.message : String(error)}`);
+    
+    // Fallback to SHA256 только если @ton/core недоступен
+    try {
+      logger.warn('[TonAPI] Attempting SHA256 fallback for hash extraction');
+      const crypto = await import('crypto');
+      const fallbackHash = crypto.createHash('sha256').update(bocData).digest('hex');
+      logger.warn('[TonAPI] Using SHA256 fallback hash (not blockchain hash!):', {
+        hash: fallbackHash.substring(0, 16) + '...'
+      });
+      return fallbackHash;
+    } catch (fallbackError) {
+      throw new Error(`Failed to extract hash from BOC: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 }
 

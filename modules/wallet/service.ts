@@ -402,15 +402,17 @@ export class WalletService {
           
           logger.info('[WalletService] Hash успешно извлечен из BOC', {
             extractedHash: extractedHash.substring(0, 16) + '...',
-            originalBocLength: originalBoc.length
+            originalBocLength: originalBoc.length,
+            method: '@ton/core Cell.hash()'
           });
         } catch (error) {
           logger.error('[WalletService] Ошибка извлечения hash из BOC', {
             error: error instanceof Error ? error.message : String(error),
             bocData: ton_tx_hash.substring(0, 50) + '...'
           });
-          // Используем оригинальные BOC данные как fallback
-          extractedHash = ton_tx_hash;
+          // НЕ используем BOC как hash - это критическая ошибка!
+          logger.error('[WalletService] CRITICAL: Cannot process BOC without proper hash extraction');
+          throw new Error('Failed to extract hash from BOC data');
         }
       }
 

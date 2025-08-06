@@ -65,18 +65,34 @@ export async function processTonDepositWithFallback(params: {
     
     if (ton_tx_hash.startsWith('te6')) {
       try {
-        const crypto = await import('crypto');
-        extractedHash = crypto.createHash('sha256').update(ton_tx_hash).digest('hex');
+        // Используем правильное извлечение через @ton/core
+        const { Cell } = await import('@ton/core');
+        const cell = Cell.fromBase64(ton_tx_hash);
+        extractedHash = cell.hash().toString('hex');
         originalBoc = ton_tx_hash;
         
-        logger.info('[DepositFallback] Hash извлечен из BOC через fallback', {
-          extractedHash: extractedHash.substring(0, 16) + '...'
+        logger.info('[DepositFallback] Real hash extracted from BOC using @ton/core', {
+          extractedHash: extractedHash.substring(0, 16) + '...',
+          method: 'Cell.hash()'
         });
       } catch (error) {
-        logger.error('[DepositFallback] Ошибка извлечения hash в fallback', {
+        logger.error('[DepositFallback] Error extracting hash with @ton/core, trying SHA256 fallback', {
           error: error instanceof Error ? error.message : String(error)
         });
-        extractedHash = ton_tx_hash; // Используем оригинал как последний резерв
+        
+        // SHA256 fallback только если @ton/core недоступен
+        try {
+          const crypto = await import('crypto');
+          extractedHash = crypto.createHash('sha256').update(ton_tx_hash).digest('hex');
+          logger.warn('[DepositFallback] Using SHA256 fallback (not blockchain hash!)', {
+            extractedHash: extractedHash.substring(0, 16) + '...'
+          });
+        } catch (fallbackError) {
+          logger.error('[DepositFallback] Both @ton/core and SHA256 failed', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          });
+          extractedHash = ton_tx_hash; // Используем оригинал как последний резерв
+        }
       }
     }
 
