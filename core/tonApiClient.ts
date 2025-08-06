@@ -269,18 +269,8 @@ export async function extractHashFromBoc(bocData: string): Promise<string> {
       error: error instanceof Error ? error.message : String(error)
     });
     
-    // Fallback to SHA256 только если @ton/core недоступен
-    try {
-      logger.warn('[TonAPI] Attempting SHA256 fallback for hash extraction');
-      const crypto = await import('crypto');
-      const fallbackHash = crypto.createHash('sha256').update(bocData).digest('hex');
-      logger.warn('[TonAPI] Using SHA256 fallback hash (not blockchain hash!):', {
-        hash: fallbackHash.substring(0, 16) + '...'
-      });
-      return fallbackHash;
-    } catch (fallbackError) {
-      throw new Error(`Failed to extract hash from BOC: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    // НЕ используем SHA256 fallback - лучше отклонить депозит, чем создать фейковый хэш
+    throw new Error(`Failed to extract blockchain hash from BOC: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
