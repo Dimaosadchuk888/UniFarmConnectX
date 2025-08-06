@@ -440,11 +440,12 @@ export class WalletService {
         }
       });
 
-      if (!result.success) {
-        logger.error('[WalletService] UnifiedTransactionService вернул ошибку', {
+      if (!result.success || !result.transaction_id) {
+        logger.error('[WalletService] UnifiedTransactionService вернул ошибку или не создал транзакцию', {
           userId: user_id,
           txHash: ton_tx_hash,
-          error: result.error
+          error: result.error,
+          hasTransactionId: !!result.transaction_id
         });
 
         // КРИТИЧНОЕ ЛОГИРОВАНИЕ НЕУДАЧНОГО ДЕПОЗИТА

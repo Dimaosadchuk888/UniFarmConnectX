@@ -110,12 +110,12 @@ export class UnifiedTransactionService {
         const baseBoc = this.extractBaseBoc(txHashToCheck);
         logger.info('[UnifiedTransactionService] Базовый BOC для дедупликации:', baseBoc);
         
-        // ТОЧНАЯ проверка дублирования - только для ТОЧНО совпадающих транзакций
+        // ИСПРАВЛЕНО: Проверяем дубликаты для ВСЕХ пользователей чтобы предотвратить переиспользование BOC
         const { data: existingTransactions, error: checkError } = await supabase
           .from('transactions')
           .select('id, created_at, user_id, amount_ton, type, description, tx_hash_unique, status')
-          .eq('tx_hash_unique', txHashToCheck)  // ИСПРАВЛЕНО: точное совпадение вместо LIKE
-          .eq('user_id', user_id)  // ИСПРАВЛЕНО: проверяем только для того же пользователя
+          .eq('tx_hash_unique', txHashToCheck)  // Точное совпадение hash
+          // Убрали проверку user_id - блокируем использование одного BOC разными пользователями
           .order('created_at', { ascending: false });
           
         if (existingTransactions && existingTransactions.length > 0 && !checkError) {
@@ -129,7 +129,8 @@ export class UnifiedTransactionService {
           const existingNotFailed = existing.status !== 'failed' && existing.status !== 'error';
           const isSameType = existing.type === TRANSACTION_TYPE_MAPPING[type];
 
-          const shouldBlock = isRecentDuplicate && isSameAmount && isSameUser && existingNotFailed && isSameType;
+          // ИСПРАВЛЕНО: Блокируем ВСЕ повторные депозиты с тем же hash для депозитов
+          const shouldBlock = existingNotFailed && (type === 'TON_DEPOSIT' || type === 'FARMING_DEPOSIT');
 
           if (shouldBlock) {
             // КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ ЗАБЛОКИРОВАННЫХ ДЕПОЗИТОВ

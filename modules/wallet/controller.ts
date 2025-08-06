@@ -249,12 +249,27 @@ export class WalletController extends BaseController {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
-      const userId = req.query.user_id as string;
+      // ИСПРАВЛЕНО: Автоматически берем user_id из JWT если не передан в параметрах
+      // Используем telegram.user.id который загружен из БД в telegramAuth middleware
+      const userId = req.query.user_id as string || telegram.user?.id?.toString();
+      
+      // Добавляем отладочное логирование
+      if (!req.query.user_id) {
+        logger.info('[Wallet] getBalance - автоматически используем user_id из JWT', {
+          telegram_user_id: telegram.user?.id,
+          telegram_obj: telegram,
+          query_param: req.query.user_id
+        });
+      }
       
       if (!userId) {
+        logger.error('[Wallet] getBalance - не удалось определить user_id', {
+          telegram: telegram,
+          query: req.query
+        });
         return res.status(400).json({
           success: false,
-          error: 'Отсутствует параметр user_id'
+          error: 'Не удалось определить user_id'
         });
       }
 
