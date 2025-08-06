@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { 
   Sprout, 
   Gift, 
@@ -480,4 +480,10 @@ const StyledTransactionItem: React.FC<StyledTransactionItemProps> = ({
   );
 };
 
-export default StyledTransactionItem;
+// Мемоизируем компонент для предотвращения лишних перерендеров
+// Компонент перерендерится только если изменится transaction prop
+export default memo(StyledTransactionItem, (prevProps, nextProps) => {
+  // Возвращаем true если props одинаковые (не нужен перерендер)
+  return prevProps.transaction.id === nextProps.transaction.id &&
+         prevProps.transaction.status === nextProps.transaction.status;
+});

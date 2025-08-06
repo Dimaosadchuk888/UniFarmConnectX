@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/contexts/userContext';
@@ -22,11 +22,21 @@ const TransactionHistory: React.FC = () => {
   // Состояние для накопления транзакций при пагинации
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   
+  // Сохраняем позицию скролла для восстановления
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollPositionRef = useRef<number>(0);
+  
   // Получаем данные пользователя из контекста
   const { userId } = useUser();
   
   // Получаем доступ к системе уведомлений
   const { error: showError } = useNotification();
+  
+  // Мемоизируем queryKey чтобы избежать лишних перезапросов
+  const queryKey = useMemo(
+    () => ['/api/v2/transactions', userId, page, limit, activeFilter],
+    [userId, page, limit, activeFilter]
+  );
   
   // Запрос транзакций
   const {
@@ -36,7 +46,7 @@ const TransactionHistory: React.FC = () => {
     isFetching,
     refetch
   } = useQuery({
-    queryKey: ['/api/v2/transactions', userId, page, limit, activeFilter],
+    queryKey,
     queryFn: async () => {
       if (!userId) return { transactions: [], total: 0 };
       
@@ -63,6 +73,11 @@ const TransactionHistory: React.FC = () => {
   
   // Обновляем накопленные транзакции при получении новых данных
   useEffect(() => {
+    // Сохраняем текущую позицию скролла перед обновлением
+    if (scrollContainerRef.current) {
+      scrollPositionRef.current = scrollContainerRef.current.scrollTop || window.scrollY;
+    }
+    
     if (transactions.length > 0) {
       if (page === 1) {
         // При первой странице или смене фильтра сбрасываем все транзакции
@@ -80,6 +95,20 @@ const TransactionHistory: React.FC = () => {
     }
   }, [transactions, page]);
   
+  // Восстанавливаем позицию скролла после рендера
+  useEffect(() => {
+    if (scrollPositionRef.current > 0 && !isLoading) {
+      // Небольшая задержка для гарантии завершения рендера
+      requestAnimationFrame(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollPositionRef.current;
+        } else {
+          window.scrollTo(0, scrollPositionRef.current);
+        }
+      });
+    }
+  }, [allTransactions, isLoading]);
+  
   // Функции форматирования и конфигурации теперь перенесены в StyledTransactionItem
   
   // Обработчик смены фильтра
@@ -87,12 +116,17 @@ const TransactionHistory: React.FC = () => {
     setActiveFilter(filter);
     setPage(1); // Сбрасываем пагинацию при смене фильтра
     setAllTransactions([]); // Очищаем накопленные транзакции
+    scrollPositionRef.current = 0; // Сбрасываем позицию скролла при смене фильтра
     
     // Уведомление о смене фильтра удалено для упрощения UX
   };
   
-  // Обработчик обновления данных
+  // Обработчик обновления данных с сохранением позиции скролла
   const handleRefresh = () => {
+    // Сохраняем позицию скролла перед обновлением
+    if (scrollContainerRef.current) {
+      scrollPositionRef.current = scrollContainerRef.current.scrollTop || window.scrollY;
+    }
     refetch();
   };
   
@@ -128,7 +162,9 @@ const TransactionHistory: React.FC = () => {
   }
 
   return (
-    <div className="bg-card rounded-xl p-3 sm:p-5 mb-5 shadow-lg overflow-hidden relative">
+    <div 
+      ref={scrollContainerRef}
+      className="bg-card rounded-xl p-3 sm:p-5 mb-5 shadow-lg overflow-hidden relative">
       {/* Неоновая рамка */}
       <div className="absolute inset-0 rounded-xl border border-primary/30"></div>
       
@@ -223,8 +259,9 @@ const TransactionHistory: React.FC = () => {
                 key={transaction.id}
                 className="animate-fadeInUp"
                 style={{
-                  animationDelay: `${Math.min(index * 50, 300)}ms`,
-                  animationDuration: '0.4s',
+                  // Ограничиваем анимацию только первыми 10 элементами для производительности
+                  animationDelay: index < 10 ? `${index * 50}ms` : '0ms',
+                  animationDuration: index < 10 ? '0.4s' : '0s',
                   animationFillMode: 'both'
                 }}
               >
