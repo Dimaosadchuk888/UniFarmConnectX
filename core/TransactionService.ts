@@ -218,7 +218,22 @@ export class UnifiedTransactionService {
 
       // Автоматическое обновление баланса пользователя для транзакций доходов
       if (this.shouldUpdateBalance(type)) {
-        await this.updateUserBalance(user_id, amount_uni, amount_ton, dbTransactionType);
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Передаем правильные суммы для TON_DEPOSIT
+        // Проблема была в том, что amount может быть в поле amount, а не amount_ton
+        let finalAmountUni = amount_uni;
+        let finalAmountTon = amount_ton;
+        
+        // Для TON_DEPOSIT убеждаемся, что сумма в правильном поле
+        if (type === 'TON_DEPOSIT' && amount_ton === 0 && amount > 0) {
+          finalAmountTon = amount;
+          logger.warn('[TransactionService] Корректировка для TON_DEPOSIT: amount перенесен в amount_ton', {
+            original_amount_ton: amount_ton,
+            amount,
+            corrected_amount_ton: finalAmountTon
+          });
+        }
+        
+        await this.updateUserBalance(user_id, finalAmountUni, finalAmountTon, dbTransactionType);
       }
 
       logger.info('[UnifiedTransactionService] Транзакция создана:', {
@@ -472,34 +487,65 @@ export class UnifiedTransactionService {
     type: TransactionsTransactionType
   ): Promise<void> {
     try {
-      // Используем BalanceManager для централизованного обновления баланса
-      const { BalanceManager } = await import('./BalanceManager');
-      const balanceManager = BalanceManager.getInstance();
-      
-      if (amount_uni > 0) {
-        await balanceManager.addBalance(user_id, amount_uni, 0);
-      }
-      
-      if (amount_ton > 0) {
-        await balanceManager.addBalance(user_id, 0, amount_ton);
-      }
-
-      logger.info('[UnifiedTransactionService] Баланс обновлен успешно', {
-        user_id,
-        amount_uni,
-        amount_ton,
-        type
-      });
-
-    } catch (error) {
-      logger.error('[UnifiedTransactionService] Ошибка обновления баланса', {
+      // КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ для диагностики проблем с балансом
+      logger.info('[UnifiedTransactionService] Начинаем обновление баланса', {
         user_id,
         amount_uni,
         amount_ton,
         type,
-        error
+        has_uni: amount_uni > 0,
+        has_ton: amount_ton > 0
+      });
+
+      // Используем BalanceManager для централизованного обновления баланса
+      const { BalanceManager } = await import('./BalanceManager');
+      const balanceManager = BalanceManager.getInstance();
+      
+      let updateResult = null;
+      
+      if (amount_uni > 0) {
+        logger.info('[UnifiedTransactionService] Обновляем UNI баланс', {
+          user_id,
+          amount: amount_uni
+        });
+        updateResult = await balanceManager.addBalance(user_id, amount_uni, 0);
+        if (!updateResult.success) {
+          throw new Error(`Не удалось обновить UNI баланс: ${updateResult.error}`);
+        }
+      }
+      
+      if (amount_ton > 0) {
+        logger.info('[UnifiedTransactionService] Обновляем TON баланс', {
+          user_id,
+          amount: amount_ton
+        });
+        updateResult = await balanceManager.addBalance(user_id, 0, amount_ton);
+        if (!updateResult.success) {
+          throw new Error(`Не удалось обновить TON баланс: ${updateResult.error}`);
+        }
+      }
+
+      logger.info('[UnifiedTransactionService] ✅ Баланс обновлен успешно', {
+        user_id,
+        amount_uni,
+        amount_ton,
+        type,
+        new_balance: updateResult?.newBalance
+      });
+
+    } catch (error) {
+      // КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ неудачных обновлений баланса
+      logger.error('[CRITICAL] [BALANCE_UPDATE_FAILED]', {
+        user_id,
+        amount_uni,
+        amount_ton,
+        type,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
       });
       // НЕ блокируем создание транзакции при ошибке баланса
+      // но теперь логируем это как критическую ошибку
     }
   }
 

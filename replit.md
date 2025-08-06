@@ -33,7 +33,7 @@ The application leverages a modular and scalable architecture designed for high 
 - **Automated Schedulers**: Critical operations like farming income generation and boost verification are managed by automated schedulers.
 - **Robust Error Handling**: Emphasizes detailed logging and user-friendly error messages.
 - **UI/UX Decisions**: Responsive and adaptive UI components, custom branded toast notifications, streamlined interfaces.
-- **Security**: JWT token watch and recovery, single-path TON deposit processing with precise deduplication (phantom deposits fixed August 3, 2025), robust authentication middleware, comprehensive transaction duplication protection system (critical fixes August 3-4, 2025), balance caching race condition resolution (August 3, 2025), Telegram page refresh error handling (fixed August 4, 2025), smart deduplication logic with time-based filtering (critical fix August 4, 2025), complete elimination of FARMING_REWARD and REFERRAL_REWARD duplicates (August 4, 2025), TonAPI SDK integration completely restored (critical fix August 4, 2025), Transaction History API endpoints fully restored (critical fix August 4, 2025).
+- **Security**: JWT token watch and recovery, single-path TON deposit processing with precise deduplication (phantom deposits fixed August 3, 2025), robust authentication middleware, comprehensive transaction duplication protection system (critical fixes August 3-4, 2025), balance caching race condition resolution (August 3, 2025), Telegram page refresh error handling (fixed August 4, 2025), smart deduplication logic with time-based filtering (critical fix August 4, 2025), complete elimination of FARMING_REWARD and REFERRAL_REWARD duplicates (August 4, 2025), TonAPI SDK integration completely restored (critical fix August 4, 2025), Transaction History API endpoints fully restored (critical fix August 4, 2025), TON deposit balance update critical bug fixed - deposits now correctly update balance_ton field (August 6, 2025).
 - **Performance**: WebSocket debounce, cache management, optimized API performance, BalanceUpdateCoordinator for race condition prevention (August 3, 2025), smart caching with 60s TTL and stale-while-revalidate strategy.
 
 **Key Architectural Components:**
@@ -71,6 +71,14 @@ The application leverages a modular and scalable architecture designed for high 
   - Enhanced backend controller with detailed request logging
   - Added critical error notifications and deposit success tracking
   - Implemented deposit logs storage (last 50 operations) for debugging
+- **TON DEPOSIT BALANCE UPDATE BUG RESOLVED** (Aug 6, 2025):
+  - Fixed critical issue in TransactionService where TON deposits created transactions but failed to update balance_ton
+  - Root cause: amount was passed in 'amount' field but code looked for 'amount_ton' 
+  - Solution: Added smart correction logic for TON_DEPOSIT transactions to handle both field formats
+  - Enhanced critical logging for all balance update operations with [CRITICAL] tags
+  - Created diagnostic script (diagnose-deposit-failure.ts) for deposit chain verification
+  - Created recovery script (fix-ton-balances.ts) to recalculate balances from transaction history
+  - Result: TON deposits now correctly update user balance_ton field immediately
 
 ## External Dependencies
 - **Telegram Mini App framework**: For core application functionality within Telegram.
