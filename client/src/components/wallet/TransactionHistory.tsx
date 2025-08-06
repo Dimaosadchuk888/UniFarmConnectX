@@ -64,8 +64,8 @@ const TransactionHistory: React.FC = () => {
       }
     },
     enabled: !!userId,
-    staleTime: 30000, // 30 секунд
-    refetchInterval: 60000, // Обновляем каждую минуту
+    staleTime: 5000, // 5 секунд - быстрое отображение новых транзакций
+    refetchInterval: 15000, // Обновляем каждые 15 секунд
   });
   
   const transactions = transactionsData?.transactions || [];

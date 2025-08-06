@@ -6,7 +6,7 @@ import { cacheService } from './cacheService';
 const CACHE_CONFIG = {
   TRANSACTIONS_KEY: (userId: number, limit: number, offset: number) => `transactions:${userId}:${limit}:${offset}`,
   TON_TRANSACTIONS_KEY: (userId: number, limit: number, offset: number) => `ton-transactions:${userId}:${limit}:${offset}`,
-  TRANSACTIONS_TTL: 60000 // 60 секунд, как указано в компоненте
+  TRANSACTIONS_TTL: 15000 // 15 секунд - быстрое обновление для финансовых данных
 };
 
 /**
