@@ -53,6 +53,7 @@ type TransactionConfigType =
   | 'TON_DEPOSIT'
   | 'UNI_WITHDRAWAL'
   | 'BOOST_PURCHASE'
+  | 'TON_BOOST_PURCHASE'
   | 'AIRDROP_REWARD';
 
 // Конфигурация стилей для каждого типа транзакции
@@ -258,6 +259,19 @@ const getTransactionConfig = (type: string, description?: string, metadata?: any
       iconBg: 'bg-orange-500/20',
       textColor: 'text-orange-300',
       amountColor: 'text-orange-400'
+    },
+    
+    // TON Boost Purchase - Оранжевый с красным оттенком для списания
+    'TON_BOOST_PURCHASE': {
+      icon: Package,
+      label: 'Покупка TON Boost',
+      emoji: '📦',
+      bgGradient: 'from-orange-500/20 to-red-600/20',
+      borderColor: 'border-orange-500/40',
+      iconColor: 'text-orange-400',
+      iconBg: 'bg-orange-500/20',
+      textColor: 'text-orange-300',
+      amountColor: 'text-red-400'  // Красный цвет для отрицательной суммы
     },
     
     // Airdrop - Радужный магический

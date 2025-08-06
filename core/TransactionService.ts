@@ -24,7 +24,7 @@ const TRANSACTION_TYPE_MAPPING: Record<ExtendedTransactionType, TransactionsTran
   'UNI_DEPOSIT': 'DEPOSIT',               // UNI депозиты → DEPOSIT (ИСПРАВЛЕНО: было FARMING_REWARD)
   'UNI_WITHDRAWAL': 'WITHDRAWAL',         // Выводы UNI → WITHDRAWAL
   'TON_WITHDRAWAL': 'WITHDRAWAL',         // Выводы TON → WITHDRAWAL
-  'BOOST_PURCHASE': 'BOOST_PAYMENT',      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: было FARMING_REWARD → теперь BOOST_PAYMENT
+  'BOOST_PURCHASE': 'TON_BOOST_PURCHASE', // ИСПРАВЛЕНО: используем существующий тип в БД для отображения списания TON
   'AIRDROP_REWARD': 'DAILY_BONUS',        // Airdrop награды → DAILY_BONUS
   // Маппинг lowercase для обратной совместимости
   'withdrawal': 'WITHDRAWAL',              // Lowercase вывод → WITHDRAWAL

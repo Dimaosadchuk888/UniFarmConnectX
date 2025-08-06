@@ -93,6 +93,12 @@ The application leverages a modular and scalable architecture designed for high 
   - Confirmed correct field usage: amount_ton for transactions, balance_ton for user balances
   - System now guarantees: no fake hashes, no lost deposits, full data consistency
   - Result: ConnectWallet system fully production-ready with 100% reliability
+- **TON BOOST PURCHASE TRANSACTION FIX** (Aug 6, 2025):
+  - Fixed missing -1 TON deduction transaction in history when purchasing TON Boost packages
+  - Root cause: BOOST_PURCHASE was mapped to non-existent BOOST_PAYMENT type in database
+  - Solution: Changed mapping to existing TON_BOOST_PURCHASE type in TransactionService.ts
+  - Added UI configuration for TON_BOOST_PURCHASE with proper styling (orange package icon, red amount)
+  - Result: Users now see complete transaction history including TON deductions for Boost purchases
 
 ## External Dependencies
 - **Telegram Mini App framework**: For core application functionality within Telegram.
