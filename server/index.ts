@@ -899,7 +899,7 @@ async function startServer() {
       logger.warn(`[Static Files] Папка dist не найдена! Используем Vite в production режиме.`);
     }
     
-    // SPA fallback - serve index.html for non-API routes
+    // SPA fallback - serve index.html for non-API routes  
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
       // Skip API routes, static assets and webhook
       if (req.path.startsWith('/api/') || 
@@ -911,15 +911,33 @@ async function startServer() {
         return next();
       }
       
-      // В режиме разработки отдаем client/index.html
+      console.log(`[SPA-FALLBACK] Serving index.html for path: ${req.path}`);
+      console.log(`[SPA-FALLBACK] User-Agent: ${req.get('User-Agent')?.substring(0, 100)}...`);
+      console.log(`[SPA-FALLBACK] Accept header: ${req.get('Accept')}`);
+      
+      // ИСПРАВЛЕНО: правильные пути к index.html для обоих режимов
       const indexPath = process.env.NODE_ENV === 'production' 
-        ? path.resolve(process.cwd(), 'dist', 'public', 'index.html')
-        : path.resolve(process.cwd(), 'client', 'index.html');
+        ? path.resolve(process.cwd(), 'dist', 'public', 'index.html')  // Production: dist/public/index.html
+        : path.resolve(process.cwd(), 'client', 'index.html');         // Development: client/index.html
+      
+      console.log(`[SPA-FALLBACK] Serving file: ${indexPath}`);
       
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
-      res.sendFile(indexPath);
+      
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error(`[SPA-FALLBACK] ❌ Error serving index.html:`, err);
+          res.status(500).json({
+            success: false,
+            error: 'Failed to load application',
+            message: 'Перезагрузите приложение через меню бота'
+          });
+        } else {
+          console.log(`[SPA-FALLBACK] ✅ Successfully served index.html for ${req.path}`);
+        }
+      });
     });
 
     // ДОПОЛНИТЕЛЬНЫЕ WEBHOOK МАРШРУТЫ для надежности
