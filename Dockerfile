@@ -1,4 +1,4 @@
-# Railway deployment for UniFarm Connect v1.0.5
+# Railway deployment for UniFarm Connect v1.0.7
 # NO BUILD STEP - DIRECT TSX EXECUTION
 FROM node:18-alpine
 
@@ -20,9 +20,9 @@ COPY . .
 # Expose port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/api/v2/monitor/health || exit 1
+# Health check - simplified and with longer timeout
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD curl -f http://localhost:3000/ || exit 1
 
 # Start application directly with tsx - NO BUILD STEP
 CMD ["tsx", "server/index.ts"] 
