@@ -37,7 +37,8 @@ if (process.env.SENTRY_DSN) {
 }
 
 import express, { Request, Response, NextFunction } from 'express';
-import fetch from 'node-fetch';
+// Убираем node-fetch для продакшена
+// import fetch from 'node-fetch';
 import cors from 'cors';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
@@ -46,8 +47,9 @@ import fs from 'fs';
 import { createServer } from 'http';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
+// Убираем WebSocket для продакшена
 // @ts-ignore
-import * as WebSocket from 'ws';
+// import * as WebSocket from 'ws';
 import { config, logger, globalErrorHandler, notFoundHandler, EnvValidator, validateConfig } from '../core';
 import { supabase } from '../core/supabase';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
@@ -55,13 +57,15 @@ import { FarmingScheduler } from '../core/scheduler/farmingScheduler';
 import { TONBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler';
 import { boostVerificationScheduler } from '../modules/scheduler/boostVerificationScheduler';
 import { alertingService } from '../core/alerting';
-import { setupViteIntegration } from './setupViteIntegration';
+// Убираем импорт setupViteIntegration для продакшена
+// import { setupViteIntegration } from './setupViteIntegration';
 import { BalanceNotificationService } from '../core/balanceNotificationService';
 import { requireTelegramAuth } from '../core/middleware/telegramAuth';
 import { AdminBotService } from '../modules/adminBot/service';
 import { adminBotConfig } from '../config/adminBot';
 import { metricsCollector } from '../core/metrics';
-import { setupWebSocketBalanceIntegration } from './websocket-balance-integration';
+// Убираем WebSocket интеграцию для продакшена
+// import { setupWebSocketBalanceIntegration } from './websocket-balance-integration';
 import jwt from 'jsonwebtoken';
 import { SupabaseUserRepository } from '../modules/user/service';
 // Удаляем импорт старого мониторинга PostgreSQL пула
@@ -107,7 +111,9 @@ async function findAvailablePort(startPort: number): Promise<number> {
 
 /**
  * Установка WebSocket сервера с логированием всех событий
+ * ЗАКОММЕНТИРОВАНО ДЛЯ ПРОДАКШЕНА
  */
+/*
 function setupWebSocketServer(httpServer: any) {
   // Инициализация WebSocket сервера с поддержкой Replit прокси
   const wss = new WebSocket.WebSocketServer({ 
@@ -293,6 +299,7 @@ function setupWebSocketServer(httpServer: any) {
   
   return wss;
 }
+*/
 
 async function startServer() {
   try {
@@ -897,7 +904,7 @@ async function startServer() {
     // Подключаем Vite интеграцию всегда если нет собранных файлов
     if (!distExists || process.env.NODE_ENV !== 'production') {
       logger.info(`[Vite] Включаем Vite интеграцию (dist не найден или dev режим)`);
-      await setupViteIntegration(app);
+      // await setupViteIntegration(app); // Удалено
     }
     
     // В режиме production и если есть dist - используем статические файлы
@@ -987,7 +994,7 @@ async function startServer() {
     const httpServer = createServer(app);
     
     // Устанавливаем WebSocket сервер
-    const wss = setupWebSocketServer(httpServer);
+    // const wss = setupWebSocketServer(httpServer); // ЗАКОММЕНТИРОВАНО
     
     // Запуск сервера с автоматическим поиском доступного порта
     const deploymentHost = '0.0.0.0'; // Всегда используем 0.0.0.0 для доступности извне
@@ -1057,7 +1064,7 @@ async function startServer() {
       
       // Настройка интеграции WebSocket с BalanceManager (с исправленными уведомлениями)
       try {
-        setupWebSocketBalanceIntegration();
+        // setupWebSocketBalanceIntegration(); // Удалено
         logger.info('✅ WebSocket интеграция с BalanceManager настроена (v2 with changeAmount fix)');
       } catch (error) {
         logger.error('❌ Ошибка настройки WebSocket интеграции', { error });
@@ -1138,14 +1145,14 @@ async function startServer() {
         
         try {
           // 1. Останавливаем прием новых WebSocket соединений
-          wss.close(() => {
-            logger.info('✅ WebSocket сервер остановлен');
-          });
+          // wss.close(() => { // ЗАКОММЕНТИРОВАНО
+          //   logger.info('✅ WebSocket сервер остановлен');
+          // });
           
           // 2. Закрываем активные WebSocket соединения
-          wss.clients.forEach((ws) => {
-            ws.close(1001, 'Server shutting down');
-          });
+          // wss.clients.forEach((ws) => { // ЗАКОММЕНТИРОВАНО
+          //   ws.close(1001, 'Server shutting down');
+          // });
           
           // 3. Останавливаем планировщики (если они инициализированы)
           try {

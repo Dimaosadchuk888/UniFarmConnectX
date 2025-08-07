@@ -25,8 +25,19 @@ const createSupabaseClient = () => {
     return {
       from: () => ({
         select: () => ({ 
-          eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }),
-          limit: () => Promise.resolve({ data: null, error: null })
+          eq: () => ({ 
+            single: () => Promise.resolve({ data: null, error: null }),
+            limit: () => Promise.resolve({ data: null, error: null }),
+            order: () => Promise.resolve({ data: null, error: null }),
+            gte: () => ({ limit: () => Promise.resolve({ data: null, error: null }) }),
+            gt: () => ({ limit: () => Promise.resolve({ data: null, error: null }) }),
+            in: () => ({ limit: () => Promise.resolve({ data: null, error: null }) })
+          }),
+          limit: () => Promise.resolve({ data: null, error: null }),
+          order: () => Promise.resolve({ data: null, error: null }),
+          gte: () => ({ limit: () => Promise.resolve({ data: null, error: null }) }),
+          gt: () => ({ limit: () => Promise.resolve({ data: null, error: null }) }),
+          in: () => ({ limit: () => Promise.resolve({ data: null, error: null }) })
         }),
         insert: () => Promise.resolve({ data: null, error: null }),
         update: () => ({ eq: () => Promise.resolve({ data: null, error: null }) }),
@@ -38,7 +49,8 @@ const createSupabaseClient = () => {
         signUp: () => Promise.resolve({ data: null, error: null }),
         signIn: () => Promise.resolve({ data: null, error: null }),
         signOut: () => Promise.resolve({ error: null })
-      }
+      },
+      rpc: () => Promise.resolve({ data: null, error: null })
     };
   }
   
