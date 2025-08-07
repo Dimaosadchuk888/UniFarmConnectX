@@ -47,10 +47,10 @@
     "ton": "^13.9.0",
     "ton-core": "^0.53.0",
     "ton-crypto": "^3.2.0",
-    "ton-connect": "^2.0.0",
+    "@tonconnect/sdk": "^2.0.0",
     "tonconnect-manifest": "^1.0.0",
     "tonapi-sdk-js": "^2.0.0",
-    "sentry-node": "^7.0.0",
+    "@sentry/node": "^7.0.0",
     "node-telegram-bot-api": "^0.64.0"
   },
   "devDependencies": {
@@ -78,10 +78,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/UniFarmConnect.git"
+    "url": "https://github.com/Dimaosadchuk888/UniFarmConnectX.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/UniFarmConnect/issues"
+    "url": "https://github.com/Dimaosadchuk888/UniFarmConnectX/issues"
   },
-  "homepage": "https://github.com/yourusername/UniFarmConnect#readme"
+  "homepage": "https://github.com/Dimaosadchuk888/UniFarmConnectX#readme"
 }
