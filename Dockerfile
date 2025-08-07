@@ -1,4 +1,5 @@
-# Railway deployment for UniFarm Connect v1.0.7
+# Railway deployment for UniFarm Connect v1.0.11
+# FIXED: Disabled config validation in production for mock data
 # NO BUILD STEP - DIRECT TSX EXECUTION
 FROM node:18-alpine
 
