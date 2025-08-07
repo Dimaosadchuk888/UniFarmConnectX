@@ -10,14 +10,14 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (using npm install instead of npm ci for better compatibility)
-RUN npm install --production
+# Install dependencies including tsx globally
+RUN npm install --production && npm install -g tsx
 
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Create dist directory and copy files (no TypeScript compilation needed)
+RUN mkdir -p dist && cp -r server dist/ && cp -r core dist/ && cp -r config dist/ && cp -r modules dist/ && cp -r types dist/ && cp package.json dist/
 
 # Expose port
 EXPOSE 3000
