@@ -936,6 +936,49 @@ async function startServer() {
       logger.warn(`[Static Files] Папка dist не найдена! Используем Vite в production режиме.`);
     }
     
+    // ДИАГНОСТИЧЕСКИЕ ENDPOINTS ДО SPA FALLBACK
+    app.get('/test-app', (req: Request, res: Response) => {
+      console.log('[TEST-APP] ✅ Endpoint called successfully');
+      res.json({
+        success: true,
+        message: 'Application server is working',
+        timestamp: new Date().toISOString(),
+        userAgent: req.get('User-Agent'),
+        host: req.get('Host'),
+        path: req.path
+      });
+    });
+
+    app.get('/test-static', (req: Request, res: Response) => {
+      const indexPath = path.resolve(process.cwd(), 'dist', 'public', 'index.html');
+      const fileExists = fs.existsSync(indexPath);
+      res.json({
+        success: true,
+        indexPath,
+        fileExists,
+        fileSize: fileExists ? fs.statSync(indexPath).size : 0
+      });
+    });
+
+    app.get('/test-html', (req: Request, res: Response) => {
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>UniFarm Test</title>
+        </head>
+        <body>
+          <h1>UniFarm Connect - Test Page</h1>
+          <p>Server is working correctly!</p>
+          <p>Timestamp: ${new Date().toISOString()}</p>
+          <p>User-Agent: ${req.get('User-Agent')}</p>
+          <p>Host: ${req.get('Host')}</p>
+          <a href="/">Go to main app</a>
+        </body>
+        </html>
+      `);
+    });
+    
     // SPA fallback - serve index.html for non-API routes  
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
       console.log(`[SPA-FALLBACK-CHECK] Checking path: ${req.path}`);
@@ -981,49 +1024,6 @@ async function startServer() {
           console.log(`[SPA-FALLBACK] ✅ Successfully served index.html for ${req.path}`);
         }
       });
-    });
-
-    // ДИАГНОСТИЧЕСКИЕ ENDPOINTS ПОСЛЕ SPA FALLBACK
-    app.get('/test-app', (req: Request, res: Response) => {
-      console.log('[TEST-APP] ✅ Endpoint called successfully');
-      res.json({
-        success: true,
-        message: 'Application server is working',
-        timestamp: new Date().toISOString(),
-        userAgent: req.get('User-Agent'),
-        host: req.get('Host'),
-        path: req.path
-      });
-    });
-
-    app.get('/test-static', (req: Request, res: Response) => {
-      const indexPath = path.resolve(process.cwd(), 'dist', 'public', 'index.html');
-      const fileExists = fs.existsSync(indexPath);
-      res.json({
-        success: true,
-        indexPath,
-        fileExists,
-        fileSize: fileExists ? fs.statSync(indexPath).size : 0
-      });
-    });
-
-    app.get('/test-html', (req: Request, res: Response) => {
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>UniFarm Test</title>
-        </head>
-        <body>
-          <h1>UniFarm Connect - Test Page</h1>
-          <p>Server is working correctly!</p>
-          <p>Timestamp: ${new Date().toISOString()}</p>
-          <p>User-Agent: ${req.get('User-Agent')}</p>
-          <p>Host: ${req.get('Host')}</p>
-          <a href="/">Go to main app</a>
-        </body>
-        </html>
-      `);
     });
 
     // ДОПОЛНИТЕЛЬНЫЕ WEBHOOK МАРШРУТЫ для надежности
