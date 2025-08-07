@@ -6,12 +6,21 @@
 
 // Загружаем переменные окружения из .env файла в development режиме
 import dotenv from 'dotenv';
+// Загружаем .env файл всегда, независимо от режима
+dotenv.config();
 if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
   console.log('[ENV] Loaded .env file in development mode');
   console.log('[ENV] NODE_ENV:', process.env.NODE_ENV);
   console.log('[ENV] BYPASS_AUTH:', process.env.BYPASS_AUTH);
+} else {
+  console.log('[ENV] Loaded .env file in production mode');
+  console.log('[ENV] NODE_ENV:', process.env.NODE_ENV);
 }
+
+// Проверяем, что переменные загружены
+console.log('[ENV] TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'SET' : 'NOT SET');
+console.log('[ENV] SUPABASE_URL:', process.env.SUPABASE_URL ? 'SET' : 'NOT SET');
+console.log('[ENV] JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
 
 import * as Sentry from '@sentry/node';
 
@@ -39,7 +48,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 // @ts-ignore
 import * as WebSocket from 'ws';
-import { config, logger, globalErrorHandler, notFoundHandler, EnvValidator } from '../core';
+import { config, logger, globalErrorHandler, notFoundHandler, EnvValidator, validateConfig } from '../core';
 import { supabase } from '../core/supabase';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
 import { FarmingScheduler } from '../core/scheduler/farmingScheduler';
@@ -58,6 +67,15 @@ import { SupabaseUserRepository } from '../modules/user/service';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
+
+// Валидируем конфигурацию после загрузки переменных окружения
+try {
+  validateConfig();
+  console.log('[CONFIG] Все конфигурации валидны');
+} catch (error) {
+  console.error('[CONFIG] Ошибка валидации конфигурации:', error);
+  process.exit(1);
+}
 
 /**
  * Поиск доступного порта

@@ -3,9 +3,10 @@
  * Устраняет дублирование переменных окружения
  */
 
-import { appConfig } from '../config/app';
-import { supabaseConfig } from '../config/database';
-import { telegramConfig } from '../config/telegram';
+import { appConfig, validateRequiredEnvVars } from '../config/app';
+import { supabaseConfig, validateDatabaseConfig } from '../config/database';
+import { telegramConfig, validateTelegramConfig } from '../config/telegram';
+import { validateSupabaseConfig } from './supabase';
 
 /**
  * Единая система переменных окружения
@@ -41,4 +42,12 @@ export const config = {
       credentials: true
     }
   }
+};
+
+// Функция для валидации всех конфигураций
+export const validateConfig = () => {
+  validateRequiredEnvVars();
+  validateDatabaseConfig();
+  validateTelegramConfig();
+  // Supabase валидация не нужна, так как клиент создается с реальными данными
 };

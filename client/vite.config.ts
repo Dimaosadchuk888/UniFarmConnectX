@@ -2,13 +2,16 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
 import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+// import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
   root: path.resolve(__dirname),
   plugins: [
-    react(),
-    runtimeErrorOverlay(),
+    react({
+      // Добавляем настройки для исправления проблем с хуками
+      jsxRuntime: 'automatic'
+    }),
+    // runtimeErrorOverlay(),
     themePlugin(),
   ],
   resolve: {
@@ -34,6 +37,13 @@ export default defineConfig({
     }
   },
   server: {
-    allowedHosts: ['uni-farm-connect-unifarm01010101.replit.app']
+    allowedHosts: ['uni-farm-connect-unifarm01010101.replit.app'],
+    hmr: {
+      overlay: false
+    }
+  },
+  // Продакшн настройки
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
   }
 });

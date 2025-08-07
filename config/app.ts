@@ -16,9 +16,6 @@ function validateRequiredEnvVars() {
   }
 }
 
-// Выполняем валидацию при импорте модуля
-validateRequiredEnvVars();
-
 export const appConfig = {
   port: process.env.PORT || 3000,
   host: process.env.HOST || '0.0.0.0',
@@ -38,3 +35,6 @@ export const appConfig = {
   jwtSecret: process.env.JWT_SECRET!,
   appDomain: process.env.APP_DOMAIN || process.env.BASE_URL || 'https://uni-farm-connect-unifarm01010101.replit.app'
 };
+
+// Экспортируем функцию валидации
+export { validateRequiredEnvVars };

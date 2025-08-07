@@ -9,6 +9,8 @@
     "preview": "vite preview --config client/vite.config.ts",
     "start": "NODE_ENV=production PORT=3000 tsx server/index.ts",
     "start:server": "tsx server/index.ts",
+    "start:prod": "NODE_ENV=production PORT=3000 tsx server/index.ts",
+    "build:prod": "NODE_ENV=production vite build --config client/vite.config.ts",
     "test": "vitest",
     "test:mission": "node server/api/test-mission-endpoints.js",
     "audit": "node api-audit.js",

@@ -1,0 +1,12 @@
+name: Start application
+description: Start the application server
+mode: project
+
+[[ workflows.main ]]
+name = "Main"
+description = "Start the application"
+mode = "fullstack"
+primary_language = "nodejs"
+
+command = "npm run dev"
+port = 3000

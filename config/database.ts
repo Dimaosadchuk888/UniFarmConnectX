@@ -4,12 +4,14 @@
  */
 
 // Проверка обязательных переменных окружения
+const validateDatabaseConfig = () => {
 if (!process.env.SUPABASE_URL) {
   throw new Error('SUPABASE_URL environment variable is not set');
 }
 if (!process.env.SUPABASE_KEY) {
   throw new Error('SUPABASE_KEY environment variable is not set');
 }
+};
 
 export const supabaseConfig = {
   url: process.env.SUPABASE_URL,
@@ -21,3 +23,6 @@ export const supabaseConfig = {
   persistSession: true,
   detectSessionInUrl: true
 };
+
+// Экспортируем функцию валидации
+export { validateDatabaseConfig };

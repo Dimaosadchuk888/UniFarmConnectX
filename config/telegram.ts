@@ -1,7 +1,9 @@
 // Проверка обязательной переменной
+const validateTelegramConfig = () => {
 if (!process.env.TELEGRAM_BOT_TOKEN) {
   throw new Error('TELEGRAM_BOT_TOKEN environment variable is not set');
 }
+};
 
 export const telegramConfig = {
   botToken: process.env.TELEGRAM_BOT_TOKEN,
@@ -19,3 +21,6 @@ export const telegramConfig = {
   maxRetries: 3,
   timeout: 30000
 };
+
+// Экспортируем функцию валидации
+export { validateTelegramConfig };

@@ -4,7 +4,7 @@ import TonDepositCard from '@/components/wallet/TonDepositCard';
 import WithdrawalForm from '@/components/wallet/WithdrawalForm';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
 import { ErrorBoundary } from 'react-error-boundary';
-import { TestDepositButton } from '@/components/wallet/TestDepositButton';
+
 
 /**
  * Компонент ошибки для ErrorBoundary
@@ -61,8 +61,7 @@ const Wallet: React.FC = () => {
           <TonDepositCard />
         </ErrorBoundary>
         
-        {/* Тестовая кнопка для Preview режима */}
-        <TestDepositButton />
+
         
         {/* Форма вывода средств с ErrorBoundary */}
         <ErrorBoundary

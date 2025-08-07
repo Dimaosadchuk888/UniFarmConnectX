@@ -658,7 +658,6 @@ export async function sendTonTransactionWithBackend(
     };
   }
 }
-}
 
 /**
  * Для совместимости со старым кодом
