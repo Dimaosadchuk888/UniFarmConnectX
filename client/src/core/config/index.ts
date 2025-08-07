@@ -22,5 +22,5 @@ export const API_CONFIG = {
 // Environment detection
 export const ENV = {
   isDevelopment: typeof window !== 'undefined' && window.location.hostname === 'localhost',
-  isProduction: typeof window !== 'undefined' && window.location.hostname.includes('replit.app')
+  isProduction: typeof window !== 'undefined' && window.location.hostname.includes('railway.app')
 };

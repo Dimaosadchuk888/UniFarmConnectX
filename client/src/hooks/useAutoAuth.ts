@@ -42,13 +42,13 @@ export function useAutoAuth() {
         }
       }
 
-      // Проверяем, находимся ли мы в Preview режиме Replit
-      const hostname = window.location.hostname;
-      const isReplitPreview = hostname.includes('replit');
+          // Проверяем, находимся ли мы в Preview режиме Railway
+    const hostname = window.location.hostname;
+    const isRailwayPreview = hostname.includes('railway');
       
       console.log('[useAutoAuth] Environment check:', {
         hostname,
-        isReplitPreview,
+        isRailwayPreview,
         hasTelegramWebApp: !!window.Telegram?.WebApp,
         hasTelegramInitData: !!window.Telegram?.WebApp?.initData
       });

@@ -4,46 +4,26 @@ import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
 import path from "path";
 // import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-export default defineConfig({
-  root: path.resolve(__dirname),
-  plugins: [
-    react({
-      // Добавляем настройки для исправления проблем с хуками
-      jsxRuntime: 'automatic'
-    }),
-    // runtimeErrorOverlay(),
-    themePlugin(),
-  ],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-      "@shared": path.resolve(__dirname, "..", "shared"),
-      "@assets": path.resolve(__dirname, "..", "attached_assets"),
+export default defineConfig(async () => {
+  const { default: cartographer } = await import("@replit/vite-plugin-cartographer");
+  const { default: cartographerConfig } = await import("./cartographer.config.js");
+
+  return {
+    plugins: [
+      react(),
+      themePlugin(),
+      // runtimeErrorOverlay(),
+      cartographer(cartographerConfig),
+    ],
+    server: {
+      port: 5173,
+      host: "0.0.0.0",
+      hmr: { overlay: false },
+      allowedHosts: ['web-production-8e45b.up.railway.app'],
     },
-  },
-  build: {
-    outDir: path.resolve(__dirname, "..", "dist", "public"),
-    emptyOutDir: true,
-    sourcemap: false,
-    minify: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-toast'],
-          ton: ['@tonconnect/ui-react', '@ton/core'],
-        }
-      }
-    }
-  },
-  server: {
-    allowedHosts: ['uni-farm-connect-unifarm01010101.replit.app'],
-    hmr: {
-      overlay: false
-    }
-  },
-  // Продакшн настройки
-  define: {
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
-  }
+    build: {
+      outDir: "dist",
+      sourcemap: true,
+    },
+  };
 });

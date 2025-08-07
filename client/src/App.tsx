@@ -56,7 +56,7 @@ function App() {
 
   // Preview mode detection - token should be set via authentication flow
   useEffect(() => {
-    if (window.location.hostname.includes('replit') && !localStorage.getItem('unifarm_jwt_token')) {
+    if (window.location.hostname.includes('railway') && !localStorage.getItem('unifarm_jwt_token')) {
       console.log('[App] Preview mode detected, no JWT token found - authentication required');
     }
   }, []);
@@ -236,13 +236,13 @@ function App() {
         if (!existingToken) {
           console.log('[App] Telegram WebApp не найден и нет JWT токена');
           
-          // Проверяем, находимся ли мы в Preview режиме Replit
+          // Проверяем, находимся ли мы в Preview режиме Railway
           const hostname = window.location.hostname;
-          const isReplitPreview = hostname.includes('replit');
-          console.log('[App] Hostname:', hostname, 'Is Replit Preview:', isReplitPreview);
+          const isRailwayPreview = hostname.includes('railway');
+          console.log('[App] Hostname:', hostname, 'Is Railway Preview:', isRailwayPreview);
           
-          if (isReplitPreview) {
-            console.log('[App] Preview режим Replit - создаем тестового пользователя');
+          if (isRailwayPreview) {
+            console.log('[App] Preview режим Railway - создаем тестового пользователя');
             
             try {
               // Создаем тестового пользователя для Preview режима
@@ -305,7 +305,7 @@ function App() {
               }
             }
           } else {
-            console.log('[App] Не в Preview режиме Replit, пропускаем автоматическую авторизацию');
+            console.log('[App] Не в Preview режиме Railway, пропускаем автоматическую авторизацию');
           }
         } else {
           console.log('[App] Используем существующий JWT токен');

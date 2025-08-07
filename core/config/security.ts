@@ -86,11 +86,8 @@ export const VALIDATION_MESSAGES = {
 // Конфигурация CORS для безопасности
 export const CORS_CONFIG = {
   origin: [
-    'https://uni-farm-connect-unifarm01010101.replit.app',
     'https://web-production-8e45b.up.railway.app',
     'https://t.me',
-    /^https:\/\/.*\.replit\.app$/,
-    /^https:\/\/.*\.replit\.dev$/,
     /^https:\/\/.*\.up\.railway\.app$/
   ],
   credentials: true,

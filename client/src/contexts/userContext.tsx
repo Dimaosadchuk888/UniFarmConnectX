@@ -248,7 +248,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     try {
       // Production mode - demo disabled
-      const isDemoMode = window.location.hostname.includes('replit');
+      const isDemoMode = window.location.hostname.includes('railway');
       
       // Демо-режим отключен в production
       // if (isDemoMode) {

@@ -802,10 +802,10 @@ async function startServer() {
     // Port configuration
     const apiPort = config.app.port;
     
-    // Middleware для обхода блокировки хостов Vite на Replit
+    // Middleware для обхода блокировки хостов Vite на Railway
     app.use((req, res, next) => {
       // Подменяем заголовок Host для Vite
-      if (req.headers.host && req.headers.host.includes('replit')) {
+      if (req.headers.host && req.headers.host.includes('railway')) {
         req.headers['x-original-host'] = req.headers.host;
         req.headers.host = 'localhost:3000';
       }

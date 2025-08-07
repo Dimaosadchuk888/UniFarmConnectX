@@ -358,7 +358,7 @@ export class TelegramService {
             {
               text: '🚀 Запустить UniFarm',
               web_app: {
-                url: `https://uni-farm-connect-unifarm01010101.replit.app`
+                url: `https://web-production-8e45b.up.railway.app`
               }
             }
           ]
