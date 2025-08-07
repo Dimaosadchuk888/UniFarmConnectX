@@ -1,6 +1,6 @@
 {
   "name": "unifarm-connect",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Advanced blockchain learning through gamified wallet interactions",
   "main": "server/index.ts",
   "scripts": {
