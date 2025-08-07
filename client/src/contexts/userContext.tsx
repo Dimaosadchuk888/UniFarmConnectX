@@ -205,7 +205,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             console.log('[UserContext] Telegram WebApp готов, создаем TonConnectUI');
             
             const ui = new TonConnectUI({
-              manifestUrl: 'https://uni-farm-connect-unifarm01010101.replit.app/tonconnect-manifest.json'
+              manifestUrl: 'https://web-production-8e45b.up.railway.app/tonconnect-manifest.json'
             });
             
             setTonConnectUI(ui);

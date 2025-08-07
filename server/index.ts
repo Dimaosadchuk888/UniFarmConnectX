@@ -344,7 +344,7 @@ async function startServer() {
         const { telegramService } = await import('../modules/telegram/service');
         
         // Set up webhook
-        const webhookUrl = `${process.env.APP_DOMAIN || 'https://uni-farm-connect-unifarm01010101.replit.app'}/api/v2/telegram/webhook`;
+        const webhookUrl = `${process.env.APP_DOMAIN || 'https://web-production-8e45b.up.railway.app'}/api/v2/telegram/webhook`;
         const webhookResult = await telegramService.setWebhook(webhookUrl);
         
         if (webhookResult.success) {
@@ -1092,7 +1092,7 @@ async function startServer() {
       (async () => {
         try {
           const adminBot = new AdminBotService();
-          const appUrl = process.env.TELEGRAM_WEBAPP_URL || process.env.APP_DOMAIN || 'https://uni-farm-connect-unifarm01010101.replit.app';
+          const appUrl = process.env.TELEGRAM_WEBAPP_URL || process.env.APP_DOMAIN || 'https://web-production-8e45b.up.railway.app';
           const webhookUrl = `${appUrl}/api/v2/admin-bot/webhook`;
           
           logger.info('[AdminBot] Initializing with URL', { appUrl, webhookUrl });

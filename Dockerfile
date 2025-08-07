@@ -1,5 +1,5 @@
-# Railway deployment for UniFarm Connect v1.0.11
-# FIXED: Disabled config validation in production for mock data
+# Railway deployment for UniFarm Connect v1.0.12
+# UPDATED: All URLs migrated to Railway domain
 # NO BUILD STEP - DIRECT TSX EXECUTION
 FROM node:18-alpine
 
