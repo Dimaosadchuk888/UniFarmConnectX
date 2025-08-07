@@ -1,4 +1,5 @@
 # Use Node.js 18 Alpine for smaller image size
+# Railway deployment fix v1.0.1 - no TypeScript compilation
 FROM node:18-alpine
 
 # Install curl for healthcheck
