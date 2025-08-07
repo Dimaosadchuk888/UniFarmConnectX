@@ -670,6 +670,7 @@ async function startServer() {
 
     // Тестовый endpoint для диагностики загрузки приложения
     app.get('/test-app', (req: Request, res: Response) => {
+      console.log('[TEST-APP] ✅ Endpoint called successfully');
       res.json({
         success: true,
         message: 'Application server is working',
@@ -980,6 +981,8 @@ async function startServer() {
     
     // SPA fallback - serve index.html for non-API routes  
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
+      console.log(`[SPA-FALLBACK-CHECK] Checking path: ${req.path}`);
+      
       // Skip API routes, static assets, webhook, and test endpoints
       if (req.path.startsWith('/api/') || 
           req.path.startsWith('/assets/') ||
@@ -988,8 +991,11 @@ async function startServer() {
           req.path === '/webhook' || 
           req.path === '/manifest.json' || 
           req.path === '/tonconnect-manifest.json') {
+        console.log(`[SPA-FALLBACK-CHECK] ✅ Skipping SPA fallback for: ${req.path}`);
         return next();
       }
+      
+      console.log(`[SPA-FALLBACK-CHECK] ❌ Will serve SPA fallback for: ${req.path}`);
       
       console.log(`[SPA-FALLBACK] Serving index.html for path: ${req.path}`);
       console.log(`[SPA-FALLBACK] User-Agent: ${req.get('User-Agent')?.substring(0, 100)}...`);
