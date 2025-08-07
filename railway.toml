@@ -1,9 +1,11 @@
-# Railway configuration for UniFarm Connect v1.0.3
+# Railway configuration for UniFarm Connect v1.0.5
+# Using custom Dockerfile to bypass cache issues
 [build]
 builder = "dockerfile"
+dockerfile = "Dockerfile.railway"
 
 [deploy]
-startCommand = "npm start"
+startCommand = "tsx server/index.ts"
 healthcheckPath = "/api/v2/monitor/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
