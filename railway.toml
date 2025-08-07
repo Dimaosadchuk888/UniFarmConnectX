@@ -1,7 +1,6 @@
-# Railway configuration for UniFarm Connect v1.0.2
+# Railway configuration for UniFarm Connect v1.0.3
 [build]
 builder = "dockerfile"
-dockerfile = "Dockerfile.prod"
 
 [deploy]
 startCommand = "npm start"
