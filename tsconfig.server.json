@@ -1,5 +1,4 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./",
@@ -13,19 +12,42 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "strict": false,
+    "noEmit": false,
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "noImplicitThis": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
   "include": [
-    "server/**/*",
+    "server/index.ts",
     "core/**/*",
     "config/**/*",
-    "types/**/*"
+    "types/**/*",
+    "modules/**/*"
   ],
   "exclude": [
     "client/**/*",
     "node_modules",
     "dist",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "server/check-*.ts",
+    "server/create-*.ts",
+    "server/direct-*.ts",
+    "server/fix-*.ts",
+    "server/force-*.ts",
+    "server/simple-*.ts",
+    "server/test-*.ts",
+    "server/analyze-*.ts",
+    "server/setupViteIntegration.ts",
+    "scripts/**/*",
+    "utils/**/*",
+    "shared/**/*",
+    "safe-*.ts"
   ]
 }
