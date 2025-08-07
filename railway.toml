@@ -1,8 +1,7 @@
-# Railway configuration for UniFarm Connect v1.0.5
-# Using custom Dockerfile to bypass cache issues
+# Railway configuration for UniFarm Connect v1.0.6
+# Clean configuration for new project
 [build]
 builder = "dockerfile"
-dockerfile = "Dockerfile.railway"
 
 [deploy]
 startCommand = "tsx server/index.ts"
