@@ -8,9 +8,9 @@
     "build": "npm run build:server",
     "build:server": "tsc --project tsconfig.server.json",
     "build:prod": "npm run build:server",
-    "start": "node dist/server/index.js",
+    "start": "node dist/server/index.js || tsx server/index.ts",
     "start:prod": "NODE_ENV=production PORT=3000 tsx server/index.ts",
-    "start:server": "node dist/server/index.js",
+    "start:server": "node dist/server/index.js || tsx server/index.ts",
     "test": "jest",
     "lint": "eslint . --ext .ts,.tsx",
     "type-check": "tsc --noEmit"
