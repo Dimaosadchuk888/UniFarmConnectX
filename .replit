@@ -1,65 +1,28 @@
-run = "npm start"
-modules = ["nodejs-20", "postgresql-16", "python-3.11"]
+language = "nodejs"
+run = "npm run start:prod"
+entrypoint = "server/index.ts"
 
 [nix]
-channel = "stable-23_05"
-packages = ["nodejs", "wget", "git", "unzip", "jq"]
+channel = "stable-23_11"
 
 [env]
-# Основные переменные окружения
 NODE_ENV = "production"
 PORT = "3000"
 
-# Supabase переменные должны быть установлены через Replit Secrets
-# SUPABASE_URL - установите через Replit Secrets
-# SUPABASE_KEY - установите через Replit Secrets
+[packager]
+language = "nodejs"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+
+[languages.javascript]
+pattern = "**/*.{js,jsx,ts,tsx}"
+syntax = "javascript"
+
+[languages.javascript.languageServer]
+start = [ "typescript-language-server", "--stdio" ]
 
 [deployment]
-run = ["sh", "-c", "npm start"]
+run = ["sh", "-c", "npm run start:prod"]
 deploymentTarget = "cloudrun"
-ignorePorts = false
-build = ["sh", "-c", "npm run build"]
-
-[[ports]]
-localPort = 3000
-externalPort = 80
-
-[[ports]]
-localPort = 3001
-externalPort = 3001
-
-[[ports]]
-localPort = 3002
-externalPort = 3003
-
-[[ports]]
-localPort = 3333
-externalPort = 3002
-
-[[ports]]
-localPort = 24678
-externalPort = 3000
-
-[workflows]
-runButton = "UniFarm Development"
-
-[[workflows.workflow]]
-name = "T11 Environment Cleanup"
-author = 43802594
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node clear-env-runtime.js"
-
-[[workflows.workflow]]
-name = "UniFarm Development"
-author = 43802594
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-
-[agent]
-integrations = ["javascript_supabase==1.0.0"]
