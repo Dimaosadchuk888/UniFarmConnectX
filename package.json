@@ -5,10 +5,9 @@
   "main": "server/index.ts",
   "scripts": {
     "dev": "tsx server/index.ts",
-    "build": "npm run build:client && npm run build:server",
-    "build:client": "cd client && npm run build",
+    "build": "npm run build:server",
     "build:server": "tsc --project tsconfig.server.json",
-    "build:prod": "npm run build:client && npm run build:server",
+    "build:prod": "npm run build:server",
     "start": "node dist/server/index.js",
     "start:prod": "NODE_ENV=production PORT=3000 tsx server/index.ts",
     "start:server": "node dist/server/index.js",
