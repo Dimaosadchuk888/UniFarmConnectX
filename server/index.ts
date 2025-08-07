@@ -487,6 +487,17 @@ async function startServer() {
       });
     });
 
+    // ПРОСТОЙ ТЕСТОВЫЙ ENDPOINT В САМОМ НАЧАЛЕ
+    app.get('/simple-test', (req: Request, res: Response) => {
+      console.log('[SIMPLE-TEST] ✅ Endpoint called successfully');
+      res.json({
+        success: true,
+        message: 'Simple test endpoint works!',
+        timestamp: new Date().toISOString(),
+        path: req.path
+      });
+    });
+
     // JWT debug endpoint
     app.get('/api/v2/debug/jwt', (req: Request, res: Response) => {
       const authHeader = req.headers.authorization;
@@ -981,7 +992,11 @@ async function startServer() {
     
     // SPA fallback - serve index.html for non-API routes  
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
-      console.log(`[SPA-FALLBACK-CHECK] Checking path: ${req.path}`);
+      console.log(`[SPA-FALLBACK-CHECK] 🔍 Checking path: ${req.path}`);
+      console.log(`[SPA-FALLBACK-CHECK] 🔍 Path starts with /api/: ${req.path.startsWith('/api/')}`);
+      console.log(`[SPA-FALLBACK-CHECK] 🔍 Path starts with /test-: ${req.path.startsWith('/test-')}`);
+      console.log(`[SPA-FALLBACK-CHECK] 🔍 Path starts with /assets/: ${req.path.startsWith('/assets/')}`);
+      console.log(`[SPA-FALLBACK-CHECK] 🔍 Path starts with /health: ${req.path.startsWith('/health')}`);
       
       // Skip API routes, static assets, webhook, and test endpoints
       if (req.path.startsWith('/api/') || 
