@@ -980,10 +980,11 @@ async function startServer() {
     
     // SPA fallback - serve index.html for non-API routes  
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
-      // Skip API routes, static assets and webhook
+      // Skip API routes, static assets, webhook, and test endpoints
       if (req.path.startsWith('/api/') || 
           req.path.startsWith('/assets/') ||
           req.path.startsWith('/health') || 
+          req.path.startsWith('/test-') ||
           req.path === '/webhook' || 
           req.path === '/manifest.json' || 
           req.path === '/tonconnect-manifest.json') {
