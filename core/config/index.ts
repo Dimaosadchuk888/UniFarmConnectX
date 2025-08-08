@@ -3,15 +3,15 @@
  */
 
 import { appConfig } from '../../config/app';
-import { databaseConfig } from '../../config/database';
+import { supabaseConfig } from '../../config/database';
 import { telegramConfig } from '../../config/telegram';
 
 export const config = {
   app: appConfig,
-  database: databaseConfig,
+  database: supabaseConfig,
   telegram: telegramConfig,
   
-  // Настройки сервера
+  // Настройки сервера - FIXED для Railway
   server: {
     port: parseInt(process.env.PORT || '3000'),
     host: process.env.HOST || '0.0.0.0',

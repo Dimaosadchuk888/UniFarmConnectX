@@ -1132,12 +1132,20 @@ async function startServer() {
     let finalPort: number;
     
     try {
-      finalPort = await findAvailablePort(Number(apiPort));
-      if (finalPort !== Number(apiPort)) {
-        logger.warn(`⚠️  Порт ${apiPort} занят, используем порт ${finalPort}`);
+      const envPort = Number(apiPort);
+      const isProduction = process.env.NODE_ENV === 'production';
+      if (isProduction) {
+        // Railway/Vercel/Render требуют слушать ровно на выданном порту
+        finalPort = envPort;
+      } else {
+        // Локально подбираем свободный порт при необходимости
+        finalPort = await findAvailablePort(envPort);
+        if (finalPort !== envPort) {
+          logger.warn(`⚠️  Порт ${envPort} занят, используем порт ${finalPort}`);
+        }
       }
     } catch (error) {
-      logger.error('❌ Не удалось найти доступный порт', { error });
+      logger.error('❌ Не удалось определить порт для запуска', { error });
       throw error;
     }
     
@@ -1480,7 +1488,7 @@ if (missingEnvVars.length > 0) {
             <p class="success">✅ Fallback server is working!</p>
             <p class="warning">⚠️ Missing environment variables:</p>
             <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
-              ${missingEnvVars.map(var => `<li class="error">${var}</li>`).join('')}
+              ${missingEnvVars.map(envVar => `<li class="error">${envVar}</li>`).join('')}
             </ul>
             <p>Path: ${req.path}</p>
             <p>Timestamp: ${new Date().toISOString()}</p>
