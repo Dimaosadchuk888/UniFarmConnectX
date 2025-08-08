@@ -1,10 +1,10 @@
-# Railway configuration for UniFarm Connect v1.0.25
+# Railway configuration for UniFarm Connect v1.0.27
 # Clean configuration for new project
 [build]
 builder = "dockerfile"
 
 [deploy]
-startCommand = "tsx server/index.ts"
+startCommand = "node dist/server/index.js"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

@@ -1,6 +1,6 @@
-# Railway deployment for UniFarm Connect v1.0.25
-# FIXED: Remove dist folder and force Railway to use new code
-# NO BUILD STEP - DIRECT TSX EXECUTION
+# Railway deployment for UniFarm Connect v1.0.26
+# FIXED: Proper production build with client compilation
+# PRODUCTION BUILD PIPELINE
 FROM node:18-alpine
 
 # Install curl for healthcheck
@@ -12,16 +12,20 @@ WORKDIR /app
 # Copy package files first
 COPY package*.json ./
 
-# Install dependencies and tsx globally
-RUN npm install --production && npm install -g tsx
+# Install ALL dependencies (including devDependencies for build)
+RUN npm install
 
 # Copy all source code
 COPY . .
 
-# Ensure dist/public directory exists and copy static files
-RUN mkdir -p dist/public && \
-    cp -r client/public/* dist/public/ 2>/dev/null || true && \
-    cp client/index.html dist/public/ 2>/dev/null || true
+# Build the client
+RUN npm run build:client
+
+# Build the server
+RUN npm run build:server
+
+# Remove devDependencies to reduce image size
+RUN npm prune --production
 
 # Expose port
 EXPOSE 3000
@@ -30,5 +34,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
   CMD curl -f http://localhost:3000/ || exit 1
 
-# Start application directly with tsx - NO BUILD STEP
-CMD ["tsx", "server/index.ts"] 
+# Start application with compiled server
+CMD ["node", "dist/server/index.js"] 
