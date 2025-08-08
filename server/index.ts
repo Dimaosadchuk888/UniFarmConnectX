@@ -1021,25 +1021,66 @@ async function startServer() {
         ? path.resolve(process.cwd(), 'dist', 'public', 'index.html')  // Production: dist/public/index.html
         : path.resolve(process.cwd(), 'client', 'index.html');         // Development: client/index.html
       
+      // Fallback пути если основной файл не существует
+      const fallbackPaths = [
+        path.resolve(process.cwd(), 'client', 'index.html'),
+        path.resolve(process.cwd(), 'client', 'public', 'index.html'),
+        path.resolve(process.cwd(), 'dist', 'public', 'index.html')
+      ];
+      
       console.log(`[SPA-FALLBACK] Serving file: ${indexPath}`);
       console.log(`[SPA-FALLBACK] Current working directory: ${process.cwd()}`);
       console.log(`[SPA-FALLBACK] File exists: ${fs.existsSync(indexPath)}`);
       console.log(`[SPA-FALLBACK] File size: ${fs.existsSync(indexPath) ? fs.statSync(indexPath).size : 'N/A'}`);
       
+      // Находим первый существующий файл
+      let finalIndexPath = indexPath;
+      if (!fs.existsSync(indexPath)) {
+        console.log(`[SPA-FALLBACK] Primary file not found, trying fallbacks...`);
+        for (const fallbackPath of fallbackPaths) {
+          if (fs.existsSync(fallbackPath)) {
+            finalIndexPath = fallbackPath;
+            console.log(`[SPA-FALLBACK] Using fallback file: ${fallbackPath}`);
+            break;
+          }
+        }
+      }
+      
+      console.log(`[SPA-FALLBACK] Final file path: ${finalIndexPath}`);
+      console.log(`[SPA-FALLBACK] Final file exists: ${fs.existsSync(finalIndexPath)}`);
+      
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       
-      res.sendFile(indexPath, (err) => {
+      res.sendFile(finalIndexPath, (err) => {
         if (err) {
           console.error(`[SPA-FALLBACK] ❌ Error serving index.html:`, err);
           console.error(`[SPA-FALLBACK] ❌ Error code:`, (err as any).code);
           console.error(`[SPA-FALLBACK] ❌ Error message:`, err.message);
-          res.status(500).json({
-            success: false,
-            error: 'Failed to load application',
-            message: 'Перезагрузите приложение через меню бота'
-          });
+          
+          // Если не можем отдать файл, отдаем простую HTML страницу
+          res.status(200).send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>UniFarm Connect</title>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .error { color: #e74c3c; }
+                .info { color: #3498db; }
+              </style>
+            </head>
+            <body>
+              <h1>UniFarm Connect</h1>
+              <p class="info">Приложение загружается...</p>
+              <p class="error">Если приложение не загрузилось, попробуйте обновить страницу.</p>
+              <p>Timestamp: ${new Date().toISOString()}</p>
+            </body>
+            </html>
+          `);
         } else {
           console.log(`[SPA-FALLBACK] ✅ Successfully served index.html for ${req.path}`);
         }
