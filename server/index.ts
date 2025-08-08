@@ -930,21 +930,29 @@ async function startServer() {
       // await setupViteIntegration(app); // Удалено
     }
     
-    // В режиме production и если есть dist - используем статические файлы
-    if (process.env.NODE_ENV === 'production' && distExists) {
-      logger.info(`[Static Files] Serving from: ${distPath}`);
-      app.use(express.static(distPath, {
-        maxAge: '0',
-        etag: false,
-        lastModified: false,
+    // В режиме production используем client/index.html напрямую
+    if (process.env.NODE_ENV === 'production') {
+      logger.info(`[Static Files] Production mode - serving from client directory`);
+      
+      // Serve static files from client/public
+      app.use('/assets', express.static(path.resolve(process.cwd(), 'client/public/assets'), {
+        maxAge: '1d',
+        etag: true
+      }));
+      
+      // Serve public files directly
+      app.use(express.static(path.resolve(process.cwd(), 'client/public'), {
+        dotfiles: 'allow',
+        index: false,
         setHeaders: (res, path) => {
-          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-          res.setHeader('Pragma', 'no-cache');
-          res.setHeader('Expires', '0');
+          if (path.endsWith('.json')) {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+          }
         }
       }));
-    } else if (process.env.NODE_ENV === 'production') {
-      logger.warn(`[Static Files] Папка dist не найдена! Используем Vite в production режиме.`);
+      
+      logger.info(`[Static Files] Production static files configured successfully`);
     }
     
     // ДИАГНОСТИЧЕСКИЕ ENDPOINTS ДО SPA FALLBACK
@@ -1017,14 +1025,16 @@ async function startServer() {
       console.log(`[SPA-FALLBACK] User-Agent: ${req.get('User-Agent')?.substring(0, 100)}...`);
       console.log(`[SPA-FALLBACK] Accept header: ${req.get('Accept')}`);
       
-      // ИСПРАВЛЕНО: правильные пути к index.html для обоих режимов
-      const indexPath = path.resolve(process.cwd(), 'client', 'index.html');  // Всегда используем client/index.html
+      // ИСПРАВЛЕНО: правильные пути к index.html для production и development
+      const indexPath = process.env.NODE_ENV === 'production' 
+        ? path.resolve(process.cwd(), 'dist', 'public', 'index.html')
+        : path.resolve(process.cwd(), 'client', 'index.html');
       
       // Fallback пути если основной файл не существует
       const fallbackPaths = [
+        path.resolve(process.cwd(), 'dist', 'public', 'index.html'),
         path.resolve(process.cwd(), 'client', 'index.html'),
-        path.resolve(process.cwd(), 'client', 'public', 'index.html'),
-        path.resolve(process.cwd(), 'dist', 'index.html')
+        path.resolve(process.cwd(), 'client', 'public', 'index.html')
       ];
       
       console.log(`[SPA-FALLBACK] Serving file: ${indexPath}`);
