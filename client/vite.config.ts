@@ -13,14 +13,8 @@ export default defineConfig({
     allowedHosts: ['web-production-8e45b.up.railway.app'],
   },
   build: {
-    outDir: "../dist/public",
+    outDir: "dist",
     sourcemap: true,
-    emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'index.html'),
-      },
-    },
   },
   resolve: {
     alias: {

@@ -1017,15 +1017,13 @@ async function startServer() {
       console.log(`[SPA-FALLBACK] Accept header: ${req.get('Accept')}`);
       
       // ИСПРАВЛЕНО: правильные пути к index.html для обоих режимов
-      const indexPath = process.env.NODE_ENV === 'production' 
-        ? path.resolve(process.cwd(), 'dist', 'public', 'index.html')  // Production: dist/public/index.html
-        : path.resolve(process.cwd(), 'client', 'index.html');         // Development: client/index.html
+      const indexPath = path.resolve(process.cwd(), 'client', 'index.html');  // Всегда используем client/index.html
       
       // Fallback пути если основной файл не существует
       const fallbackPaths = [
         path.resolve(process.cwd(), 'client', 'index.html'),
         path.resolve(process.cwd(), 'client', 'public', 'index.html'),
-        path.resolve(process.cwd(), 'dist', 'public', 'index.html')
+        path.resolve(process.cwd(), 'dist', 'index.html')
       ];
       
       console.log(`[SPA-FALLBACK] Serving file: ${indexPath}`);

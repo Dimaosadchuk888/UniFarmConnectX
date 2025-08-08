@@ -1,10 +1,10 @@
-# Railway configuration for UniFarm Connect v1.0.29
-# Clean configuration for new project
+# Railway configuration for UniFarm Connect v1.0.30
+# BACK TO WORKING STATE: Direct tsx execution without Docker
 [build]
-builder = "dockerfile"
+builder = "nixpacks"
 
 [deploy]
-startCommand = "node dist/server/index.js"
+startCommand = "tsx server/index.ts"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
