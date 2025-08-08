@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../logger';
 import * as Sentry from '@sentry/node';
+import path from 'path';
+import fs from 'fs';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -55,6 +57,29 @@ export const globalErrorHandler = (
 
   const statusCode = (error as AppError).statusCode || 500;
   const isProduction = process.env.NODE_ENV === 'production';
+
+  // HTML fallback: для браузерной навигации всегда отдаём index.html
+  const acceptsHtml = (req.headers['accept'] || '').includes('text/html');
+  const isGet = req.method === 'GET';
+  const isApi = req.originalUrl.startsWith('/api/');
+  const isHealth = req.originalUrl.startsWith('/health');
+  const isAssets = req.originalUrl.startsWith('/assets/');
+
+  if (isProduction && isGet && acceptsHtml && !isApi && !isHealth && !isAssets) {
+    try {
+      const indexPath = path.resolve(process.cwd(), 'dist', 'public', 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.status(200).sendFile(indexPath);
+        return;
+      }
+    } catch (e) {
+      // Если не получилось, продолжим обычный JSON ответом ниже
+      logger.warn('[ErrorHandler] HTML fallback failed', { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
 
   // Логируем ошибку
   logger.error(`${req.method} ${req.originalUrl}`, {

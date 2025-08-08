@@ -1039,8 +1039,18 @@ async function startServer() {
       
       console.log(`[SPA-FALLBACK] Serving file: ${indexPath}`);
       console.log(`[SPA-FALLBACK] Current working directory: ${process.cwd()}`);
-      console.log(`[SPA-FALLBACK] File exists: ${fs.existsSync(indexPath)}`);
-      console.log(`[SPA-FALLBACK] File size: ${fs.existsSync(indexPath) ? fs.statSync(indexPath).size : 'N/A'}`);
+      const fileExists = fs.existsSync(indexPath);
+      console.log(`[SPA-FALLBACK] File exists: ${fileExists}`);
+      if (fileExists) {
+        try {
+          const stats = fs.statSync(indexPath);
+          console.log(`[SPA-FALLBACK] File size: ${stats.size}`);
+        } catch (e) {
+          console.log(`[SPA-FALLBACK] File stat error: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      } else {
+        console.log(`[SPA-FALLBACK] File size: N/A`);
+      }
       
       // Находим первый существующий файл
       let finalIndexPath = indexPath;
