@@ -1,5 +1,5 @@
-# Railway configuration for UniFarm Connect v1.0.33 - SPA FALLBACK FIX
-# BACK TO WORKING STATE: Direct tsx execution without Docker
+# Railway configuration for UniFarm Connect v1.0.34 - FORCE RESTART
+# FORCE RESTART: Simple server for testing
 [build]
 builder = "nixpacks"
 
@@ -12,6 +12,7 @@ restartPolicyMaxRetries = 10
 [deploy.envs]
 NODE_ENV = "production"
 PORT = "3000"
+FORCE_RESTART = "2025-08-08-13-55"
 
 # Build configuration
 [build.envs]
