@@ -319,9 +319,29 @@ async function startServer() {
 
     const app = express();
 
+    // Диагностика: кто отвечает
+    app.get('/_whoami', (req: Request, res: Response) => {
+      res.setHeader('X-UniFarm', 'root-pre-middlewares');
+      res.status(200).json({ ok: true, stage: 'pre-middlewares', ts: new Date().toISOString() });
+    });
+
     // Ранняя раздача статики для SPA (до остальных middleware)
     const distPublicPath = path.resolve(process.cwd(), 'dist', 'public');
     app.use(express.static(distPublicPath, { index: 'index.html' }));
+
+    // Явный корневой маршрут: всегда отдаём index.html
+    app.get('/', (req: Request, res: Response) => {
+      const indexPath = path.resolve(process.cwd(), 'dist', 'public', 'index.html');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error('[ROOT] Failed to send index.html:', err);
+          res.status(200).send('<!doctype html><html><body><h1>UniFarm</h1><p>Index fallback</p></body></html>');
+        }
+      });
+    });
 
     // Compression middleware для улучшения производительности
     app.use(compression({
