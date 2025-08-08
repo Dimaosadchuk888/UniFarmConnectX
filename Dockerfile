@@ -1,10 +1,11 @@
-# Railway deployment for UniFarm Connect v1.0.28
-# FORCE REBUILD: Updated build pipeline - v1.0.28
+# Railway deployment for UniFarm Connect v1.0.29
+# FORCE REBUILD: Updated build pipeline - v1.0.29 - CLEAN REBUILD
 # PRODUCTION BUILD PIPELINE
 FROM node:18-alpine
 
 # Install curl for healthcheck
 RUN apk add --no-cache curl
+# FORCE CACHE INVALIDATION v1.0.29
 
 # Set working directory
 WORKDIR /app

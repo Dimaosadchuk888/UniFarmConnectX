@@ -1,4 +1,4 @@
-# Railway configuration for UniFarm Connect v1.0.28
+# Railway configuration for UniFarm Connect v1.0.29
 # Clean configuration for new project
 [build]
 builder = "dockerfile"
