@@ -62,10 +62,10 @@ class DepositMonitor {
     this.isMonitoring = true;
     logger.info('[DepositMonitor] Starting deposit system monitoring');
 
-    // Health check every 2 minutes
+    // Health check every 5 minutes (было 2 минуты)
     this.healthCheckInterval = setInterval(async () => {
       await this.performHealthCheck();
-    }, 2 * 60 * 1000);
+    }, 5 * 60 * 1000); // Каждые 5 минут
 
     // Initial health check
     this.performHealthCheck();
@@ -215,12 +215,57 @@ class DepositMonitor {
         current_metrics: this.getMetrics()
       });
 
+      // Очищаем память после health check
+      await this.cleanupMemory();
+
     } catch (error) {
       logger.error('[DepositMonitor] Health check failed', {
         error: error instanceof Error ? error.message : String(error)
       });
 
       this.sendAlert('HEALTH_CHECK_FAILED', 'Failed to perform system health check');
+    }
+  }
+
+  /**
+   * Очистка памяти для предотвращения утечек
+   */
+  private async cleanupMemory(): Promise<void> {
+    try {
+      // Принудительный вызов garbage collector если доступен
+      if (global.gc) {
+        global.gc();
+        logger.debug('[DepositMonitor] Memory cleanup: garbage collector called');
+      }
+
+      // Очищаем старые метрики если их слишком много
+      if (this.metrics.total_deposits > 1000) {
+        this.resetMetrics();
+        logger.info('[DepositMonitor] Memory cleanup: metrics reset due to high count');
+      }
+
+      // Логируем использование памяти
+      const memUsage = process.memoryUsage();
+      const memoryPercentage = Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100);
+      
+      logger.info('[DepositMonitor] Memory usage after cleanup:', {
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB',
+        percentage: memoryPercentage + '%'
+      });
+
+      // Предупреждение если память критически высокая
+      if (memoryPercentage > 85) {
+        logger.warn('[DepositMonitor] High memory usage detected:', {
+          percentage: memoryPercentage + '%',
+          heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB'
+        });
+      }
+
+    } catch (error) {
+      logger.warn('[DepositMonitor] Memory cleanup failed:', {
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 

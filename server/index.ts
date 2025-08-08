@@ -1239,17 +1239,52 @@ async function startServer() {
       }
       
       // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Инициализация DepositMonitor для автоматического мониторинга TON депозитов
-      (async () => {
+      try {
+        const depositMonitorModule = await import('../utils/depositMonitor');
+        const DepositMonitor = depositMonitorModule.default;
+        const depositMonitor = DepositMonitor.getInstance();
+        depositMonitor.startMonitoring();
+        logger.info('✅ DepositMonitor запущен - автоматический мониторинг TON депозитов активен');
+      } catch (error) {
+        logger.error('❌ Ошибка запуска DepositMonitor', { error });
+      }
+
+      // ГЛОБАЛЬНАЯ ОЧИСТКА ПАМЯТИ каждые 10 минут для предотвращения утечек
+      const memoryCleanupInterval = setInterval(() => {
         try {
-          const depositMonitorModule = await import('../utils/depositMonitor');
-          const DepositMonitor = depositMonitorModule.default;
-          const depositMonitor = DepositMonitor.getInstance();
-          depositMonitor.startMonitoring();
-          logger.info('✅ DepositMonitor запущен - автоматический мониторинг TON депозитов активен');
+          // Принудительный вызов garbage collector если доступен
+          if (global.gc) {
+            global.gc();
+            logger.debug('[GlobalMemoryCleanup] Garbage collector called');
+          }
+
+          // Логируем использование памяти
+          const memUsage = process.memoryUsage();
+          const memoryPercentage = Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100);
+          
+          logger.info('[GlobalMemoryCleanup] Memory usage:', {
+            heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+            heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB',
+            percentage: memoryPercentage + '%'
+          });
+
+          // Критическое предупреждение если память выше 90%
+          if (memoryPercentage > 90) {
+            logger.error('[GlobalMemoryCleanup] CRITICAL: memory - Критическое использование памяти', {
+              heapUsed: memUsage.heapUsed,
+              heapTotal: memUsage.heapTotal,
+              percentage: memoryPercentage
+            });
+          }
+
         } catch (error) {
-          logger.error('❌ Ошибка запуска DepositMonitor', { error });
+          logger.warn('[GlobalMemoryCleanup] Memory cleanup failed:', {
+            error: error instanceof Error ? error.message : String(error)
+          });
         }
-      })();
+      }, 10 * 60 * 1000); // Каждые 10 минут
+
+      logger.info('✅ Глобальная очистка памяти запущена - каждые 10 минут');
       
       // Enhanced graceful shutdown для production
       const gracefulShutdown = async (signal: string) => {
@@ -1292,6 +1327,23 @@ async function startServer() {
             }
           } catch (error) {
             logger.warn('TON Boost планировщик не был инициализирован');
+          }
+          
+          // Останавливаем глобальную очистку памяти
+          if (memoryCleanupInterval) {
+            clearInterval(memoryCleanupInterval);
+            logger.info('✅ Глобальная очистка памяти остановлена');
+          }
+          
+          // Останавливаем DepositMonitor
+          try {
+            const depositMonitorModule = await import('../utils/depositMonitor');
+            const DepositMonitor = depositMonitorModule.default;
+            const depositMonitor = DepositMonitor.getInstance();
+            depositMonitor.stopMonitoring();
+            logger.info('✅ DepositMonitor остановлен');
+          } catch (error) {
+            logger.warn('DepositMonitor остановка пропущена:', error);
           }
           
           // 4. Останавливаем мониторинг

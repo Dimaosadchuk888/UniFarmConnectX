@@ -321,6 +321,10 @@ export async function healthCheck(): Promise<boolean> {
     const result = await getAccountInfo(testAddress);
     
     logger.info('[TonAPI] Health check completed:', { success: result.isValid });
+
+    // Очищаем память после health check
+    await cleanupTonApiMemory();
+    
     return result.isValid;
     
   } catch (error) {
@@ -328,5 +332,47 @@ export async function healthCheck(): Promise<boolean> {
       error: error instanceof Error ? error.message : String(error)
     });
     return false;
+  }
+}
+
+/**
+ * Очистка памяти TonAPI для предотвращения утечек
+ */
+async function cleanupTonApiMemory(): Promise<void> {
+  try {
+    // Принудительный вызов garbage collector если доступен
+    if (global.gc) {
+      global.gc();
+      logger.debug('[TonAPI] Memory cleanup: garbage collector called');
+    }
+
+    // Очищаем кэш HTTP клиента если он накопился
+    if (httpClient && (httpClient as any).cache) {
+      (httpClient as any).cache.clear();
+      logger.debug('[TonAPI] Memory cleanup: HTTP client cache cleared');
+    }
+
+    // Логируем использование памяти
+    const memUsage = process.memoryUsage();
+    const memoryPercentage = Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100);
+    
+    logger.info('[TonAPI] Memory usage after cleanup:', {
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB',
+      percentage: memoryPercentage + '%'
+    });
+
+    // Предупреждение если память критически высокая
+    if (memoryPercentage > 85) {
+      logger.warn('[TonAPI] High memory usage detected:', {
+        percentage: memoryPercentage + '%',
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB'
+      });
+    }
+
+  } catch (error) {
+    logger.warn('[TonAPI] Memory cleanup failed:', {
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 }

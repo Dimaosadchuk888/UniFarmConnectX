@@ -9,7 +9,7 @@ export class BoostVerificationScheduler {
   private isRunning = false;
 
   /**
-   * Запуск планировщика с интервалом 2 минуты
+   * Запуск планировщика с интервалом 5 минут
    */
   start() {
     if (this.isRunning) {
@@ -22,12 +22,12 @@ export class BoostVerificationScheduler {
     this.isRunning = true;
     this.intervalId = setInterval(() => {
       this.verifyPendingBoostPayments();
-    }, 2 * 60 * 1000); // Каждые 2 минуты
+    }, 5 * 60 * 1000); // Каждые 5 минут (было 2 минуты)
 
     // Первая проверка сразу после запуска
     setTimeout(() => {
       this.verifyPendingBoostPayments();
-    }, 5000); // Через 5 секунд после старта
+    }, 10000); // Через 10 секунд после старта (было 5 секунд)
   }
 
   /**
@@ -75,7 +75,7 @@ export class BoostVerificationScheduler {
 
       logger.info('[BoostVerificationScheduler] Найдено pending покупок для проверки:', {
         count: pendingPurchases.length,
-        purchases: pendingPurchases.map(p => ({
+        purchases: pendingPurchases.map((p: any) => ({
           id: p.id,
           user_id: p.user_id,
           tx_hash: p.tx_hash?.slice(0, 10) + '...',
@@ -166,7 +166,7 @@ export class BoostVerificationScheduler {
       }
 
       // Подсчитываем только TON Boost транзакции  
-      const boostTransactionsCount = pendingPurchases.filter(tx => 
+      const boostTransactionsCount = pendingPurchases.filter((tx: any) => 
         tx.metadata?.transaction_type === 'ton_boost_purchase'
       ).length;
       
@@ -180,6 +180,9 @@ export class BoostVerificationScheduler {
 
       // Очищаем очень старые pending записи (старше 24 часов)
       await this.cleanupExpiredPending();
+
+      // Очищаем память после выполнения
+      await this.cleanupMemory();
 
     } catch (error) {
       logger.error('[BoostVerificationScheduler] Критическая ошибка планировщика:', {
@@ -235,6 +238,45 @@ export class BoostVerificationScheduler {
 
     } catch (error) {
       logger.error('[BoostVerificationScheduler] Ошибка очистки expired записей:', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Очистка памяти после выполнения операций
+   */
+  private async cleanupMemory(): Promise<void> {
+    try {
+      // Принудительный вызов garbage collector если доступен
+      if (global.gc) {
+        global.gc();
+        logger.debug('[BoostVerificationScheduler] Memory cleanup: garbage collector called');
+      }
+
+      // Очищаем кэш модулей если они накопились
+      const moduleCache = require.cache;
+      const boostModuleKeys = Object.keys(moduleCache).filter(key => 
+        key.includes('boost') || key.includes('Boost')
+      );
+      
+      if (boostModuleKeys.length > 10) {
+        boostModuleKeys.slice(0, 5).forEach(key => {
+          delete moduleCache[key];
+        });
+        logger.debug('[BoostVerificationScheduler] Memory cleanup: cleared module cache');
+      }
+
+      // Логируем использование памяти
+      const memUsage = process.memoryUsage();
+      logger.info('[BoostVerificationScheduler] Memory usage after cleanup:', {
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB',
+        percentage: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100) + '%'
+      });
+
+    } catch (error) {
+      logger.warn('[BoostVerificationScheduler] Memory cleanup failed:', {
         error: error instanceof Error ? error.message : String(error)
       });
     }
