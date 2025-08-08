@@ -1008,7 +1008,7 @@ async function startServer() {
           req.path === '/tonconnect-manifest.json' ||
           req.path === '/simple-test') {
         console.log(`[SPA-FALLBACK-CHECK] ✅ Skipping SPA fallback for: ${req.path}`);
-        return next();
+        return res.status(404).json({ success: false, error: 'Route not found' });
       }
       
       console.log(`[SPA-FALLBACK-CHECK] ❌ Will serve SPA fallback for: ${req.path}`);

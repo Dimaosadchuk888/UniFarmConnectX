@@ -1,4 +1,4 @@
-# Railway configuration for UniFarm Connect v1.0.32 - FORCE CACHE CLEAR
+# Railway configuration for UniFarm Connect v1.0.33 - SPA FALLBACK FIX
 # BACK TO WORKING STATE: Direct tsx execution without Docker
 [build]
 builder = "nixpacks"
