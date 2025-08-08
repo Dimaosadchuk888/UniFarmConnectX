@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [
     react(),
   ],
+  root: __dirname,
   server: {
     port: 5173,
     host: "0.0.0.0",
@@ -13,8 +14,9 @@ export default defineConfig({
     allowedHosts: ['web-production-8e45b.up.railway.app'],
   },
   build: {
-    outDir: "dist",
+    outDir: "../dist/public",
     sourcemap: true,
+    emptyOutDir: true,
   },
   resolve: {
     alias: {
