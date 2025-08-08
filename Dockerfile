@@ -1,5 +1,5 @@
-# Railway deployment for UniFarm Connect v1.0.24
-# FIXED: Add fallback logic and HTML response for SPA fallback
+# Railway deployment for UniFarm Connect v1.0.25
+# FIXED: Remove dist folder and force Railway to use new code
 # NO BUILD STEP - DIRECT TSX EXECUTION
 FROM node:18-alpine
 
