@@ -4,7 +4,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "tsx server/index.ts"
+startCommand = "tsx server/simple.ts"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
