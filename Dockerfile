@@ -1,5 +1,5 @@
-# Railway deployment for UniFarm Connect v1.0.26
-# FIXED: Proper production build with client compilation
+# Railway deployment for UniFarm Connect v1.0.28
+# FORCE REBUILD: Updated build pipeline - v1.0.28
 # PRODUCTION BUILD PIPELINE
 FROM node:18-alpine
 
