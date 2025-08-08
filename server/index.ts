@@ -1249,15 +1249,17 @@ async function startServer() {
       }
       
       // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Инициализация DepositMonitor для автоматического мониторинга TON депозитов
-      try {
-        const depositMonitorModule = await import('../utils/depositMonitor');
-        const DepositMonitor = depositMonitorModule.default;
-        const depositMonitor = DepositMonitor.getInstance();
-        depositMonitor.startMonitoring();
-        logger.info('✅ DepositMonitor запущен - автоматический мониторинг TON депозитов активен');
-      } catch (error) {
-        logger.error('❌ Ошибка запуска DepositMonitor', { error });
-      }
+      (async () => {
+        try {
+          const depositMonitorModule = await import('../utils/depositMonitor');
+          const DepositMonitor = depositMonitorModule.default;
+          const depositMonitor = DepositMonitor.getInstance();
+          depositMonitor.startMonitoring();
+          logger.info('✅ DepositMonitor запущен - автоматический мониторинг TON депозитов активен');
+        } catch (error) {
+          logger.error('❌ Ошибка запуска DepositMonitor', { error });
+        }
+      })();
 
       // ГЛОБАЛЬНАЯ ОЧИСТКА ПАМЯТИ каждые 10 минут для предотвращения утечек
       const memoryCleanupInterval = setInterval(() => {
@@ -1387,6 +1389,119 @@ async function startServer() {
   } catch (error) {
     logger.error('Критическая ошибка запуска сервера', { error: error instanceof Error ? error.message : String(error) });
     throw error;
+  }
+}
+
+// Проверка критических переменных окружения
+const requiredEnvVars = [
+  'NODE_ENV',
+  'PORT',
+  'SUPABASE_URL',
+  'SUPABASE_ANON_KEY',
+  'JWT_SECRET',
+  'BOT_TOKEN'
+];
+
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: Отсутствуют переменные окружения:', missingEnvVars);
+  console.error('📋 Установите переменные в Railway Dashboard или используйте .env файл');
+  
+  // Fallback для Railway - простой сервер без зависимостей
+  if (process.env.NODE_ENV === 'production') {
+    console.log('🔄 Запуск fallback сервера без переменных окружения...');
+    
+    const express = require('express');
+    const path = require('path');
+    const fs = require('fs');
+    
+    const app = express();
+    const PORT = process.env.PORT || 3000;
+    
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+    
+    app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+      next();
+    });
+    
+    app.get('/test-app', (req, res) => {
+      res.json({
+        success: true,
+        message: 'Fallback server is working',
+        version: '1.0.35-FALLBACK',
+        timestamp: new Date().toISOString(),
+        missingEnvVars,
+        env: process.env.NODE_ENV || 'development'
+      });
+    });
+    
+    app.get('/version', (req, res) => {
+      res.json({
+        version: '1.0.35-FALLBACK',
+        timestamp: new Date().toISOString(),
+        missingEnvVars,
+        message: 'Missing environment variables - using fallback server'
+      });
+    });
+    
+    app.use('/assets', express.static(path.resolve(process.cwd(), 'dist/public/assets')));
+    
+    app.get('*', (req, res) => {
+      console.log(`[FALLBACK-SERVER] Serving index.html for: ${req.path}`);
+      
+      const indexPath = path.resolve(process.cwd(), 'dist/public/index.html');
+      
+      if (fs.existsSync(indexPath)) {
+        console.log(`[FALLBACK-SERVER] File exists: ${indexPath}`);
+        res.sendFile(indexPath);
+      } else {
+        console.log(`[FALLBACK-SERVER] File not found: ${indexPath}`);
+        res.status(200).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>UniFarm Connect - Fallback Server</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #0f0f23; color: white; }
+              .success { color: #4CAF50; }
+              .warning { color: #FF9800; }
+              .error { color: #f44336; }
+            </style>
+          </head>
+          <body>
+            <h1>UniFarm Connect</h1>
+            <p class="success">✅ Fallback server is working!</p>
+            <p class="warning">⚠️ Missing environment variables:</p>
+            <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+              ${missingEnvVars.map(var => `<li class="error">${var}</li>`).join('')}
+            </ul>
+            <p>Path: ${req.path}</p>
+            <p>Timestamp: ${new Date().toISOString()}</p>
+            <p>Environment: ${process.env.NODE_ENV || 'development'}</p>
+            <p class="warning">Index file not found at: ${indexPath}</p>
+            <p><strong>Решение:</strong> Установите переменные окружения в Railway Dashboard</p>
+          </body>
+          </html>
+        `);
+      }
+    });
+    
+    app.listen(Number(PORT), '0.0.0.0', () => {
+      console.log(`🚀 Fallback server running on http://0.0.0.0:${PORT}`);
+      console.log(`📁 Current directory: ${process.cwd()}`);
+      console.log(`🔍 Looking for index.html at: ${path.resolve(process.cwd(), 'dist/public/index.html')}`);
+      console.log(`📄 File exists: ${fs.existsSync(path.resolve(process.cwd(), 'dist/public/index.html'))}`);
+      console.log(`❌ Missing env vars: ${missingEnvVars.join(', ')}`);
+    });
+    
+    process.exit(0);
   }
 }
 
