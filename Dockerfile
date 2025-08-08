@@ -1,5 +1,5 @@
-# Railway deployment for UniFarm Connect v1.0.12
-# UPDATED: All URLs migrated to Railway domain
+# Railway deployment for UniFarm Connect v1.0.21
+# FIXED: Ensure static files are copied to production
 # NO BUILD STEP - DIRECT TSX EXECUTION
 FROM node:18-alpine
 
@@ -17,6 +17,11 @@ RUN npm install --production && npm install -g tsx
 
 # Copy all source code
 COPY . .
+
+# Ensure dist/public directory exists and copy static files
+RUN mkdir -p dist/public && \
+    cp -r client/public/* dist/public/ 2>/dev/null || true && \
+    cp client/index.html dist/public/ 2>/dev/null || true
 
 # Expose port
 EXPOSE 3000
