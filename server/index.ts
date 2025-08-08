@@ -1005,7 +1005,8 @@ async function startServer() {
           req.path.startsWith('/test-') ||
           req.path === '/webhook' || 
           req.path === '/manifest.json' || 
-          req.path === '/tonconnect-manifest.json') {
+          req.path === '/tonconnect-manifest.json' ||
+          req.path === '/simple-test') {
         console.log(`[SPA-FALLBACK-CHECK] ✅ Skipping SPA fallback for: ${req.path}`);
         return next();
       }
