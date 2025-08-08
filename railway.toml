@@ -2,10 +2,10 @@
 # FIX: Proper port handling for Railway deployment
 
 [build]
-builder = "nixpacks"
+# Используем Dockerfile, поэтому builder не нужен
 
 [deploy]
-startCommand = "npm run build && echo 'BUILD COMPLETED SUCCESSFULLY' && NODE_ENV=production tsx server/index.ts"
+# При Dockerfile Railway использует CMD из образа
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
