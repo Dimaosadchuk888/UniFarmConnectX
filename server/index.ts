@@ -1022,6 +1022,9 @@ async function startServer() {
         : path.resolve(process.cwd(), 'client', 'index.html');         // Development: client/index.html
       
       console.log(`[SPA-FALLBACK] Serving file: ${indexPath}`);
+      console.log(`[SPA-FALLBACK] Current working directory: ${process.cwd()}`);
+      console.log(`[SPA-FALLBACK] File exists: ${fs.existsSync(indexPath)}`);
+      console.log(`[SPA-FALLBACK] File size: ${fs.existsSync(indexPath) ? fs.statSync(indexPath).size : 'N/A'}`);
       
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
@@ -1030,6 +1033,8 @@ async function startServer() {
       res.sendFile(indexPath, (err) => {
         if (err) {
           console.error(`[SPA-FALLBACK] ❌ Error serving index.html:`, err);
+          console.error(`[SPA-FALLBACK] ❌ Error code:`, (err as any).code);
+          console.error(`[SPA-FALLBACK] ❌ Error message:`, err.message);
           res.status(500).json({
             success: false,
             error: 'Failed to load application',
