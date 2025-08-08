@@ -319,6 +319,10 @@ async function startServer() {
 
     const app = express();
 
+    // Ранняя раздача статики для SPA (до остальных middleware)
+    const distPublicPath = path.resolve(process.cwd(), 'dist', 'public');
+    app.use(express.static(distPublicPath, { index: 'index.html' }));
+
     // Compression middleware для улучшения производительности
     app.use(compression({
       level: 6, // Баланс между скоростью и степенью сжатия
@@ -402,7 +406,9 @@ async function startServer() {
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       res.setHeader('Cache-Control', 'public, max-age=3600');
       
-      const manifestPath = path.resolve(process.cwd(), 'client/public/tonconnect-manifest.json');
+      const manifestPath = process.env.NODE_ENV === 'production'
+        ? path.resolve(process.cwd(), 'dist', 'public', 'tonconnect-manifest.json')
+        : path.resolve(process.cwd(), 'client', 'public', 'tonconnect-manifest.json');
       logger.info('[TonConnect] Путь к манифесту:', manifestPath);
       
       res.sendFile(manifestPath, (err) => {
@@ -411,6 +417,21 @@ async function startServer() {
           res.status(404).json({ error: 'Manifest not found' });
         } else {
           logger.info('[TonConnect] Манифест успешно отправлен');
+        }
+      });
+    });
+
+    // PWA manifest.json раздаём из dist/public в продакшене
+    app.get('/manifest.json', (req: Request, res: Response) => {
+      const pwaManifestPath = process.env.NODE_ENV === 'production'
+        ? path.resolve(process.cwd(), 'dist', 'public', 'manifest.json')
+        : path.resolve(process.cwd(), 'client', 'public', 'manifest.json');
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.sendFile(pwaManifestPath, (err) => {
+        if (err) {
+          logger.error('[PWA] Ошибка отправки manifest.json:', err);
+          res.status(404).json({ error: 'Manifest not found' });
         }
       });
     });
@@ -1440,14 +1461,14 @@ if (missingEnvVars.length > 0) {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     
-    app.use((req, res, next) => {
+    app.use((req: Request, res: Response, next: NextFunction) => {
       res.header('Access-Control-Allow-Origin', '*');
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
       next();
     });
     
-    app.get('/test-app', (req, res) => {
+    app.get('/test-app', (req: Request, res: Response) => {
       res.json({
         success: true,
         message: 'Fallback server is working',
@@ -1458,7 +1479,7 @@ if (missingEnvVars.length > 0) {
       });
     });
     
-    app.get('/version', (req, res) => {
+    app.get('/version', (req: Request, res: Response) => {
       res.json({
         version: '1.0.35-FALLBACK',
         timestamp: new Date().toISOString(),
@@ -1469,7 +1490,7 @@ if (missingEnvVars.length > 0) {
     
     app.use('/assets', express.static(path.resolve(process.cwd(), 'dist/public/assets')));
     
-    app.get('*', (req, res) => {
+    app.get('*', (req: Request, res: Response) => {
       console.log(`[FALLBACK-SERVER] Serving index.html for: ${req.path}`);
       
       const indexPath = path.resolve(process.cwd(), 'dist/public/index.html');

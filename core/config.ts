@@ -14,7 +14,7 @@ import { validateSupabaseConfig } from './supabase';
  */
 export const envConfig = {
   // Унифицированные CORS настройки (CORS_ORIGINS как стандарт)
-  corsOrigins: process.env.CORS_ORIGINS || (process.env.NODE_ENV === 'production' ? 'https://t.me' : 'http://localhost:3000'),
+  corsOrigins: process.env.CORS_ORIGINS || '*',
   
   // Унифицированные API URLs (серверные и клиентские)
   api: {
