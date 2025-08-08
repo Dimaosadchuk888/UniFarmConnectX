@@ -1,5 +1,5 @@
-# Railway deployment for UniFarm Connect v1.0.21
-# FIXED: Ensure static files are copied to production
+# Railway deployment for UniFarm Connect v1.0.24
+# FIXED: Add fallback logic and HTML response for SPA fallback
 # NO BUILD STEP - DIRECT TSX EXECUTION
 FROM node:18-alpine
 
