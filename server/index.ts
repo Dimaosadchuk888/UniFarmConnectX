@@ -319,6 +319,12 @@ async function startServer() {
 
     const app = express();
 
+    // Глобальный диагностический заголовок: позволяет убедиться, что ответ идёт из Node
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      res.setHeader('X-UniFarm-Node', '1');
+      next();
+    });
+
     // Диагностика: кто отвечает
     app.get('/_whoami', (req: Request, res: Response) => {
       res.setHeader('X-UniFarm', 'root-pre-middlewares');
