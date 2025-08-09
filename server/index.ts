@@ -349,6 +349,14 @@ async function startServer() {
       });
     });
 
+    // HEAD для корня — без тела, чтобы не падать
+    app.head('/', (req: Request, res: Response) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.status(200).end();
+    });
+
     // Compression middleware для улучшения производительности
     app.use(compression({
       level: 6, // Баланс между скоростью и степенью сжатия
@@ -1151,6 +1159,24 @@ async function startServer() {
           console.log(`[SPA-FALLBACK] ✅ Successfully served index.html for ${req.path}`);
         }
       });
+    });
+
+    // HEAD для SPA путей (не /api/*): отвечаем 200
+    app.head('*', (req: Request, res: Response) => {
+      if (
+        req.path.startsWith('/api/') ||
+        req.path.startsWith('/assets/') ||
+        req.path.startsWith('/health') ||
+        req.path.startsWith('/test-') ||
+        req.path === '/webhook' ||
+        req.path === '/manifest.json' ||
+        req.path === '/tonconnect-manifest.json' ||
+        req.path === '/simple-test'
+      ) {
+        res.status(404).end();
+        return;
+      }
+      res.status(200).end();
     });
 
     // ДОПОЛНИТЕЛЬНЫЕ WEBHOOK МАРШРУТЫ для надежности
